@@ -1,0 +1,32 @@
+-- Phase 2: NML schema fields for Property, Building, Inventory
+-- Idempotent — safe to run on existing databases.
+BEGIN;
+
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS street_no TEXT NULL;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS street_name_en TEXT NULL;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS street_name_zh TEXT NULL;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS lot_number TEXT NULL;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS land_use TEXT NULL;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS ownership_type TEXT NULL;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS source_url TEXT NULL;
+ALTER TABLE properties ADD COLUMN IF NOT EXISTS last_verified_date DATE NULL;
+
+ALTER TABLE buildings ADD COLUMN IF NOT EXISTS year_built INTEGER NULL;
+ALTER TABLE buildings ADD COLUMN IF NOT EXISTS grade TEXT NULL;
+ALTER TABLE buildings ADD COLUMN IF NOT EXISTS mtr_station TEXT NULL;
+ALTER TABLE buildings ADD COLUMN IF NOT EXISTS walking_minutes INTEGER NULL;
+ALTER TABLE buildings ADD COLUMN IF NOT EXISTS facilities TEXT NULL;
+ALTER TABLE buildings ADD COLUMN IF NOT EXISTS green_certification TEXT NULL;
+
+ALTER TABLE inventory ADD COLUMN IF NOT EXISTS view_type TEXT NULL;
+ALTER TABLE inventory ADD COLUMN IF NOT EXISTS windows TEXT NULL;
+ALTER TABLE inventory ADD COLUMN IF NOT EXISTS rent_psf NUMERIC(14, 2) NULL;
+ALTER TABLE inventory ADD COLUMN IF NOT EXISTS management_fee NUMERIC(14, 2) NULL;
+ALTER TABLE inventory ADD COLUMN IF NOT EXISTS government_rates NUMERIC(14, 2) NULL;
+ALTER TABLE inventory ADD COLUMN IF NOT EXISTS deposit_months INTEGER NULL;
+ALTER TABLE inventory ADD COLUMN IF NOT EXISTS rent_free_period TEXT NULL;
+ALTER TABLE inventory ADD COLUMN IF NOT EXISTS contract_term_months INTEGER NULL;
+ALTER TABLE inventory ADD COLUMN IF NOT EXISTS commission_rate NUMERIC(6, 4) NULL;
+ALTER TABLE inventory ADD COLUMN IF NOT EXISTS source_file TEXT NULL;
+
+COMMIT;

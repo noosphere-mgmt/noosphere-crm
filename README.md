@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Noosphere Real Estate
 
-## Getting Started
+Internal brokerage CRM: **known supply** (property portfolio + offers), **companies/contacts**, **opportunities**, import, matching, and (future) proposals.
 
-First, run the development server:
+Not a Hong Kong-wide property database. See **[docs/product-direction.md](docs/product-direction.md)** for objectives, module fields, UI philosophy, and development priority.
+
+- **Stack:** Next.js 16, PostgreSQL, raw SQL via `pg`
+- **Database env:** `NOOSPHERE_DATABASE_URL` (separate from Office Directory)
+- **Port:** 3001 (Office Directory uses 3000)
+
+## Local setup
 
 ```bash
+cp .env.example .env.local
+# Edit NOOSPHERE_DATABASE_URL and optionally ADMIN_TOKEN
+
+npm run db:migrate
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3001/admin — dev login token defaults to `dev-admin`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**Docs:** [Product direction](docs/product-direction.md) · [Company model](docs/company-model.md) · [Property classification](docs/property-classification.md) · [Glossary](docs/brokerage-model.md)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Scripts
 
-## Learn More
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Dev server on port 3001 |
+| `npm run build` | Production build |
+| `npm run start` | Production server on port 3001 |
+| `npm run db:migrate` | Apply `scripts/schema.sql` |
+| `npm run typecheck` | TypeScript check |
 
-To learn more about Next.js, take a look at the following resources:
+## Health
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+`GET /api/health` — reports DB connectivity.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deploy (VPS)
 
-## Deploy on Vercel
+```bash
+bash scripts/deploy-production.sh
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+PM2 process name: `noosphere-realestate`, port **3001**.

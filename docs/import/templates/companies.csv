@@ -1,0 +1,2 @@
+external_ref,Company name,Company name (ZH),Roles,Website,Phone,Email,Industry,Source,Relationship strength,Active,Source system,Source file,Source date
+CO-001,Amgen Hong Kong,,Client,https://amgen.com,+852 1234 5678,info@amgen.com,Pharma,Referral,warm,true,crm_export,companies_june.csv,2026-06-01
