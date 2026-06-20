@@ -6,8 +6,13 @@ import {
   isEntityType,
 } from "@/lib/entityRelationships";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
-import { companyExists, contactExists, parseOptionalInt } from "../fkValidation";
 import { buildNaturalKeyParts } from "../matchRecord";
+import {
+  mergeReferenceResults,
+  resolveContactReference,
+  resolveLegacyCompanyReference,
+  resolveOpportunityReference,
+} from "../referenceResolution";
 import type { ImportObjectDefinition } from "../objectRegistry";
 import type { ExistingRecord } from "../types";
 
@@ -40,12 +45,6 @@ const SELECT = `
 async function load(where: string, params: unknown[]): Promise<ExistingRecord[]> {
   const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM relationships WHERE ${where}`, params);
   return rows.map((row) => rowToRecord(row, String(row.relationship_id), FIELD_KEYS));
-}
-
-async function entityExists(type: string, id: string): Promise<boolean> {
-  if (!isEntityType(type)) return false;
-  if (type === "company") return companyExists(Number.parseInt(id, 10));
-  return contactExists(Number.parseInt(id, 10));
 }
 
 export const relationshipsImportDefinition: ImportObjectDefinition = {
@@ -97,23 +96,37 @@ export const relationshipsImportDefinition: ImportObjectDefinition = {
     );
   },
 
-  async validateReferences(values, suppliedFields, existing) {
+  async validateReferences(values, suppliedFields, existing, writable) {
     const errors: string[] = [];
     const fromType = String(values.from_entity_type ?? existing?.values.from_entity_type ?? "");
-    const fromId = String(values.from_entity_id ?? existing?.values.from_entity_id ?? "");
+    const fromId = String(values.from_entity_id ?? existing?.values.from_entity_id ?? writable.from_entity_id ?? "");
     const toType = String(values.to_entity_type ?? existing?.values.to_entity_type ?? "");
-    const toId = String(values.to_entity_id ?? existing?.values.to_entity_id ?? "");
-    if (fromType && fromId && !(await entityExists(fromType, fromId))) {
-      errors.push(`from_entity ${fromType} ${fromId} not found`);
+    const toId = String(values.to_entity_id ?? existing?.values.to_entity_id ?? writable.to_entity_id ?? "");
+
+    const results = [];
+    if (fromType && fromId) {
+      if (fromType === "company") {
+        results.push(await resolveLegacyCompanyReference("from_entity_id", fromId, true));
+      } else if (fromType === "contact") {
+        results.push(await resolveContactReference("from_entity_id", fromId, true));
+      }
     }
-    if (toType && toId && !(await entityExists(toType, toId))) {
-      errors.push(`to_entity ${toType} ${toId} not found`);
+    if (toType && toId) {
+      if (toType === "company") {
+        results.push(await resolveLegacyCompanyReference("to_entity_id", toId, true));
+      } else if (toType === "contact") {
+        results.push(await resolveContactReference("to_entity_id", toId, true));
+      }
     }
+
     const relType = String(values.relationship_type ?? existing?.values.relationship_type ?? "");
     if (relType && !isCreationRelationshipType(relType)) {
       errors.push(`relationship_type must be Refers or Represents (reverse rows are auto-created)`);
     }
-    return errors;
+
+    const merged = mergeReferenceResults(...results);
+    merged.errors.push(...errors);
+    return merged;
   },
 
   async createRecord(values, ctx) {

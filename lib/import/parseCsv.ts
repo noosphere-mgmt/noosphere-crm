@@ -1,8 +1,11 @@
 /**
  * Minimal UTF-8 CSV parser (quoted fields, comma-separated).
+ * Accepts UTF-8 with or without BOM.
  */
+import { stripCsvBom } from "@/lib/csvEncoding";
+
 export function parseCsv(text: string): { headers: string[]; rows: Record<string, string>[] } {
-  const lines = splitCsvLines(text.replace(/^\uFEFF/, ""));
+  const lines = splitCsvLines(stripCsvBom(text));
   if (lines.length === 0) return { headers: [], rows: [] };
 
   const headers = parseCsvLine(lines[0]!).map((h) => h.trim());

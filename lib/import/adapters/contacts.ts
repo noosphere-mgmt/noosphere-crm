@@ -1,9 +1,10 @@
 import { query } from "@/lib/db";
+import { sqlContactDisplayName } from "@/lib/contactName";
 import { COMPANY_ROLES, COMPANY_ROLE_LABELS } from "@/lib/lookups";
 import type { CompanyRole } from "@/lib/types/entities";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
-import { companyExists, validateFk } from "../fkValidation";
 import { buildNaturalKeyParts } from "../matchRecord";
+import { mergeReferenceResults, resolveLegacyCompanyReference } from "../referenceResolution";
 import type { ImportObjectDefinition } from "../objectRegistry";
 import type { ExistingRecord } from "../types";
 
@@ -124,21 +125,18 @@ export const contactsImportDefinition: ImportObjectDefinition = {
     const [name, companyId] = key.split("|");
     const rows = await query<{ id: string }>(
       `SELECT id::text FROM contacts
-       WHERE lower(trim(coalesce(display_name, contact_name))) = $1 AND company_id = $2`,
+       WHERE lower(trim(${sqlContactDisplayName()})) = $1 AND company_id = $2`,
       [name, Number.parseInt(companyId, 10)],
     );
     if (rows.length === 0) return [];
     return load(`id = ANY($1::bigint[])`, [rows.map((r) => Number.parseInt(r.id, 10))]);
   },
 
-  async validateReferences(values, suppliedFields, existing) {
-    const errors: string[] = [];
-    const companyId = suppliedFields.has("company_id")
+  async validateReferences(values, suppliedFields, existing, writable) {
+    const companyRaw = suppliedFields.has("company_id")
       ? values.company_id
-      : existing?.values.company_id;
-    const err = await validateFk("company_id", companyId, companyExists);
-    if (err) errors.push(err);
-    return errors;
+      : existing?.values.company_id ?? writable.company_id;
+    return resolveLegacyCompanyReference("company_id", companyRaw, true);
   },
 
   async createRecord(values, ctx) {

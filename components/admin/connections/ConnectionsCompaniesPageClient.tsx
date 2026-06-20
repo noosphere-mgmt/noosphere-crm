@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CompanyDrawer } from "@/components/admin/connections/CompanyDrawer";
 import { ConnectionsCompaniesListClient } from "@/components/admin/connections/ConnectionsCompaniesListClient";
-import { ConnectionsCompaniesListHeader } from "@/components/admin/connections/ConnectionsCompaniesListHeader";
 import { ConnectionsListSelectionProvider } from "@/components/admin/connections/ConnectionsListSelectionContext";
 import { ModuleListingExportProvider } from "@/components/admin/ModuleListingExportContext";
 import { DrawerLoadError } from "@/components/admin/connections/DrawerLoadError";
@@ -53,24 +52,23 @@ export function ConnectionsCompaniesPageClient({
   return (
     <ConnectionsListSelectionProvider>
       <ModuleListingExportProvider>
-        <ConnectionsCompaniesListHeader rows={rows} />
         <ConnectionsCompaniesListClient rows={rows} />
-      <CompanyDrawer
-        data={drawerData}
-        onClose={closeDrawer}
-        initialEditHighlight={searchParams.get("mode") === "edit"}
-        fullEdit={searchParams.get("mode") === "full"}
-      />
-      {openId && !drawerData ? (
-        <DrawerLoadError
-          label="company"
-          message={
-            drawerError ??
-            "This company could not be loaded. It may have been deleted, or the database may need migration (run npm run db:migrate)."
-          }
+        <CompanyDrawer
+          data={drawerData}
           onClose={closeDrawer}
+          initialEditHighlight={searchParams.get("mode") === "edit"}
+          fullEdit={searchParams.get("mode") === "full"}
         />
-      ) : null}
+        {openId && !drawerData ? (
+          <DrawerLoadError
+            label="company"
+            message={
+              drawerError ??
+              "This company could not be loaded. It may have been deleted, or the database may need migration (run npm run db:migrate)."
+            }
+            onClose={closeDrawer}
+          />
+        ) : null}
       </ModuleListingExportProvider>
     </ConnectionsListSelectionProvider>
   );

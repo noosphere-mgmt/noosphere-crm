@@ -3,8 +3,6 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { OpportunitiesListClient } from "@/components/admin/opportunities/OpportunitiesListClient";
-import { OpportunitiesListHeader } from "@/components/admin/opportunities/OpportunitiesListHeader";
-import { OpportunitiesKpiStrip } from "@/components/admin/opportunities/OpportunitiesKpiStrip";
 import { OpportunityDrawer } from "@/components/admin/opportunities/OpportunityDrawer";
 import { OpportunityFormDrawer } from "@/components/admin/opportunities/OpportunityFormDrawer";
 import { OpportunitiesListSelectionProvider } from "@/components/admin/opportunities/OpportunitiesListSelectionContext";
@@ -17,10 +15,9 @@ import {
 import type { OpportunityDrawerData } from "@/lib/repos/opportunitiesDrawer";
 import type { ContactOption } from "@/lib/repos/contacts";
 import type { Opportunity } from "@/lib/types/entities";
+import type { OpportunitiesDashboardStage } from "@/lib/opportunitiesList";
 
 type CompanyOption = { id: number; company_name: string };
-
-import type { OpportunitiesDashboardStage } from "@/lib/opportunitiesList";
 
 export function OpportunitiesPageClient({
   rows,
@@ -83,23 +80,22 @@ export function OpportunitiesPageClient({
   return (
     <OpportunitiesListSelectionProvider>
       <ModuleListingExportProvider>
-        <OpportunitiesListHeader rows={rows} onNewOpportunity={openCreateDrawer} />
-        <OpportunitiesKpiStrip rows={rows} />
         <OpportunitiesListClient
-        rows={rows}
-        onQuickView={openQuickView}
-        initialStatus={initialStatus}
-        initialStage={initialStage}
-      />
-      <OpportunityDrawer data={drawerData} onClose={closeDrawer} />
-      <OpportunityFormDrawer
-        open={createOpen}
-        onClose={closeCreateDrawer}
-        companies={companies}
-        contacts={contacts}
-        fixedCompanyId={Number.isFinite(fixedCompanyId) ? fixedCompanyId : undefined}
-        returnTo={returnTo}
-      />
+          rows={rows}
+          onQuickView={openQuickView}
+          onNewOpportunity={openCreateDrawer}
+          initialStatus={initialStatus}
+          initialStage={initialStage}
+        />
+        <OpportunityDrawer data={drawerData} onClose={closeDrawer} />
+        <OpportunityFormDrawer
+          open={createOpen}
+          onClose={closeCreateDrawer}
+          companies={companies}
+          contacts={contacts}
+          fixedCompanyId={Number.isFinite(fixedCompanyId) ? fixedCompanyId : undefined}
+          returnTo={returnTo}
+        />
       </ModuleListingExportProvider>
     </OpportunitiesListSelectionProvider>
   );

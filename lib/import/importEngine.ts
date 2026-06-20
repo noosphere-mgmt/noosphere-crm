@@ -105,10 +105,13 @@ async function processRow(
     const existing = match.kind === "found" ? match.record : null;
     const patch = computePatch(def, values, suppliedFields, existing);
 
+    let refWarnings: string[] = [];
     if (def.validateReferences) {
-      const fkErrors = await def.validateReferences(values, suppliedFields, existing);
-      if (fkErrors.length > 0) {
-        const msg = fkErrors.join("; ");
+      const refResult = await def.validateReferences(values, suppliedFields, existing, patch.writable);
+      Object.assign(patch.writable, refResult.writablePatches);
+      refWarnings = refResult.warnings;
+      if (refResult.errors.length > 0) {
+        const msg = refResult.errors.join("; ");
         if (opts.mode === "commit" && opts.skipErrors) {
           return rowResult(rowNumber, "skipped", rawRow, { error_message: msg });
         }
@@ -153,6 +156,7 @@ async function processRow(
       ...idPreview,
       field_changes: patch.changes,
       changes_summary: summarizeChanges(patch.changes),
+      warning_message: refWarnings.length > 0 ? refWarnings.join("; ") : null,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -179,6 +183,7 @@ function rowResult(
     candidate_ids: null,
     candidate_record_ids: null,
     error_message: null,
+    warning_message: null,
     field_changes: null,
     changes_summary: null,
     ...extra,

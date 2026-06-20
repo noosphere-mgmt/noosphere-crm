@@ -1,4 +1,5 @@
 import { query } from "@/lib/db";
+import { formatImportRowNotes } from "@/lib/import/rowNotes";
 import type { ImportObjectType, ImportPreviewRow, ImportPreviewSummary } from "@/lib/import/types";
 
 export type ImportRun = {
@@ -88,6 +89,7 @@ export async function insertImportRunRows(
   rows: ImportPreviewRow[],
 ): Promise<void> {
   for (const row of rows) {
+    const notes = formatImportRowNotes(row.error_message, row.warning_message);
     await query(
       `INSERT INTO import_run_rows (
          import_run_id, row_number, action, match_method, matched_id, matched_record_id,
@@ -101,7 +103,7 @@ export async function insertImportRunRows(
         row.matched_id,
         row.matched_record_id,
         row.candidate_ids,
-        row.error_message,
+        notes === "—" ? null : notes,
         row.field_changes ? JSON.stringify(row.field_changes) : null,
         JSON.stringify(row.raw_row),
       ],

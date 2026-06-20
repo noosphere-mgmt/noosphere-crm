@@ -2,6 +2,10 @@ import { query } from "@/lib/db";
 import { allocatePropertyV1Id } from "@/lib/repos/propertiesV1";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
 import { buildNaturalKeyParts } from "../matchRecord";
+import {
+  mergeReferenceResults,
+  resolveCompanyV1Reference,
+} from "../referenceResolution";
 import type { ImportObjectDefinition } from "../objectRegistry";
 import type { ExistingRecord, ImportWriteContext, RecordId } from "../types";
 
@@ -161,16 +165,15 @@ export const buildingsImportDefinition: ImportObjectDefinition = {
     return load(`property_id = ANY($1::text[])`, [rows.map((r) => r.property_id)]);
   },
 
-  async validateReferences(values, suppliedFields) {
-    const errors: string[] = [];
-    if (suppliedFields.has("management_company_id") && values.management_company_id) {
-      const exists = await query(
-        `SELECT 1 FROM companies_v1 WHERE company_id = $1 LIMIT 1`,
-        [String(values.management_company_id).trim()],
-      );
-      if (exists.length === 0) errors.push(`management_company_id ${values.management_company_id} not found`);
+  async validateReferences(values, suppliedFields, _existing, writable) {
+    if (!suppliedFields.has("management_company_id") && !("management_company_id" in writable)) {
+      return mergeReferenceResults();
     }
-    return errors;
+    return resolveCompanyV1Reference(
+      "management_company_id",
+      values.management_company_id ?? writable.management_company_id,
+      false,
+    );
   },
 
   async createRecord(values, ctx) {

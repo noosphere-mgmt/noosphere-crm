@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ConnectionsContactsListClient } from "@/components/admin/connections/ConnectionsContactsListClient";
-import { ConnectionsContactsListHeader } from "@/components/admin/connections/ConnectionsContactsListHeader";
 import { ContactDrawer } from "@/components/admin/connections/ContactDrawer";
 import { ContactFormDrawer } from "@/components/admin/connections/ContactFormDrawer";
 import { ConnectionsListSelectionProvider } from "@/components/admin/connections/ConnectionsListSelectionContext";
@@ -87,34 +86,34 @@ export function ConnectionsContactsPageClient({
   return (
     <ConnectionsListSelectionProvider>
       <ModuleListingExportProvider>
-        <ConnectionsContactsListHeader rows={rows} onNewContact={openCreateDrawer} />
         <ConnectionsContactsListClient
           rows={rows}
           onOpenContact={openContact}
           onOpenCompany={openCompany}
+          onNewContact={openCreateDrawer}
         />
-      <ContactDrawer
-        data={drawerData}
-        onClose={closeDrawer}
-        initialEditHighlight={searchParams.get("mode") === "edit"}
-      />
-      {openId && !drawerData ? (
-        <DrawerLoadError
-          label="contact"
-          message={
-            drawerError ??
-            "This contact could not be loaded. It may have been deleted, or the database may need migration (run npm run db:migrate)."
-          }
+        <ContactDrawer
+          data={drawerData}
           onClose={closeDrawer}
+          initialEditHighlight={searchParams.get("mode") === "edit"}
         />
-      ) : null}
-      <ContactFormDrawer
-        open={createOpen}
-        onClose={closeCreateDrawer}
-        companies={companies}
-        fixedCompanyId={Number.isFinite(fixedCompanyId) ? fixedCompanyId : undefined}
-        returnTo="/admin/contacts"
-      />
+        {openId && !drawerData ? (
+          <DrawerLoadError
+            label="contact"
+            message={
+              drawerError ??
+              "This contact could not be loaded. It may have been deleted, or the database may need migration (run npm run db:migrate)."
+            }
+            onClose={closeDrawer}
+          />
+        ) : null}
+        <ContactFormDrawer
+          open={createOpen}
+          onClose={closeCreateDrawer}
+          companies={companies}
+          fixedCompanyId={Number.isFinite(fixedCompanyId) ? fixedCompanyId : undefined}
+          returnTo="/admin/contacts"
+        />
       </ModuleListingExportProvider>
     </ConnectionsListSelectionProvider>
   );

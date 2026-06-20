@@ -54,7 +54,7 @@ export function EntityActivitiesTab({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <button type="button" onClick={() => openCreate()} className={theme.primaryButton}>
-          + New activity
+          New
         </button>
         {newActivityHref ? (
           <Link href={newActivityHref} className={`text-sm ${theme.link}`}>

@@ -1,7 +1,12 @@
 import { query } from "@/lib/db";
 import { genericUpdateRecord, rowToRecord } from "../adapterUtils";
-import { companyExists, contactExists, opportunityExists, validateFk } from "../fkValidation";
 import { buildNaturalKeyParts } from "../matchRecord";
+import {
+  mergeReferenceResults,
+  resolveContactReference,
+  resolveLegacyCompanyReference,
+  resolveOpportunityReference,
+} from "../referenceResolution";
 import type { ImportObjectDefinition } from "../objectRegistry";
 import type { ExistingRecord } from "../types";
 
@@ -83,20 +88,30 @@ export const opportunityPartiesImportDefinition: ImportObjectDefinition = {
     );
   },
 
-  async validateReferences(values, suppliedFields, existing) {
-    const errors: string[] = [];
-    const oppId = suppliedFields.has("opportunity_id") ? values.opportunity_id : existing?.values.opportunity_id;
-    const errOpp = await validateFk("opportunity_id", oppId, opportunityExists);
-    if (errOpp) errors.push(errOpp);
-    if (suppliedFields.has("company_id")) {
-      const err = await validateFk("company_id", values.company_id, companyExists);
-      if (err) errors.push(err);
+  async validateReferences(values, suppliedFields, existing, writable) {
+    const oppId = suppliedFields.has("opportunity_id")
+      ? values.opportunity_id
+      : existing?.values.opportunity_id ?? writable.opportunity_id;
+    const results = [await resolveOpportunityReference("opportunity_id", oppId, true)];
+    if (suppliedFields.has("company_id") || "company_id" in writable) {
+      results.push(
+        await resolveLegacyCompanyReference(
+          "company_id",
+          values.company_id ?? writable.company_id,
+          false,
+        ),
+      );
     }
-    if (suppliedFields.has("contact_id")) {
-      const err = await validateFk("contact_id", values.contact_id, contactExists);
-      if (err) errors.push(err);
+    if (suppliedFields.has("contact_id") || "contact_id" in writable) {
+      results.push(
+        await resolveContactReference(
+          "contact_id",
+          values.contact_id ?? writable.contact_id,
+          false,
+        ),
+      );
     }
-    return errors;
+    return mergeReferenceResults(...results);
   },
 
   async createRecord(values) {

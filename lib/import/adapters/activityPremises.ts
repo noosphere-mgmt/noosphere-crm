@@ -1,7 +1,11 @@
 import { query } from "@/lib/db";
 import { rowToRecord } from "../adapterUtils";
-import { activityExists, premisesExists, validateFkText } from "../fkValidation";
 import { buildNaturalKeyParts } from "../matchRecord";
+import {
+  mergeReferenceResults,
+  resolveActivityReference,
+  resolvePremisesReference,
+} from "../referenceResolution";
 import type { ImportObjectDefinition } from "../objectRegistry";
 import type { ExistingRecord } from "../types";
 
@@ -57,19 +61,17 @@ export const activityPremisesImportDefinition: ImportObjectDefinition = {
     return load("activity_id = $1 AND premises_id = $2", [activityId, premisesId]);
   },
 
-  async validateReferences(values, suppliedFields, existing) {
-    const errors: string[] = [];
-    const activityId = suppliedFields.has("activity_id") ? values.activity_id : existing?.values.activity_id;
-    const premisesId = suppliedFields.has("premises_id") ? values.premises_id : existing?.values.premises_id;
-    if (activityId) {
-      const exists = await activityExists(String(activityId));
-      if (!exists) errors.push(`activity_id ${activityId} not found`);
-    }
-    if (premisesId) {
-      const err = await validateFkText("premises_id", premisesId, premisesExists);
-      if (err) errors.push(err);
-    }
-    return errors;
+  async validateReferences(values, suppliedFields, existing, writable) {
+    const activityId = suppliedFields.has("activity_id")
+      ? values.activity_id
+      : existing?.values.activity_id ?? writable.activity_id;
+    const premisesId = suppliedFields.has("premises_id")
+      ? values.premises_id
+      : existing?.values.premises_id ?? writable.premises_id;
+    return mergeReferenceResults(
+      await resolveActivityReference("activity_id", activityId, true),
+      await resolvePremisesReference("premises_id", premisesId, true),
+    );
   },
 
   async createRecord(values) {

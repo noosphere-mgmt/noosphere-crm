@@ -104,7 +104,7 @@ export function PropertyDrawer({
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-5 sm:py-4">
           <Suspense fallback={<div className="h-48 animate-pulse rounded-xl bg-slate-100" />}>
             <PropertyV1DetailClient
               property={property}

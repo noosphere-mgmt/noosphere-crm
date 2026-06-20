@@ -23,7 +23,29 @@ export function MobileCard({
 }
 
 export function MobileCardList({ children }: { children: ReactNode }) {
-  return <div className="space-y-2 lg:hidden">{children}</div>;
+  return <div className="space-y-2">{children}</div>;
+}
+
+/** Compact card for phone dashboards and dense lists. */
+export function MobileCompactCard({
+  children,
+  onClick,
+  className = "",
+}: {
+  children: ReactNode;
+  onClick?: () => void;
+  className?: string;
+}) {
+  const base =
+    "w-full rounded-lg border border-slate-200 bg-white p-3 text-left shadow-sm transition active:bg-slate-50";
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={`${base} ${className}`}>
+        {children}
+      </button>
+    );
+  }
+  return <div className={`${base} ${className}`}>{children}</div>;
 }
 
 export function MobileCardMeta({ children }: { children: ReactNode }) {

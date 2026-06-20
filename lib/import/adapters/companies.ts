@@ -2,8 +2,8 @@ import { query } from "@/lib/db";
 import { COMPANY_ROLES, COMPANY_ROLE_LABELS } from "@/lib/lookups";
 import type { CompanyRole } from "@/lib/types/entities";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
-import { contactExists, validateFk } from "../fkValidation";
 import { buildNaturalKeyParts } from "../matchRecord";
+import { mergeReferenceResults, resolveContactReference } from "../referenceResolution";
 import type { ImportObjectDefinition } from "../objectRegistry";
 import type { ExistingRecord } from "../types";
 
@@ -131,13 +131,15 @@ export const companiesImportDefinition: ImportObjectDefinition = {
     return load(`id = ANY($1::bigint[])`, [rows.map((r) => Number.parseInt(r.id, 10))]);
   },
 
-  async validateReferences(values, suppliedFields) {
-    const errors: string[] = [];
-    if (suppliedFields.has("primary_contact_id")) {
-      const err = await validateFk("primary_contact_id", values.primary_contact_id, contactExists);
-      if (err) errors.push(err);
+  async validateReferences(values, suppliedFields, _existing, writable) {
+    if (!suppliedFields.has("primary_contact_id") && !("primary_contact_id" in writable)) {
+      return mergeReferenceResults();
     }
-    return errors;
+    return resolveContactReference(
+      "primary_contact_id",
+      values.primary_contact_id ?? writable.primary_contact_id,
+      false,
+    );
   },
 
   async createRecord(values, ctx) {

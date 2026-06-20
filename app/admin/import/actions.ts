@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 import { runImportEngine } from "@/lib/import/importEngine";
 import { getImportObjectDefinition } from "@/lib/import/objectRegistry";
 import { autoMapColumns, parseCsv } from "@/lib/import/parseCsv";
+import { readCsvFileAsUtf8 } from "@/lib/csvEncoding";
+import { resolveImportSessionMetadata } from "@/lib/import/sessionMetadata";
 import type { ImportObjectType } from "@/lib/import/types";
 import { IMPORT_OBJECT_TYPES } from "@/lib/import/types";
 import {
@@ -29,11 +31,6 @@ function parseObjectType(v: string): ImportObjectType | null {
   return IMPORT_OBJECT_TYPES.includes(v as ImportObjectType) ? (v as ImportObjectType) : null;
 }
 
-function parseOptionalString(v: FormDataEntryValue | null): string | null {
-  const s = String(v ?? "").trim();
-  return s || null;
-}
-
 export async function uploadImportAction(formData: FormData) {
   const objectType = parseObjectType(String(formData.get("object_type") ?? ""));
   if (!objectType) throw new Error("Invalid object type");
@@ -42,7 +39,7 @@ export async function uploadImportAction(formData: FormData) {
   if (!(file instanceof File)) throw new Error("CSV file is required");
   if (file.size > MAX_BYTES) throw new Error("File exceeds 5 MB limit");
 
-  const text = await file.text();
+  const text = await readCsvFileAsUtf8(file);
   const parsed = parseCsv(text);
   if (parsed.headers.length === 0) throw new Error("CSV has no headers");
   if (parsed.rows.length === 0) throw new Error("CSV has no data rows");
@@ -55,14 +52,16 @@ export async function uploadImportAction(formData: FormData) {
   );
 
   const sessionId = randomUUID();
+  const metadata = resolveImportSessionMetadata({ filename: file.name });
+
   await createImportSession({
     id: sessionId,
     object_type: objectType,
     filename: file.name,
     uploaded_by: UPLOADED_BY,
-    source_system: parseOptionalString(formData.get("source_system")),
-    source_file: parseOptionalString(formData.get("source_file")) ?? file.name,
-    source_date: parseOptionalString(formData.get("source_date")),
+    source_system: metadata.source_system,
+    source_file: metadata.source_file,
+    source_date: metadata.source_date,
     csv_headers: parsed.headers,
     column_mapping: columnMapping,
     parsed_rows: parsed.rows,
@@ -84,16 +83,19 @@ export async function saveMappingAndPreviewAction(sessionId: string, formData: F
 
   await updateSessionMapping(sessionId, mapping);
 
+  const metadata = resolveImportSessionMetadata({
+    source_system: session.source_system,
+    source_file: session.source_file,
+    source_date: session.source_date,
+    filename: session.filename,
+  });
+
   const result = await runImportEngine({
     objectType: session.object_type,
     parsed: { headers: session.csv_headers, rows: session.parsed_rows },
     columnMapping: mapping,
     mode: "dry_run",
-    sessionMetadata: {
-      source_system: session.source_system,
-      source_file: session.source_file,
-      source_date: session.source_date,
-    },
+    sessionMetadata: metadata,
   });
 
   await saveSessionPreview(sessionId, result.summary, result.rows);
@@ -109,14 +111,21 @@ export async function confirmImportAction(sessionId: string, formData: FormData)
   const skipErrors = formData.get("skip_errors") === "on";
   const mapping = session.column_mapping;
 
+  const metadata = resolveImportSessionMetadata({
+    source_system: session.source_system,
+    source_file: session.source_file,
+    source_date: session.source_date,
+    filename: session.filename,
+  });
+
   const importRunId = await createImportRun({
     sessionId,
     objectType: session.object_type,
     filename: session.filename,
     uploadedBy: session.uploaded_by,
-    sourceSystem: session.source_system,
-    sourceFile: session.source_file,
-    sourceDate: session.source_date,
+    sourceSystem: metadata.source_system,
+    sourceFile: metadata.source_file,
+    sourceDate: metadata.source_date,
     columnMapping: mapping,
     summary: session.preview_summary,
   });
@@ -128,11 +137,7 @@ export async function confirmImportAction(sessionId: string, formData: FormData)
     mode: "commit",
     importRunId,
     skipErrors,
-    sessionMetadata: {
-      source_system: session.source_system,
-      source_file: session.source_file,
-      source_date: session.source_date,
-    },
+    sessionMetadata: metadata,
   });
 
   await insertImportRunRows(importRunId, result.rows);

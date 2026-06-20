@@ -2,6 +2,7 @@ import "./ensure-env";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { query } from "../lib/db";
+import { verifyBuildingsPageSchema } from "./migrate-post-verify";
 
 async function readSql(name: string): Promise<string> {
   return readFile(path.join(__dirname, name), "utf8");
@@ -21,6 +22,14 @@ async function main(): Promise<void> {
 
   await query(schema);
   console.log("Schema apply finished.");
+
+  const migratePhase9a = await readSql("schema-migrate-phase9a-properties.sql");
+  await query(migratePhase9a);
+  console.log("Phase 9a properties table applied.");
+
+  const migratePhase9c = await readSql("schema-migrate-phase9c-property-view-fields.sql");
+  await query(migratePhase9c);
+  console.log("Phase 9c property view fields applied.");
 
   await query(migratePhase2);
   console.log("Phase 2 schema fields applied.");
@@ -49,13 +58,33 @@ async function main(): Promise<void> {
   await query(migratePhase8);
   console.log("Phase 8 inventory company links applied.");
 
-  const migratePhase9a = await readSql("schema-migrate-phase9a-properties.sql");
-  await query(migratePhase9a);
-  console.log("Phase 9a properties table applied.");
+  const migratePhase10 = await readSql("schema-migrate-phase10-v1.sql");
+  await query(migratePhase10);
+  console.log("Phase 10 v1 properties module applied.");
 
-  const migratePhase9c = await readSql("schema-migrate-phase9c-property-view-fields.sql");
-  await query(migratePhase9c);
-  console.log("Phase 9c property view fields applied.");
+  const migratePhase10b = await readSql("schema-migrate-phase10b-property-building-fields.sql");
+  await query(migratePhase10b);
+  console.log("Phase 10b property building fields applied.");
+
+  const migratePhase10c = await readSql("schema-migrate-phase10c-property-company-links.sql");
+  await query(migratePhase10c);
+  console.log("Phase 10c property company links applied.");
+
+  const migratePhase31Early = await readSql("schema-migrate-phase31-buildings-module-reconciliation.sql");
+  await query(migratePhase31Early);
+  console.log("Phase 31 (early) buildings module reconciliation applied.");
+
+  const migratePhase10d = await readSql("schema-migrate-phase10d-premises-fields.sql");
+  await query(migratePhase10d);
+  console.log("Phase 10d premises fields applied.");
+
+  const migratePhase10e = await readSql("schema-migrate-phase10e-premises-commercial.sql");
+  await query(migratePhase10e);
+  console.log("Phase 10e premises commercial fields applied.");
+
+  const migratePhase10f = await readSql("schema-migrate-phase10f-premises-fit-out.sql");
+  await query(migratePhase10f);
+  console.log("Phase 10f premises fit-out applied.");
 
   const migratePhase11 = await readSql("schema-migrate-phase11-connections.sql");
   await query(migratePhase11);
@@ -124,6 +153,21 @@ async function main(): Promise<void> {
   const migratePhase27 = await readSql("schema-migrate-phase27-import-workbench.sql");
   await query(migratePhase27);
   console.log("Phase 27 import workbench expansion applied.");
+
+  const migratePhase29 = await readSql("schema-migrate-phase29-properties-module-schema-alignment.sql");
+  await query(migratePhase29);
+  console.log("Phase 29 properties module schema alignment applied.");
+
+  const migratePhase31 = await readSql("schema-migrate-phase31-buildings-module-reconciliation.sql");
+  await query(migratePhase31);
+  console.log("Phase 31 buildings module reconciliation applied.");
+
+  const migratePhase32 = await readSql("schema-migrate-phase32-import-export-schema-alignment.sql");
+  await query(migratePhase32);
+  console.log("Phase 32 import/export schema alignment applied.");
+
+  await verifyBuildingsPageSchema();
+  console.log("Post-migrate Buildings page schema verification passed.");
 
   console.log("Database migration completed.");
 }

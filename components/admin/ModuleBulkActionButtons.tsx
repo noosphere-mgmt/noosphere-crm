@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useTransition } from "react";
 import { IconCopy, IconExport, IconTrash } from "@/components/admin/ModuleActionIcons";
 import { moduleActionButtonClass } from "@/components/admin/ModuleActionBar";
@@ -100,12 +99,6 @@ export function ModuleListingBulkActions({
       >
         Export filtered
       </button>
-      <Link
-        href={`/admin/import?objectType=${importObjectType}`}
-        className={`${theme.secondaryButton} whitespace-nowrap`}
-      >
-        Import
-      </Link>
     </div>
   );
 }

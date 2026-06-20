@@ -4,6 +4,11 @@ import { getContactLabel } from "@/lib/contactName";
 import type { ConnectionCompanyListRow } from "@/lib/connectionsDisplay";
 import type { CompanyRole, Contact } from "@/lib/types/entities";
 
+function formatContactRoles(roles: CompanyRole[] | null | undefined): string {
+  if (!roles?.length) return "";
+  return roles.map((r) => CONNECTION_COMPANY_ROLE_LABELS[r as keyof typeof CONNECTION_COMPANY_ROLE_LABELS] ?? r).join(", ");
+}
+
 export type ConnectionsQuickFilters = {
   country: string;
   city: string;
@@ -103,6 +108,7 @@ export function contactMatchesGlobalSearch(row: Contact, query: string): boolean
       row.company_country,
       row.company_city,
       formatCoverage(row.coverage),
+      formatContactRoles(row.contact_role),
       row.email,
       row.phone,
       row.notes,

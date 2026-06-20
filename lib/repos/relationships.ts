@@ -1,4 +1,5 @@
 import { query, withTransaction, type DbClient } from "@/lib/db";
+import { sqlContactDisplayName } from "@/lib/contactName";
 import {
   creationTypeToReverseType,
   entityIdString,
@@ -58,7 +59,7 @@ async function resolveEntityName(entityType: EntityType, entityId: string): Prom
   const id = Number.parseInt(entityId, 10);
   if (!Number.isFinite(id)) return entityId;
   const rows = await query<{ contact_name: string }>(
-    `SELECT COALESCE(display_name, contact_name) AS contact_name FROM contacts WHERE id = $1`,
+    `SELECT ${sqlContactDisplayName()} AS contact_name FROM contacts WHERE id = $1`,
     [id],
   );
   return rows[0]?.contact_name ?? `Contact #${entityId}`;
@@ -327,13 +328,13 @@ export async function searchRelationshipEntities(
   return query<RelationshipSearchHit>(
     `SELECT 'contact'::text AS entity_type,
             c.id::text AS entity_id,
-            COALESCE(c.display_name, c.contact_name) AS label,
+            ${sqlContactDisplayName("c")} AS label,
             co.company_name AS subtitle
      FROM contacts c
      JOIN companies co ON co.id = c.company_id
      WHERE c.is_active = TRUE
-       AND (COALESCE(c.display_name, c.contact_name) ILIKE $1 OR co.company_name ILIKE $1)
-     ORDER BY COALESCE(c.display_name, c.contact_name) ASC
+       AND (${sqlContactDisplayName("c")} ILIKE $1 OR co.company_name ILIKE $1)
+     ORDER BY ${sqlContactDisplayName("c")} ASC
      LIMIT $2`,
     [`%${term}%`, limit],
   );

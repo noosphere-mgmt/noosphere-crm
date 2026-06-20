@@ -40,6 +40,12 @@ export function getContactLabel(contact: {
   return contact.display_name?.trim() || contact.contact_name?.trim() || "—";
 }
 
+/** SQL: prefer display_name, else contact_name (casts avoid text/jsonb COALESCE errors). */
+export function sqlContactDisplayName(columnPrefix = ""): string {
+  const p = columnPrefix ? `${columnPrefix}.` : "";
+  return `COALESCE(${p}display_name::text, ${p}contact_name::text)`;
+}
+
 export function syncContactDerivedNames<T extends {
   first_name?: string | null;
   last_name?: string | null;

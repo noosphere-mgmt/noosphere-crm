@@ -28,7 +28,7 @@ export function AdminShell({
   return (
     <div className={`min-h-screen ${shellBg} pt-[env(safe-area-inset-top)]`}>
       <div
-        className={`mx-auto ${maxWidth} px-4 py-4 pb-[calc(4.5rem+env(safe-area-inset-bottom))] lg:px-4 lg:py-6 lg:pb-6`}
+      className={`mx-auto ${maxWidth} px-3 py-3 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:px-4 md:py-4 lg:px-4 lg:py-6 lg:pb-6`}
       >
         <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
           <aside className="hidden lg:sticky lg:block lg:top-6 lg:self-start">
@@ -44,7 +44,7 @@ export function AdminShell({
           </aside>
 
           <div className="min-w-0">
-            <div className="mb-4 lg:hidden">
+            <div className="mb-2 md:mb-4 lg:hidden">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Noosphere CRM</p>
             </div>
             {hideHeader ? null : (

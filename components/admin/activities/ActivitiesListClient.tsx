@@ -13,9 +13,9 @@ import { useSyncListingExportIds } from "@/components/admin/ModuleListingExportC
 import { useActivitiesListSelection } from "@/components/admin/activities/ActivitiesListSelectionContext";
 import { ListingRecordCount } from "@/components/admin/ListingRecordCount";
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
-import { IconX } from "@/components/admin/ModuleActionIcons";
 import { ModulePageHeader } from "@/components/admin/ModulePageHeader";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
+import { MobileFilterBar, MobileFilterField } from "@/components/admin/mobile/MobileFilterSheet";
 import {
   formatActivityDate,
   formatActivityNotesPreview,
@@ -44,9 +44,9 @@ export function ActivitiesListClient({
   const [filters, setFilters] = useState(EMPTY_ACTIVITIES_QUICK_FILTERS);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editing, setEditing] = useState<ActivityListRow | null>(null);
-  const [viewing, setViewing] = useState<ActivityListRow | null>(null);
   const [createDefaults, setCreateDefaults] = useState<ActivityFormDefaults | undefined>();
   const [pending, startTransition] = useTransition();
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
     if (!initialActivityId) return;
@@ -54,7 +54,7 @@ export function ActivitiesListClient({
     if (!row) return;
     setEditing(null);
     setCreateDefaults(undefined);
-    setViewing(row);
+    setEditing(row);
     setDrawerOpen(true);
   }, [initialActivityId, rows]);
 
@@ -133,6 +133,201 @@ export function ActivitiesListClient({
 
   const colSpan = 9;
 
+  const activeFilterCount = [
+    filters.activity_type,
+    filters.company_id,
+    filters.contact_id,
+    filters.opportunity_id,
+    filters.date_from,
+    filters.date_to,
+  ].filter(Boolean).length;
+
+  const filterPanel = (
+    <>
+      <MobileFilterField label="Type">
+        <select
+          value={filters.activity_type}
+          onChange={(e) => setFilters((f) => ({ ...f, activity_type: e.target.value }))}
+          className={`${theme.searchSelect} w-full md:min-w-[8.5rem]`}
+        >
+          <option value="">All types</option>
+          {ACTIVITY_TYPES.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </select>
+      </MobileFilterField>
+      <MobileFilterField label="Company">
+        <select
+          value={filters.company_id}
+          onChange={(e) => setFilters((f) => ({ ...f, company_id: e.target.value }))}
+          className={`${theme.searchSelect} w-full md:min-w-[8.5rem]`}
+        >
+          <option value="">All</option>
+          {companyOptions.map(([id, name]) => (
+            <option key={id} value={id}>
+              {name}
+            </option>
+          ))}
+        </select>
+      </MobileFilterField>
+      <MobileFilterField label="Contact">
+        <select
+          value={filters.contact_id}
+          onChange={(e) => setFilters((f) => ({ ...f, contact_id: e.target.value }))}
+          className={`${theme.searchSelect} w-full md:min-w-[8.5rem]`}
+        >
+          <option value="">All</option>
+          {contactOptions.map(([id, name]) => (
+            <option key={id} value={id}>
+              {name}
+            </option>
+          ))}
+        </select>
+      </MobileFilterField>
+      <MobileFilterField label="Opportunity">
+        <select
+          value={filters.opportunity_id}
+          onChange={(e) => setFilters((f) => ({ ...f, opportunity_id: e.target.value }))}
+          className={`${theme.searchSelect} w-full md:min-w-[8.5rem]`}
+        >
+          <option value="">All</option>
+          {opportunityOptions.map(([id, name]) => (
+            <option key={id} value={id}>
+              {name}
+            </option>
+          ))}
+        </select>
+      </MobileFilterField>
+      <MobileFilterField label="From">
+        <input
+          type="date"
+          value={filters.date_from}
+          onChange={(e) => setFilters((f) => ({ ...f, date_from: e.target.value }))}
+          className={theme.searchInput}
+        />
+      </MobileFilterField>
+      <MobileFilterField label="To">
+        <input
+          type="date"
+          value={filters.date_to}
+          onChange={(e) => setFilters((f) => ({ ...f, date_to: e.target.value }))}
+          className={theme.searchInput}
+        />
+      </MobileFilterField>
+    </>
+  );
+
+  const desktopFilterPanel = (
+    <div className="mt-2 rounded-md border border-slate-200 bg-white p-3 text-sm">
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <label className="block">
+          <span className="mb-1 block text-xs font-medium text-slate-500">Type</span>
+          <select
+            value={filters.activity_type}
+            onChange={(e) => setFilters((f) => ({ ...f, activity_type: e.target.value }))}
+            className={`${theme.searchSelect} w-full`}
+          >
+            <option value="">All types</option>
+            {ACTIVITY_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-xs font-medium text-slate-500">Company</span>
+          <select
+            value={filters.company_id}
+            onChange={(e) => setFilters((f) => ({ ...f, company_id: e.target.value }))}
+            className={`${theme.searchSelect} w-full`}
+          >
+            <option value="">All</option>
+            {companyOptions.map(([id, name]) => (
+              <option key={id} value={id}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-xs font-medium text-slate-500">Contact</span>
+          <select
+            value={filters.contact_id}
+            onChange={(e) => setFilters((f) => ({ ...f, contact_id: e.target.value }))}
+            className={`${theme.searchSelect} w-full`}
+          >
+            <option value="">All</option>
+            {contactOptions.map(([id, name]) => (
+              <option key={id} value={id}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-xs font-medium text-slate-500">Opportunity</span>
+          <select
+            value={filters.opportunity_id}
+            onChange={(e) => setFilters((f) => ({ ...f, opportunity_id: e.target.value }))}
+            className={`${theme.searchSelect} w-full`}
+          >
+            <option value="">All</option>
+            {opportunityOptions.map(([id, name]) => (
+              <option key={id} value={id}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-xs font-medium text-slate-500">From</span>
+          <input
+            type="date"
+            value={filters.date_from}
+            onChange={(e) => setFilters((f) => ({ ...f, date_from: e.target.value }))}
+            className={theme.searchInput}
+          />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-xs font-medium text-slate-500">To</span>
+          <input
+            type="date"
+            value={filters.date_to}
+            onChange={(e) => setFilters((f) => ({ ...f, date_to: e.target.value }))}
+            className={theme.searchInput}
+          />
+        </label>
+      </div>
+      <div className="mt-3 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setFiltersOpen(false)}
+          className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        >
+          Close
+        </button>
+        {activeFilterCount > 0 ? (
+          <button
+            type="button"
+            onClick={() => setFilters(EMPTY_ACTIVITIES_QUICK_FILTERS)}
+            className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
+          >
+            Reset
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+
+  function openNewActivity() {
+    setEditing(null);
+    setCreateDefaults(undefined);
+    setDrawerOpen(true);
+  }
+
   return (
     <>
       <ModulePageHeader
@@ -151,112 +346,70 @@ export function ActivitiesListClient({
               onCopy={onBulkCopy}
               copyTitle="Copy selected"
             />
-            <button
-              type="button"
-              className={theme.primaryButton}
-              onClick={() => {
-                setEditing(null);
-                setViewing(null);
-                setCreateDefaults(undefined);
-                setDrawerOpen(true);
-              }}
-            >
-              + New Activity
+            <button type="button" className={`${theme.primaryButton} hidden md:inline-flex`} onClick={openNewActivity}>
+              New
             </button>
           </>
         }
       />
 
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end">
-        <label className="block min-w-0 flex-1 text-sm">
-          <span className="mb-1 block text-xs text-slate-500">Search</span>
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Notes, type, company, contact, opportunity, premises…"
-            className={theme.searchInput}
+      <div className="mb-3">
+        <div className="md:hidden">
+          <MobileFilterBar
+            search={
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search notes, type, company, contact…"
+                aria-label="Search activities"
+                className={theme.searchInput}
+              />
+            }
+            activeFilterCount={activeFilterCount}
+            filtersOpen={filtersOpen}
+            onToggleFilters={() => setFiltersOpen((v) => !v)}
+            filterPanel={filterPanel}
+            showReset={activeFilterCount > 0}
+            onReset={() => setFilters(EMPTY_ACTIVITIES_QUICK_FILTERS)}
           />
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-xs text-slate-500">Type</span>
-          <select
-            value={filters.activity_type}
-            onChange={(e) => setFilters((f) => ({ ...f, activity_type: e.target.value }))}
-            className={theme.searchSelect}
-          >
-            <option value="">All types</option>
-            {ACTIVITY_TYPES.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-xs text-slate-500">Company</span>
-          <select
-            value={filters.company_id}
-            onChange={(e) => setFilters((f) => ({ ...f, company_id: e.target.value }))}
-            className={theme.searchSelect}
-          >
-            <option value="">All</option>
-            {companyOptions.map(([id, name]) => (
-              <option key={id} value={id}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-xs text-slate-500">Contact</span>
-          <select
-            value={filters.contact_id}
-            onChange={(e) => setFilters((f) => ({ ...f, contact_id: e.target.value }))}
-            className={theme.searchSelect}
-          >
-            <option value="">All</option>
-            {contactOptions.map(([id, name]) => (
-              <option key={id} value={id}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-xs text-slate-500">Opportunity</span>
-          <select
-            value={filters.opportunity_id}
-            onChange={(e) => setFilters((f) => ({ ...f, opportunity_id: e.target.value }))}
-            className={theme.searchSelect}
-          >
-            <option value="">All</option>
-            {opportunityOptions.map(([id, name]) => (
-              <option key={id} value={id}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-xs text-slate-500">From</span>
-          <input
-            type="date"
-            value={filters.date_from}
-            onChange={(e) => setFilters((f) => ({ ...f, date_from: e.target.value }))}
-            className={theme.searchInput}
-          />
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block text-xs text-slate-500">To</span>
-          <input
-            type="date"
-            value={filters.date_to}
-            onChange={(e) => setFilters((f) => ({ ...f, date_to: e.target.value }))}
-            className={theme.searchInput}
-          />
-        </label>
+        </div>
+
+        <div className="hidden md:block">
+          <div className="flex flex-wrap items-center gap-2 rounded-md border border-slate-200 bg-white px-2.5 py-2 text-sm">
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search notes, type, company, contact…"
+              aria-label="Search activities"
+              className={`${theme.searchInput} min-w-[16rem] flex-1`}
+            />
+            <button
+              type="button"
+              onClick={() => setFiltersOpen((v) => !v)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Filters
+              {activeFilterCount > 0 ? (
+                <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[11px] font-semibold text-white">
+                  {activeFilterCount}
+                </span>
+              ) : null}
+            </button>
+          </div>
+          {filtersOpen ? desktopFilterPanel : null}
+        </div>
       </div>
+
+      {/* Mobile floating quick-add */}
+      <button
+        type="button"
+        onClick={openNewActivity}
+        className="fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-4 z-20 rounded-full bg-amber-600 px-4 py-3 text-sm font-semibold text-white shadow-lg md:hidden"
+      >
+        +
+      </button>
 
       <ListingRecordCount
         filteredCount={displayedRows.length}
@@ -266,7 +419,7 @@ export function ActivitiesListClient({
       />
 
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <table className="min-w-full text-sm">
+        <table className="min-w-full text-xs md:text-sm">
           <thead className="bg-slate-50 text-left text-slate-600">
             <tr>
               <th className="w-10 px-3 py-1.5">
@@ -280,9 +433,7 @@ export function ActivitiesListClient({
               </th>
               <th className="px-3 py-1.5 font-medium">Date</th>
               <th className="px-3 py-1.5 font-medium">Type</th>
-              <th className="px-3 py-1.5 font-medium">Company</th>
-              <th className="px-3 py-1.5 font-medium">Contact</th>
-              <th className="px-3 py-1.5 font-medium">Opportunity</th>
+              <th className="px-3 py-1.5 font-medium">Company / Contact</th>
               <th className="px-3 py-1.5 font-medium">Premises</th>
               <th className="min-w-[12rem] px-3 py-1.5 font-medium">Notes</th>
               <th className="w-20 px-3 py-1.5 font-medium">Actions</th>
@@ -297,8 +448,24 @@ export function ActivitiesListClient({
               </tr>
             ) : (
               displayedRows.map((row) => (
-                <tr key={row.activity_id} className={`border-t border-slate-100 align-top ${pending ? "opacity-60" : ""}`}>
-                  <td className="px-3 py-1.5">
+                <tr
+                  key={row.activity_id}
+                  className={`border-t border-slate-100 align-top hover:bg-slate-50 ${pending ? "opacity-60" : ""}`}
+                  onClick={() => {
+                    setEditing(row);
+                    setDrawerOpen(true);
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setEditing(row);
+                      setDrawerOpen(true);
+                    }
+                  }}
+                >
+                  <td className="px-3 py-1.5" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={selected.has(row.activity_id)}
@@ -309,41 +476,32 @@ export function ActivitiesListClient({
                   </td>
                   <td className="whitespace-nowrap px-3 py-1.5 text-slate-700">{formatActivityDate(row)}</td>
                   <td className="whitespace-nowrap px-3 py-1.5 font-medium text-slate-900">{row.activity_type}</td>
-                  <td className="px-3 py-1.5 text-slate-700">
-                    {row.company_id ? (
-                      <Link href={`/admin/companies?company=${row.company_id}&tab=activities`} className={theme.link}>
-                        {row.company_name ?? `#${row.company_id}`}
-                      </Link>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className="px-3 py-1.5 text-slate-700">
-                    {row.contact_id ? (
-                      <Link href={`/admin/contacts?contact=${row.contact_id}&tab=activities`} className={theme.link}>
-                        {row.contact_name ?? `#${row.contact_id}`}
-                      </Link>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className="px-3 py-1.5 text-slate-700">
-                    {row.opportunity_id ? (
-                      <Link href={`/admin/opportunities/${row.opportunity_id}?tab=activities`} className={theme.link}>
-                        {row.opportunity_name ?? `#${row.opportunity_id}`}
-                      </Link>
-                    ) : (
-                      "—"
-                    )}
+                  <td className="px-3 py-1.5 text-slate-700" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex flex-col gap-0.5">
+                      {row.company_id ? (
+                        <Link href={`/admin/companies?company=${row.company_id}&tab=activities`} className={theme.link}>
+                          {row.company_name ?? `#${row.company_id}`}
+                        </Link>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
+                      {row.contact_id ? (
+                        <Link
+                          href={`/admin/contacts?contact=${row.contact_id}&tab=activities`}
+                          className="text-xs text-slate-500 hover:underline"
+                        >
+                          {row.contact_name ?? `#${row.contact_id}`}
+                        </Link>
+                      ) : null}
+                    </div>
                   </td>
                   <td className="px-3 py-1.5 text-slate-700">{formatActivityPremisesListCell(row.premises_label)}</td>
                   <td className="max-w-xs px-3 py-1.5 text-slate-600">
                     <p className="line-clamp-2 text-xs leading-snug">{formatActivityNotesPreview(row.notes)}</p>
                   </td>
-                  <td className="px-3 py-1.5">
+                  <td className="px-3 py-1.5" onClick={(e) => e.stopPropagation()}>
                     <ModuleRowActions
                       module="activities"
-                      onView={() => setViewing(row)}
                       onEdit={() => {
                         setEditing(row);
                         setDrawerOpen(true);
@@ -356,68 +514,6 @@ export function ActivitiesListClient({
           </tbody>
         </table>
       </div>
-
-      {viewing ? (
-        <>
-          <button type="button" className="fixed inset-0 z-40 bg-slate-900/10" onClick={() => setViewing(null)} aria-label="Close" />
-          <aside className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-amber-100 bg-white shadow-xl">
-            <div className="sticky top-0 flex shrink-0 items-start justify-between border-b border-amber-100 px-4 py-3">
-              <div>
-                <p className="text-xs font-medium text-amber-800">{viewing.activity_type}</p>
-                <h3 className="text-lg font-semibold text-slate-900">{formatActivityDate(viewing)}</h3>
-              </div>
-              <button type="button" onClick={() => setViewing(null)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100" aria-label="Close">
-                <IconX />
-              </button>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto p-4 text-sm">
-              <dl className="space-y-3">
-                {viewing.company_name ? (
-                  <div>
-                    <dt className="text-xs text-slate-500">Company</dt>
-                    <dd>{viewing.company_name}</dd>
-                  </div>
-                ) : null}
-                {viewing.contact_name ? (
-                  <div>
-                    <dt className="text-xs text-slate-500">Contact</dt>
-                    <dd>{viewing.contact_name}</dd>
-                  </div>
-                ) : null}
-                {viewing.opportunity_name ? (
-                  <div>
-                    <dt className="text-xs text-slate-500">Opportunity</dt>
-                    <dd>{viewing.opportunity_name}</dd>
-                  </div>
-                ) : null}
-                {viewing.premises_label ? (
-                  <div>
-                    <dt className="text-xs text-slate-500">Premises</dt>
-                    <dd>{viewing.premises_label}</dd>
-                  </div>
-                ) : null}
-                {viewing.notes?.trim() ? (
-                  <div>
-                    <dt className="text-xs text-slate-500">Notes</dt>
-                    <dd className="whitespace-pre-wrap">{viewing.notes}</dd>
-                  </div>
-                ) : null}
-              </dl>
-              <button
-                type="button"
-                className="mt-4 text-sm font-medium text-amber-800 hover:underline"
-                onClick={() => {
-                  setEditing(viewing);
-                  setViewing(null);
-                  setDrawerOpen(true);
-                }}
-              >
-                Edit activity
-              </button>
-            </div>
-          </aside>
-        </>
-      ) : null}
 
       <ActivityFormDrawer
         open={drawerOpen}

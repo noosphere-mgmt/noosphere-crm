@@ -1,21 +1,5 @@
 import type { PropertyListRow } from "@/components/admin/properties-v1/PropertiesFlatListClient";
-
-function escapeCsv(value: string | number | null | undefined): string {
-  const s = value == null ? "" : String(value);
-  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
-}
-
-function downloadCsv(filename: string, headers: string[], rows: string[][]): void {
-  const lines = [headers.map(escapeCsv).join(","), ...rows.map((r) => r.map(escapeCsv).join(","))];
-  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
+import { buildCsvContent, downloadCsvInBrowser } from "@/lib/csvEncoding";
 
 export function exportPropertiesV1Csv(rows: PropertyListRow[]): void {
   const headers = ["ID", "Building", "District", "Title", "Address", "Premises", "Updated"];
@@ -28,5 +12,5 @@ export function exportPropertiesV1Csv(rows: PropertyListRow[]): void {
     String(r.inventory_count ?? 0),
     r.updated_at?.slice(0, 10) ?? "",
   ]);
-  downloadCsv("properties-buildings.csv", headers, data);
+  downloadCsvInBrowser("properties-buildings.csv", buildCsvContent(headers, data));
 }

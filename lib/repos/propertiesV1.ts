@@ -94,6 +94,11 @@ export async function listPropertiesV1(filters: PropertiesListFilters = {}): Pro
       OR city_en ILIKE $1
       OR city_zh ILIKE $1
       OR city_cn ILIKE $1
+      OR EXISTS (
+        SELECT 1 FROM companies_v1 co
+        WHERE co.company_id = properties_v1.operator_company_id
+          AND co.company_name_en ILIKE $1
+      )
     )`);
     params.push(`%${filters.q}%`);
   }

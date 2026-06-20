@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ADMIN_MOBILE_MAX_PX } from "@/lib/adminViewport";
 
-/** Matches Tailwind `lg` breakpoint (1024px). */
-export function useIsMobile(maxWidth = 1023): boolean {
+/** True when viewport width ≤ {@link ADMIN_MOBILE_MAX_PX} (mobile band). Tablet/desktop use separate presentation trees. */
+export function useIsMobile(maxWidth = ADMIN_MOBILE_MAX_PX): boolean {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {

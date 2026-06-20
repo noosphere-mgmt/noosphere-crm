@@ -1,0 +1,586 @@
+{
+  "generatedAt": "2026-06-19T17:56:31.196Z",
+  "freshSchema": "migrate_fresh_full_recon",
+  "referenceSchema": "public",
+  "database": "noosphere_crm",
+  "summary": {
+    "freshTables": 27,
+    "freshColumns": 618,
+    "referenceTables": 27,
+    "referenceColumns": 618,
+    "modulesVerified": 19,
+    "modulesFailed": 0,
+    "missingTablesOnFresh": 0,
+    "missingColumnsOnFresh": 0,
+    "missingTablesOnReference": 0,
+    "missingColumnsOnReference": 0,
+    "unusedColumns": 59,
+    "schemaSqlGaps": 0
+  },
+  "moduleVerification": [
+    {
+      "module": "Dashboard",
+      "status": "ok"
+    },
+    {
+      "module": "Connections (Companies)",
+      "status": "ok",
+      "rows": 0
+    },
+    {
+      "module": "Connections (Contacts)",
+      "status": "ok",
+      "rows": 0
+    },
+    {
+      "module": "Opportunities",
+      "status": "ok",
+      "rows": 0
+    },
+    {
+      "module": "Activities",
+      "status": "ok",
+      "rows": 0
+    },
+    {
+      "module": "Properties (Premises list)",
+      "status": "ok",
+      "rows": 0
+    },
+    {
+      "module": "Properties (filter options)",
+      "status": "ok"
+    },
+    {
+      "module": "Buildings",
+      "status": "ok",
+      "rows": 0
+    },
+    {
+      "module": "Buildings (count)",
+      "status": "ok"
+    },
+    {
+      "module": "Premises",
+      "status": "ok",
+      "rows": 0
+    },
+    {
+      "module": "Premises (count)",
+      "status": "ok"
+    },
+    {
+      "module": "Quick Add Property (marketable)",
+      "status": "ok",
+      "rows": 0
+    },
+    {
+      "module": "Quick Add Property (buildings)",
+      "status": "ok",
+      "rows": 0
+    },
+    {
+      "module": "Quick Add Property (operators)",
+      "status": "ok",
+      "rows": 0
+    },
+    {
+      "module": "Opportunity Premises Selector",
+      "status": "ok",
+      "rows": 0
+    },
+    {
+      "module": "Opportunity Proposed Premises",
+      "status": "ok",
+      "rows": 0
+    },
+    {
+      "module": "V1 company options",
+      "status": "ok",
+      "rows": 0
+    },
+    {
+      "module": "V1 contact options",
+      "status": "ok",
+      "rows": 0
+    },
+    {
+      "module": "V1 property select options",
+      "status": "ok",
+      "rows": 0
+    }
+  ],
+  "missingTablesReport": {
+    "onFreshMigrate": [],
+    "onReferenceSchema": []
+  },
+  "missingColumnsReport": {
+    "onFreshMigrate": [],
+    "onReferenceSchema": []
+  },
+  "unusedColumnsReport": [
+    {
+      "table": "companies",
+      "column": "market_specializations",
+      "type": "text[]",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "companies_v1",
+      "column": "company_match_id",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "companies_v1",
+      "column": "company_type",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "companies_v1",
+      "column": "main_phone",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "companies_v1",
+      "column": "email_domain",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "companies_v1",
+      "column": "billing_address",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "companies_v1",
+      "column": "company_remarks",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "companies_v1",
+      "column": "company_source",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "companies_v1",
+      "column": "company_label",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "company_channel_lines_v1",
+      "column": "channel_type",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "contacts_v1",
+      "column": "mobile",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "contacts_v1",
+      "column": "contact_status",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "contacts_v1",
+      "column": "contact_source",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "contacts_v1",
+      "column": "legacy_contact_id",
+      "type": "BIGINT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "import_sessions",
+      "column": "expires_at",
+      "type": "TIMESTAMPTZ",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "opportunities",
+      "column": "lead_source",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "opportunities",
+      "column": "source_type",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "opportunities_v1",
+      "column": "opportunity_type",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "opportunities_v1",
+      "column": "pipeline_status",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "opportunities_v1",
+      "column": "priority",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "opportunities_v1",
+      "column": "client_company_id",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "opportunities_v1",
+      "column": "client_contact_id",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "opportunities_v1",
+      "column": "target_districts",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "opportunities_v1",
+      "column": "target_capacity_pax",
+      "type": "INTEGER",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "opportunities_v1",
+      "column": "target_area_sqft",
+      "type": "NUMERIC",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "opportunities_v1",
+      "column": "lease_term_months",
+      "type": "INTEGER",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "opportunities_v1",
+      "column": "created_date",
+      "type": "DATE",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "opportunities_v1",
+      "column": "decision_date",
+      "type": "DATE",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "opportunities_v1",
+      "column": "legacy_opportunity_id",
+      "type": "BIGINT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "premises_v1",
+      "column": "legacy_property_row_id",
+      "type": "BIGINT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "properties_v1",
+      "column": "building_match_id",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "properties_v1",
+      "column": "legacy_building_id",
+      "type": "BIGINT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposal_items_v1",
+      "column": "proposal_item_id",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposal_items_v1",
+      "column": "proposal_id",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposal_items_v1",
+      "column": "recommended",
+      "type": "BOOLEAN",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposal_items_v1",
+      "column": "recommendation_label",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposal_items_v1",
+      "column": "display_rent",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposal_items_v1",
+      "column": "net_effective_rent",
+      "type": "NUMERIC",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposal_items_v1",
+      "column": "total_initial_cost",
+      "type": "NUMERIC",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposal_items_v1",
+      "column": "pros",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposal_items_v1",
+      "column": "cons",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposal_items_v1",
+      "column": "operator_source_file",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposal_items_v1",
+      "column": "source_import_id",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposal_items_v1",
+      "column": "referral",
+      "type": "text[]",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposal_items_v1",
+      "column": "commission_split",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposals_v1",
+      "column": "proposal_id",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposals_v1",
+      "column": "proposal_title",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposals_v1",
+      "column": "proposal_date",
+      "type": "DATE",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposals_v1",
+      "column": "prepared_for_company_id",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposals_v1",
+      "column": "prepared_for_contact_id",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposals_v1",
+      "column": "prepared_by",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposals_v1",
+      "column": "language",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposals_v1",
+      "column": "version",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposals_v1",
+      "column": "proposal_status",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposals_v1",
+      "column": "template_name",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposals_v1",
+      "column": "executive_summary",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposals_v1",
+      "column": "consultancy_advice",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposals_v1",
+      "column": "output_file",
+      "type": "TEXT",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    },
+    {
+      "table": "proposals_v1",
+      "column": "sent_date",
+      "type": "DATE",
+      "note": "Column name not found in lib/repos/*.ts (may be used by import/ETL or future features)"
+    }
+  ],
+  "migrationConsistencyReport": {
+    "migratePhaseCount": 38,
+    "phasesReferencedInMigrateTs": [
+      "schema-migrate-phase1.sql",
+      "schema-migrate-phase2.sql",
+      "schema.sql",
+      "schema-migrate-phase0-safe-columns.sql",
+      "schema-migrate-phase9a-properties.sql",
+      "schema-migrate-phase9c-property-view-fields.sql",
+      "schema-migrate-phase3-assets.sql",
+      "schema-migrate-phase4-building-root.sql",
+      "schema-migrate-phase5-opportunities.sql",
+      "schema-migrate-phase6-crm1.sql",
+      "schema-migrate-phase7-import-iw1.sql",
+      "schema-migrate-phase8-inventory-company-links.sql",
+      "schema-migrate-phase10-v1.sql",
+      "schema-migrate-phase10b-property-building-fields.sql",
+      "schema-migrate-phase10c-property-company-links.sql",
+      "schema-migrate-phase31-buildings-module-reconciliation.sql",
+      "schema-migrate-phase10d-premises-fields.sql",
+      "schema-migrate-phase10e-premises-commercial.sql",
+      "schema-migrate-phase10f-premises-fit-out.sql",
+      "schema-migrate-phase11-connections.sql",
+      "schema-migrate-phase12-coverage.sql",
+      "schema-migrate-phase13-connections-ui.sql",
+      "schema-migrate-phase14-company-name-cn.sql",
+      "schema-migrate-phase15-contact-relationships.sql",
+      "schema-migrate-phase16-contact-role.sql",
+      "schema-migrate-phase17-opportunity-lead-type.sql",
+      "schema-migrate-phase18-opportunity-workspace.sql",
+      "schema-migrate-phase19-opportunity-party-fees.sql",
+      "schema-migrate-phase20-opportunity-sales-role.sql",
+      "schema-migrate-phase21-opportunity-refinements.sql",
+      "schema-migrate-phase22-opportunity-source-text.sql",
+      "schema-migrate-phase23-relationships.sql",
+      "schema-migrate-phase24-activities-module.sql",
+      "schema-migrate-phase25-activity-premises.sql",
+      "schema-migrate-phase26-relationship-pairs.sql",
+      "schema-migrate-phase27-import-workbench.sql",
+      "schema-migrate-phase29-properties-module-schema-alignment.sql",
+      "schema-migrate-phase31-buildings-module-reconciliation.sql"
+    ],
+    "phaseFilesMissingOnDisk": [
+      "schema.sql"
+    ],
+    "phaseFilesOrphanedNotInMigrateTs": [
+      "schema-migrate-phase30-schema-reconciliation.sql"
+    ],
+    "duplicatePhaseRunsInMigrateTs": [
+      "schema-migrate-phase31-buildings-module-reconciliation.sql"
+    ],
+    "schemaSqlBaseTableCount": 15,
+    "phaseOnlyTables": [
+      {
+        "table": "activities",
+        "note": "Created by phase migrations, not in schema.sql base CREATE"
+      },
+      {
+        "table": "activity_premises",
+        "note": "Created by phase migrations, not in schema.sql base CREATE"
+      },
+      {
+        "table": "company_channel_lines_v1",
+        "note": "Created by phase migrations, not in schema.sql base CREATE"
+      },
+      {
+        "table": "contact_relationships",
+        "note": "Created by phase migrations, not in schema.sql base CREATE"
+      },
+      {
+        "table": "contacts_v1",
+        "note": "Created by phase migrations, not in schema.sql base CREATE"
+      },
+      {
+        "table": "opportunities_v1",
+        "note": "Created by phase migrations, not in schema.sql base CREATE"
+      },
+      {
+        "table": "opportunity_parties",
+        "note": "Created by phase migrations, not in schema.sql base CREATE"
+      },
+      {
+        "table": "opportunity_proposed_premises",
+        "note": "Created by phase migrations, not in schema.sql base CREATE"
+      },
+      {
+        "table": "properties",
+        "note": "Created by phase migrations, not in schema.sql base CREATE"
+      },
+      {
+        "table": "proposal_items_v1",
+        "note": "Created by phase migrations, not in schema.sql base CREATE"
+      },
+      {
+        "table": "proposals_v1",
+        "note": "Created by phase migrations, not in schema.sql base CREATE"
+      },
+      {
+        "table": "relationships",
+        "note": "Created by phase migrations, not in schema.sql base CREATE"
+      }
+    ],
+    "schemaSqlColumnsMissingAfterFullMigrate": [],
+    "notes": [
+      "schema.sql is applied first; phase files add columns and new tables.",
+      "phase31 runs twice in migrate.ts (early after 10c, late after 29) — idempotent by design.",
+      "phase30 is superseded by phase31 and is not run by migrate.ts."
+    ]
+  }
+}

@@ -96,7 +96,7 @@ export function NewPremiseV1Client({
         <p className="font-semibold">Add a building first</p>
         <p className="mt-2">Premises must be linked to a building in Properties. Create a building, then return here.</p>
         <Link href="/admin/properties/buildings/new" className={`mt-4 inline-block ${theme.primaryButton}`}>
-          + New Building
+          New
         </Link>
       </div>
     );

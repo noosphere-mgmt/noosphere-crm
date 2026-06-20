@@ -1,9 +1,8 @@
 "use client";
 
-import { Suspense } from "react";
-import { PremisesFiltersBar } from "@/components/admin/properties-v1/PremisesFiltersBar";
-import { PremisesFlatListClient } from "@/components/admin/properties-v1/PremisesFlatListClient";
-import { PremisesListHeader } from "@/components/admin/properties-v1/PremisesListHeader";
+import { AdminViewportSwitch } from "@/components/admin/layout/AdminViewportSwitch";
+import { PremisesDesktop } from "@/components/admin/properties-v1/PremisesDesktop";
+import { PremisesMobile } from "@/components/admin/properties-v1/PremisesMobile";
 import { PremisesListSelectionProvider } from "@/components/admin/properties-v1/PremisesListSelectionContext";
 import { ModuleListingExportProvider } from "@/components/admin/ModuleListingExportContext";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
@@ -33,28 +32,25 @@ export function AllPremisesWorkspace({
   propertyOptions: PropertyV1SelectOption[];
   drawerData: PremisesDrawerData | null;
 }) {
+  const viewProps = {
+    rows,
+    totalCount,
+    filters,
+    cities,
+    districts,
+    companies,
+    contacts,
+    propertyOptions,
+    drawerData,
+  };
+
   return (
     <PremisesListSelectionProvider>
       <ModuleListingExportProvider>
-        <Suspense fallback={<div className="mb-4 h-[104px] animate-pulse rounded-xl bg-slate-100" />}>
-          <PremisesListHeader />
-        </Suspense>
-
-      <Suspense fallback={<div className="mb-4 h-20 animate-pulse rounded-lg bg-slate-100" />}>
-        <PremisesFiltersBar filters={filters} cities={cities} districts={districts} />
-      </Suspense>
-
-      <Suspense fallback={<div className="h-48 animate-pulse rounded-xl bg-slate-100" />}>
-        <PremisesFlatListClient
-          rows={rows}
-          totalCount={totalCount}
-          initialFilters={filters}
-          companies={companies}
-          contacts={contacts}
-          propertyOptions={propertyOptions}
-          drawerData={drawerData}
+        <AdminViewportSwitch
+          mobile={<PremisesMobile {...viewProps} />}
+          desktop={<PremisesDesktop {...viewProps} />}
         />
-      </Suspense>
       </ModuleListingExportProvider>
     </PremisesListSelectionProvider>
   );

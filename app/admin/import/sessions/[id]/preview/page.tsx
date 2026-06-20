@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { ImportActionBadge, SummaryTiles } from "@/components/admin/ImportWorkbench";
 import { IMPORT_OBJECT_LABELS } from "@/lib/import/types";
+import { formatImportRowNotes } from "@/lib/import/rowNotes";
 import { getImportSession } from "@/lib/repos/importSessions";
 import { confirmImportAction } from "../../../actions";
 
@@ -68,7 +69,9 @@ export default async function ImportPreviewPage({ params }: Props) {
                   ) : null}
                 </td>
                 <td className="px-4 py-3 text-slate-700">{row.changes_summary ?? "—"}</td>
-                <td className="max-w-xs px-4 py-3 text-slate-600">{row.error_message ?? "—"}</td>
+                <td className="max-w-xs px-4 py-3 text-slate-600">
+                  {formatImportRowNotes(row.error_message, row.warning_message)}
+                </td>
               </tr>
             ))}
           </tbody>

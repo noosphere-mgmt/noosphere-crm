@@ -4,7 +4,7 @@ import { OPPORTUNITY_LEAD_TYPES, OPPORTUNITY_LEAD_TYPE_LABELS, OPPORTUNITY_STATU
 import type { OpportunitiesQuickFilters } from "@/lib/opportunitiesList";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 
-export function OpportunitiesSearchToolbar({
+export function OpportunitiesSearchToolbarDesktop({
   searchQuery,
   onSearchChange,
   quickFilters,

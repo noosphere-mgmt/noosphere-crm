@@ -26,6 +26,13 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+@media (max-width: 767px) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+}
+
 /* iPhone safe-area helpers for fixed UI chrome */
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);

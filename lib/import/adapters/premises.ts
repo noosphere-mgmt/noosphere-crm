@@ -1,15 +1,12 @@
 import { query } from "@/lib/db";
 import { createPremisesV1, getPremisesV1 } from "@/lib/repos/premisesV1";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
-import {
-  buildingExists,
-  companyExists,
-  contactExists,
-  parseOptionalInt,
-  validateFk,
-  validateFkText,
-} from "../fkValidation";
 import { buildNaturalKeyParts } from "../matchRecord";
+import {
+  mergeReferenceResults,
+  resolveBuildingReference,
+  resolveCompanyV1Reference,
+} from "../referenceResolution";
 import type { ImportObjectDefinition } from "../objectRegistry";
 import type { ExistingRecord, RecordId } from "../types";
 
@@ -115,11 +112,6 @@ async function load(where: string, params: unknown[]): Promise<ExistingRecord[]>
   return rows.map((row) => rowToRecord(row, String(row.premises_id), FIELD_KEYS));
 }
 
-async function companyV1Exists(id: string): Promise<boolean> {
-  const rows = await query(`SELECT 1 FROM companies_v1 WHERE company_id = $1 LIMIT 1`, [id.trim()]);
-  return rows.length > 0;
-}
-
 export const premisesImportDefinition: ImportObjectDefinition = {
   objectType: "premises",
   tableName: "premises_v1",
@@ -165,25 +157,20 @@ export const premisesImportDefinition: ImportObjectDefinition = {
     return load(`premises_id = ANY($1::text[])`, [rows.map((r) => r.premises_id)]);
   },
 
-  async validateReferences(values, suppliedFields, existing) {
-    const errors: string[] = [];
-    const buildingId = suppliedFields.has("building_id")
-      ? String(values.building_id ?? "").trim()
-      : existing?.values.building_id
-        ? String(existing.values.building_id)
-        : "";
-    if (buildingId && !(await buildingExists(buildingId))) {
-      errors.push(`building_id ${buildingId} not found`);
-    }
-    for (const [field, check] of [
-      ["operator_company_id", companyV1Exists],
-      ["owner_company_id", companyV1Exists],
-    ] as const) {
-      if (suppliedFields.has(field) && values[field]) {
-        if (!(await check(String(values[field])))) errors.push(`${field} ${values[field]} not found`);
-      }
-    }
-    return errors;
+  async validateReferences(values, suppliedFields, existing, writable) {
+    const buildingRaw = suppliedFields.has("building_id")
+      ? values.building_id
+      : existing?.values.building_id ?? writable.building_id;
+    const results = [
+      await resolveBuildingReference("building_id", buildingRaw, true),
+      ...(suppliedFields.has("operator_company_id") || "operator_company_id" in writable
+        ? [await resolveCompanyV1Reference("operator_company_id", values.operator_company_id ?? writable.operator_company_id, false)]
+        : []),
+      ...(suppliedFields.has("owner_company_id") || "owner_company_id" in writable
+        ? [await resolveCompanyV1Reference("owner_company_id", values.owner_company_id ?? writable.owner_company_id, false)]
+        : []),
+    ];
+    return mergeReferenceResults(...results);
   },
 
   async createRecord(values, ctx) {

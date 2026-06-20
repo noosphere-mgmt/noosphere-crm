@@ -1,3 +1,4 @@
+import { csvAttachmentHeaders, csvResponseBody } from "@/lib/csvEncoding";
 import { getTemplateForObject } from "@/lib/import/templates";
 import type { ImportObjectType } from "@/lib/import/types";
 import { IMPORT_OBJECT_TYPES } from "@/lib/import/types";
@@ -11,10 +12,7 @@ export async function GET(_req: Request, { params }: Props) {
   }
 
   const csv = getTemplateForObject(raw as ImportObjectType);
-  return new Response(csv, {
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${raw}-template.csv"`,
-    },
+  return new Response(csvResponseBody(csv), {
+    headers: csvAttachmentHeaders(`${raw}-template.csv`),
   });
 }

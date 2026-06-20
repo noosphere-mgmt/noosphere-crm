@@ -1,5 +1,5 @@
 import { query } from "@/lib/db";
-import { resolveContactName, syncContactDerivedNames } from "@/lib/contactName";
+import { resolveContactName, sqlContactDisplayName, syncContactDerivedNames } from "@/lib/contactName";
 import type { CompanyRole, Contact } from "@/lib/types/entities";
 
 const contactSelect = `
@@ -87,7 +87,7 @@ export async function listContacts(companyId?: number): Promise<Contact[]> {
        FROM contacts c
        JOIN companies co ON co.id = c.company_id
        WHERE c.company_id = $1
-       ORDER BY c.is_primary DESC, COALESCE(c.display_name, c.contact_name) ASC`,
+       ORDER BY c.is_primary DESC, ${sqlContactDisplayName("c")} ASC`,
       [companyId],
     );
   }
@@ -103,7 +103,7 @@ export async function listContacts(companyId?: number): Promise<Contact[]> {
        WHERE (o.primary_contact_id = c.id OR op.contact_id = c.id)
          AND o.status NOT IN ('closed_won', 'closed_lost')
      ) opp ON TRUE
-     ORDER BY co.company_name ASC, c.is_primary DESC, COALESCE(c.display_name, c.contact_name) ASC`,
+     ORDER BY co.company_name ASC, c.is_primary DESC, ${sqlContactDisplayName("c")} ASC`,
   );
 }
 
@@ -116,9 +116,9 @@ export type ContactOption = {
 
 export async function listContactOptions(): Promise<ContactOption[]> {
   return query<ContactOption>(
-    `SELECT id, company_id::int AS company_id, COALESCE(display_name, contact_name) AS contact_name, is_primary
+    `SELECT id, company_id::int AS company_id, ${sqlContactDisplayName()} AS contact_name, is_primary
      FROM contacts WHERE is_active = TRUE
-     ORDER BY company_id, is_primary DESC, COALESCE(display_name, contact_name) ASC`,
+     ORDER BY company_id, is_primary DESC, ${sqlContactDisplayName()} ASC`,
   );
 }
 

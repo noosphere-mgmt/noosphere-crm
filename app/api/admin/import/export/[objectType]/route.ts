@@ -1,3 +1,4 @@
+import { csvAttachmentHeaders, csvResponseBody } from "@/lib/csvEncoding";
 import { buildExportFilename, type ExportScope } from "@/lib/import/exportFilename";
 import { exportObjectCsv } from "@/lib/import/templates";
 import type { ImportObjectType } from "@/lib/import/types";
@@ -7,11 +8,8 @@ type Props = { params: Promise<{ objectType: string }> };
 
 function csvResponse(csv: string, objectType: string, scope: ExportScope): Response {
   const filename = buildExportFilename(objectType, scope);
-  return new Response(csv, {
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${filename}"`,
-    },
+  return new Response(csvResponseBody(csv), {
+    headers: csvAttachmentHeaders(filename),
   });
 }
 

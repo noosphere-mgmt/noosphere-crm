@@ -2,15 +2,14 @@ import { randomUUID } from "node:crypto";
 import { query } from "@/lib/db";
 import { ACTIVITY_TYPES } from "@/lib/activityValues";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
-import {
-  companyExists,
-  contactExists,
-  opportunityExists,
-  premisesExists,
-  validateFk,
-  validateFkText,
-} from "../fkValidation";
 import { buildNaturalKeyParts } from "../matchRecord";
+import {
+  mergeReferenceResults,
+  resolveContactReference,
+  resolveLegacyCompanyReference,
+  resolveOpportunityReference,
+  resolvePremisesReference,
+} from "../referenceResolution";
 import type { ImportObjectDefinition } from "../objectRegistry";
 import type { ExistingRecord } from "../types";
 
@@ -92,23 +91,20 @@ export const activitiesImportDefinition: ImportObjectDefinition = {
     );
   },
 
-  async validateReferences(values, suppliedFields) {
-    const errors: string[] = [];
-    for (const [field, check] of [
-      ["company_id", companyExists],
-      ["contact_id", contactExists],
-      ["opportunity_id", opportunityExists],
-    ] as const) {
-      if (suppliedFields.has(field)) {
-        const err = await validateFk(field, values[field], check);
-        if (err) errors.push(err);
+  async validateReferences(values, suppliedFields, _existing, writable) {
+    const optionalFields = [
+      ["company_id", resolveLegacyCompanyReference],
+      ["contact_id", resolveContactReference],
+      ["opportunity_id", resolveOpportunityReference],
+      ["premises_id", resolvePremisesReference],
+    ] as const;
+    const results = [];
+    for (const [field, resolver] of optionalFields) {
+      if (suppliedFields.has(field) || field in writable) {
+        results.push(await resolver(field, values[field] ?? writable[field], false));
       }
     }
-    if (suppliedFields.has("premises_id")) {
-      const err = await validateFkText("premises_id", values.premises_id, premisesExists);
-      if (err) errors.push(err);
-    }
-    return errors;
+    return mergeReferenceResults(...results);
   },
 
   async createRecord(values, ctx) {

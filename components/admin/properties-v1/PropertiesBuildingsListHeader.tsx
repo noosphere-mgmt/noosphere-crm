@@ -53,7 +53,7 @@ export function PropertiesBuildingsListHeader({ rows }: { rows: PropertyListRow[
             onDelete={onBulkDelete}
           />
           <Link href="/admin/properties/buildings/new" className={theme.primaryButton}>
-            + New Building
+            New
           </Link>
         </>
       }

@@ -46,7 +46,7 @@ const select = `
   p.inventory_status,
   p.offer_type,
   p.offer_status,
-  p.currency,
+  COALESCE(p.currency, 'HKD') AS currency,
   p.operating_model,
   op_co.company_name_en AS operator_name,
   own_co.company_name_en AS owner_name,

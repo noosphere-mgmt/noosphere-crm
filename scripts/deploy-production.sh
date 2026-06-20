@@ -26,6 +26,9 @@ fi
 echo "==> npm install"
 npm install
 
+echo "==> npm run db:migrate"
+npm run db:migrate
+
 echo "==> rm -rf .next"
 rm -rf .next
 

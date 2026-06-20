@@ -1,7 +1,11 @@
 import { query } from "@/lib/db";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
-import { companyExists, contactExists, validateFk } from "../fkValidation";
 import { buildNaturalKeyParts } from "../matchRecord";
+import {
+  mergeReferenceResults,
+  resolveContactReference,
+  resolveLegacyCompanyReference,
+} from "../referenceResolution";
 import type { ImportObjectDefinition } from "../objectRegistry";
 import type { ExistingRecord } from "../types";
 
@@ -136,18 +140,27 @@ export const opportunitiesImportDefinition: ImportObjectDefinition = {
     return load(`id = ANY($1::bigint[])`, [rows.map((r) => Number.parseInt(r.id, 10))]);
   },
 
-  async validateReferences(values, suppliedFields, existing) {
-    const errors: string[] = [];
-    for (const [field, check] of [
-      ["company_id", companyExists],
-      ["contact_id", contactExists],
-    ] as const) {
-      if (suppliedFields.has(field)) {
-        const err = await validateFk(field, values[field], check);
-        if (err) errors.push(err);
-      }
+  async validateReferences(values, suppliedFields, existing, writable) {
+    const results = [];
+    if (suppliedFields.has("company_id") || "company_id" in writable) {
+      results.push(
+        await resolveLegacyCompanyReference(
+          "company_id",
+          values.company_id ?? writable.company_id,
+          true,
+        ),
+      );
     }
-    return errors;
+    if (suppliedFields.has("contact_id") || "contact_id" in writable) {
+      results.push(
+        await resolveContactReference(
+          "contact_id",
+          values.contact_id ?? writable.contact_id,
+          false,
+        ),
+      );
+    }
+    return mergeReferenceResults(...results);
   },
 
   async createRecord(values, ctx) {

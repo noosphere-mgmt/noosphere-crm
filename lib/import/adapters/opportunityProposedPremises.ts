@@ -1,7 +1,11 @@
 import { query } from "@/lib/db";
 import { genericUpdateRecord, rowToRecord } from "../adapterUtils";
-import { opportunityExists, premisesExists, validateFk, validateFkText } from "../fkValidation";
 import { buildNaturalKeyParts } from "../matchRecord";
+import {
+  mergeReferenceResults,
+  resolveOpportunityReference,
+  resolvePremisesReference,
+} from "../referenceResolution";
 import type { ImportObjectDefinition } from "../objectRegistry";
 import type { ExistingRecord } from "../types";
 
@@ -33,7 +37,7 @@ const SELECT = `
   collect_fee_amount::text AS expected_collect_fee,
   collect_fee_status,
   paid_out_fee_amount::text AS expected_paid_out_fee,
-  paid_out_fee_status,
+  paid_out_status AS paid_out_fee_status,
   fee_remarks
 `;
 
@@ -46,6 +50,10 @@ function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
   if ("expected_paid_out_fee" in values) {
     p.paid_out_fee_amount = values.expected_paid_out_fee;
     delete p.expected_paid_out_fee;
+  }
+  if ("paid_out_fee_status" in values) {
+    p.paid_out_status = values.paid_out_fee_status;
+    delete p.paid_out_fee_status;
   }
   delete p.opportunity_premises_id;
   delete p.opportunity_id;
@@ -97,15 +105,17 @@ export const opportunityProposedPremisesImportDefinition: ImportObjectDefinition
     return load("opportunity_id = $1 AND premises_id = $2", [Number.parseInt(oppId, 10), premisesId]);
   },
 
-  async validateReferences(values, suppliedFields, existing) {
-    const errors: string[] = [];
-    const oppId = suppliedFields.has("opportunity_id") ? values.opportunity_id : existing?.values.opportunity_id;
-    const premisesId = suppliedFields.has("premises_id") ? values.premises_id : existing?.values.premises_id;
-    const errOpp = await validateFk("opportunity_id", oppId, opportunityExists);
-    if (errOpp) errors.push(errOpp);
-    const errPrem = await validateFkText("premises_id", premisesId, premisesExists);
-    if (errPrem) errors.push(errPrem);
-    return errors;
+  async validateReferences(values, suppliedFields, existing, writable) {
+    const oppId = suppliedFields.has("opportunity_id")
+      ? values.opportunity_id
+      : existing?.values.opportunity_id ?? writable.opportunity_id;
+    const premisesId = suppliedFields.has("premises_id")
+      ? values.premises_id
+      : existing?.values.premises_id ?? writable.premises_id;
+    return mergeReferenceResults(
+      await resolveOpportunityReference("opportunity_id", oppId, true),
+      await resolvePremisesReference("premises_id", premisesId, true),
+    );
   },
 
   async createRecord(values) {
@@ -113,7 +123,7 @@ export const opportunityProposedPremisesImportDefinition: ImportObjectDefinition
       `INSERT INTO opportunity_proposed_premises (
          opportunity_id, premises_id, proposed_price, tour_date, status, preference,
          client_comment, advisor_comment, remarks,
-         collect_fee_amount, collect_fee_status, paid_out_fee_amount, paid_out_fee_status, fee_remarks
+         collect_fee_amount, collect_fee_status, paid_out_fee_amount, paid_out_status, fee_remarks
        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
        RETURNING id::text`,
       [

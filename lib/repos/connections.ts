@@ -1,4 +1,5 @@
 import { query } from "@/lib/db";
+import { sqlContactDisplayName } from "@/lib/contactName";
 import type { ConnectionCompanyListRow } from "@/lib/connectionsDisplay";
 import { OPEN_OPPORTUNITY_STATUS_SQL } from "@/lib/openOpportunityStatus";
 
@@ -23,12 +24,12 @@ export async function listConnectionCompanies(): Promise<ConnectionCompanyListRo
      FROM companies c
      LEFT JOIN LATERAL (
        SELECT
-         COALESCE(display_name, contact_name) AS contact_name,
+         ${sqlContactDisplayName()} AS contact_name,
          email AS contact_email,
          phone AS contact_phone
        FROM contacts
        WHERE company_id = c.id AND is_active = TRUE
-       ORDER BY is_primary DESC, COALESCE(display_name, contact_name) ASC
+       ORDER BY is_primary DESC, ${sqlContactDisplayName()} ASC
        LIMIT 1
      ) pc ON TRUE
      LEFT JOIN LATERAL (

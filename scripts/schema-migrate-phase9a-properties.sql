@@ -51,6 +51,7 @@ BEGIN
 END $$;
 
 -- Inventory properties (marketable spaces) — empty until Phase 9b ETL.
+-- grade: required by quick-add / marketableProperties (see phase 29 for idempotent backfill).
 CREATE TABLE IF NOT EXISTS properties (
   id                          BIGSERIAL PRIMARY KEY,
   building_id                 BIGINT NOT NULL REFERENCES buildings(id) ON DELETE RESTRICT,
@@ -97,6 +98,11 @@ CREATE TABLE IF NOT EXISTS properties (
   import_run_id               BIGINT NULL REFERENCES import_runs(id) ON DELETE SET NULL,
   legacy_asset_id             BIGINT NULL,
   legacy_inventory_id         BIGINT NULL,
+  view_type                   TEXT NULL,
+  fitout_condition            TEXT NULL,
+  window_type                 TEXT NULL,
+  grade                       TEXT NULL,
+  currency                    TEXT NULL DEFAULT 'HKD',
   created_at                  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at                  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

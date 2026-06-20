@@ -50,7 +50,7 @@ export function OpportunityPartyContactSelect({
           disabled={!companyId}
           className="text-xs font-medium text-emerald-800 hover:underline disabled:text-slate-400"
         >
-          + New Contact
+          New
         </button>
       </div>
       <select

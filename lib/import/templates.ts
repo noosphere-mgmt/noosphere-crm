@@ -1,4 +1,5 @@
 import { fieldsToCsvRow } from "./adapterUtils";
+import { escapeCsvCell } from "@/lib/csvEncoding";
 import { getImportObjectDefinition, listExportFields } from "./objectRegistry";
 import { buildTemplateCsv } from "./parseCsv";
 import type { ImportObjectType } from "./types";
@@ -50,16 +51,9 @@ export async function exportObjectCsv(
   const lines = [headers.join(",")];
   for (const row of rows) {
     const csvRow = fieldsToCsvRow(fields, row);
-    lines.push(headers.map((h) => escapeCsv(csvRow[h] ?? "")).join(","));
+    lines.push(headers.map((h) => escapeCsvCell(csvRow[h] ?? "")).join(","));
   }
-  return lines.join("\n");
-}
-
-function escapeCsv(value: string): string {
-  if (/[",\n\r]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
+  return `${lines.join("\n")}\n`;
 }
 
 export function getFieldOptions(objectType: ImportObjectType) {

@@ -8,6 +8,7 @@ import { opportunityPartiesImportDefinition } from "./adapters/opportunityPartie
 import { opportunityProposedPremisesImportDefinition } from "./adapters/opportunityProposedPremises";
 import { activitiesImportDefinition } from "./adapters/activities";
 import { activityPremisesImportDefinition } from "./adapters/activityPremises";
+import type { ReferenceValidationResult } from "./referenceResolution";
 import type { ImportObjectType, ExistingRecord, ImportWriteContext, RecordId } from "./types";
 
 export type ImportFieldType =
@@ -51,12 +52,13 @@ export type ImportObjectDefinition = {
     patch: Record<string, unknown>,
     ctx: ImportWriteContext,
   ) => Promise<void>;
-  /** Cross-table FK validation before patch apply */
+  /** Cross-table FK validation and optional reference resolution before patch apply */
   validateReferences?: (
     values: Record<string, unknown>,
     suppliedFields: Set<string>,
     existing: ExistingRecord | null,
-  ) => Promise<string[]>;
+    writable: Record<string, unknown>,
+  ) => Promise<ReferenceValidationResult>;
   /** Export all rows as CSV field values keyed by import field keys */
   exportRows?: () => Promise<Record<string, unknown>[]>;
 };

@@ -51,6 +51,7 @@ export type ImportPreviewRow = {
   candidate_ids: number[] | null;
   candidate_record_ids: string[] | null;
   error_message: string | null;
+  warning_message: string | null;
   field_changes: FieldChange[] | null;
   changes_summary: string | null;
   raw_row: Record<string, string>;

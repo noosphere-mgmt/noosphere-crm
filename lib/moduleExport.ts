@@ -1,3 +1,4 @@
+import { CSV_MEDIA_TYPE, csvResponseBody } from "@/lib/csvEncoding";
 import type { ExportScope } from "@/lib/import/exportFilename";
 import { buildExportFilename } from "@/lib/import/exportFilename";
 import type { ImportObjectType } from "@/lib/import/types";
@@ -25,7 +26,10 @@ export async function downloadModuleExport(
   const filename =
     disposition?.match(/filename="([^"]+)"/)?.[1] ?? buildExportFilename(objectType, scope);
 
-  const url = URL.createObjectURL(blob);
+  // Re-wrap with explicit UTF-8 BOM type so Excel opens Chinese correctly even if proxy strips headers.
+  const text = csvResponseBody(await blob.text());
+  const typedBlob = new Blob([text], { type: CSV_MEDIA_TYPE });
+  const url = URL.createObjectURL(typedBlob);
   const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download = filename;

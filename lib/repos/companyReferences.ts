@@ -26,7 +26,7 @@ async function countPremisesV1References(v1CompanyId: string): Promise<number> {
   const rows = await query<{ n: number }>(
     `SELECT COUNT(DISTINCT p.premises_id)::int AS n
      FROM premises_v1 p
-     LEFT JOIN LATERAL jsonb_array_elements(COALESCE(p.relationship_lines, '[]'::jsonb)) AS line ON true
+     LEFT JOIN LATERAL jsonb_array_elements(COALESCE(p.relationship_lines::jsonb, '[]'::jsonb)) AS line ON true
      WHERE p.operator_company_id = $1
         OR p.owner_company_id = $1
         OR p.landlord_company_id = $1

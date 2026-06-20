@@ -153,6 +153,13 @@ export function PropertyV1DetailClient({
 
   const companyOptions = useMemo(() => toCompanyV1SelectOptions(companies), [companies]);
 
+  const sectionCardClass =
+    "min-w-0 rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:p-5";
+  const sectionTitleClass =
+    "mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 md:mb-4 md:text-sm";
+  const fieldGridClass = "grid grid-cols-1 gap-3 md:gap-4";
+  const detailGridClass = "grid grid-cols-2 gap-3 md:grid-cols-1 xl:grid-cols-2 md:gap-4";
+
   return (
     <div className="space-y-4">
       {embedded ? null : (
@@ -191,7 +198,7 @@ export function PropertyV1DetailClient({
         <button
           type="button"
           onClick={() => setTab("property")}
-          className={`rounded-t-lg px-4 py-2 text-sm font-semibold transition ${
+          className={`rounded-t-lg px-2 py-1.5 text-xs font-semibold transition md:px-4 md:py-2 md:text-sm ${
             tab === "property"
               ? "border border-b-white border-slate-200 bg-white text-blue-700"
               : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
@@ -203,14 +210,14 @@ export function PropertyV1DetailClient({
           type="button"
           onClick={() => setTab("premises")}
           disabled={isNew}
-          className={`rounded-t-lg px-4 py-2 text-sm font-semibold transition ${
+          className={`rounded-t-lg px-2 py-1.5 text-xs font-semibold transition md:px-4 md:py-2 md:text-sm ${
             tab === "premises"
               ? "border border-b-white border-slate-200 bg-white text-blue-700"
               : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
           } ${isNew ? "cursor-not-allowed opacity-50" : ""}`}
         >
           Premises
-          <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+          <span className="ml-1.5 rounded-full bg-slate-100 px-1.5 py-px text-[10px] font-medium text-slate-600 md:ml-2 md:px-2 md:py-0.5 md:text-xs">
             {premises.length}
           </span>
         </button>
@@ -224,19 +231,19 @@ export function PropertyV1DetailClient({
           <input type="hidden" name="full_address_zh" defaultValue={initialAddresses(property).zh} />
           <input type="hidden" name="full_address_cn" defaultValue={property.full_address_cn ?? ""} />
 
-          <div className="grid gap-4 xl:grid-cols-2">
-            <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
-              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">Building</h2>
-              <div className="grid gap-4 lg:grid-cols-3">
+          <div className={detailGridClass}>
+            <section className={`${sectionCardClass} col-span-2`}>
+              <h2 className={sectionTitleClass}>Building</h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 md:gap-4">
                 <FormField label="Building name (EN)" name="bldg_name_en" defaultValue={property.bldg_name_en ?? ""} />
                 <FormField label="Building name (ZH)" name="bldg_name_zh" defaultValue={property.bldg_name_zh ?? ""} />
                 <FormField label="Building name (CN)" name="bldg_name_cn" defaultValue={property.bldg_name_cn ?? ""} />
               </div>
             </section>
 
-            <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">Building specification</h2>
-              <div className="grid gap-4 sm:grid-cols-2">
+            <section className={sectionCardClass}>
+              <h2 className={sectionTitleClass}>Building specification</h2>
+              <div className={fieldGridClass}>
                 <FormField
                   label="Year built"
                   name="year_built"
@@ -274,30 +281,11 @@ export function PropertyV1DetailClient({
                   options={BUILDING_TITLES}
                 />
               </div>
-              <div className="mt-4">
-                <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Company links</h3>
-                <CompanyConnectionFields
-                  defaults={property}
-                  companyOptions={companyOptions}
-                  showManagement={false}
-                />
-                <SelectField
-                  label="Management company"
-                  name="management_company_id"
-                  defaultValue={property.management_company_id ?? ""}
-                  placeholder="— Select company —"
-                  options={companyOptions}
-                />
-              </div>
-              <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                <TextAreaField label="Building description" name="bldg_desc" defaultValue={property.bldg_desc ?? ""} />
-                <TextAreaField label="Building remarks" name="building_remarks" defaultValue={property.building_remarks ?? ""} />
-              </div>
             </section>
 
-            <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">Site</h2>
-              <div className="grid gap-4 sm:grid-cols-2">
+            <section className={sectionCardClass}>
+              <h2 className={sectionTitleClass}>Site</h2>
+              <div className={fieldGridClass}>
                 <FormField label="Lot number" name="lot_number" defaultValue={property.lot_number ?? ""} />
                 <FormField label="Land use" name="land_use" defaultValue={property.land_use ?? ""} />
                 <FormField label="Class of site" name="class_of_site" defaultValue={property.class_of_site ?? ""} />
@@ -318,7 +306,33 @@ export function PropertyV1DetailClient({
               </div>
             </section>
 
-            <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
+            <section className={sectionCardClass}>
+              <h2 className={sectionTitleClass}>Companies</h2>
+              <div className={`${fieldGridClass} [&_.grid]:grid-cols-1 [&_.grid]:sm:grid-cols-1`}>
+                <CompanyConnectionFields
+                  defaults={property}
+                  companyOptions={companyOptions}
+                  showManagement={false}
+                />
+                <SelectField
+                  label="Management company"
+                  name="management_company_id"
+                  defaultValue={property.management_company_id ?? ""}
+                  placeholder="— Select company —"
+                  options={companyOptions}
+                />
+              </div>
+            </section>
+
+            <section className={sectionCardClass}>
+              <h2 className={sectionTitleClass}>Building notes</h2>
+              <div className={fieldGridClass}>
+                <TextAreaField label="Building description" name="bldg_desc" defaultValue={property.bldg_desc ?? ""} />
+                <TextAreaField label="Building remarks" name="building_remarks" defaultValue={property.building_remarks ?? ""} />
+              </div>
+            </section>
+
+            <section className={`${sectionCardClass} col-span-2`}>
               <details className="group">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
                   <div>
@@ -378,9 +392,9 @@ export function PropertyV1DetailClient({
               </details>
             </section>
 
-            <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
-              <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">Accessibility</h2>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <section className={sectionCardClass}>
+              <h2 className={sectionTitleClass}>Accessibility</h2>
+              <div className={fieldGridClass}>
                 <FormField label="MTR station" name="mtr_station" defaultValue={property.mtr_station ?? ""} />
                 <FormField
                   label="Walking minutes"
@@ -394,9 +408,11 @@ export function PropertyV1DetailClient({
                   defaultValue={property.green_certification ?? ""}
                 />
               </div>
-              <div className="mt-4">
-                <TextAreaField label="Facilities" name="facilities" defaultValue={property.facilities ?? ""} />
-              </div>
+            </section>
+
+            <section className={sectionCardClass}>
+              <h2 className={sectionTitleClass}>Facilities</h2>
+              <TextAreaField label="Facilities" name="facilities" defaultValue={property.facilities ?? ""} />
             </section>
           </div>
           </form>

@@ -7,14 +7,14 @@ import type { ConnectionsQuickFilters } from "@/lib/connectionsList";
 const searchClass = `w-full rounded-md border border-slate-200 px-2.5 py-1.5 text-sm text-slate-800 placeholder:text-slate-400 ${connectionsGlassClasses.inputFocus}`;
 const selectClass = `min-w-[8.5rem] rounded-md border border-slate-200 px-2 py-1.5 text-sm text-slate-800 ${connectionsGlassClasses.inputFocus}`;
 
-export function ConnectionsSearchToolbar({
+export function ConnectionsSearchToolbarDesktop({
   searchQuery,
   onSearchChange,
   quickFilters,
   onQuickFiltersChange,
   countries,
   cities,
-  showRelationshipType,
+  variant = "contacts",
   relationshipTypeSlot,
 }: {
   searchQuery: string;
@@ -23,22 +23,26 @@ export function ConnectionsSearchToolbar({
   onQuickFiltersChange: (next: ConnectionsQuickFilters) => void;
   countries: string[];
   cities: string[];
-  showRelationshipType?: boolean;
+  variant?: "companies" | "contacts";
   relationshipTypeSlot?: React.ReactNode;
 }) {
+  const isCompanies = variant === "companies";
+  const companiesSearchPlaceholder = "Search company, contact, country, city…";
+  const contactsSearchPlaceholder = "Search company, contact, country, city, coverage, role…";
+
   return (
     <div className="mb-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
       <input
         type="search"
         value={searchQuery}
         onChange={(e) => onSearchChange(e.target.value)}
-        placeholder="Search company, contact, country, city, coverage…"
+        placeholder={isCompanies ? companiesSearchPlaceholder : contactsSearchPlaceholder}
         aria-label="Search connections"
         className={searchClass}
       />
 
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        {showRelationshipType && relationshipTypeSlot ? (
+        {isCompanies && relationshipTypeSlot ? (
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">{relationshipTypeSlot}</div>
         ) : null}
 
