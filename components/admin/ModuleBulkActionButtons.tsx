@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { IconCopy, IconExport, IconTrash } from "@/components/admin/ModuleActionIcons";
 import { moduleActionButtonClass } from "@/components/admin/ModuleActionBar";
@@ -19,6 +20,8 @@ export function ModuleListingBulkActions({
   onDelete,
   onCopy,
   copyTitle = "Copy selected",
+  variant = "full",
+  compact = false,
 }: {
   module: AdminModuleKey;
   importObjectType: ImportObjectType;
@@ -28,15 +31,22 @@ export function ModuleListingBulkActions({
   /** When provided, overrides context filtered IDs (e.g. server-filtered building list). */
   filteredIds?: string[];
   isPending?: boolean;
-  onDelete: () => void;
+  onDelete?: () => void;
   onCopy?: () => void;
   copyTitle?: string;
+  /** export-only: no delete/copy/selected export — for mobile listing toolbars */
+  variant?: "full" | "export-only";
+  /** Icon-only buttons for compact mobile toolbars */
+  compact?: boolean;
 }) {
   const theme = moduleAccentClasses(module);
   const exportCtx = useOptionalModuleListingExport();
   const filteredIds = filteredIdsProp ?? exportCtx?.filteredIds ?? [];
   const [exportPending, startExport] = useTransition();
   const [exportError, setExportError] = useState<string | null>(null);
+  const exportOnly = variant === "export-only";
+  const iconButtonClass = `${theme.secondaryButton} p-2 disabled:cursor-not-allowed disabled:opacity-40`;
+  const textButtonClass = `${theme.secondaryButton} inline-flex items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-40`;
 
   function runExport(ids: string[], scope: "selected" | "filtered") {
     setExportError(null);
@@ -58,17 +68,19 @@ export function ModuleListingBulkActions({
           {exportError}
         </span>
       ) : null}
-      <button
-        type="button"
-        disabled={!someSelected || busy}
-        onClick={onDelete}
-        className={`${moduleActionButtonClass.delete} disabled:cursor-not-allowed disabled:opacity-40`}
-        aria-label="Delete selected"
-        title="Delete selected"
-      >
-        <IconTrash />
-      </button>
-      {onCopy ? (
+      {!exportOnly && onDelete ? (
+        <button
+          type="button"
+          disabled={!someSelected || busy}
+          onClick={onDelete}
+          className={`${moduleActionButtonClass.delete} disabled:cursor-not-allowed disabled:opacity-40`}
+          aria-label="Delete selected"
+          title="Delete selected"
+        >
+          <IconTrash />
+        </button>
+      ) : null}
+      {!exportOnly && onCopy ? (
         <button
           type="button"
           disabled={!someSelected || busy}
@@ -80,25 +92,44 @@ export function ModuleListingBulkActions({
           <IconCopy />
         </button>
       ) : null}
-      <button
-        type="button"
-        disabled={!someSelected || busy}
-        onClick={() => runExport(selectedIds, "selected")}
-        className={`${theme.secondaryButton} hidden items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-40 sm:inline-flex`}
-        title="Export selected"
-      >
-        <IconExport className="h-3.5 w-3.5" />
-        Export selected
-      </button>
+      {!exportOnly ? (
+        <button
+          type="button"
+          disabled={!someSelected || busy}
+          onClick={() => runExport(selectedIds, "selected")}
+          className={compact ? iconButtonClass : textButtonClass}
+          title="Export selected"
+          aria-label="Export selected"
+        >
+          <IconExport className={compact ? undefined : "h-3.5 w-3.5"} />
+          {compact ? null : "Export selected"}
+        </button>
+      ) : null}
       <button
         type="button"
         disabled={filteredIds.length === 0 || busy}
         onClick={() => runExport(filteredIds, "filtered")}
-        className={`${theme.secondaryButton} hidden disabled:cursor-not-allowed disabled:opacity-40 sm:inline-flex`}
-        title="Export all records matching current filters"
+        className={compact ? iconButtonClass : textButtonClass}
+        title="Export filtered"
+        aria-label="Export filtered"
       >
-        Export filtered
+        <IconExport className={compact ? undefined : "h-3.5 w-3.5"} />
+        {compact ? null : "Export filtered"}
       </button>
+      <Link
+        href={`/admin/import?objectType=${importObjectType}`}
+        className={
+          compact
+            ? `${theme.secondaryButton} p-2 text-xs font-medium`
+            : `${theme.secondaryButton} text-sm font-medium`
+        }
+        title="Import CSV"
+      >
+        {compact ? "↑" : "Import"}
+      </Link>
+      {!exportOnly && someSelected ? (
+        <span className="hidden text-sm text-slate-600 tabular-nums sm:inline">{selectedCount} selected</span>
+      ) : null}
     </div>
   );
 }

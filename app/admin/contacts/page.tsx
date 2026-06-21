@@ -1,8 +1,10 @@
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { ConnectionsContactsPageClient } from "@/components/admin/connections/ConnectionsContactsPageClient";
 import { ConnectionsListError } from "@/components/admin/connections/ConnectionsListError";
 import { AdminListLoadingFallback } from "@/components/admin/layout/AdminListLoadingFallback";
+import { resolveContactQueryParam } from "@/lib/contactDrawerResolve";
 import { listCompanyOptions } from "@/lib/repos/companies";
 import { listContacts } from "@/lib/repos/contacts";
 import { getContactDrawerData } from "@/lib/repos/connectionsDrawer";
@@ -24,17 +26,24 @@ export default async function ContactsListPage({ searchParams }: Props) {
   }
 
   const contactIdRaw = sp.contact?.trim();
-  const contactId = contactIdRaw ? Number.parseInt(contactIdRaw, 10) : NaN;
   let selectedContact: Awaited<ReturnType<typeof getContactDrawerData>> = null;
   let drawerError: string | null = null;
 
-  if (!loadError && Number.isFinite(contactId) && contactId > 0) {
-    try {
-      selectedContact = await getContactDrawerData(contactId);
-      if (!selectedContact) drawerError = `Contact #${contactId} was not found.`;
-    } catch (err) {
-      drawerError = err instanceof Error ? err.message : "Failed to load contact.";
-      selectedContact = null;
+  if (!loadError && contactIdRaw) {
+    const resolved = await resolveContactQueryParam(contactIdRaw);
+    if (resolved?.kind === "company_mismatch") {
+      redirect(`/admin/companies?company=${encodeURIComponent(resolved.companyQuery)}`);
+    }
+    if (resolved?.kind === "contact") {
+      try {
+        selectedContact = await getContactDrawerData(resolved.legacyContactId);
+        if (!selectedContact) drawerError = `Contact #${resolved.legacyContactId} was not found.`;
+      } catch (err) {
+        drawerError = err instanceof Error ? err.message : "Failed to load contact.";
+        selectedContact = null;
+      }
+    } else {
+      drawerError = `Contact "${contactIdRaw}" was not found.`;
     }
   }
 

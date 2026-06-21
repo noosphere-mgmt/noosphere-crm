@@ -27,6 +27,7 @@ export function ImportModuleCard({
     <form
       id={`import-${objectType}`}
       action={uploadAction}
+      encType="multipart/form-data"
       className={`px-3 py-2.5 ${focused ? "bg-slate-50" : "bg-white"}`}
     >
       <input type="hidden" name="object_type" value={objectType} />
@@ -58,12 +59,12 @@ export function ImportModuleCard({
           Upload CSV
         </button>
 
-        <Link href={`/api/admin/import/template/${objectType}`} className={linkClass}>
+        <a href={`/api/admin/import/template/${objectType}`} className={linkClass}>
           Template
-        </Link>
-        <Link href={`/api/admin/import/export/${objectType}`} className={exportLinkClass}>
+        </a>
+        <a href={`/api/admin/import/export/${objectType}`} className={exportLinkClass}>
           Export all
-        </Link>
+        </a>
       </div>
     </form>
   );

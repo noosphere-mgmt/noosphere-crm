@@ -13,6 +13,7 @@ export async function downloadModuleExport(
   const res = await fetch(`/api/admin/import/export/${objectType}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
     body: JSON.stringify({ ids, scope }),
   });
 

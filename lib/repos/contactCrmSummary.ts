@@ -2,6 +2,7 @@ import { getCompany } from "@/lib/repos/companies";
 import { countOpenLinkedOpportunitiesForContact } from "@/lib/repos/connectionOpportunities";
 import { getCompanyCrmSummary } from "@/lib/repos/companyCrmSummary";
 import { getContact } from "@/lib/repos/contacts";
+import { resolveLegacyCompanyIdFromContactRef } from "@/lib/contactDrawerResolve";
 
 export type ContactCrmSummary = {
   openOpportunities: number;
@@ -19,9 +20,14 @@ export async function getContactCrmSummary(contactId: number): Promise<ContactCr
     return { openOpportunities: 0, properties: 0, source: null };
   }
 
+  const legacyCompanyId = await resolveLegacyCompanyIdFromContactRef(contact.company_id);
+  if (!legacyCompanyId) {
+    return { openOpportunities, properties: 0, source: null };
+  }
+
   const [companyCrm, company] = await Promise.all([
-    getCompanyCrmSummary(contact.company_id),
-    getCompany(contact.company_id),
+    getCompanyCrmSummary(legacyCompanyId),
+    getCompany(legacyCompanyId),
   ]);
 
   return {
