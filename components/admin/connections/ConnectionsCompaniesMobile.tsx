@@ -21,7 +21,6 @@ export function ConnectionsCompaniesMobile({ state }: { state: ConnectionsCompan
         filteredCount={state.displayedRows.length}
         totalCount={state.rows.length}
         label="Companies"
-        selectedCount={state.selectedCount}
       />
       <ConnectionsCompaniesListMobile state={state} />
     </>

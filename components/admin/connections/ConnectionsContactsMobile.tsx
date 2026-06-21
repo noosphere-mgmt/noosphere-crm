@@ -29,7 +29,6 @@ export function ConnectionsContactsMobile({
         filteredCount={state.displayedRows.length}
         totalCount={state.rows.length}
         label="Contacts"
-        selectedCount={state.selectedCount}
       />
       <ConnectionsContactsListMobile state={state} onOpenContact={onOpenContact} />
     </>

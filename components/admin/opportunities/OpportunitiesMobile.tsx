@@ -26,7 +26,6 @@ export function OpportunitiesMobile({
         filteredCount={state.displayedRows.length}
         totalCount={state.rows.length}
         label="Opportunities"
-        selectedCount={state.selectedCount}
       />
       <OpportunitiesListMobile state={state} onQuickView={onQuickView} />
     </>

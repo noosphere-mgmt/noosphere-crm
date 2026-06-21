@@ -334,6 +334,21 @@ export async function bulkDeletePremisesV1Action(formData: FormData) {
   redirect(returnTo.startsWith("/admin") ? returnTo : "/admin/properties");
 }
 
+export async function deletePremisesV1FromListAction(
+  premisesId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const trimmed = premisesId.trim();
+    if (!trimmed) return { ok: false, error: "Invalid premises" };
+    const { deletePremisesV1 } = await import("@/lib/repos/premisesV1");
+    await deletePremisesV1([trimmed]);
+    revalidatePath("/admin/properties");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Delete failed" };
+  }
+}
+
 export async function bulkDeletePropertiesV1Action(formData: FormData) {
   const raw = String(formData.get("property_ids") ?? "").trim();
   const ids = raw ? raw.split(",").map((id) => id.trim()).filter(Boolean) : [];
