@@ -1,5 +1,10 @@
 import { query } from "@/lib/db";
 import { isActivityType } from "@/lib/activityValues";
+import {
+  sqlJoinLegacyCompany,
+  sqlJoinLegacyContact,
+  sqlJoinLegacyOpportunity,
+} from "@/lib/import/lookupSql";
 
 const premisesLabelLateral = `
   LEFT JOIN LATERAL (
@@ -43,9 +48,9 @@ const activitySelect = `
 
 const activityFrom = `
   FROM activities a
-  LEFT JOIN companies c ON c.id = a.company_id
-  LEFT JOIN contacts ct ON ct.id = a.contact_id
-  LEFT JOIN opportunities o ON o.id = a.opportunity_id
+  LEFT JOIN companies c ON ${sqlJoinLegacyCompany("c", "a.company_id")}
+  LEFT JOIN contacts ct ON ${sqlJoinLegacyContact("ct", "a.contact_id")}
+  LEFT JOIN opportunities o ON ${sqlJoinLegacyOpportunity("o", "a.opportunity_id")}
   ${premisesLabelLateral}
 `;
 
@@ -437,7 +442,7 @@ export async function searchActivityContacts(q: string, limit = 15): Promise<Act
               COALESCE(c.display_name, c.contact_name) AS label,
               co.company_name AS subtitle
        FROM contacts c
-       JOIN companies co ON co.id = c.company_id
+       JOIN companies co ON co.id::text = c.company_id::text
        WHERE c.is_active = TRUE
        ORDER BY COALESCE(c.display_name, c.contact_name) ASC
        LIMIT $1`,
@@ -450,7 +455,7 @@ export async function searchActivityContacts(q: string, limit = 15): Promise<Act
             COALESCE(c.display_name, c.contact_name) AS label,
             co.company_name AS subtitle
      FROM contacts c
-     JOIN companies co ON co.id = c.company_id
+     JOIN companies co ON co.id::text = c.company_id::text
      WHERE c.is_active = TRUE
        AND (COALESCE(c.display_name, c.contact_name) ILIKE $1 OR co.company_name ILIKE $1)
      ORDER BY COALESCE(c.display_name, c.contact_name) ASC
@@ -468,7 +473,7 @@ export async function searchActivityOpportunities(q: string, limit = 15): Promis
               o.client_name AS label,
               c.company_name AS subtitle
        FROM opportunities o
-       LEFT JOIN companies c ON c.id = o.company_id
+       LEFT JOIN companies c ON c.id::text = o.company_id::text
        ORDER BY o.updated_at DESC NULLS LAST, o.id DESC
        LIMIT $1`,
       [limit],
@@ -480,7 +485,7 @@ export async function searchActivityOpportunities(q: string, limit = 15): Promis
             o.client_name AS label,
             c.company_name AS subtitle
      FROM opportunities o
-     LEFT JOIN companies c ON c.id = o.company_id
+     LEFT JOIN companies c ON c.id::text = o.company_id::text
      WHERE o.client_name ILIKE $1 OR c.company_name ILIKE $1
      ORDER BY o.updated_at DESC NULLS LAST, o.id DESC
      LIMIT $2`,
@@ -508,7 +513,7 @@ export async function searchActivityPremises(q: string, limit = 25): Promise<Act
   const premisesFrom = `
     FROM premises_v1 p
     JOIN properties_v1 pr ON pr.property_id = p.property_id
-    LEFT JOIN companies op ON op.id = NULLIF(trim(p.operator_company_id), '')::int
+    LEFT JOIN companies_v1 op ON op.company_id = NULLIF(trim(p.operator_company_id), '')
   `;
 
   if (!term) {
@@ -516,7 +521,7 @@ export async function searchActivityPremises(q: string, limit = 25): Promise<Act
       `SELECT 'premises'::text AS entity_type,
               p.premises_id AS entity_id,
               ${premisesLabelSql} AS label,
-              trim(both ' · ' FROM concat_ws(' · ', pr.district_en, op.company_name)) AS subtitle
+              trim(both ' · ' FROM concat_ws(' · ', pr.district_en, op.company_name_en)) AS subtitle
        ${premisesFrom}
        ORDER BY pr.bldg_name_en ASC NULLS LAST, p.floor ASC NULLS LAST, p.unit ASC NULLS LAST
        LIMIT $1`,
@@ -528,16 +533,16 @@ export async function searchActivityPremises(q: string, limit = 25): Promise<Act
     `SELECT 'premises'::text AS entity_type,
             p.premises_id AS entity_id,
             ${premisesLabelSql} AS label,
-            trim(both ' · ' FROM concat_ws(' · ', pr.district_en, op.company_name)) AS subtitle
+            trim(both ' · ' FROM concat_ws(' · ', pr.district_en, op.company_name_en)) AS subtitle
      ${premisesFrom}
      WHERE pr.bldg_name_en ILIKE $1
         OR pr.district_en ILIKE $1
-        OR op.company_name ILIKE $1
+        OR op.company_name_en ILIKE $1
         OR p.floor ILIKE $1
         OR p.unit ILIKE $1
         OR p.premises_id ILIKE $1
         OR p.property_name_en ILIKE $1
-        OR concat_ws(' ', pr.bldg_name_en, pr.district_en, op.company_name, p.floor, p.unit) ILIKE $1
+        OR concat_ws(' ', pr.bldg_name_en, pr.district_en, op.company_name_en, p.floor, p.unit) ILIKE $1
      ORDER BY pr.bldg_name_en ASC NULLS LAST, p.floor ASC NULLS LAST, p.unit ASC NULLS LAST
      LIMIT $2`,
     [`%${term}%`, limit],

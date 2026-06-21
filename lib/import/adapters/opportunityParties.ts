@@ -1,6 +1,11 @@
 import { query } from "@/lib/db";
 import { sqlContactDisplayName } from "@/lib/contactName";
 import { genericUpdateRecord, rowToRecord } from "../adapterUtils";
+import {
+  sqlJoinLegacyCompany,
+  sqlJoinLegacyContact,
+  sqlJoinLegacyOpportunity,
+} from "../lookupSql";
 import { parseBigIntParam } from "../fkValidation";
 import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
 import {
@@ -50,9 +55,9 @@ const SELECT = `
 
 const FROM = `
   opportunity_parties op
-  LEFT JOIN opportunities o ON o.id = op.opportunity_id
-  LEFT JOIN companies c ON c.id = op.company_id
-  LEFT JOIN contacts ct ON ct.id = op.contact_id
+  LEFT JOIN opportunities o ON ${sqlJoinLegacyOpportunity("o", "op.opportunity_id")}
+  LEFT JOIN companies c ON ${sqlJoinLegacyCompany("c", "op.company_id")}
+  LEFT JOIN contacts ct ON ${sqlJoinLegacyContact("ct", "op.contact_id")}
 `;
 
 function partyFieldDef(key: (typeof FIELD_KEYS)[number]): ImportFieldDef {

@@ -4,7 +4,12 @@ import { ACTIVITY_TYPES } from "@/lib/activityValues";
 import { sqlContactDisplayName } from "@/lib/contactName";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
 import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
-import { sqlPremisesLabel } from "../lookupSql";
+import {
+  sqlJoinLegacyCompany,
+  sqlJoinLegacyContact,
+  sqlJoinLegacyOpportunity,
+  sqlPremisesLabel,
+} from "../lookupSql";
 import {
   mergeReferenceResults,
   resolveContactIdOrName,
@@ -51,9 +56,9 @@ const SELECT = `
 
 const FROM = `
   activities a
-  LEFT JOIN companies c ON c.id = a.company_id
-  LEFT JOIN contacts ct ON ct.id = a.contact_id
-  LEFT JOIN opportunities o ON o.id = a.opportunity_id
+  LEFT JOIN companies c ON ${sqlJoinLegacyCompany("c", "a.company_id")}
+  LEFT JOIN contacts ct ON ${sqlJoinLegacyContact("ct", "a.contact_id")}
+  LEFT JOIN opportunities o ON ${sqlJoinLegacyOpportunity("o", "a.opportunity_id")}
   LEFT JOIN premises_v1 pm ON pm.premises_id = a.premises_id
   LEFT JOIN properties_v1 b ON b.property_id = pm.property_id
 `;

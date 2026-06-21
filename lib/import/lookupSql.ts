@@ -24,15 +24,31 @@ export function sqlActivityLabel(aAlias = "a"): string {
   ))`;
 }
 
+/** Join legacy companies.id to a FK column (bigint or text). Cast numeric side to text. */
+export function sqlJoinLegacyCompany(companyAlias: string, fkExpr: string): string {
+  return `${companyAlias}.id::text = ${fkExpr}::text`;
+}
+
+/** Join legacy contacts.id to a FK column (bigint or text). Cast numeric side to text. */
+export function sqlJoinLegacyContact(contactAlias: string, fkExpr: string): string {
+  return `${contactAlias}.id::text = ${fkExpr}::text`;
+}
+
+/** Join legacy opportunities.id to a FK column (bigint or text). Cast numeric side to text. */
+export function sqlJoinLegacyOpportunity(opportunityAlias: string, fkExpr: string): string {
+  return `${opportunityAlias}.id::text = ${fkExpr}::text`;
+}
+
 /** SQL subquery for relationship endpoint display name. */
 export function sqlRelationshipEntityName(typeExpr: string, idExpr: string): string {
   return `CASE ${typeExpr}
-    WHEN 'company' THEN (
-      SELECT c.company_name FROM companies c WHERE c.id::text = ${idExpr} LIMIT 1
+    WHEN 'company' THEN COALESCE(
+      (SELECT c.company_name FROM companies c WHERE ${sqlJoinLegacyCompany("c", idExpr)} LIMIT 1),
+      (SELECT cv1.company_name_en FROM companies_v1 cv1 WHERE cv1.company_id = ${idExpr} LIMIT 1)
     )
     WHEN 'contact' THEN (
       SELECT COALESCE(ct.display_name::text, ct.contact_name::text)
-      FROM contacts ct WHERE ct.id::text = ${idExpr} LIMIT 1
+      FROM contacts ct WHERE ${sqlJoinLegacyContact("ct", idExpr)} LIMIT 1
     )
     ELSE NULL
   END`;

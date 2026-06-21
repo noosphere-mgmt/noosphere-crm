@@ -5,6 +5,7 @@ import type { CompanyRole } from "@/lib/types/entities";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
 import { parseBigIntParam, parseOptionalInt } from "../fkValidation";
 import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
+import { sqlJoinLegacyCompany } from "../lookupSql";
 import { resolveLegacyCompanyIdOrName } from "../referenceResolution";
 import type { ImportFieldDef, ImportObjectDefinition } from "../objectRegistry";
 import type { ExistingRecord } from "../types";
@@ -47,7 +48,7 @@ const SELECT = `
   ct.notes AS remarks
 `;
 
-const FROM = `contacts ct LEFT JOIN companies c ON c.id = ct.company_id`;
+const FROM = `contacts ct LEFT JOIN companies c ON ${sqlJoinLegacyCompany("c", "ct.company_id")}`;
 
 function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
   const p: Record<string, unknown> = {};

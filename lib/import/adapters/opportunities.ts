@@ -3,6 +3,7 @@ import { sqlContactDisplayName } from "@/lib/contactName";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
 import { parseBigIntParam } from "../fkValidation";
 import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
+import { sqlJoinLegacyCompany, sqlJoinLegacyContact } from "../lookupSql";
 import {
   mergeReferenceResults,
   resolveContactIdOrName,
@@ -69,8 +70,8 @@ const SELECT = `
 
 const FROM = `
   opportunities o
-  LEFT JOIN companies c ON c.id = o.company_id
-  LEFT JOIN contacts ct ON ct.id = o.primary_contact_id
+  LEFT JOIN companies c ON ${sqlJoinLegacyCompany("c", "o.company_id")}
+  LEFT JOIN contacts ct ON ${sqlJoinLegacyContact("ct", "o.primary_contact_id")}
 `;
 
 function dbPatch(values: Record<string, unknown>): Record<string, unknown> {

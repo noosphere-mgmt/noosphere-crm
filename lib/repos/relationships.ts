@@ -48,21 +48,24 @@ const RELATIONSHIP_SELECT = `relationship_id, from_entity_type, from_entity_id, 
 
 async function resolveEntityName(entityType: EntityType, entityId: string): Promise<string> {
   if (entityType === "company") {
-    const id = Number.parseInt(entityId, 10);
-    if (!Number.isFinite(id)) return entityId;
-    const rows = await query<{ company_name: string }>(
-      `SELECT company_name FROM companies WHERE id = $1`,
-      [id],
+    const legacy = await query<{ company_name: string }>(
+      `SELECT company_name FROM companies WHERE id::text = $1 LIMIT 1`,
+      [entityId],
     );
-    return rows[0]?.company_name ?? `Company #${entityId}`;
+    if (legacy[0]?.company_name) return legacy[0].company_name;
+
+    const v1 = await query<{ company_name_en: string }>(
+      `SELECT company_name_en FROM companies_v1 WHERE company_id = $1 LIMIT 1`,
+      [entityId],
+    );
+    return v1[0]?.company_name_en ?? entityId;
   }
-  const id = Number.parseInt(entityId, 10);
-  if (!Number.isFinite(id)) return entityId;
+
   const rows = await query<{ contact_name: string }>(
-    `SELECT ${sqlContactDisplayName()} AS contact_name FROM contacts WHERE id = $1`,
-    [id],
+    `SELECT ${sqlContactDisplayName()} AS contact_name FROM contacts WHERE id::text = $1 LIMIT 1`,
+    [entityId],
   );
-  return rows[0]?.contact_name ?? `Contact #${entityId}`;
+  return rows[0]?.contact_name ?? entityId;
 }
 
 function toEntityRow(row: RelationshipRecord, relatedName: string): EntityRelationshipRow {
@@ -331,7 +334,7 @@ export async function searchRelationshipEntities(
             ${sqlContactDisplayName("c")} AS label,
             co.company_name AS subtitle
      FROM contacts c
-     JOIN companies co ON co.id = c.company_id
+     JOIN companies co ON co.id::text = c.company_id::text
      WHERE c.is_active = TRUE
        AND (${sqlContactDisplayName("c")} ILIKE $1 OR co.company_name ILIKE $1)
      ORDER BY ${sqlContactDisplayName("c")} ASC

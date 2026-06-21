@@ -175,7 +175,7 @@ async function fetchAttentionRequired(): Promise<DashboardAttentionRow[]> {
        END::text AS days_since_activity,
        COALESCE(of.net_fee, 0)::text AS expected_fee
      FROM opportunities o
-     LEFT JOIN companies lc ON lc.id = o.company_id
+     LEFT JOIN companies lc ON lc.id::text = o.company_id::text
      LEFT JOIN last_activity la ON la.opportunity_id = o.id
      LEFT JOIN opp_fees of ON of.opportunity_id = o.id
      WHERE o.status NOT IN ${OPEN_STATUS_SQL}
@@ -208,9 +208,9 @@ async function fetchUpcomingActivities(): Promise<DashboardUpcomingActivity[]> {
        o.client_name AS opportunity_name,
        prem_agg.labels AS premises_label
      FROM activities a
-     LEFT JOIN companies c ON c.id = a.company_id
-     LEFT JOIN contacts ct ON ct.id = a.contact_id
-     LEFT JOIN opportunities o ON o.id = a.opportunity_id
+     LEFT JOIN companies c ON c.id::text = a.company_id::text
+     LEFT JOIN contacts ct ON ct.id::text = a.contact_id::text
+     LEFT JOIN opportunities o ON o.id::text = a.opportunity_id::text
      LEFT JOIN LATERAL (
        SELECT string_agg(lbl, ', ' ORDER BY lbl) AS labels
        FROM (
@@ -343,9 +343,9 @@ async function fetchTopReferrers(): Promise<DashboardPartyPerformanceRow[]> {
          CASE WHEN op.collect_fee_status = 'paid' THEN op.paid_out_fee_amount ELSE 0 END
        ), 0)::text AS collected_fee
      FROM opportunity_parties op
-     JOIN companies c ON c.id = op.company_id
-     LEFT JOIN contacts ct ON ct.id = op.contact_id
-     JOIN opportunities o ON o.id = op.opportunity_id
+     JOIN companies c ON c.id::text = op.company_id::text
+     LEFT JOIN contacts ct ON ct.id::text = op.contact_id::text
+     JOIN opportunities o ON o.id::text = op.opportunity_id::text
      WHERE op.role IN ('referrer')
      GROUP BY op.company_id, op.contact_id, party_name
      ORDER BY active_opps DESC, expected_fee DESC
@@ -375,9 +375,9 @@ async function fetchTopAgents(): Promise<DashboardPartyPerformanceRow[]> {
          CASE WHEN op.collect_fee_status = 'paid' THEN op.collect_fee_amount ELSE 0 END
        ), 0)::text AS collected_fee
      FROM opportunity_parties op
-     JOIN companies c ON c.id = op.company_id
-     LEFT JOIN contacts ct ON ct.id = op.contact_id
-     JOIN opportunities o ON o.id = op.opportunity_id
+     JOIN companies c ON c.id::text = op.company_id::text
+     LEFT JOIN contacts ct ON ct.id::text = op.contact_id::text
+     JOIN opportunities o ON o.id::text = op.opportunity_id::text
      WHERE op.role IN ('agent', 'referring_agent', 'co_broker')
         OR op.partnership_mode = 'co_broker'
      GROUP BY op.company_id, op.contact_id, party_name
@@ -464,8 +464,8 @@ async function fetchRelationshipNetwork(): Promise<DashboardRelationshipNode[]> 
        (SELECT COUNT(*)::text FROM opportunities o
          WHERE o.company_id = c.id AND o.status = 'closed_won') AS won_opps
      FROM relationships r
-     JOIN contacts ct ON ct.id = r.from_entity_id::bigint
-     JOIN companies c ON c.id = r.to_entity_id::bigint
+     JOIN contacts ct ON ct.id::text = r.from_entity_id
+     JOIN companies c ON c.id::text = r.to_entity_id
      WHERE r.from_entity_type = 'contact'
        AND r.to_entity_type = 'company'
        AND r.relationship_type = 'Refers'

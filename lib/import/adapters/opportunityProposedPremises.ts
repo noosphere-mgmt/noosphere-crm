@@ -1,7 +1,7 @@
 import { query } from "@/lib/db";
 import { genericUpdateRecord, rowToRecord } from "../adapterUtils";
 import { parseBigIntParam } from "../fkValidation";
-import { sqlPremisesLabel } from "../lookupSql";
+import { sqlJoinLegacyOpportunity, sqlPremisesLabel } from "../lookupSql";
 import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
 import {
   mergeReferenceResults,
@@ -55,7 +55,7 @@ const SELECT = `
 
 const FROM = `
   opportunity_proposed_premises opp
-  LEFT JOIN opportunities o ON o.id = opp.opportunity_id
+  LEFT JOIN opportunities o ON ${sqlJoinLegacyOpportunity("o", "opp.opportunity_id")}
   LEFT JOIN premises_v1 pm ON pm.premises_id = opp.premises_id
   LEFT JOIN properties_v1 b ON b.property_id = pm.property_id
 `;
