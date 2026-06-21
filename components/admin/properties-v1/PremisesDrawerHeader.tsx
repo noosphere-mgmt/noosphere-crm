@@ -1,8 +1,7 @@
 "use client";
 
-import { bulkDeletePremisesV1Action } from "@/app/admin/properties/actions";
-import { IconPen, IconTrash, IconX } from "@/components/admin/ModuleActionIcons";
-import { moduleActionButtonClass, moduleEditButtonClass } from "@/components/admin/ModuleActionBar";
+import { IconPen, IconX } from "@/components/admin/ModuleActionIcons";
+import { moduleEditButtonClass } from "@/components/admin/ModuleActionBar";
 import { InlineSaveStatus } from "@/components/admin/inline/InlineRecordChrome";
 import { useInlineEdit } from "@/components/admin/inline/InlineEditProvider";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
@@ -10,8 +9,6 @@ import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 export function PremisesDrawerHeader({
   title,
   subtitle,
-  premisesId,
-  returnTo,
   onClose,
   onEdit,
   onFullEdit,
@@ -19,8 +16,6 @@ export function PremisesDrawerHeader({
 }: {
   title: string;
   subtitle?: string | null;
-  premisesId: string;
-  returnTo: string;
   onClose: () => void;
   onEdit: () => void;
   onFullEdit?: () => void;
@@ -29,18 +24,11 @@ export function PremisesDrawerHeader({
   const theme = moduleAccentClasses("properties");
   const { editHighlight, setEditHighlight } = useInlineEdit();
 
-  async function deletePremises() {
-    const formData = new FormData();
-    formData.set("premises_ids", premisesId);
-    formData.set("return_to", returnTo);
-    await bulkDeletePremisesV1Action(formData);
-  }
-
   return (
     <div className="sticky top-0 z-10 shrink-0 border-b border-slate-200 bg-white px-4 py-4 sm:px-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs text-slate-500">Review</p>
+          <p className="text-xs text-slate-500">{editHighlight ? "Click a field to edit" : "Review"}</p>
           <h2 className="mt-0.5 text-lg font-semibold tracking-tight text-slate-900">{title}</h2>
           {subtitle ? <p className="mt-1 text-sm text-slate-600">{subtitle}</p> : null}
         </div>
@@ -78,19 +66,6 @@ export function PremisesDrawerHeader({
               <IconPen />
             </button>
           ) : null}
-          <form action={deletePremises}>
-            <button
-              type="submit"
-              className={moduleActionButtonClass.delete}
-              aria-label="Delete"
-              title="Delete"
-              onClick={(e) => {
-                if (!window.confirm("Delete this premises? This cannot be undone.")) e.preventDefault();
-              }}
-            >
-              <IconTrash />
-            </button>
-          </form>
           <button
             type="button"
             onClick={onClose}

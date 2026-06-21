@@ -1,14 +1,16 @@
 import { randomUUID } from "node:crypto";
 import { query } from "@/lib/db";
 import { ACTIVITY_TYPES } from "@/lib/activityValues";
+import { sqlContactDisplayName } from "@/lib/contactName";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
-import { buildNaturalKeyParts } from "../matchRecord";
+import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
+import { sqlPremisesLabel } from "../lookupSql";
 import {
   mergeReferenceResults,
-  resolveContactReference,
-  resolveLegacyCompanyReference,
-  resolveOpportunityReference,
-  resolvePremisesReference,
+  resolveContactIdOrName,
+  resolveLegacyCompanyIdOrName,
+  resolveOpportunityIdOrName,
+  resolvePremisesIdOrName,
 } from "../referenceResolution";
 import type { ImportObjectDefinition } from "../objectRegistry";
 import type { ExistingRecord } from "../types";
@@ -20,25 +22,44 @@ const FIELD_KEYS = [
   "activity_type",
   "notes",
   "company_id",
+  "company_name_en",
   "contact_id",
+  "contact_name",
   "opportunity_id",
+  "opportunity_name",
   "premises_id",
+  "premises_name",
+  "building_name_en",
 ] as const;
 
 const SELECT = `
-  activity_id,
-  activity_date::text AS activity_date,
-  activity_time,
-  activity_type,
-  notes,
-  company_id::text AS company_id,
-  contact_id::text AS contact_id,
-  opportunity_id::text AS opportunity_id,
-  premises_id
+  a.activity_id,
+  a.activity_date::text AS activity_date,
+  a.activity_time,
+  a.activity_type,
+  a.notes,
+  a.company_id::text AS company_id,
+  c.company_name AS company_name_en,
+  a.contact_id::text AS contact_id,
+  ${sqlContactDisplayName("ct")} AS contact_name,
+  a.opportunity_id::text AS opportunity_id,
+  o.client_name AS opportunity_name,
+  a.premises_id,
+  ${sqlPremisesLabel("pm", "b")} AS premises_name,
+  b.bldg_name_en AS building_name_en
+`;
+
+const FROM = `
+  activities a
+  LEFT JOIN companies c ON c.id = a.company_id
+  LEFT JOIN contacts ct ON ct.id = a.contact_id
+  LEFT JOIN opportunities o ON o.id = a.opportunity_id
+  LEFT JOIN premises_v1 pm ON pm.premises_id = a.premises_id
+  LEFT JOIN properties_v1 b ON b.property_id = pm.property_id
 `;
 
 async function load(where: string, params: unknown[]): Promise<ExistingRecord[]> {
-  const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM activities WHERE ${where}`, params);
+  const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM ${FROM} WHERE ${where}`, params);
   return rows.map((row) => rowToRecord(row, String(row.activity_id), FIELD_KEYS));
 }
 
@@ -54,14 +75,19 @@ export const activitiesImportDefinition: ImportObjectDefinition = {
     { key: "activity_time", label: "activity_time", type: "string" },
     { key: "activity_type", label: "activity_type", type: "enum", enumValues: [...ACTIVITY_TYPES], requiredOnCreate: true },
     { key: "notes", label: "notes", type: "string" },
-    { key: "company_id", label: "company_id", type: "number", integer: true },
-    { key: "contact_id", label: "contact_id", type: "number", integer: true },
-    { key: "opportunity_id", label: "opportunity_id", type: "number", integer: true },
+    { key: "company_id", label: "company_id", type: "string" },
+    { key: "company_name_en", label: "company_name_en", type: "string", lookupOnly: true, aliases: ["company_name"] },
+    { key: "contact_id", label: "contact_id", type: "string" },
+    { key: "contact_name", label: "contact_name", type: "string", lookupOnly: true, aliases: ["assigned_contact_name"] },
+    { key: "opportunity_id", label: "opportunity_id", type: "string" },
+    { key: "opportunity_name", label: "opportunity_name", type: "string", lookupOnly: true },
     { key: "premises_id", label: "premises_id", type: "string" },
+    { key: "premises_name", label: "premises_name", type: "string", lookupOnly: true },
+    { key: "building_name_en", label: "building_name_en", type: "string", lookupOnly: true },
   ],
 
   async findById(id) {
-    const rows = await load("activity_id = $1", [String(id)]);
+    const rows = await load("a.activity_id = $1", [String(id)]);
     return rows[0] ?? null;
   },
 
@@ -82,34 +108,94 @@ export const activitiesImportDefinition: ImportObjectDefinition = {
   },
 
   async findByNaturalKey(key) {
-    const [date, type, companyId, notesPrefix] = key.split("|");
+    const parts = splitNaturalKeyParts(key, 4);
+    if (!parts) return [];
+    const [date, type, companyId, notesPrefix] = parts;
     return load(
-      `activity_date::text = $1 AND activity_type = $2
-       AND coalesce(company_id::text, '') = $3
-       AND left(coalesce(notes, ''), 80) = $4`,
+      `a.activity_date::text = $1 AND a.activity_type = $2
+       AND coalesce(a.company_id::text, '') = $3
+       AND left(coalesce(a.notes, ''), 80) = $4`,
       [date, type, companyId ?? "", notesPrefix ?? ""],
     );
   },
 
-  async validateReferences(values, suppliedFields, _existing, writable) {
-    const optionalFields = [
-      ["company_id", resolveLegacyCompanyReference],
-      ["contact_id", resolveContactReference],
-      ["opportunity_id", resolveOpportunityReference],
-      ["premises_id", resolvePremisesReference],
-    ] as const;
+  async validateReferences(values, suppliedFields, existing, writable) {
     const results = [];
-    for (const [field, resolver] of optionalFields) {
-      if (suppliedFields.has(field) || field in writable) {
-        results.push(await resolver(field, values[field] ?? writable[field], false));
-      }
+    if (
+      suppliedFields.has("company_id") ||
+      "company_id" in writable ||
+      suppliedFields.has("company_name_en")
+    ) {
+      results.push(
+        await resolveLegacyCompanyIdOrName(
+          "company_id",
+          "company_name_en",
+          values,
+          suppliedFields,
+          existing,
+          writable,
+          false,
+        ),
+      );
+    }
+    if (
+      suppliedFields.has("contact_id") ||
+      "contact_id" in writable ||
+      suppliedFields.has("contact_name")
+    ) {
+      results.push(
+        await resolveContactIdOrName(
+          "contact_id",
+          "contact_name",
+          values,
+          suppliedFields,
+          existing,
+          writable,
+          false,
+        ),
+      );
+    }
+    if (
+      suppliedFields.has("opportunity_id") ||
+      "opportunity_id" in writable ||
+      suppliedFields.has("opportunity_name")
+    ) {
+      results.push(
+        await resolveOpportunityIdOrName(
+          "opportunity_id",
+          "opportunity_name",
+          values,
+          suppliedFields,
+          existing,
+          writable,
+          false,
+        ),
+      );
+    }
+    if (
+      suppliedFields.has("premises_id") ||
+      "premises_id" in writable ||
+      suppliedFields.has("premises_name")
+    ) {
+      results.push(
+        await resolvePremisesIdOrName(
+          "premises_id",
+          "premises_name",
+          values,
+          suppliedFields,
+          existing,
+          writable,
+          false,
+        ),
+      );
     }
     return mergeReferenceResults(...results);
   },
 
   async createRecord(values, ctx) {
+    const v = applySessionMetadata(values, ctx);
     const activityId =
-      String(values.activity_id ?? "").trim() ||
+      String(v.activity_id ?? "").trim() ||
       `act_${randomUUID().replace(/-/g, "")}`;
     await query(
       `INSERT INTO activities (
@@ -118,14 +204,14 @@ export const activitiesImportDefinition: ImportObjectDefinition = {
        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
       [
         activityId,
-        values.activity_date,
-        values.activity_time ?? null,
-        values.activity_type,
-        values.notes ?? null,
-        values.company_id ?? null,
-        values.contact_id ?? null,
-        values.opportunity_id ?? null,
-        values.premises_id ?? null,
+        v.activity_date,
+        v.activity_time ?? null,
+        v.activity_type,
+        v.notes ?? null,
+        v.company_id ?? null,
+        v.contact_id ?? null,
+        v.opportunity_id ?? null,
+        v.premises_id ?? null,
         null,
       ],
     );
@@ -135,11 +221,16 @@ export const activitiesImportDefinition: ImportObjectDefinition = {
   async updateRecord(id, patch, ctx) {
     const p = { ...patch };
     delete p.activity_id;
+    delete p.company_name_en;
+    delete p.contact_name;
+    delete p.opportunity_name;
+    delete p.premises_name;
+    delete p.building_name_en;
     await genericUpdateRecord("activities", "activity_id", id, p, ctx);
   },
 
   async exportRows() {
-    const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM activities ORDER BY activity_date DESC`);
+    const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM ${FROM} ORDER BY a.activity_date DESC`);
     return rows.map((r) => rowToRecord(r, String(r.activity_id), FIELD_KEYS).values);
   },
 };

@@ -13,6 +13,7 @@ export function getTemplateForObject(objectType: ImportObjectType): string {
   const fields = listExportFields(objectType);
   const headers = fields.map((f) => f.key);
   const example = fields.map((f) => {
+    if (f.lookupOnly) return f.key.includes("name") ? "Example Company Ltd" : "";
     if (f.key.endsWith("_id") && f.key !== "external_ref") return "";
     if (f.type === "date") return "2026-06-01";
     if (f.type === "boolean") return "true";
@@ -62,5 +63,6 @@ export function getFieldOptions(objectType: ImportObjectType) {
     key: f.key,
     label: f.label,
     matchOnly: f.matchOnly ?? false,
+    lookupOnly: f.lookupOnly ?? false,
   }));
 }

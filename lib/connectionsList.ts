@@ -37,7 +37,6 @@ export const CONNECTION_ROLE_QUICK_FILTERS: { role: CompanyRole | null; label: s
   { role: "building_management", label: "Bldg Mgmt" },
   { role: "agency", label: "Agency" },
   { role: "referrer", label: "Referrer" },
-  { role: "service_provider", label: "Service Provider" },
 ];
 
 export function fuzzyMatch(value: string | null | undefined, query: string): boolean {
@@ -56,6 +55,7 @@ export function companyMatchesRole(roles: CompanyRole[], role: CompanyRole | nul
   if (roles.includes(role)) return true;
   if (role === "building_management" && roles.includes("property_management" as CompanyRole)) return true;
   if (role === "other" && roles.includes("developer" as CompanyRole)) return true;
+  if (role === "other" && roles.includes("service_provider" as CompanyRole)) return true;
   return false;
 }
 

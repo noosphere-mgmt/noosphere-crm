@@ -1,15 +1,15 @@
 "use client";
 
-import { ConnectionsModuleToolbar } from "@/components/admin/connections/ConnectionsModuleToolbar";
 import { ConnectionsSearchToolbarMobile } from "@/components/admin/connections/ConnectionsSearchToolbarMobile";
 import { ConnectionsCompaniesListMobile } from "@/components/admin/connections/ConnectionsCompaniesListMobile";
+import { ConnectionsCompaniesListHeaderMobile } from "@/components/admin/connections/ConnectionsCompaniesListHeaderMobile";
 import { ListingRecordCount } from "@/components/admin/ListingRecordCount";
 import type { ConnectionsCompaniesListState } from "@/components/admin/connections/useConnectionsCompaniesList";
 
 export function ConnectionsCompaniesMobile({ state }: { state: ConnectionsCompaniesListState }) {
   return (
     <>
-      <ConnectionsModuleToolbar createHref="/admin/companies/new" createLabel="New company" />
+      <ConnectionsCompaniesListHeaderMobile />
       <ConnectionsSearchToolbarMobile
         variant="companies"
         searchQuery={state.searchQuery}

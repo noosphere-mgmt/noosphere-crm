@@ -186,7 +186,7 @@ export function CompanyDrawer({
         aria-modal="true"
         aria-label={fullEdit ? `Edit company: ${company.company_name}` : `Company: ${company.company_name}`}
       >
-        <InlineEditProvider initialEditHighlight={initialEditHighlight && !fullEdit}>
+        <InlineEditProvider initialEditHighlight={!fullEdit} resetKey={company.id}>
           <CompanyDrawerHeader
             companyId={company.id}
             title={company.company_name}

@@ -2,7 +2,7 @@ import { query } from "@/lib/db";
 import { COMPANY_ROLES, COMPANY_ROLE_LABELS } from "@/lib/lookups";
 import type { CompanyRole } from "@/lib/types/entities";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
-import { buildNaturalKeyParts } from "../matchRecord";
+import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
 import { mergeReferenceResults, resolveContactReference } from "../referenceResolution";
 import type { ImportObjectDefinition } from "../objectRegistry";
 import type { ExistingRecord } from "../types";
@@ -48,7 +48,7 @@ function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
   if ("company_name_cn" in values) p.company_name_cn = values.company_name_cn;
   if ("role" in values) {
     const raw = String(values.role ?? "");
-    const parts = raw.split(/[;,|]/).map((s) => s.trim()).filter(Boolean);
+    const parts = raw.split(/[;,]/).map((s) => s.trim()).filter(Boolean);
     const roles: CompanyRole[] = [];
     for (const part of parts) {
       const slug = part.toLowerCase().replace(/\s+/g, "_");
@@ -61,7 +61,7 @@ function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
   }
   if ("coverage" in values) {
     p.coverage = String(values.coverage ?? "")
-      .split(/[;,|]/)
+      .split(/[;,]/)
       .map((s) => s.trim())
       .filter(Boolean);
   }
@@ -120,7 +120,9 @@ export const companiesImportDefinition: ImportObjectDefinition = {
   },
 
   async findByNaturalKey(key) {
-    const [name, city] = key.split("|");
+    const parts = splitNaturalKeyParts(key, 2);
+    if (!parts) return [];
+    const [name, city] = parts;
     const rows = await query<{ id: string }>(
       `SELECT id::text FROM companies
        WHERE lower(trim(company_name)) = $1

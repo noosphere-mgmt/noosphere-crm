@@ -1,6 +1,5 @@
 "use client";
 
-import { Suspense } from "react";
 import { PropertiesBuildingsListHeader } from "@/components/admin/properties-v1/PropertiesBuildingsListHeader";
 import { PropertiesFlatListClient, type PropertyListRow } from "@/components/admin/properties-v1/PropertiesFlatListClient";
 import { PropertiesSearchBar } from "@/components/admin/properties-v1/PropertiesSearchBar";
@@ -24,24 +23,18 @@ export type BuildingsViewProps = {
 export function BuildingsDesktop(props: BuildingsViewProps) {
   return (
     <>
-      <Suspense fallback={<div className="mb-4 h-[104px] animate-pulse rounded-xl bg-slate-100" />}>
-        <PropertiesBuildingsListHeader rows={props.rows} />
-      </Suspense>
-      <Suspense fallback={<div className="mb-4 h-11 animate-pulse rounded-lg bg-slate-100" />}>
-        <PropertiesSearchBar initialQuery={props.initialQuery} />
-      </Suspense>
-      <Suspense fallback={<div className="h-48 animate-pulse rounded-xl bg-slate-100" />}>
-        <PropertiesFlatListClient
-          rows={props.rows}
-          totalCount={props.totalCount}
-          hasSearch={Boolean(props.initialQuery)}
-          selectedProperty={props.selectedProperty}
-          selectedPremises={props.selectedPremises}
-          companies={props.companies}
-          contacts={props.contacts}
-          propertyOptions={props.propertyOptions}
-        />
-      </Suspense>
+      <PropertiesBuildingsListHeader rows={props.rows} />
+      <PropertiesSearchBar initialQuery={props.initialQuery} />
+      <PropertiesFlatListClient
+        rows={props.rows}
+        totalCount={props.totalCount}
+        hasSearch={Boolean(props.initialQuery)}
+        selectedProperty={props.selectedProperty}
+        selectedPremises={props.selectedPremises}
+        companies={props.companies}
+        contacts={props.contacts}
+        propertyOptions={props.propertyOptions}
+      />
     </>
   );
 }

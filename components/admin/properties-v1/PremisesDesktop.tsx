@@ -1,6 +1,5 @@
 "use client";
 
-import { Suspense } from "react";
 import { PremisesFiltersBarDesktop } from "@/components/admin/properties-v1/PremisesFiltersBarDesktop";
 import { PremisesListDesktop } from "@/components/admin/properties-v1/PremisesListDesktop";
 import { PremisesListHeaderDesktop } from "@/components/admin/properties-v1/PremisesListHeaderDesktop";
@@ -26,15 +25,9 @@ export type PremisesViewProps = {
 export function PremisesDesktop(props: PremisesViewProps) {
   return (
     <>
-      <Suspense fallback={<div className="mb-4 h-[104px] animate-pulse rounded-xl bg-slate-100" />}>
-        <PremisesListHeaderDesktop />
-      </Suspense>
-      <Suspense fallback={<div className="mb-4 h-20 animate-pulse rounded-lg bg-slate-100" />}>
-        <PremisesFiltersBarDesktop filters={props.filters} cities={props.cities} districts={props.districts} />
-      </Suspense>
-      <Suspense fallback={<div className="h-48 animate-pulse rounded-xl bg-slate-100" />}>
-        <PremisesListDesktop {...props} />
-      </Suspense>
+      <PremisesListHeaderDesktop />
+      <PremisesFiltersBarDesktop filters={props.filters} cities={props.cities} districts={props.districts} />
+      <PremisesListDesktop {...props} />
     </>
   );
 }

@@ -2,7 +2,7 @@
 
 import { AdminViewportSwitch } from "@/components/admin/layout/AdminViewportSwitch";
 import { ConnectionsContactsListHeaderDesktop } from "@/components/admin/connections/ConnectionsContactsListHeaderDesktop";
-import { ConnectionsModuleToolbar } from "@/components/admin/connections/ConnectionsModuleToolbar";
+import { ConnectionsContactsListHeaderMobile } from "@/components/admin/connections/ConnectionsContactsListHeaderMobile";
 import type { Contact } from "@/lib/types/entities";
 
 export function ConnectionsContactsListHeader({
@@ -15,7 +15,7 @@ export function ConnectionsContactsListHeader({
   return (
     <AdminViewportSwitch
       desktop={<ConnectionsContactsListHeaderDesktop onNewContact={onNewContact} />}
-      mobile={<ConnectionsModuleToolbar onCreate={onNewContact} createLabel="New contact" />}
+      mobile={<ConnectionsContactsListHeaderMobile onNewContact={onNewContact} />}
     />
   );
 }

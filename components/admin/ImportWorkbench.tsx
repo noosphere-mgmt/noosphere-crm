@@ -10,10 +10,20 @@ const ACTION_STYLES: Record<string, string> = {
   skipped: "bg-slate-100 text-slate-600",
 };
 
+const ACTION_LABELS: Record<string, string> = {
+  create: "Created",
+  update: "Updated",
+  clear_value: "Cleared value",
+  no_change: "No change",
+  duplicate_candidate: "Duplicate candidate",
+  error: "Error",
+  skipped: "Skipped",
+};
+
 export function ImportActionBadge({ action }: { action: string }) {
-  const label = action === "duplicate_candidate" ? "duplicate candidate" : action.replace(/_/g, " ");
+  const label = ACTION_LABELS[action] ?? action.replace(/_/g, " ");
   return (
-    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium capitalize ${ACTION_STYLES[action] ?? "bg-slate-100"}`}>
+    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${ACTION_STYLES[action] ?? "bg-slate-100"}`}>
       {label}
     </span>
   );

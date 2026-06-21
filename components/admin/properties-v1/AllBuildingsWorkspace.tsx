@@ -1,6 +1,8 @@
 "use client";
 
+import { Suspense } from "react";
 import { AdminViewportSwitch } from "@/components/admin/layout/AdminViewportSwitch";
+import { AdminListLoadingFallback } from "@/components/admin/layout/AdminListLoadingFallback";
 import { BuildingsDesktop } from "@/components/admin/properties-v1/BuildingsDesktop";
 import { BuildingsMobile } from "@/components/admin/properties-v1/BuildingsMobile";
 import { PropertiesListSelectionProvider } from "@/components/admin/properties-v1/PropertiesListSelectionContext";
@@ -42,10 +44,12 @@ export function AllBuildingsWorkspace({
 
   return (
     <PropertiesListSelectionProvider>
-      <AdminViewportSwitch
-        mobile={<BuildingsMobile {...viewProps} />}
-        desktop={<BuildingsDesktop {...viewProps} />}
-      />
+      <Suspense fallback={<AdminListLoadingFallback />}>
+        <AdminViewportSwitch
+          mobile={<BuildingsMobile {...viewProps} />}
+          desktop={<BuildingsDesktop {...viewProps} />}
+        />
+      </Suspense>
     </PropertiesListSelectionProvider>
   );
 }

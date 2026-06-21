@@ -1,8 +1,8 @@
 "use client";
 
 import { ListingRecordCount } from "@/components/admin/ListingRecordCount";
+import { OpportunitiesListHeaderMobile } from "@/components/admin/opportunities/OpportunitiesListHeaderMobile";
 import { OpportunitiesListMobile } from "@/components/admin/opportunities/OpportunitiesListMobile";
-import { OpportunitiesModuleToolbar } from "@/components/admin/opportunities/OpportunitiesModuleToolbar";
 import { OpportunitiesSearchToolbarMobile } from "@/components/admin/opportunities/OpportunitiesSearchToolbarMobile";
 import type { OpportunitiesListState } from "@/components/admin/opportunities/useOpportunitiesList";
 
@@ -17,7 +17,7 @@ export function OpportunitiesMobile({
 }) {
   return (
     <>
-      <OpportunitiesModuleToolbar onCreate={onNewOpportunity} createLabel="New opportunity" />
+      <OpportunitiesListHeaderMobile onNewOpportunity={onNewOpportunity} />
       <OpportunitiesSearchToolbarMobile
         searchQuery={state.searchQuery}
         onSearchChange={state.setSearchQuery}

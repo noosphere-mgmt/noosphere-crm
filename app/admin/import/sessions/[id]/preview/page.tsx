@@ -15,7 +15,7 @@ export default async function ImportPreviewPage({ params }: Props) {
   const { id } = await params;
   const session = await getImportSession(id);
   if (!session) notFound();
-  if (session.status === "committed") redirect(`/admin/import/runs/${session.import_run_id}`);
+  if (session.status === "committed") redirect("/admin/import/history");
   if (!session.preview_summary || !session.preview_rows) {
     redirect(`/admin/import/sessions/${id}/mapping`);
   }

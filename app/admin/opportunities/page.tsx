@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { OpportunitiesListError } from "@/components/admin/opportunities/OpportunitiesListError";
 import { OpportunitiesPageClient } from "@/components/admin/opportunities/OpportunitiesPageClient";
+import { AdminListLoadingFallback } from "@/components/admin/layout/AdminListLoadingFallback";
 import { listCompanyOptions } from "@/lib/repos/companies";
 import { listContactOptions } from "@/lib/repos/contacts";
 import { listOpportunities } from "@/lib/repos/opportunities";
@@ -10,11 +11,12 @@ import { getOpportunityDrawerData } from "@/lib/repos/opportunitiesDrawer";
 export const dynamic = "force-dynamic";
 
 type Props = {
-  searchParams: Promise<{ opportunity?: string; status?: string; stage?: string }>;
+  searchParams: Promise<{ opportunity?: string; status?: string; stage?: string; new?: string }>;
 };
 
 export default async function OpportunitiesListPage({ searchParams }: Props) {
   const sp = await searchParams;
+  const needFormOptions = sp.new === "1";
   let rows: Awaited<ReturnType<typeof listOpportunities>> = [];
   let companies: Awaited<ReturnType<typeof listCompanyOptions>> = [];
   let contacts: Awaited<ReturnType<typeof listContactOptions>> = [];
@@ -23,8 +25,8 @@ export default async function OpportunitiesListPage({ searchParams }: Props) {
   try {
     [rows, companies, contacts] = await Promise.all([
       listOpportunities(),
-      listCompanyOptions(),
-      listContactOptions(),
+      needFormOptions ? listCompanyOptions() : Promise.resolve([]),
+      needFormOptions ? listContactOptions() : Promise.resolve([]),
     ]);
   } catch (err) {
     loadError = err instanceof Error ? err.message : "Database query failed";
@@ -47,7 +49,7 @@ export default async function OpportunitiesListPage({ searchParams }: Props) {
       {loadError ? (
         <OpportunitiesListError message={loadError} />
       ) : (
-        <Suspense fallback={<div className="h-48 animate-pulse rounded-xl bg-slate-100" />}>
+        <Suspense fallback={<AdminListLoadingFallback />}>
           <OpportunitiesPageClient
             rows={rows}
             companies={companies}

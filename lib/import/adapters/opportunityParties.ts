@@ -1,20 +1,25 @@
 import { query } from "@/lib/db";
+import { sqlContactDisplayName } from "@/lib/contactName";
 import { genericUpdateRecord, rowToRecord } from "../adapterUtils";
-import { buildNaturalKeyParts } from "../matchRecord";
+import { parseBigIntParam } from "../fkValidation";
+import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
 import {
   mergeReferenceResults,
-  resolveContactReference,
-  resolveLegacyCompanyReference,
-  resolveOpportunityReference,
+  resolveContactIdOrName,
+  resolveLegacyCompanyIdOrName,
+  resolveOpportunityIdOrName,
 } from "../referenceResolution";
-import type { ImportObjectDefinition } from "../objectRegistry";
+import type { ImportFieldDef, ImportObjectDefinition } from "../objectRegistry";
 import type { ExistingRecord } from "../types";
 
 const FIELD_KEYS = [
   "opportunity_party_id",
   "opportunity_id",
+  "opportunity_name",
   "company_id",
+  "company_name_en",
   "contact_id",
+  "contact_name",
   "role",
   "partnership_mode",
   "fee_note",
@@ -26,21 +31,70 @@ const FIELD_KEYS = [
 ] as const;
 
 const SELECT = `
-  id::text AS opportunity_party_id,
-  opportunity_id::text AS opportunity_id,
-  company_id::text AS company_id,
-  contact_id::text AS contact_id,
-  role, partnership_mode, fee_note,
-  collect_fee_amount::text AS collect_fee_amount,
-  collect_fee_percent::text AS collect_fee_percent,
-  paid_out_fee_amount::text AS paid_out_fee_amount,
-  paid_out_fee_percent::text AS paid_out_fee_percent,
-  remarks
+  op.id::text AS opportunity_party_id,
+  op.opportunity_id::text AS opportunity_id,
+  o.client_name AS opportunity_name,
+  op.company_id::text AS company_id,
+  c.company_name AS company_name_en,
+  op.contact_id::text AS contact_id,
+  ${sqlContactDisplayName("ct")} AS contact_name,
+  op.role,
+  op.partnership_mode,
+  op.fee_note,
+  op.collect_fee_amount::text AS collect_fee_amount,
+  op.collect_fee_percent::text AS collect_fee_percent,
+  op.paid_out_fee_amount::text AS paid_out_fee_amount,
+  op.paid_out_fee_percent::text AS paid_out_fee_percent,
+  op.remarks
 `;
 
+const FROM = `
+  opportunity_parties op
+  LEFT JOIN opportunities o ON o.id = op.opportunity_id
+  LEFT JOIN companies c ON c.id = op.company_id
+  LEFT JOIN contacts ct ON ct.id = op.contact_id
+`;
+
+function partyFieldDef(key: (typeof FIELD_KEYS)[number]): ImportFieldDef {
+  const base = { key, label: key };
+  if (key === "opportunity_party_id") {
+    return { ...base, type: "number", integer: true, matchOnly: true, aliases: ["id"] };
+  }
+  if (key === "opportunity_id") {
+    return { ...base, type: "string", requiredOnCreate: true };
+  }
+  if (key === "opportunity_name") {
+    return { ...base, type: "string", lookupOnly: true };
+  }
+  if (key === "company_name_en") {
+    return { ...base, type: "string", lookupOnly: true, aliases: ["company_name"] };
+  }
+  if (key === "contact_name") {
+    return { ...base, type: "string", lookupOnly: true, aliases: ["assigned_contact_name"] };
+  }
+  if (key === "role") {
+    return { ...base, type: "string", requiredOnCreate: true };
+  }
+  if (key === "partnership_mode") {
+    return { ...base, type: "string", aliases: ["partnership_type"] };
+  }
+  if (key.includes("amount") || key.includes("percent")) {
+    return { ...base, type: "number" };
+  }
+  return { ...base, type: "string" };
+}
+
 async function load(where: string, params: unknown[]): Promise<ExistingRecord[]> {
-  const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM opportunity_parties WHERE ${where}`, params);
+  const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM ${FROM} WHERE ${where}`, params);
   return rows.map((row) => rowToRecord(row, Number.parseInt(String(row.opportunity_party_id), 10), FIELD_KEYS));
+}
+
+function stripLookupFields(patch: Record<string, unknown>): Record<string, unknown> {
+  const p = { ...patch };
+  delete p.opportunity_name;
+  delete p.company_name_en;
+  delete p.contact_name;
+  return p;
 }
 
 export const opportunityPartiesImportDefinition: ImportObjectDefinition = {
@@ -49,17 +103,10 @@ export const opportunityPartiesImportDefinition: ImportObjectDefinition = {
   matchIdField: "opportunity_party_id",
   idType: "number",
 
-  fields: FIELD_KEYS.map((key) => ({
-    key,
-    label: key,
-    type: key.includes("amount") || key.includes("percent") ? "number" : "string",
-    matchOnly: key === "opportunity_party_id",
-    requiredOnCreate: key === "opportunity_id" || key === "role" ? true : undefined,
-    aliases: key === "opportunity_party_id" ? ["id"] : undefined,
-  })),
+  fields: FIELD_KEYS.map((key) => partyFieldDef(key)),
 
   async findById(id) {
-    const rows = await load("id = $1", [Number(id)]);
+    const rows = await load("op.id = $1", [Number(id)]);
     return rows[0] ?? null;
   },
 
@@ -80,34 +127,64 @@ export const opportunityPartiesImportDefinition: ImportObjectDefinition = {
   },
 
   async findByNaturalKey(key) {
-    const [oppId, companyId, contactId, role] = key.split("|");
+    const parts = splitNaturalKeyParts(key, 4);
+    if (!parts) return [];
+    const [oppId, companyId, contactId, role] = parts;
+    const oppIdNum = parseBigIntParam(oppId);
+    if (!oppIdNum) return [];
     return load(
-      `opportunity_id = $1 AND coalesce(company_id::text, '') = $2
-       AND coalesce(contact_id::text, '') = $3 AND role = $4`,
-      [Number.parseInt(oppId, 10), companyId ?? "", contactId ?? "", role],
+      `op.opportunity_id = $1 AND coalesce(op.company_id::text, '') = $2
+       AND coalesce(op.contact_id::text, '') = $3 AND op.role = $4`,
+      [oppIdNum, companyId ?? "", contactId ?? "", role],
     );
   },
 
   async validateReferences(values, suppliedFields, existing, writable) {
-    const oppId = suppliedFields.has("opportunity_id")
-      ? values.opportunity_id
-      : existing?.values.opportunity_id ?? writable.opportunity_id;
-    const results = [await resolveOpportunityReference("opportunity_id", oppId, true)];
-    if (suppliedFields.has("company_id") || "company_id" in writable) {
+    const results = [
+      await resolveOpportunityIdOrName(
+        "opportunity_id",
+        "opportunity_name",
+        values,
+        suppliedFields,
+        existing,
+        writable,
+        true,
+      ),
+    ];
+    if (
+      suppliedFields.has("company_id") ||
+      "company_id" in writable ||
+      suppliedFields.has("company_name_en")
+    ) {
       results.push(
-        await resolveLegacyCompanyReference(
+        await resolveLegacyCompanyIdOrName(
           "company_id",
-          values.company_id ?? writable.company_id,
+          "company_name_en",
+          values,
+          suppliedFields,
+          existing,
+          writable,
           false,
         ),
       );
     }
-    if (suppliedFields.has("contact_id") || "contact_id" in writable) {
+    if (
+      suppliedFields.has("contact_id") ||
+      "contact_id" in writable ||
+      suppliedFields.has("contact_name")
+    ) {
       results.push(
-        await resolveContactReference(
+        await resolveContactIdOrName(
           "contact_id",
-          values.contact_id ?? writable.contact_id,
+          "contact_name",
+          values,
+          suppliedFields,
+          existing,
+          writable,
           false,
+          parseBigIntParam(
+            values.company_id ?? writable.company_id ?? existing?.values.company_id,
+          ),
         ),
       );
     }
@@ -122,9 +199,9 @@ export const opportunityPartiesImportDefinition: ImportObjectDefinition = {
        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
        RETURNING id::text`,
       [
-        Number(values.opportunity_id),
-        values.company_id ? Number(values.company_id) : null,
-        values.contact_id ? Number(values.contact_id) : null,
+        parseBigIntParam(values.opportunity_id) ?? (() => { throw new Error("opportunity_id is required"); })(),
+        parseBigIntParam(values.company_id),
+        parseBigIntParam(values.contact_id),
         values.role ?? "",
         values.partnership_mode ?? null,
         values.fee_note ?? null,
@@ -139,11 +216,11 @@ export const opportunityPartiesImportDefinition: ImportObjectDefinition = {
   },
 
   async updateRecord(id, patch, ctx) {
-    await genericUpdateRecord("opportunity_parties", "id", id, patch, ctx);
+    await genericUpdateRecord("opportunity_parties", "id", id, stripLookupFields(patch), ctx);
   },
 
   async exportRows() {
-    const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM opportunity_parties ORDER BY id ASC`);
+    const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM ${FROM} ORDER BY op.id ASC`);
     return rows.map((r) => rowToRecord(r, Number.parseInt(String(r.opportunity_party_id), 10), FIELD_KEYS).values);
   },
 };

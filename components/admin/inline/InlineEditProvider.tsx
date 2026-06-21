@@ -26,16 +26,21 @@ const InlineEditContext = createContext<InlineEditContextValue | null>(null);
 
 export function InlineEditProvider({
   children,
-  initialEditHighlight = false,
+  initialEditHighlight = true,
+  resetKey,
 }: {
   children: ReactNode;
+  /** When true, fields are clickable for inline edit. Drawers default to on. */
   initialEditHighlight?: boolean;
+  /** Changing this remounts edit state (e.g. drawer record id). */
+  resetKey?: string | number | null;
 }) {
   const router = useRouter();
   const [editHighlight, setEditHighlight] = useState(initialEditHighlight);
+
   useEffect(() => {
     setEditHighlight(initialEditHighlight);
-  }, [initialEditHighlight]);
+  }, [resetKey, initialEditHighlight]);
   const [saveStatus, setSaveStatus] = useState<InlineSaveStatus>("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
   const lastSaveRef = useRef<(() => Promise<{ ok: boolean; error?: string }>) | null>(null);

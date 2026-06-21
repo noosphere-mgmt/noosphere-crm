@@ -14,7 +14,7 @@ export function formatCompanyRoles(roles: CompanyRole[]): string {
       const label = (CONNECTION_COMPANY_ROLE_LABELS as Record<string, string>)[r];
       if (label) return label;
       if (r === "property_management") return "Bldg Mgmt";
-      if (r === "developer") return "Other";
+      if (r === "developer" || r === "service_provider") return "Other";
       return r;
     })
     .join(", ");

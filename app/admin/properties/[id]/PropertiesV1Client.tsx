@@ -153,11 +153,10 @@ export function PropertiesV1Client({
           </p>
         </div>
         <Link
-          href="#"
+          href={`/admin/properties/premises/new?property_id=${encodeURIComponent(propertyId)}`}
           className={theme.primaryButton}
-          onClick={(e) => e.preventDefault()}
         >
-          + Add premises (later)
+          + Add premises
         </Link>
       </div>
 

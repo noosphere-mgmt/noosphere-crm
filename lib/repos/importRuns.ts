@@ -2,6 +2,18 @@ import { query } from "@/lib/db";
 import { formatImportRowNotes } from "@/lib/import/rowNotes";
 import type { ImportObjectType, ImportPreviewRow, ImportPreviewSummary } from "@/lib/import/types";
 
+export type ImportRunRow = {
+  row_number: number;
+  action: string;
+  match_method: string | null;
+  matched_id: number | null;
+  matched_record_id: string | null;
+  candidate_ids: number[] | null;
+  error_message: string | null;
+  field_changes: unknown;
+  raw_row: Record<string, string> | null;
+};
+
 export type ImportRun = {
   id: number;
   session_id: string | null;
@@ -135,21 +147,55 @@ export async function getImportRun(id: number): Promise<ImportRun | null> {
   return rows[0] ? mapRun(rows[0]) : null;
 }
 
-export async function listImportRunRows(importRunId: number) {
-  return query<{
-    row_number: number;
-    action: string;
-    match_method: string | null;
-    matched_id: number | null;
-    candidate_ids: number[] | null;
-    error_message: string | null;
-    field_changes: unknown;
-  }>(
-    `SELECT row_number, action, match_method, matched_id, candidate_ids,
-            error_message, field_changes
+export async function deleteImportRuns(ids: number[]): Promise<void> {
+  if (ids.length === 0) return;
+
+  await query(
+    `DELETE FROM import_sessions
+     WHERE import_run_id = ANY($1::bigint[])
+        OR id IN (
+          SELECT session_id FROM import_runs
+          WHERE id = ANY($1::bigint[]) AND session_id IS NOT NULL
+        )`,
+    [ids],
+  );
+
+  await query(`DELETE FROM import_runs WHERE id = ANY($1::bigint[])`, [ids]);
+}
+
+export async function listImportRunRows(importRunId: number): Promise<ImportRunRow[]> {
+  const rows = await query<Record<string, unknown>>(
+    `SELECT row_number, action, match_method, matched_id, matched_record_id, candidate_ids,
+            error_message, field_changes, raw_row
      FROM import_run_rows WHERE import_run_id = $1 ORDER BY row_number`,
     [importRunId],
   );
+  return rows.map(mapRunRow);
+}
+
+function mapRunRow(row: Record<string, unknown>): ImportRunRow {
+  return {
+    row_number: Number(row.row_number),
+    action: String(row.action),
+    match_method: row.match_method != null ? String(row.match_method) : null,
+    matched_id: row.matched_id != null ? Number(row.matched_id) : null,
+    matched_record_id: row.matched_record_id != null ? String(row.matched_record_id) : null,
+    candidate_ids: Array.isArray(row.candidate_ids)
+      ? row.candidate_ids.map((id) => Number(id))
+      : null,
+    error_message: row.error_message != null ? String(row.error_message) : null,
+    field_changes: row.field_changes ?? null,
+    raw_row: parseRawRow(row.raw_row),
+  };
+}
+
+function parseRawRow(raw: unknown): Record<string, string> | null {
+  if (!raw || typeof raw !== "object") return null;
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    out[key] = value == null ? "" : String(value);
+  }
+  return out;
 }
 
 function mapRun(row: Record<string, unknown>): ImportRun {

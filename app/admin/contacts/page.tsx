@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { ConnectionsContactsPageClient } from "@/components/admin/connections/ConnectionsContactsPageClient";
 import { ConnectionsListError } from "@/components/admin/connections/ConnectionsListError";
+import { AdminListLoadingFallback } from "@/components/admin/layout/AdminListLoadingFallback";
 import { listCompanyOptions } from "@/lib/repos/companies";
 import { listContacts } from "@/lib/repos/contacts";
 import { getContactDrawerData } from "@/lib/repos/connectionsDrawer";
@@ -42,7 +43,7 @@ export default async function ContactsListPage({ searchParams }: Props) {
       {loadError ? (
         <ConnectionsListError message={loadError} />
       ) : (
-        <Suspense fallback={<div className="h-48 animate-pulse rounded-xl bg-slate-100" />}>
+        <Suspense fallback={<AdminListLoadingFallback />}>
           <ConnectionsContactsPageClient rows={rows} companies={companies} selectedContact={selectedContact} drawerError={drawerError} />
         </Suspense>
       )}

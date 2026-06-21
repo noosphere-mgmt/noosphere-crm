@@ -30,6 +30,7 @@ export function ModuleActionBar({
   onEdit,
   onCancel,
   formId,
+  onSave,
   deleteAction,
   module,
 }: {
@@ -37,6 +38,7 @@ export function ModuleActionBar({
   onEdit?: () => void;
   onCancel?: () => void;
   formId?: string;
+  onSave?: () => void;
   deleteAction?: () => Promise<void>;
   module?: AdminModuleKey;
 }) {
@@ -80,9 +82,17 @@ export function ModuleActionBar({
         <IconX />
       </button>
       <button
-        type="submit"
-        form={formId}
+        type="button"
         className={moduleActionButtonClass.save}
+        onClick={() => {
+          if (onSave) {
+            onSave();
+            return;
+          }
+          if (formId) {
+            (document.getElementById(formId) as HTMLFormElement | null)?.requestSubmit();
+          }
+        }}
         aria-label="Save"
         title="Save"
       >

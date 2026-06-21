@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { query } from "@/lib/db";
 import { resolveContactName, sqlContactDisplayName, syncContactDerivedNames } from "@/lib/contactName";
 import type { CompanyRole, Contact } from "@/lib/types/entities";
@@ -114,13 +115,13 @@ export type ContactOption = {
   is_primary: boolean;
 };
 
-export async function listContactOptions(): Promise<ContactOption[]> {
+export const listContactOptions = cache(async function listContactOptions(): Promise<ContactOption[]> {
   return query<ContactOption>(
     `SELECT id, company_id::int AS company_id, ${sqlContactDisplayName()} AS contact_name, is_primary
      FROM contacts WHERE is_active = TRUE
      ORDER BY company_id, is_primary DESC, ${sqlContactDisplayName()} ASC`,
   );
-}
+});
 
 export async function getContact(id: number): Promise<Contact | null> {
   const rows = await query<Contact>(

@@ -16,7 +16,7 @@ export default async function ImportMappingPage({ params }: Props) {
   const { id } = await params;
   const session = await getImportSession(id);
   if (!session) notFound();
-  if (session.status === "committed") redirect(`/admin/import/runs/${session.import_run_id}`);
+  if (session.status === "committed") redirect("/admin/import/history");
 
   const fieldOptions = listMappingFieldOptions(session.object_type);
   const preview = saveMappingAndPreviewAction.bind(null, id);

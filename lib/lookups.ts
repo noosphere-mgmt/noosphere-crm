@@ -243,6 +243,7 @@ export const COMPANY_ROLE_LABELS: Record<string, string> = {
   ...CONNECTION_COMPANY_ROLE_LABELS,
   developer: "Other",
   property_management: "Bldg Mgmt",
+  service_provider: "Other",
 };
 
 /** CRM filtered-view titles for /admin/companies?role= */
@@ -254,7 +255,6 @@ export const COMPANY_ROLE_VIEW_LABELS: Partial<Record<string, string>> = {
   landlord: "Landlords",
   building_management: "Bldg Mgmt",
   agency: "Agencies",
-  service_provider: "Service Providers",
   referrer: "Referrers",
   vendor: "Vendors",
   other: "Other",

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createPremisesV1Action } from "@/app/admin/properties/actions";
 import { ModuleActionBar } from "@/components/admin/ModuleActionBar";
 import { PremisesV1EditForm } from "@/components/admin/properties-v1/PremisesDrawer";
@@ -84,11 +84,21 @@ export function NewPremiseV1Client({
   contacts: ContactV1Option[];
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const presetPropertyId = searchParams.get("property_id")?.trim() ?? "";
+  const presetProperty = properties.find((p) => p.property_id === presetPropertyId);
   const theme = moduleAccentClasses("properties");
-  const [propertyId, setPropertyId] = useState(properties[0]?.property_id ?? "");
+  const [propertyId, setPropertyId] = useState(
+    presetProperty?.property_id ?? properties[0]?.property_id ?? "",
+  );
   const premises = useMemo(() => emptyPremisesV1(propertyId), [propertyId]);
   const companyOptions = useMemo(() => toCompanyV1SelectOptions(companies), [companies]);
   const formId = "premises-form-new";
+  const returnTo = presetPropertyId
+    ? `/admin/properties/buildings?property=${encodeURIComponent(presetPropertyId)}&mode=view`
+    : "/admin/properties";
+  const backHref = returnTo;
+  const backLabel = presetPropertyId ? "← Building" : "← All Premises";
 
   if (properties.length === 0) {
     return (
@@ -106,8 +116,8 @@ export function NewPremiseV1Client({
     <div className="space-y-4">
       <header className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm sm:px-5">
         <div className="min-w-0">
-          <Link href="/admin/properties" className={`text-xs ${theme.link}`}>
-            ← All Premises
+          <Link href={backHref} className={`text-xs ${theme.link}`}>
+            {backLabel}
           </Link>
           <h1 className="mt-1 text-xl font-semibold tracking-tight text-slate-900">New premise</h1>
           <p className="mt-1 text-sm text-slate-600">Add a premises line to an existing building.</p>
@@ -115,7 +125,7 @@ export function NewPremiseV1Client({
         <ModuleActionBar
           mode="edit"
           formId={formId}
-          onCancel={() => router.push("/admin/properties")}
+          onCancel={() => router.push(returnTo)}
           module="properties"
         />
       </header>
@@ -151,7 +161,7 @@ export function NewPremiseV1Client({
           createAction={createPremisesV1Action}
           companyOptions={companyOptions}
           contacts={contacts}
-          returnTo="/admin/properties"
+          returnTo={returnTo}
         />
       ) : null}
     </div>

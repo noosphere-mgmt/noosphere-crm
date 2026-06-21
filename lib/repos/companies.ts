@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { query } from "@/lib/db";
 import { CONNECTION_COMPANY_ROLES } from "@/lib/connectionsValues";
 import type { Company, CompanyRole, RelationshipStrength } from "@/lib/types/entities";
@@ -37,7 +38,7 @@ export type CompanyInput = {
 
 function parseRoles(roles: unknown): CompanyRole[] {
   if (!Array.isArray(roles)) return [];
-  const allowed = new Set<string>([...CONNECTION_COMPANY_ROLES, "developer", "property_management"]);
+  const allowed = new Set<string>([...CONNECTION_COMPANY_ROLES, "developer", "property_management", "service_provider"]);
   return roles.filter((r): r is CompanyRole => allowed.has(String(r)));
 }
 
@@ -86,11 +87,13 @@ export async function listCompanies(roleFilter?: CompanyRole): Promise<Company[]
   );
 }
 
-export async function listCompanyOptions(): Promise<{ id: number; company_name: string }[]> {
+export const listCompanyOptions = cache(async function listCompanyOptions(): Promise<
+  { id: number; company_name: string }[]
+> {
   return query<{ id: number; company_name: string }>(
     `SELECT id, company_name FROM companies WHERE is_active = TRUE ORDER BY company_name ASC`,
   );
-}
+});
 
 export async function listCompanyOptionsByRole(
   role?: CompanyRole,

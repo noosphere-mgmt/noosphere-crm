@@ -5,7 +5,7 @@
  * - Tablet:  768px–1023px  → uses Desktop presentation (temporary)
  * - Desktop: width ≥ 768px  (`md:` and up; workstation layout at `lg:`+)
  *
- * Use `AdminViewportSwitch` — never mix mobile/desktop in one component with responsive hiding.
+ * Use `AdminViewportSwitch` — mounts one tree after viewport is known (not both with CSS hide).
  */
 export const ADMIN_MOBILE_MAX_PX = 767;
 export const ADMIN_DESKTOP_MIN_PX = 768;

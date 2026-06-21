@@ -7,7 +7,9 @@ import { loadCompanyLookupMaps } from "@/lib/companyV1Resolve";
 import { resolveToV1CompanyId } from "@/lib/companyIdResolve";
 import { isPackageOperatingModel } from "@/lib/premisesCommercial";
 import { applyPremisesFieldPatch } from "@/lib/premisesFieldPatch";
-import { createPropertyV1, deletePropertiesV1, updatePropertyV1, type PropertyV1Patch } from "@/lib/repos/propertiesV1";
+import { composePropertyFullAddresses } from "@/lib/composeAddress";
+import { createPropertyV1, deletePropertiesV1, getPropertyV1, updatePropertyV1, type PropertyV1Patch } from "@/lib/repos/propertiesV1";
+import { applyPropertyFieldPatch, PROPERTY_COMPANY_FIELDS, PROPERTY_LOCATION_FIELDS } from "@/lib/propertyFieldPatch";
 import { createPremisesV1, duplicatePremisesV1, getPremisesV1, updatePremisesV1, type PremisesV1Patch } from "@/lib/repos/premisesV1";
 
 function s(v: FormDataEntryValue | null): string | null {
@@ -36,7 +38,7 @@ async function parsePropertyV1Form(formData: FormData): Promise<PropertyV1Patch>
     return v ? resolveToV1CompanyId(v, maps) : null;
   };
 
-  return {
+  const patch: PropertyV1Patch = {
     bldg_name_en: s(formData.get("bldg_name_en")),
     bldg_name_zh: s(formData.get("bldg_name_zh")),
     bldg_name_cn: s(formData.get("bldg_name_cn")),
@@ -57,9 +59,6 @@ async function parsePropertyV1Form(formData: FormData): Promise<PropertyV1Patch>
     street_name_en: s(formData.get("street_name_en")),
     street_name_zh: s(formData.get("street_name_zh")),
     street_name_cn: s(formData.get("street_name_cn")),
-    full_address_en: s(formData.get("full_address_en")),
-    full_address_zh: s(formData.get("full_address_zh")),
-    full_address_cn: s(formData.get("full_address_cn")),
     land_use: s(formData.get("land_use")),
     class_of_site: s(formData.get("class_of_site")),
     land_tenure: s(formData.get("land_tenure")),
@@ -78,6 +77,9 @@ async function parsePropertyV1Form(formData: FormData): Promise<PropertyV1Patch>
     facilities: s(formData.get("facilities")),
     green_certification: s(formData.get("green_certification")),
   };
+
+  Object.assign(patch, composePropertyFullAddresses(patch));
+  return patch;
 }
 
 export async function createPropertyV1Action(formData: FormData) {
@@ -204,6 +206,57 @@ export async function updatePremisesV1Action(premisesId: string, propertyId: str
     redirect(returnTo);
   }
   redirect(`/admin/properties/${nextPropertyId}?premises=${encodeURIComponent(premisesId)}&mode=view`);
+}
+
+export type PropertyPatchResult = { ok: true } | { ok: false; error: string };
+
+export async function patchPropertyFieldAction(
+  propertyId: string,
+  field: string,
+  valueJson: string,
+): Promise<PropertyPatchResult> {
+  try {
+    const property = await getPropertyV1(propertyId);
+    if (!property) return { ok: false, error: "Building not found" };
+
+    let value: unknown;
+    try {
+      value = JSON.parse(valueJson);
+    } catch {
+      return { ok: false, error: "Invalid value" };
+    }
+
+    const fieldPatch = applyPropertyFieldPatch(property, field, value);
+    if ("error" in fieldPatch) return { ok: false, error: fieldPatch.error };
+
+    const patch: PropertyV1Patch = { ...fieldPatch };
+
+    if (PROPERTY_COMPANY_FIELDS.has(field)) {
+      const maps = await loadCompanyLookupMaps();
+      const raw = patch[field as keyof PropertyV1Patch];
+      const resolved =
+        typeof raw === "string" && raw ? resolveToV1CompanyId(raw, maps) : null;
+      if (field === "management_company_id") patch.management_company_id = resolved;
+      else if (field === "operator_company_id") patch.operator_company_id = resolved;
+      else if (field === "owner_company_id") patch.owner_company_id = resolved;
+      else if (field === "current_tenant_company_id") patch.current_tenant_company_id = resolved;
+    }
+
+    if (PROPERTY_LOCATION_FIELDS.has(field)) {
+      const merged = { ...property, ...patch };
+      Object.assign(patch, composePropertyFullAddresses(merged));
+    }
+
+    await updatePropertyV1(propertyId, patch);
+
+    revalidatePath("/admin/properties");
+    revalidatePath("/admin/properties/buildings");
+    revalidatePath(`/admin/properties/${propertyId}`);
+
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to save" };
+  }
 }
 
 export type PremisesPatchResult = { ok: true } | { ok: false; error: string };

@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { CompanyDeleteButton } from "@/components/admin/connections/CompanyDeleteButton";
 import { companyDrawerFullFormId } from "@/components/admin/connections/CompanyDrawerFullEdit";
 import { IconPen, IconX } from "@/components/admin/ModuleActionIcons";
 import { ModuleActionBar, moduleEditButtonClass } from "@/components/admin/ModuleActionBar";
@@ -39,7 +38,7 @@ export function CompanyDrawerHeader({
     <div className="sticky top-0 z-10 shrink-0 border-b border-slate-200 bg-white px-5 py-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs text-slate-500">{fullEdit ? "Edit company" : "Review"}</p>
+          <p className="text-xs text-slate-500">{fullEdit ? "Edit company" : editHighlight ? "Click a field to edit" : "Review"}</p>
           <h2 className="mt-0.5 text-lg font-semibold tracking-tight text-slate-900">{title}</h2>
           {subtitle ? <p className="mt-1 text-sm text-slate-600">{subtitle}</p> : null}
         </div>
@@ -67,7 +66,6 @@ export function CompanyDrawerHeader({
               >
                 Full edit
               </button>
-              <CompanyDeleteButton companyId={companyId} />
             </>
           )}
           <button

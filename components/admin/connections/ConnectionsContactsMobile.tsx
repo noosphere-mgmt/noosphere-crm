@@ -1,8 +1,8 @@
 "use client";
 
-import { ConnectionsModuleToolbar } from "@/components/admin/connections/ConnectionsModuleToolbar";
 import { ConnectionsSearchToolbarMobile } from "@/components/admin/connections/ConnectionsSearchToolbarMobile";
 import { ConnectionsContactsListMobile } from "@/components/admin/connections/ConnectionsContactsListMobile";
+import { ConnectionsContactsListHeaderMobile } from "@/components/admin/connections/ConnectionsContactsListHeaderMobile";
 import { ListingRecordCount } from "@/components/admin/ListingRecordCount";
 import type { ConnectionsContactsListState } from "@/components/admin/connections/useConnectionsContactsList";
 
@@ -17,7 +17,7 @@ export function ConnectionsContactsMobile({
 }) {
   return (
     <>
-      <ConnectionsModuleToolbar onCreate={onNewContact} createLabel="New contact" />
+      <ConnectionsContactsListHeaderMobile onNewContact={onNewContact} />
       <ConnectionsSearchToolbarMobile
         variant="contacts"
         searchQuery={state.searchQuery}

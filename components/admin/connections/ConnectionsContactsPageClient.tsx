@@ -95,7 +95,6 @@ export function ConnectionsContactsPageClient({
         <ContactDrawer
           data={drawerData}
           onClose={closeDrawer}
-          initialEditHighlight={searchParams.get("mode") === "edit"}
         />
         {openId && !drawerData ? (
           <DrawerLoadError

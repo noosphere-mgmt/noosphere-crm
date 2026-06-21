@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { deleteOpportunityAction } from "@/app/admin/opportunities/actions";
 import { opportunityDetailHref } from "@/lib/opportunityDetailNav";
-import { IconPen, IconTrash, IconX } from "@/components/admin/ModuleActionIcons";
-import { moduleActionButtonClass, moduleEditButtonClass } from "@/components/admin/ModuleActionBar";
+import { IconPen, IconX } from "@/components/admin/ModuleActionIcons";
+import { moduleEditButtonClass } from "@/components/admin/ModuleActionBar";
 import { OPPORTUNITY_STATUS_LABELS } from "@/lib/lookups";
 import { opportunityStatusChip } from "@/lib/opportunityStatusTheme";
 import type { Opportunity } from "@/lib/types/entities";
@@ -16,8 +15,6 @@ export function OpportunityDrawerHeader({
   opportunity: Opportunity;
   onClose: () => void;
 }) {
-  const remove = deleteOpportunityAction.bind(null, opportunity.id);
-
   return (
     <div className="sticky top-0 z-10 shrink-0 border-b border-slate-200 bg-white px-5 py-4">
       <div className="flex items-start justify-between gap-3">
@@ -44,16 +41,6 @@ export function OpportunityDrawerHeader({
           >
             <IconPen />
           </Link>
-          <form action={remove}>
-            <button
-              type="submit"
-              className={moduleActionButtonClass.delete}
-              aria-label="Delete opportunity"
-              title="Delete"
-            >
-              <IconTrash />
-            </button>
-          </form>
           <button
             type="button"
             onClick={onClose}

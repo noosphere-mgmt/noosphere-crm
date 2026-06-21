@@ -239,7 +239,13 @@ export function emptyPremisesV1(propertyId: string): PremisesV1 {
 
 export async function createPremisesV1(propertyId: string, patch: PremisesV1Patch): Promise<string> {
   const premisesId = await allocatePremisesV1Id();
-  const entries = Object.entries(patch).filter(([, v]) => v !== undefined);
+  const entries = Object.entries(patch).filter(
+    ([k, v]) =>
+      v !== undefined &&
+      v !== "" &&
+      k !== "property_id" &&
+      k !== "premises_id",
+  );
   const columns = ["premises_id", "property_id", ...entries.map(([k]) => k)];
   const placeholders = columns.map((_, i) => `$${i + 1}`);
   const params: unknown[] = [
@@ -497,18 +503,20 @@ export async function listPremisesFilterOptions(): Promise<{
   cities: string[];
   districts: string[];
 }> {
-  const cities = await query<{ v: string }>(
-    `SELECT DISTINCT pr.city_en AS v FROM premises_v1 p
-     JOIN properties_v1 pr ON pr.property_id = p.property_id
-     WHERE pr.city_en IS NOT NULL AND pr.city_en <> ''
-     ORDER BY v ASC`,
-  );
-  const districts = await query<{ v: string }>(
-    `SELECT DISTINCT pr.district_en AS v FROM premises_v1 p
-     JOIN properties_v1 pr ON pr.property_id = p.property_id
-     WHERE pr.district_en IS NOT NULL AND pr.district_en <> ''
-     ORDER BY v ASC`,
-  );
+  const [cities, districts] = await Promise.all([
+    query<{ v: string }>(
+      `SELECT DISTINCT pr.city_en AS v FROM premises_v1 p
+       JOIN properties_v1 pr ON pr.property_id = p.property_id
+       WHERE pr.city_en IS NOT NULL AND pr.city_en <> ''
+       ORDER BY v ASC`,
+    ),
+    query<{ v: string }>(
+      `SELECT DISTINCT pr.district_en AS v FROM premises_v1 p
+       JOIN properties_v1 pr ON pr.property_id = p.property_id
+       WHERE pr.district_en IS NOT NULL AND pr.district_en <> ''
+       ORDER BY v ASC`,
+    ),
+  ]);
   return {
     cities: cities.map((r) => r.v),
     districts: districts.map((r) => r.v),

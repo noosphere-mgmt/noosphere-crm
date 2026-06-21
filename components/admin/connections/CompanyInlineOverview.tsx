@@ -23,7 +23,7 @@ import type { Company, CompanyRole } from "@/lib/types/entities";
 function normalizeRoles(roles: CompanyRole[]): CompanyRole[] {
   return roles.map((role) => {
     if (role === "property_management") return "building_management";
-    if (role === "developer") return "other";
+    if (role === "developer" || role === "service_provider") return "other";
     return role;
   });
 }

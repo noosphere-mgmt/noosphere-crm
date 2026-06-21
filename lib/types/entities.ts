@@ -29,10 +29,11 @@ export type CompanyRole =
   | "landlord"
   | "building_management"
   | "agency"
-  | "service_provider"
   | "referrer"
   | "vendor"
   | "other"
+  /** @deprecated legacy stored value */
+  | "service_provider"
   /** @deprecated legacy stored value */
   | "developer"
   /** @deprecated legacy stored value */

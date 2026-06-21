@@ -2,12 +2,12 @@
 
 import { AdminViewportSwitch } from "@/components/admin/layout/AdminViewportSwitch";
 import { PremisesListHeaderDesktop } from "@/components/admin/properties-v1/PremisesListHeaderDesktop";
-import { PropertiesModuleToolbar } from "@/components/admin/properties-v1/PropertiesModuleToolbar";
+import { PremisesListHeaderMobile } from "@/components/admin/properties-v1/PremisesListHeaderMobile";
 
 export function PremisesListHeader() {
   return (
     <AdminViewportSwitch
-      mobile={<PropertiesModuleToolbar />}
+      mobile={<PremisesListHeaderMobile />}
       desktop={<PremisesListHeaderDesktop />}
     />
   );

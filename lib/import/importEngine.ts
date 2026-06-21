@@ -4,6 +4,7 @@ import type {
   ImportPreviewRow,
   ImportRowAction,
   ParsedCsv,
+  RecordId,
 } from "./types";
 import type { ImportObjectDefinition } from "./objectRegistry";
 import { getImportObjectDefinition } from "./objectRegistry";
@@ -75,7 +76,11 @@ async function processRow(
       def,
     );
 
-    const match = await matchRecord(def, values);
+    const matchValues = def.prepareMatchValues
+      ? await def.prepareMatchValues(values, suppliedFields)
+      : values;
+
+    const match = await matchRecord(def, matchValues);
 
     if (match.kind === "error") {
       if (opts.mode === "commit" && opts.skipErrors) {
@@ -103,11 +108,11 @@ async function processRow(
     }
 
     const existing = match.kind === "found" ? match.record : null;
-    const patch = computePatch(def, values, suppliedFields, existing);
+    const patch = computePatch(def, matchValues, suppliedFields, existing);
 
     let refWarnings: string[] = [];
     if (def.validateReferences) {
-      const refResult = await def.validateReferences(values, suppliedFields, existing, patch.writable);
+      const refResult = await def.validateReferences(matchValues, suppliedFields, existing, patch.writable);
       Object.assign(patch.writable, refResult.writablePatches);
       refWarnings = refResult.warnings;
       if (refResult.errors.length > 0) {
@@ -128,10 +133,11 @@ async function processRow(
     }
 
     let action: ImportRowAction = patch.action;
+    let createdId: RecordId | undefined;
 
     if (opts.mode === "commit" && (action === "create" || action === "update" || action === "clear_value")) {
       if (action === "create") {
-        await def.createRecord(patch.writable, {
+        createdId = await def.createRecord(patch.writable, {
           importRunId: opts.importRunId,
           sessionMetadata: opts.sessionMetadata,
         });
@@ -149,7 +155,12 @@ async function processRow(
     }
 
     const matchMethod = match.kind === "found" ? match.method : null;
-    const idPreview = recordIdToPreview(existing, def.idType);
+    const idPreview =
+      existing != null
+        ? recordIdToPreview(existing, def.idType)
+        : createdId != null
+          ? recordIdToPreview({ id: createdId, values: {} }, def.idType)
+          : recordIdToPreview(null, def.idType);
 
     return rowResult(rowNumber, action, rawRow, {
       match_method: matchMethod,

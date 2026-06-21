@@ -1,18 +1,23 @@
 import { query } from "@/lib/db";
 import { genericUpdateRecord, rowToRecord } from "../adapterUtils";
-import { buildNaturalKeyParts } from "../matchRecord";
+import { parseBigIntParam } from "../fkValidation";
+import { sqlPremisesLabel } from "../lookupSql";
+import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
 import {
   mergeReferenceResults,
-  resolveOpportunityReference,
-  resolvePremisesReference,
+  resolveOpportunityIdOrName,
+  resolvePremisesIdOrName,
 } from "../referenceResolution";
-import type { ImportObjectDefinition } from "../objectRegistry";
+import type { ImportFieldDef, ImportObjectDefinition } from "../objectRegistry";
 import type { ExistingRecord } from "../types";
 
 const FIELD_KEYS = [
   "opportunity_premises_id",
   "opportunity_id",
+  "opportunity_name",
   "premises_id",
+  "premises_name",
+  "building_name_en",
   "proposed_price",
   "tour_date",
   "status",
@@ -28,44 +33,80 @@ const FIELD_KEYS = [
 ] as const;
 
 const SELECT = `
-  id::text AS opportunity_premises_id,
-  opportunity_id::text AS opportunity_id,
-  premises_id,
-  proposed_price::text AS proposed_price,
-  tour_date::text AS tour_date,
-  status, preference, client_comment, advisor_comment, remarks,
-  collect_fee_amount::text AS expected_collect_fee,
-  collect_fee_status,
-  paid_out_fee_amount::text AS expected_paid_out_fee,
-  paid_out_status AS paid_out_fee_status,
-  fee_remarks
+  opp.id::text AS opportunity_premises_id,
+  opp.opportunity_id::text AS opportunity_id,
+  o.client_name AS opportunity_name,
+  opp.premises_id,
+  ${sqlPremisesLabel("pm", "b")} AS premises_name,
+  b.bldg_name_en AS building_name_en,
+  opp.proposed_price::text AS proposed_price,
+  opp.tour_date::text AS tour_date,
+  opp.status,
+  opp.preference,
+  opp.client_comment,
+  opp.advisor_comment,
+  opp.remarks,
+  opp.collect_fee_amount::text AS expected_collect_fee,
+  opp.collect_fee_status,
+  opp.paid_out_fee_amount::text AS expected_paid_out_fee,
+  opp.paid_out_status AS paid_out_fee_status,
+  opp.fee_remarks
 `;
 
+const FROM = `
+  opportunity_proposed_premises opp
+  LEFT JOIN opportunities o ON o.id = opp.opportunity_id
+  LEFT JOIN premises_v1 pm ON pm.premises_id = opp.premises_id
+  LEFT JOIN properties_v1 b ON b.property_id = pm.property_id
+`;
+
+function proposedFieldDef(key: (typeof FIELD_KEYS)[number]): ImportFieldDef {
+  const base = { key, label: key };
+  if (key === "opportunity_premises_id") {
+    return { ...base, type: "number", integer: true, matchOnly: true, aliases: ["id"] };
+  }
+  if (key === "opportunity_id" || key === "premises_id") {
+    return { ...base, type: "string", requiredOnCreate: true };
+  }
+  if (key === "opportunity_name" || key === "premises_name" || key === "building_name_en") {
+    return { ...base, type: "string", lookupOnly: true };
+  }
+  if (key.includes("date")) return { ...base, type: "date" };
+  if (key.includes("price") || key.includes("fee")) return { ...base, type: "number" };
+  return { ...base, type: "string" };
+}
+
 function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
-  const p: Record<string, unknown> = { ...values };
-  if ("expected_collect_fee" in values) {
-    p.collect_fee_amount = values.expected_collect_fee;
-    delete p.expected_collect_fee;
+  const skip = new Set([
+    "opportunity_premises_id",
+    "opportunity_id",
+    "premises_id",
+    "opportunity_name",
+    "premises_name",
+    "building_name_en",
+  ]);
+  const p: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(values)) {
+    if (skip.has(k)) continue;
+    if (k === "expected_collect_fee") {
+      p.collect_fee_amount = v;
+      continue;
+    }
+    if (k === "expected_paid_out_fee") {
+      p.paid_out_fee_amount = v;
+      continue;
+    }
+    if (k === "paid_out_fee_status") {
+      p.paid_out_status = v;
+      continue;
+    }
+    p[k] = v;
   }
-  if ("expected_paid_out_fee" in values) {
-    p.paid_out_fee_amount = values.expected_paid_out_fee;
-    delete p.expected_paid_out_fee;
-  }
-  if ("paid_out_fee_status" in values) {
-    p.paid_out_status = values.paid_out_fee_status;
-    delete p.paid_out_fee_status;
-  }
-  delete p.opportunity_premises_id;
-  delete p.opportunity_id;
-  delete p.premises_id;
   return p;
 }
 
 async function load(where: string, params: unknown[]): Promise<ExistingRecord[]> {
-  const rows = await query<Record<string, unknown>>(
-    `SELECT ${SELECT} FROM opportunity_proposed_premises WHERE ${where}`,
-    params,
-  );
+  const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM ${FROM} WHERE ${where}`, params);
   return rows.map((row) => rowToRecord(row, Number.parseInt(String(row.opportunity_premises_id), 10), FIELD_KEYS));
 }
 
@@ -75,17 +116,10 @@ export const opportunityProposedPremisesImportDefinition: ImportObjectDefinition
   matchIdField: "opportunity_premises_id",
   idType: "number",
 
-  fields: FIELD_KEYS.map((key) => ({
-    key,
-    label: key,
-    type: key.includes("date") ? "date" : key.includes("price") || key.includes("fee") ? "number" : "string",
-    matchOnly: key === "opportunity_premises_id",
-    requiredOnCreate: key === "opportunity_id" || key === "premises_id" ? true : undefined,
-    aliases: key === "opportunity_premises_id" ? ["id"] : undefined,
-  })),
+  fields: FIELD_KEYS.map((key) => proposedFieldDef(key)),
 
   async findById(id) {
-    const rows = await load("id = $1", [Number(id)]);
+    const rows = await load("opp.id = $1", [Number(id)]);
     return rows[0] ?? null;
   },
 
@@ -101,20 +135,34 @@ export const opportunityProposedPremisesImportDefinition: ImportObjectDefinition
   },
 
   async findByNaturalKey(key) {
-    const [oppId, premisesId] = key.split("|");
-    return load("opportunity_id = $1 AND premises_id = $2", [Number.parseInt(oppId, 10), premisesId]);
+    const parts = splitNaturalKeyParts(key, 2);
+    if (!parts) return [];
+    const [oppId, premisesId] = parts;
+    const oppIdNum = parseBigIntParam(oppId);
+    if (!oppIdNum || !premisesId?.trim()) return [];
+    return load("opp.opportunity_id = $1 AND opp.premises_id = $2", [oppIdNum, premisesId]);
   },
 
   async validateReferences(values, suppliedFields, existing, writable) {
-    const oppId = suppliedFields.has("opportunity_id")
-      ? values.opportunity_id
-      : existing?.values.opportunity_id ?? writable.opportunity_id;
-    const premisesId = suppliedFields.has("premises_id")
-      ? values.premises_id
-      : existing?.values.premises_id ?? writable.premises_id;
     return mergeReferenceResults(
-      await resolveOpportunityReference("opportunity_id", oppId, true),
-      await resolvePremisesReference("premises_id", premisesId, true),
+      await resolveOpportunityIdOrName(
+        "opportunity_id",
+        "opportunity_name",
+        values,
+        suppliedFields,
+        existing,
+        writable,
+        true,
+      ),
+      await resolvePremisesIdOrName(
+        "premises_id",
+        "premises_name",
+        values,
+        suppliedFields,
+        existing,
+        writable,
+        true,
+      ),
     );
   },
 
@@ -127,7 +175,7 @@ export const opportunityProposedPremisesImportDefinition: ImportObjectDefinition
        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
        RETURNING id::text`,
       [
-        Number(values.opportunity_id),
+        parseBigIntParam(values.opportunity_id) ?? (() => { throw new Error("opportunity_id is required"); })(),
         String(values.premises_id),
         values.proposed_price ?? null,
         values.tour_date ?? null,
@@ -151,7 +199,7 @@ export const opportunityProposedPremisesImportDefinition: ImportObjectDefinition
   },
 
   async exportRows() {
-    const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM opportunity_proposed_premises ORDER BY id ASC`);
+    const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM ${FROM} ORDER BY opp.id ASC`);
     return rows.map((r) => rowToRecord(r, Number.parseInt(String(r.opportunity_premises_id), 10), FIELD_KEYS).values);
   },
 };

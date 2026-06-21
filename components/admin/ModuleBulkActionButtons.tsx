@@ -52,7 +52,7 @@ export function ModuleListingBulkActions({
   const busy = isPending || exportPending;
 
   return (
-    <div className="hidden items-center gap-2 lg:flex">
+    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
       {exportError ? (
         <span className="max-w-[12rem] truncate text-xs text-red-700" title={exportError}>
           {exportError}
@@ -84,7 +84,7 @@ export function ModuleListingBulkActions({
         type="button"
         disabled={!someSelected || busy}
         onClick={() => runExport(selectedIds, "selected")}
-        className={`${theme.secondaryButton} inline-flex items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-40`}
+        className={`${theme.secondaryButton} hidden items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-40 sm:inline-flex`}
         title="Export selected"
       >
         <IconExport className="h-3.5 w-3.5" />
@@ -94,7 +94,7 @@ export function ModuleListingBulkActions({
         type="button"
         disabled={filteredIds.length === 0 || busy}
         onClick={() => runExport(filteredIds, "filtered")}
-        className={`${theme.secondaryButton} disabled:cursor-not-allowed disabled:opacity-40`}
+        className={`${theme.secondaryButton} hidden disabled:cursor-not-allowed disabled:opacity-40 sm:inline-flex`}
         title="Export all records matching current filters"
       >
         Export filtered

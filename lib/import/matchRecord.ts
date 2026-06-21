@@ -59,8 +59,29 @@ export async function matchRecord(
   return { kind: "not_found", method: null };
 }
 
+/** Delimiter for composite natural keys — must not appear in normalized field values. */
+export const NATURAL_KEY_DELIMITER = "\x1f";
+
 export function buildNaturalKeyParts(parts: (string | null | undefined)[]): string {
-  return parts.map((p) => normalizeKey(p)).join("|");
+  return parts.map((p) => normalizeKey(p)).join(NATURAL_KEY_DELIMITER);
+}
+
+/**
+ * Split a natural key into fixed segments. Leading segments may contain the delimiter;
+ * trailing segments (after the first) must not.
+ */
+export function splitNaturalKeyParts(key: string, partCount: number): string[] | null {
+  if (partCount < 1) return null;
+  if (partCount === 1) return [key];
+  const trailing: string[] = [];
+  let rest = key;
+  for (let i = 0; i < partCount - 1; i++) {
+    const idx = rest.lastIndexOf(NATURAL_KEY_DELIMITER);
+    if (idx === -1) return null;
+    trailing.unshift(rest.slice(idx + NATURAL_KEY_DELIMITER.length));
+    rest = rest.slice(0, idx);
+  }
+  return [rest, ...trailing];
 }
 
 export function recordIdToPreview(row: ExistingRecord | null, idType: "number" | "text") {

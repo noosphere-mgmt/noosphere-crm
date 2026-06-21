@@ -357,7 +357,6 @@ export function PremisesDrawer({
   const isOpen = premises != null;
   const isMobile = useIsMobile();
   const searchParams = useSearchParams();
-  const initialEditHighlight = searchParams.get("edit") === "1";
   const companyOptions = useMemo(() => toCompanyV1SelectOptions(companies), [companies]);
   const companyLabels = useMemo(() => buildCompanyV1LabelMap(companies), [companies]);
   const contactLabels = useMemo(
@@ -411,17 +410,15 @@ export function PremisesDrawer({
         aria-modal="true"
         aria-label={isView ? "View premises" : "Edit premises"}
       >
-        <InlineEditProvider initialEditHighlight={initialEditHighlight && isView}>
+        <InlineEditProvider initialEditHighlight={isView} resetKey={premises.premises_id}>
         {isView ? (
           <PremisesDrawerHeader
             title={title}
             subtitle={buildingSubtitle}
-            premisesId={premises.premises_id}
-            returnTo={returnTo ?? "/admin/properties"}
             onClose={onClose}
             onEdit={() => onModeChange("edit")}
             onFullEdit={() => onModeChange("edit")}
-            showEdit={!isMobile}
+            showEdit
           />
         ) : (
           <div className="sticky top-0 z-10 flex shrink-0 items-start justify-between gap-3 border-b border-slate-200 bg-white px-4 py-4 sm:px-5">

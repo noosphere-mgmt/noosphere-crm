@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { connectionsTabClass } from "@/lib/connectionsGlassTheme";
+import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 
 function connectionsMobileTabClass(active: boolean): string {
   const base = "rounded-md px-2 py-0.5 text-[11px] font-medium whitespace-nowrap";
@@ -33,10 +33,11 @@ export function ConnectionsModuleToolbar({
 
   const createButtonClass =
     "flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-lg leading-none text-slate-600 hover:bg-slate-50";
+  const theme = moduleAccentClasses("connections");
 
   return (
     <div className="mb-2 flex items-center gap-1.5">
-      <span className="shrink-0 text-sm font-semibold text-slate-900">Connections</span>
+      <span className={`shrink-0 text-sm font-bold ${theme.navActiveTitle}`}>Connections</span>
       <nav
         aria-label="Connections sections"
         className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto"

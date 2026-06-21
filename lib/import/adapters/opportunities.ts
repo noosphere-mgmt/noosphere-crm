@@ -1,12 +1,14 @@
 import { query } from "@/lib/db";
+import { sqlContactDisplayName } from "@/lib/contactName";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
-import { buildNaturalKeyParts } from "../matchRecord";
+import { parseBigIntParam } from "../fkValidation";
+import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
 import {
   mergeReferenceResults,
-  resolveContactReference,
-  resolveLegacyCompanyReference,
+  resolveContactIdOrName,
+  resolveLegacyCompanyIdOrName,
 } from "../referenceResolution";
-import type { ImportObjectDefinition } from "../objectRegistry";
+import type { ImportFieldDef, ImportObjectDefinition } from "../objectRegistry";
 import type { ExistingRecord } from "../types";
 
 const FIELD_KEYS = [
@@ -19,7 +21,9 @@ const FIELD_KEYS = [
   "usage_type",
   "status",
   "company_id",
-  "contact_id",
+  "company_name_en",
+  "assigned_contact_id",
+  "assigned_contact_name",
   "opportunity_source",
   "district",
   "workspace_type",
@@ -36,29 +40,37 @@ const FIELD_KEYS = [
 ] as const;
 
 const SELECT = `
-  id::text AS opportunity_id,
-  external_ref,
-  client_name AS opportunity_name,
-  lead_type,
-  property_type AS sales_type,
-  sales_role,
-  property_type AS usage_type,
-  status,
-  company_id::text AS company_id,
-  primary_contact_id::text AS contact_id,
-  lead_source AS opportunity_source,
-  district_preference AS district,
-  workspace_type,
-  required_capacity_pax AS desks,
-  required_area_sqft::text AS area_sqft,
-  budget_max::text AS budget,
-  target_yield,
-  funding_status,
-  expected_close_date::text AS est_start_date,
-  move_in_date::text AS move_in_date,
-  lease_term,
-  requirement_summary,
-  remarks AS internal_remarks
+  o.id::text AS opportunity_id,
+  o.external_ref,
+  o.client_name AS opportunity_name,
+  o.lead_type,
+  o.property_type AS sales_type,
+  o.sales_role,
+  o.property_type AS usage_type,
+  o.status,
+  o.company_id::text AS company_id,
+  c.company_name AS company_name_en,
+  o.primary_contact_id::text AS assigned_contact_id,
+  ${sqlContactDisplayName("ct")} AS assigned_contact_name,
+  o.lead_source AS opportunity_source,
+  o.district_preference AS district,
+  o.workspace_type,
+  o.required_capacity_pax AS desks,
+  o.required_area_sqft::text AS area_sqft,
+  o.budget_max::text AS budget,
+  o.target_yield,
+  o.funding_status,
+  o.expected_close_date::text AS est_start_date,
+  o.move_in_date::text AS move_in_date,
+  o.lease_term,
+  o.requirement_summary,
+  o.remarks AS internal_remarks
+`;
+
+const FROM = `
+  opportunities o
+  LEFT JOIN companies c ON c.id = o.company_id
+  LEFT JOIN contacts ct ON ct.id = o.primary_contact_id
 `;
 
 function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
@@ -66,6 +78,7 @@ function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
   if ("opportunity_name" in values) p.client_name = values.opportunity_name;
   if ("sales_type" in values) p.property_type = values.sales_type;
   if ("usage_type" in values && !("sales_type" in values)) p.property_type = values.usage_type;
+  if ("assigned_contact_id" in values) p.primary_contact_id = values.assigned_contact_id;
   if ("contact_id" in values) p.primary_contact_id = values.contact_id;
   if ("opportunity_source" in values) p.lead_source = values.opportunity_source;
   if ("district" in values) p.district_preference = values.district;
@@ -93,8 +106,30 @@ function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
 }
 
 async function load(where: string, params: unknown[]): Promise<ExistingRecord[]> {
-  const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM opportunities WHERE ${where}`, params);
+  const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM ${FROM} WHERE ${where}`, params);
   return rows.map((row) => rowToRecord(row, Number.parseInt(String(row.opportunity_id), 10), FIELD_KEYS));
+}
+
+function opportunityFieldDef(key: (typeof FIELD_KEYS)[number]): ImportFieldDef {
+  const base = { key, label: key };
+  if (key === "opportunity_id") {
+    return { ...base, type: "number", integer: true, matchOnly: true, aliases: ["id"] };
+  }
+  if (key === "company_name_en") {
+    return { ...base, type: "string", lookupOnly: true, aliases: ["company_name"] };
+  }
+  if (key === "assigned_contact_name") {
+    return { ...base, type: "string", lookupOnly: true, aliases: ["contact_name"] };
+  }
+  if (key === "opportunity_name") {
+    return { ...base, type: "string", requiredOnCreate: true };
+  }
+  if (key === "assigned_contact_id") {
+    return { ...base, type: "string", aliases: ["contact_id", "primary_contact_id"] };
+  }
+  if (key.includes("date")) return { ...base, type: "date" };
+  if (key === "desks" || key === "area_sqft" || key === "budget") return { ...base, type: "number" };
+  return { ...base, type: "string" };
 }
 
 export const opportunitiesImportDefinition: ImportObjectDefinition = {
@@ -103,22 +138,15 @@ export const opportunitiesImportDefinition: ImportObjectDefinition = {
   matchIdField: "opportunity_id",
   idType: "number",
 
-  fields: FIELD_KEYS.map((key) => ({
-    key,
-    label: key,
-    type: key.includes("date") ? "date" : key === "desks" || key === "area_sqft" || key === "budget" ? "number" : "string",
-    matchOnly: key === "opportunity_id",
-    requiredOnCreate: key === "opportunity_name" ? true : undefined,
-    aliases: key === "opportunity_id" ? ["id"] : undefined,
-  })),
+  fields: FIELD_KEYS.map((key) => opportunityFieldDef(key)),
 
   async findById(id) {
-    const rows = await load("id = $1", [Number(id)]);
+    const rows = await load("o.id = $1", [Number(id)]);
     return rows[0] ?? null;
   },
 
   async findByExternalRef(externalRef) {
-    return load("external_ref = $1", [externalRef.trim()]);
+    return load("o.external_ref = $1", [externalRef.trim()]);
   },
 
   buildNaturalKey(values) {
@@ -129,33 +157,65 @@ export const opportunitiesImportDefinition: ImportObjectDefinition = {
   },
 
   async findByNaturalKey(key) {
-    const [name, companyId] = key.split("|");
+    const parts = splitNaturalKeyParts(key, 2);
+    if (!parts) return [];
+    const [name, companyId] = parts;
+    const trimmedCompany = companyId ?? "";
+    const companyIdNum = parseBigIntParam(trimmedCompany);
+    if (trimmedCompany && companyIdNum == null) return [];
     const rows = await query<{ id: string }>(
       `SELECT id::text FROM opportunities
        WHERE lower(trim(client_name)) = $1
          AND ($2 = '' OR company_id = $3::bigint)`,
-      [name, companyId ?? "", companyId ? Number.parseInt(companyId, 10) : 0],
+      [name, trimmedCompany, companyIdNum ?? 0],
     );
     if (rows.length === 0) return [];
-    return load(`id = ANY($1::bigint[])`, [rows.map((r) => Number.parseInt(r.id, 10))]);
+    return load(`o.id = ANY($1::bigint[])`, [rows.map((r) => Number.parseInt(r.id, 10))]);
   },
 
   async validateReferences(values, suppliedFields, existing, writable) {
     const results = [];
-    if (suppliedFields.has("company_id") || "company_id" in writable) {
+    if (
+      suppliedFields.has("company_id") ||
+      "company_id" in writable ||
+      suppliedFields.has("company_name_en")
+    ) {
       results.push(
-        await resolveLegacyCompanyReference(
+        await resolveLegacyCompanyIdOrName(
           "company_id",
-          values.company_id ?? writable.company_id,
-          true,
+          "company_name_en",
+          values,
+          suppliedFields,
+          existing,
+          writable,
+          false,
         ),
       );
     }
-    if (suppliedFields.has("contact_id") || "contact_id" in writable) {
+    if (
+      suppliedFields.has("assigned_contact_id") ||
+      "assigned_contact_id" in writable ||
+      suppliedFields.has("assigned_contact_name") ||
+      "contact_id" in writable
+    ) {
+      const contactValues = { ...values };
+      if (contactValues.contact_id != null && contactValues.assigned_contact_id == null) {
+        contactValues.assigned_contact_id = contactValues.contact_id;
+      }
+      const contactWritable = { ...writable };
+      if (contactWritable.contact_id != null && contactWritable.assigned_contact_id == null) {
+        contactWritable.assigned_contact_id = contactWritable.contact_id;
+      }
+      const contactSupplied = new Set(suppliedFields);
+      if (contactSupplied.has("contact_id")) contactSupplied.add("assigned_contact_id");
       results.push(
-        await resolveContactReference(
-          "contact_id",
-          values.contact_id ?? writable.contact_id,
+        await resolveContactIdOrName(
+          "assigned_contact_id",
+          "assigned_contact_name",
+          contactValues,
+          contactSupplied,
+          existing,
+          contactWritable,
           false,
         ),
       );
@@ -207,7 +267,7 @@ export const opportunitiesImportDefinition: ImportObjectDefinition = {
   },
 
   async exportRows() {
-    const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM opportunities ORDER BY updated_at DESC`);
+    const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM ${FROM} ORDER BY o.updated_at DESC`);
     return rows.map((r) => rowToRecord(r, Number.parseInt(String(r.opportunity_id), 10), FIELD_KEYS).values);
   },
 };

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { NewPremiseV1Client } from "@/components/admin/properties-v1/NewPremiseV1Client";
 import { listCompanyV1Options } from "@/lib/repos/companiesV1";
@@ -15,7 +16,9 @@ export default async function NewPremisePage() {
 
   return (
     <AdminShell title="" wide module="properties" hideHeader>
-      <NewPremiseV1Client properties={properties} companies={companies} contacts={contacts} />
+      <Suspense fallback={<div className="h-48 animate-pulse rounded-xl bg-slate-100" />}>
+        <NewPremiseV1Client properties={properties} companies={companies} contacts={contacts} />
+      </Suspense>
     </AdminShell>
   );
 }

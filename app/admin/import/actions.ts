@@ -19,6 +19,7 @@ import {
 } from "@/lib/repos/importSessions";
 import {
   createImportRun,
+  deleteImportRuns,
   insertImportRunRows,
   updateImportRunCounts,
 } from "@/lib/repos/importRuns";
@@ -150,5 +151,21 @@ export async function confirmImportAction(sessionId: string, formData: FormData)
   revalidatePath("/admin/contacts");
   revalidatePath("/admin/opportunities");
   revalidatePath("/admin/activities");
-  redirect(`/admin/import/runs/${importRunId}`);
+  redirect("/admin/import/history");
+}
+
+function parseImportRunIds(raw: string): number[] {
+  return raw
+    .split(",")
+    .map((s) => Number.parseInt(s.trim(), 10))
+    .filter((n) => Number.isFinite(n) && n > 0);
+}
+
+export async function bulkDeleteImportRunsAction(formData: FormData) {
+  const ids = parseImportRunIds(String(formData.get("import_run_ids") ?? ""));
+  if (ids.length === 0) return;
+
+  await deleteImportRuns(ids);
+  revalidatePath("/admin/import/history");
+  redirect("/admin/import/history");
 }

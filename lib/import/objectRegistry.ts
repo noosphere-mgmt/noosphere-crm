@@ -31,6 +31,8 @@ export type ImportFieldDef = {
   enumValues?: string[];
   /** Match priority A — not written on create/update */
   matchOnly?: boolean;
+  /** Export/import for FK resolution only — never written to DB */
+  lookupOnly?: boolean;
   /** Omit from export template */
   exportHidden?: boolean;
 };
@@ -59,6 +61,11 @@ export type ImportObjectDefinition = {
     existing: ExistingRecord | null,
     writable: Record<string, unknown>,
   ) => Promise<ReferenceValidationResult>;
+  /** Resolve lookup-only fields (e.g. building_name_en → building_id) before record matching */
+  prepareMatchValues?: (
+    values: Record<string, unknown>,
+    suppliedFields: Set<string>,
+  ) => Promise<Record<string, unknown>>;
   /** Export all rows as CSV field values keyed by import field keys */
   exportRows?: () => Promise<Record<string, unknown>[]>;
 };
@@ -81,6 +88,7 @@ export function listMappingFieldOptions(objectType: ImportObjectType) {
     key: f.key,
     label: f.label,
     matchOnly: f.matchOnly ?? false,
+    lookupOnly: f.lookupOnly ?? false,
   }));
 }
 
@@ -94,6 +102,10 @@ export function getImportObjectDefinition(objectType: ImportObjectType): ImportO
 
 export function listImportFields(objectType: ImportObjectType): ImportFieldDef[] {
   return getImportObjectDefinition(objectType).fields.filter((f) => !f.matchOnly);
+}
+
+export function isWritableImportField(field: ImportFieldDef): boolean {
+  return !field.matchOnly && !field.lookupOnly;
 }
 
 export function listAllImportFields(objectType: ImportObjectType): ImportFieldDef[] {

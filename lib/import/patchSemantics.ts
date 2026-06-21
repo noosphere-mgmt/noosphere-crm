@@ -1,4 +1,4 @@
-import type { ImportObjectDefinition } from "./objectRegistry";
+import { isWritableImportField, type ImportObjectDefinition } from "./objectRegistry";
 import type { ExistingRecord } from "./types";
 import { coerceFieldValue, isFieldSupplied } from "./coerce";
 
@@ -26,6 +26,7 @@ export function computePatch(
   const writable: Record<string, unknown> = {};
 
   for (const field of def.fields) {
+    if (!isWritableImportField(field)) continue;
     if (!isFieldSupplied(field.key, suppliedFields)) continue;
 
     const rawInput = mappedValues[field.key];
@@ -76,6 +77,7 @@ export function computePatch(
   }
 
   for (const field of def.fields) {
+    if (!isWritableImportField(field)) continue;
     if (field.requiredOnCreate && !isFieldSupplied(field.key, suppliedFields)) {
       if (field.defaultValue !== undefined) {
         writable[field.key] = field.defaultValue;

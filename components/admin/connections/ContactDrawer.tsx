@@ -1,7 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { deleteContactAction } from "@/app/admin/contacts/actions";
+import { useSearchParams } from "next/navigation";
 import { ContactCompanyTab } from "@/components/admin/connections/ContactCompanySummary";
 import { ContactInlineDetail } from "@/components/admin/connections/ContactInlineDetail";
 import { EntityRelationshipsTab } from "@/components/admin/connections/EntityRelationshipsTab";
@@ -154,27 +153,13 @@ function ContactDrawerBody({ data }: { data: ContactDrawerData }) {
 export function ContactDrawer({
   data,
   onClose,
-  initialEditHighlight = false,
 }: {
   data: ContactDrawerData | null;
   onClose: () => void;
-  initialEditHighlight?: boolean;
 }) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
   if (!data) return null;
 
   const { contact } = data;
-  const remove = deleteContactAction.bind(null, contact.id);
-  const tab = getContactTab({ tab: searchParams.get("tab") ?? undefined });
-
-  function handleEditToggle(enabled: boolean) {
-    router.replace(
-      contactDrawerHref("/admin/contacts", searchParams, contact.id, tab, enabled ? "edit" : undefined),
-      { scroll: false },
-    );
-  }
 
   return (
     <>
@@ -185,13 +170,11 @@ export function ContactDrawer({
         aria-modal="true"
         aria-label={`Contact: ${getContactLabel(contact)}`}
       >
-        <InlineEditProvider initialEditHighlight={initialEditHighlight}>
+        <InlineEditProvider resetKey={contact.id}>
           <ConnectionsDrawerHeader
             title={getContactLabel(contact)}
             subtitle={contact.company_name ?? undefined}
-            deleteAction={remove}
             onClose={onClose}
-            onEditToggle={handleEditToggle}
           />
           <div className="shrink-0 bg-white px-4 pt-2">
             <ContactDetailTabs embedded contactId={contact.id} />

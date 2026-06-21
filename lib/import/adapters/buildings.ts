@@ -1,10 +1,10 @@
 import { query } from "@/lib/db";
 import { allocatePropertyV1Id } from "@/lib/repos/propertiesV1";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
-import { buildNaturalKeyParts } from "../matchRecord";
+import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
 import {
   mergeReferenceResults,
-  resolveCompanyV1Reference,
+  resolveCompanyV1IdOrName,
 } from "../referenceResolution";
 import type { ImportObjectDefinition } from "../objectRegistry";
 import type { ExistingRecord, ImportWriteContext, RecordId } from "../types";
@@ -22,6 +22,11 @@ const FIELD_KEYS = [
   "grade",
   "title",
   "management_company_id",
+  "management_company_name_en",
+  "operator_company_id",
+  "operator_company_name_en",
+  "owner_company_id",
+  "owner_company_name_en",
   "year_built",
   "no_of_floors",
   "building_area_sqft",
@@ -38,26 +43,39 @@ const FIELD_KEYS = [
 ] as const;
 
 const SELECT = `
-  property_id AS building_id,
-  external_ref,
-  bldg_name_en AS building_name_en,
-  bldg_name_zh AS building_name_zh,
-  bldg_name_cn AS building_name_cn,
-  country,
-  city_en AS city,
-  district_en AS district,
-  full_address_en AS address,
-  grade, title, management_company_id,
-  year_built,
-  floor_count AS no_of_floors,
-  bldg_area_sqft::text AS building_area_sqft,
-  bldg_area_sqm::text AS building_area_sqm,
-  lot_number, land_use, class_of_site, land_tenure,
-  plot_ratio::text AS plot_ratio,
-  site_area_sqft::text AS site_area_sqft,
-  site_area_sqm::text AS site_area_sqm,
-  building_remarks AS remarks,
-  last_verified_date::text AS last_verified_date
+  p.property_id AS building_id,
+  p.external_ref,
+  p.bldg_name_en AS building_name_en,
+  p.bldg_name_zh AS building_name_zh,
+  p.bldg_name_cn AS building_name_cn,
+  p.country,
+  p.city_en AS city,
+  p.district_en AS district,
+  p.full_address_en AS address,
+  p.grade, p.title,
+  p.management_company_id,
+  mgmt.company_name_en AS management_company_name_en,
+  p.operator_company_id,
+  opco.company_name_en AS operator_company_name_en,
+  p.owner_company_id,
+  own.company_name_en AS owner_company_name_en,
+  p.year_built,
+  p.floor_count AS no_of_floors,
+  p.bldg_area_sqft::text AS building_area_sqft,
+  p.bldg_area_sqm::text AS building_area_sqm,
+  p.lot_number, p.land_use, p.class_of_site, p.land_tenure,
+  p.plot_ratio::text AS plot_ratio,
+  p.site_area_sqft::text AS site_area_sqft,
+  p.site_area_sqm::text AS site_area_sqm,
+  p.building_remarks AS remarks,
+  p.last_verified_date::text AS last_verified_date
+`;
+
+const FROM = `
+  properties_v1 p
+  LEFT JOIN companies_v1 mgmt ON mgmt.company_id = p.management_company_id
+  LEFT JOIN companies_v1 opco ON opco.company_id = p.operator_company_id
+  LEFT JOIN companies_v1 own ON own.company_id = p.owner_company_id
 `;
 
 function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
@@ -78,6 +96,8 @@ function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
     "grade",
     "title",
     "management_company_id",
+    "operator_company_id",
+    "owner_company_id",
     "year_built",
     "lot_number",
     "land_use",
@@ -95,7 +115,7 @@ function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
 
 async function load(where: string, params: unknown[]): Promise<ExistingRecord[]> {
   const rows = await query<Record<string, unknown>>(
-    `SELECT ${SELECT} FROM properties_v1 WHERE ${where}`,
+    `SELECT ${SELECT} FROM ${FROM} WHERE ${where}`,
     params,
   );
   return rows.map((row) => rowToRecord(row, String(row.building_id), FIELD_KEYS));
@@ -120,6 +140,11 @@ export const buildingsImportDefinition: ImportObjectDefinition = {
     { key: "grade", label: "grade", type: "string" },
     { key: "title", label: "title", type: "string" },
     { key: "management_company_id", label: "management_company_id", type: "string" },
+    { key: "management_company_name_en", label: "management_company_name_en", type: "string", lookupOnly: true },
+    { key: "operator_company_id", label: "operator_company_id", type: "string" },
+    { key: "operator_company_name_en", label: "operator_company_name_en", type: "string", lookupOnly: true },
+    { key: "owner_company_id", label: "owner_company_id", type: "string" },
+    { key: "owner_company_name_en", label: "owner_company_name_en", type: "string", lookupOnly: true },
     { key: "year_built", label: "year_built", type: "number", integer: true },
     { key: "no_of_floors", label: "no_of_floors", type: "number", integer: true },
     { key: "building_area_sqft", label: "building_area_sqft", type: "number" },
@@ -136,12 +161,12 @@ export const buildingsImportDefinition: ImportObjectDefinition = {
   ],
 
   async findById(id) {
-    const rows = await load("property_id = $1", [String(id)]);
+    const rows = await load("p.property_id = $1", [String(id)]);
     return rows[0] ?? null;
   },
 
   async findByExternalRef(externalRef) {
-    return load("external_ref = $1", [externalRef.trim()]);
+    return load("p.external_ref = $1", [externalRef.trim()]);
   },
 
   buildNaturalKey(values) {
@@ -153,7 +178,9 @@ export const buildingsImportDefinition: ImportObjectDefinition = {
   },
 
   async findByNaturalKey(key) {
-    const [name, district, city] = key.split("|");
+    const parts = splitNaturalKeyParts(key, 3);
+    if (!parts) return [];
+    const [name, district, city] = parts;
     const rows = await query<{ property_id: string }>(
       `SELECT property_id FROM properties_v1
        WHERE lower(trim(bldg_name_en)) = $1
@@ -162,18 +189,36 @@ export const buildingsImportDefinition: ImportObjectDefinition = {
       [name, district, city ?? ""],
     );
     if (rows.length === 0) return [];
-    return load(`property_id = ANY($1::text[])`, [rows.map((r) => r.property_id)]);
+    return load(`p.property_id = ANY($1::text[])`, [rows.map((r) => r.property_id)]);
   },
 
-  async validateReferences(values, suppliedFields, _existing, writable) {
-    if (!suppliedFields.has("management_company_id") && !("management_company_id" in writable)) {
-      return mergeReferenceResults();
+  async validateReferences(values, suppliedFields, existing, writable) {
+    const companyRefs = [
+      ["management_company_id", "management_company_name_en"],
+      ["operator_company_id", "operator_company_name_en"],
+      ["owner_company_id", "owner_company_name_en"],
+    ] as const;
+    const results = [];
+    for (const [idField, nameField] of companyRefs) {
+      if (
+        suppliedFields.has(idField) ||
+        idField in writable ||
+        suppliedFields.has(nameField)
+      ) {
+        results.push(
+          await resolveCompanyV1IdOrName(
+            idField,
+            nameField,
+            values,
+            suppliedFields,
+            existing,
+            writable,
+            false,
+          ),
+        );
+      }
     }
-    return resolveCompanyV1Reference(
-      "management_company_id",
-      values.management_company_id ?? writable.management_company_id,
-      false,
-    );
+    return mergeReferenceResults(...results);
   },
 
   async createRecord(values, ctx) {
@@ -198,7 +243,9 @@ export const buildingsImportDefinition: ImportObjectDefinition = {
   },
 
   async exportRows() {
-    const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM properties_v1 ORDER BY building_name_en ASC NULLS LAST`);
+    const rows = await query<Record<string, unknown>>(
+      `SELECT ${SELECT} FROM ${FROM} ORDER BY building_name_en ASC NULLS LAST`,
+    );
     return rows.map((r) => {
       const rec = rowToRecord(r, String(r.building_id), FIELD_KEYS);
       return rec.values;

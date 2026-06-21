@@ -26,8 +26,11 @@ export function ConnectionsCompaniesPageClient({
   const returnTo = useMemo(() => buildCompaniesReturnTo(searchParams), [searchParams]);
 
   const drawerData = useMemo(() => {
-    if (!openId || !selectedCompany || String(selectedCompany.company.id) !== openId) return null;
-    return selectedCompany;
+    if (!openId || !selectedCompany) return null;
+    const legacyId = String(selectedCompany.company.id);
+    if (legacyId === openId) return selectedCompany;
+    if (selectedCompany.v1CompanyId === openId) return selectedCompany;
+    return null;
   }, [openId, selectedCompany]);
 
   const closeDrawer = useCallback(() => {

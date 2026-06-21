@@ -42,24 +42,19 @@ export default async function AllPremisesPage({ searchParams }: Props) {
     listing_status: sp.listing_status?.trim() || undefined,
   };
 
-  const [rows, options, companies, contacts, propertyOptions, totalCount] = await Promise.all([
+  const premisesId = sp.premises?.trim();
+
+  const [rows, options, companies, contacts, propertyOptions, totalCount, drawerData] = await Promise.all([
     listPremisesFullFiltered(filters),
     listPremisesFilterOptions(),
     listCompanyV1Options(),
     listContactV1Options(),
     listPropertyV1SelectOptions(),
     countPremisesV1(),
+    premisesId
+      ? getPremisesDrawerData(premisesId).catch(() => null)
+      : Promise.resolve(null as Awaited<ReturnType<typeof getPremisesDrawerData>> | null),
   ]);
-
-  const premisesId = sp.premises?.trim();
-  let drawerData: Awaited<ReturnType<typeof getPremisesDrawerData>> | null = null;
-  if (premisesId) {
-    try {
-      drawerData = await getPremisesDrawerData(premisesId);
-    } catch {
-      drawerData = null;
-    }
-  }
 
   return (
     <AdminShell title="Properties" module="properties" wide hideHeader>

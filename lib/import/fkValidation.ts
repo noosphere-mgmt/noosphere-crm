@@ -53,6 +53,11 @@ export function parseOptionalInt(raw: unknown): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+/** Safe bigint query param — never returns NaN (returns null if not a positive integer). */
+export function parseBigIntParam(raw: unknown): number | null {
+  return parseOptionalInt(raw);
+}
+
 export function parseOptionalText(raw: unknown): string | null {
   if (raw == null) return null;
   const s = String(raw).trim();

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { query, withTransaction } from "@/lib/db";
 
 export type CompanyV1Option = {
@@ -48,7 +49,7 @@ async function syncLegacyCompaniesToV1(): Promise<void> {
   });
 }
 
-export async function listCompanyV1Options(): Promise<CompanyV1Option[]> {
+export const listCompanyV1Options = cache(async function listCompanyV1Options(): Promise<CompanyV1Option[]> {
   let rows = await query<CompanyV1Option>(
     `SELECT company_id, company_name_en
      FROM companies_v1
@@ -63,7 +64,7 @@ export async function listCompanyV1Options(): Promise<CompanyV1Option[]> {
     );
   }
   return rows;
-}
+});
 
 export async function getCompanyV1NamesByIds(ids: string[]): Promise<CompanyV1Option[]> {
   const unique = [...new Set(ids.map((id) => id.trim()).filter(Boolean))];

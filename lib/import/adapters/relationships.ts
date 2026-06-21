@@ -5,14 +5,10 @@ import {
   isCreationRelationshipType,
   isEntityType,
 } from "@/lib/entityRelationships";
-import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
-import { buildNaturalKeyParts } from "../matchRecord";
-import {
-  mergeReferenceResults,
-  resolveContactReference,
-  resolveLegacyCompanyReference,
-  resolveOpportunityReference,
-} from "../referenceResolution";
+import { genericUpdateRecord, rowToRecord } from "../adapterUtils";
+import { sqlRelationshipEntityName } from "../lookupSql";
+import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
+import { mergeReferenceResults, resolveRelationshipEntityIdOrName } from "../referenceResolution";
 import type { ImportObjectDefinition } from "../objectRegistry";
 import type { ExistingRecord } from "../types";
 
@@ -20,9 +16,11 @@ const FIELD_KEYS = [
   "relationship_id",
   "from_entity_type",
   "from_entity_id",
+  "from_entity_name",
   "relationship_type",
   "to_entity_type",
   "to_entity_id",
+  "to_entity_name",
   "status",
   "start_date",
   "end_date",
@@ -30,20 +28,25 @@ const FIELD_KEYS = [
 ] as const;
 
 const SELECT = `
-  relationship_id,
-  from_entity_type,
-  from_entity_id,
-  relationship_type,
-  to_entity_type,
-  to_entity_id,
-  status,
-  start_date::text AS start_date,
-  end_date::text AS end_date,
-  remarks
+  r.relationship_id,
+  r.from_entity_type,
+  r.from_entity_id,
+  ${sqlRelationshipEntityName("r.from_entity_type", "r.from_entity_id")} AS from_entity_name,
+  r.relationship_type,
+  r.to_entity_type,
+  r.to_entity_id,
+  ${sqlRelationshipEntityName("r.to_entity_type", "r.to_entity_id")} AS to_entity_name,
+  r.status,
+  r.start_date::text AS start_date,
+  r.end_date::text AS end_date,
+  r.remarks
 `;
 
 async function load(where: string, params: unknown[]): Promise<ExistingRecord[]> {
-  const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM relationships WHERE ${where}`, params);
+  const rows = await query<Record<string, unknown>>(
+    `SELECT ${SELECT} FROM relationships r WHERE ${where}`,
+    params,
+  );
   return rows.map((row) => rowToRecord(row, String(row.relationship_id), FIELD_KEYS));
 }
 
@@ -56,10 +59,12 @@ export const relationshipsImportDefinition: ImportObjectDefinition = {
   fields: [
     { key: "relationship_id", label: "relationship_id", type: "string", matchOnly: true },
     { key: "from_entity_type", label: "from_entity_type", type: "enum", enumValues: ["company", "contact"], requiredOnCreate: true },
-    { key: "from_entity_id", label: "from_entity_id", type: "string", requiredOnCreate: true },
+    { key: "from_entity_id", label: "from_entity_id", type: "string" },
+    { key: "from_entity_name", label: "from_entity_name", type: "string", lookupOnly: true },
     { key: "relationship_type", label: "relationship_type", type: "enum", enumValues: [...CREATION_RELATIONSHIP_TYPES], requiredOnCreate: true },
     { key: "to_entity_type", label: "to_entity_type", type: "enum", enumValues: ["company", "contact"], requiredOnCreate: true },
-    { key: "to_entity_id", label: "to_entity_id", type: "string", requiredOnCreate: true },
+    { key: "to_entity_id", label: "to_entity_id", type: "string" },
+    { key: "to_entity_name", label: "to_entity_name", type: "string", lookupOnly: true },
     { key: "status", label: "status", type: "enum", enumValues: ["Active", "Inactive"], defaultValue: "Active" },
     { key: "start_date", label: "start_date", type: "date" },
     { key: "end_date", label: "end_date", type: "date" },
@@ -67,7 +72,7 @@ export const relationshipsImportDefinition: ImportObjectDefinition = {
   ],
 
   async findById(id) {
-    const rows = await load("relationship_id = $1", [String(id)]);
+    const rows = await load("r.relationship_id = $1", [String(id)]);
     return rows[0] ?? null;
   },
 
@@ -88,35 +93,57 @@ export const relationshipsImportDefinition: ImportObjectDefinition = {
   },
 
   async findByNaturalKey(key) {
-    const [fromType, fromId, relType, toType, toId] = key.split("|");
+    const parts = splitNaturalKeyParts(key, 5);
+    if (!parts) return [];
+    const [fromType, fromId, relType, toType, toId] = parts;
     return load(
-      `from_entity_type = $1 AND from_entity_id = $2 AND relationship_type = $3
-       AND to_entity_type = $4 AND to_entity_id = $5`,
+      `r.from_entity_type = $1 AND r.from_entity_id = $2 AND r.relationship_type = $3
+       AND r.to_entity_type = $4 AND r.to_entity_id = $5`,
       [fromType, fromId, relType, toType, toId],
     );
   },
 
   async validateReferences(values, suppliedFields, existing, writable) {
     const errors: string[] = [];
-    const fromType = String(values.from_entity_type ?? existing?.values.from_entity_type ?? "");
-    const fromId = String(values.from_entity_id ?? existing?.values.from_entity_id ?? writable.from_entity_id ?? "");
-    const toType = String(values.to_entity_type ?? existing?.values.to_entity_type ?? "");
-    const toId = String(values.to_entity_id ?? existing?.values.to_entity_id ?? writable.to_entity_id ?? "");
-
     const results = [];
-    if (fromType && fromId) {
-      if (fromType === "company") {
-        results.push(await resolveLegacyCompanyReference("from_entity_id", fromId, true));
-      } else if (fromType === "contact") {
-        results.push(await resolveContactReference("from_entity_id", fromId, true));
-      }
+
+    if (
+      suppliedFields.has("from_entity_id") ||
+      "from_entity_id" in writable ||
+      suppliedFields.has("from_entity_name") ||
+      !existing
+    ) {
+      results.push(
+        await resolveRelationshipEntityIdOrName(
+          "from_entity_id",
+          "from_entity_name",
+          "from_entity_type",
+          values,
+          suppliedFields,
+          existing,
+          writable,
+          !existing,
+        ),
+      );
     }
-    if (toType && toId) {
-      if (toType === "company") {
-        results.push(await resolveLegacyCompanyReference("to_entity_id", toId, true));
-      } else if (toType === "contact") {
-        results.push(await resolveContactReference("to_entity_id", toId, true));
-      }
+    if (
+      suppliedFields.has("to_entity_id") ||
+      "to_entity_id" in writable ||
+      suppliedFields.has("to_entity_name") ||
+      !existing
+    ) {
+      results.push(
+        await resolveRelationshipEntityIdOrName(
+          "to_entity_id",
+          "to_entity_name",
+          "to_entity_type",
+          values,
+          suppliedFields,
+          existing,
+          writable,
+          !existing,
+        ),
+      );
     }
 
     const relType = String(values.relationship_type ?? existing?.values.relationship_type ?? "");
@@ -129,7 +156,7 @@ export const relationshipsImportDefinition: ImportObjectDefinition = {
     return merged;
   },
 
-  async createRecord(values, ctx) {
+  async createRecord(values) {
     const relType = String(values.relationship_type ?? "");
     if (!isCreationRelationshipType(relType)) throw new Error("relationship_type must be Refers or Represents");
     const fromType = String(values.from_entity_type ?? "");
@@ -149,14 +176,17 @@ export const relationshipsImportDefinition: ImportObjectDefinition = {
   },
 
   async updateRecord(id, patch, ctx) {
-    await genericUpdateRecord("relationships", "relationship_id", id, patch, ctx);
+    const p = { ...patch };
+    delete p.from_entity_name;
+    delete p.to_entity_name;
+    await genericUpdateRecord("relationships", "relationship_id", id, p, ctx);
   },
 
   async exportRows() {
     const rows = await query<Record<string, unknown>>(
-      `SELECT ${SELECT} FROM relationships
-       WHERE relationship_type IN ('Refers', 'Represents')
-       ORDER BY updated_at DESC`,
+      `SELECT ${SELECT} FROM relationships r
+       WHERE r.relationship_type IN ('Refers', 'Represents')
+       ORDER BY r.updated_at DESC`,
     );
     return rows.map((r) => rowToRecord(r, String(r.relationship_id), FIELD_KEYS).values);
   },

@@ -1,6 +1,8 @@
 "use client";
 
+import { Suspense } from "react";
 import { AdminViewportSwitch } from "@/components/admin/layout/AdminViewportSwitch";
+import { AdminListLoadingFallback } from "@/components/admin/layout/AdminListLoadingFallback";
 import { PremisesDesktop } from "@/components/admin/properties-v1/PremisesDesktop";
 import { PremisesMobile } from "@/components/admin/properties-v1/PremisesMobile";
 import { PremisesListSelectionProvider } from "@/components/admin/properties-v1/PremisesListSelectionContext";
@@ -47,10 +49,12 @@ export function AllPremisesWorkspace({
   return (
     <PremisesListSelectionProvider>
       <ModuleListingExportProvider>
-        <AdminViewportSwitch
-          mobile={<PremisesMobile {...viewProps} />}
-          desktop={<PremisesDesktop {...viewProps} />}
-        />
+        <Suspense fallback={<AdminListLoadingFallback />}>
+          <AdminViewportSwitch
+            mobile={<PremisesMobile {...viewProps} />}
+            desktop={<PremisesDesktop {...viewProps} />}
+          />
+        </Suspense>
       </ModuleListingExportProvider>
     </PremisesListSelectionProvider>
   );

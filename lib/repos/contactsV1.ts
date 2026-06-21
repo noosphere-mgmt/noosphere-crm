@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { query } from "@/lib/db";
 
 export type ContactV1Option = {
@@ -6,7 +7,7 @@ export type ContactV1Option = {
   company_id: string | null;
 };
 
-export async function listContactV1Options(): Promise<ContactV1Option[]> {
+export const listContactV1Options = cache(async function listContactV1Options(): Promise<ContactV1Option[]> {
   const v1 = await query<ContactV1Option>(
     `SELECT contact_id, COALESCE(display_name, contact_id) AS display_name, company_id
      FROM contacts_v1
@@ -23,4 +24,4 @@ export async function listContactV1Options(): Promise<ContactV1Option[]> {
      WHERE c.is_active = TRUE
      ORDER BY c.contact_name ASC`,
   );
-}
+});
