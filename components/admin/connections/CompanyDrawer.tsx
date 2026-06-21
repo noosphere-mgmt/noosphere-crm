@@ -21,9 +21,9 @@ import type { Asset } from "@/lib/types/entities";
 const overlayViewClass = "fixed inset-0 z-40 bg-slate-900/10 transition-opacity";
 const overlayEditClass = "fixed inset-0 z-40 bg-slate-900/25 backdrop-blur-[1px] transition-opacity";
 const panelViewClass =
-  "fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-slate-200 bg-slate-50 shadow-xl lg:w-[42vw] lg:max-w-[45vw]";
+  "fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-slate-200 max-md:bg-white md:bg-slate-50 shadow-xl lg:w-[42vw] lg:max-w-[45vw]";
 const panelEditClass =
-  "fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-slate-200 bg-slate-50 shadow-2xl lg:w-[75vw] lg:max-w-6xl";
+  "fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-slate-200 max-md:bg-white md:bg-slate-50 shadow-2xl lg:w-[75vw] lg:max-w-6xl";
 
 function spaceLinkRoles(space: Asset, companyId: number): string[] {
   const roles: string[] = [];

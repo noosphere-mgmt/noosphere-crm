@@ -22,7 +22,7 @@ import Link from "next/link";
 
 const overlayClass = "fixed inset-0 z-40 bg-slate-900/10 transition-opacity";
 const panelClass =
-  "fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-slate-200 bg-slate-50 shadow-xl lg:w-[42vw] lg:max-w-[45vw]";
+  "fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-slate-200 max-md:bg-white md:bg-slate-50 shadow-xl lg:w-[42vw] lg:max-w-[45vw]";
 
 function spaceLinkRoles(space: Asset, companyId: number): string[] {
   const roles: string[] = [];

@@ -86,7 +86,7 @@ export function moduleAccentClasses(module: AdminModuleKey | undefined): ModuleT
           "rounded-full bg-[#F5F3FF] px-3 py-1 text-xs font-semibold text-[#5B21B6] ring-1 ring-[#DDD6FE]",
         filterPillInactive: pillInactive,
         rowIconEdit: "text-[#7C3AED] hover:bg-[#F5F3FF]",
-        shellBg: "bg-gradient-to-b from-[#F5F3FF]/40 via-slate-50 to-slate-50",
+        shellBg: "max-md:bg-white md:bg-gradient-to-b md:from-[#F5F3FF]/40 md:via-slate-50 md:to-slate-50",
       };
     case "opportunities":
       return {
