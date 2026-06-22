@@ -1,4 +1,5 @@
 import { query } from "@/lib/db";
+import { sqlJoinV1Company } from "@/lib/import/lookupSql";
 import type {
   FeeStatus,
   OpportunityProposedPremises,
@@ -61,8 +62,8 @@ const from = `
   FROM opportunity_proposed_premises opp
   JOIN premises_v1 p ON p.premises_id = opp.premises_id
   JOIN properties_v1 pr ON pr.property_id = p.property_id
-  LEFT JOIN companies_v1 op_co ON op_co.company_id = p.operator_company_id
-  LEFT JOIN companies_v1 own_co ON own_co.company_id = COALESCE(p.operator_company_id, p.owner_company_id, p.landlord_company_id)
+  LEFT JOIN companies_v1 op_co ON ${sqlJoinV1Company("op_co", "p.operator_company_id")}
+  LEFT JOIN companies_v1 own_co ON ${sqlJoinV1Company("own_co", "COALESCE(p.operator_company_id, p.owner_company_id, p.landlord_company_id)")}
   LEFT JOIN companies rel_co ON rel_co.id = opp.related_company_id
   LEFT JOIN contacts rel_ct ON rel_ct.id = opp.related_contact_id
   LEFT JOIN companies cfc ON cfc.id = opp.collect_fee_from_company_id

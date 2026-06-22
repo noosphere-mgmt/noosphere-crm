@@ -1,4 +1,5 @@
 import { query } from "@/lib/db";
+import { sqlJoinV1Company } from "@/lib/import/lookupSql";
 import { OPEN_OPPORTUNITY_STATUS_SQL } from "@/lib/openOpportunityStatus";
 
 export type DashboardPipelineKpis = {
@@ -407,7 +408,7 @@ async function fetchTopProposedPremises(): Promise<DashboardProposedPremisesRow[
      FROM opportunity_proposed_premises pp
      JOIN premises_v1 p ON p.premises_id = pp.premises_id
      JOIN properties_v1 pr ON pr.property_id = p.property_id
-     LEFT JOIN companies_v1 op_co ON op_co.company_id = p.operator_company_id
+     LEFT JOIN companies_v1 op_co ON ${sqlJoinV1Company("op_co", "p.operator_company_id")}
      GROUP BY pp.premises_id, premises_label, operator_name
      ORDER BY proposal_count DESC, viewing_count DESC
      LIMIT ${DASHBOARD_TABLE_LIMIT}`,
@@ -432,7 +433,7 @@ async function fetchOperatorPerformance(): Promise<DashboardOperatorRow[]> {
        COUNT(*) FILTER (WHERE pp.status = 'won')::text AS won_count
      FROM opportunity_proposed_premises pp
      JOIN premises_v1 p ON p.premises_id = pp.premises_id
-     LEFT JOIN companies_v1 op_co ON op_co.company_id = p.operator_company_id
+     LEFT JOIN companies_v1 op_co ON ${sqlJoinV1Company("op_co", "p.operator_company_id")}
      GROUP BY p.operator_company_id, operator_name
      HAVING COUNT(*) >= 1
      ORDER BY proposed_count DESC

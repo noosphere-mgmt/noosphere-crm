@@ -1,4 +1,5 @@
 import { query } from "@/lib/db";
+import { sqlJoinV1Company } from "@/lib/import/lookupSql";
 
 export type PremisesV1 = {
   premises_id: string;
@@ -347,7 +348,7 @@ export type PremisesListItem = PremisesV1 & {
 const flatJoin = `
   FROM premises_v1 p
   JOIN properties_v1 pr ON pr.property_id = p.property_id
-  LEFT JOIN companies_v1 c ON c.company_id = p.operator_company_id`;
+  LEFT JOIN companies_v1 c ON ${sqlJoinV1Company("c", "p.operator_company_id")}`;
 
 function premisesFlatWhere(filters: PremisesFlatFilters): { where: string; params: unknown[] } {
   const clauses: string[] = [];

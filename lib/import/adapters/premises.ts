@@ -1,5 +1,6 @@
 import { query } from "@/lib/db";
 import { createPremisesV1 } from "@/lib/repos/premisesV1";
+import { sqlJoinV1Company } from "../lookupSql";
 import { genericUpdateRecord, rowToRecord } from "../adapterUtils";
 import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
 import {
@@ -88,8 +89,8 @@ const SELECT = `
 const FROM = `
   premises_v1 pm
   LEFT JOIN properties_v1 b ON b.property_id = pm.property_id
-  LEFT JOIN companies_v1 opco ON opco.company_id = pm.operator_company_id
-  LEFT JOIN companies_v1 own ON own.company_id = pm.owner_company_id
+  LEFT JOIN companies_v1 opco ON ${sqlJoinV1Company("opco", "pm.operator_company_id")}
+  LEFT JOIN companies_v1 own ON ${sqlJoinV1Company("own", "pm.owner_company_id")}
 `;
 
 const PREMISES_DB_COLUMNS = new Set([

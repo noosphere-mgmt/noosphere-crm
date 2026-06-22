@@ -1,15 +1,23 @@
 import { query } from "@/lib/db";
 import { loadCompanyLookupMaps } from "@/lib/companyV1Resolve";
 import { resolveToV1CompanyId } from "@/lib/companyIdResolve";
+import {
+  resolveCompanyRef,
+  resolveCompanyRefToLegacy,
+  resolveCompanyRefToV1,
+  resolveContactRef,
+  resolveContactRefToLegacy,
+  resolveOpportunityRef,
+  resolveOpportunityRefToLegacy,
+  resolvePremisesRef,
+  resolvePremisesRefToId,
+} from "@/lib/crmRefResolve";
 import { sqlContactDisplayName } from "@/lib/contactName";
 import { sqlActivityLabel, sqlPremisesLabel } from "./lookupSql";
 import type { ExistingRecord } from "./types";
 import {
   activityExists,
   buildingExists,
-  companyExists,
-  contactExists,
-  opportunityExists,
   parseOptionalInt,
   parseOptionalText,
   premisesExists,
@@ -41,46 +49,11 @@ export function optionalRelationshipWarning(field: string): string {
 }
 
 async function lookupCompanyV1Id(raw: string): Promise<string | null> {
-  const direct = await query<{ company_id: string }>(
-    `SELECT company_id FROM companies_v1 WHERE company_id = $1 LIMIT 1`,
-    [raw],
-  );
-  if (direct[0]?.company_id) return direct[0].company_id;
-
-  const maps = await loadCompanyLookupMaps();
-  const fromMaps = resolveToV1CompanyId(raw, maps);
-  if (fromMaps) {
-    const exists = await query<{ ok: number }>(
-      `SELECT 1 AS ok FROM companies_v1 WHERE company_id = $1 LIMIT 1`,
-      [fromMaps],
-    );
-    if (exists.length > 0) return fromMaps;
-  }
-
-  const byExternalRef = await query<{ company_id: string }>(
-    `SELECT cv1.company_id
-     FROM companies c
-     JOIN companies_v1 cv1 ON cv1.legacy_company_id = c.id
-     WHERE c.external_ref = $1
-     LIMIT 1`,
-    [raw],
-  );
-  return byExternalRef[0]?.company_id ?? null;
+  return resolveCompanyRefToV1(raw);
 }
 
 async function lookupLegacyCompanyId(raw: string): Promise<number | null> {
-  if (/^\d+$/.test(raw)) {
-    const id = Number.parseInt(raw, 10);
-    if (await companyExists(id)) return id;
-  }
-
-  const byExternalRef = await query<{ id: string }>(
-    `SELECT id::text FROM companies WHERE external_ref = $1 LIMIT 1`,
-    [raw],
-  );
-  if (byExternalRef[0]?.id) return Number.parseInt(byExternalRef[0].id, 10);
-
-  return null;
+  return resolveCompanyRefToLegacy(raw);
 }
 
 async function lookupLegacyCompanyIdByName(name: string): Promise<number | null> {
@@ -127,18 +100,7 @@ async function lookupBuildingIdByName(name: string): Promise<string | null> {
 }
 
 async function lookupContactId(raw: string): Promise<number | null> {
-  if (/^\d+$/.test(raw)) {
-    const id = Number.parseInt(raw, 10);
-    if (await contactExists(id)) return id;
-  }
-
-  const byExternalRef = await query<{ id: string }>(
-    `SELECT id::text FROM contacts WHERE external_ref = $1 LIMIT 1`,
-    [raw],
-  );
-  if (byExternalRef[0]?.id) return Number.parseInt(byExternalRef[0].id, 10);
-
-  return null;
+  return resolveContactRefToLegacy(raw);
 }
 
 async function lookupContactIdByDisplayName(
@@ -148,7 +110,7 @@ async function lookupContactIdByDisplayName(
   const params: unknown[] = [name.trim().toLowerCase()];
   let companyClause = "";
   if (companyId != null) {
-    companyClause = " AND company_id = $2";
+    companyClause = " AND company_id::text = $2::text";
     params.push(companyId);
   }
   const rows = await query<{ id: string }>(
@@ -162,25 +124,14 @@ async function lookupContactIdByDisplayName(
 }
 
 async function lookupOpportunityId(raw: string): Promise<number | null> {
-  if (/^\d+$/.test(raw)) {
-    const id = Number.parseInt(raw, 10);
-    if (await opportunityExists(id)) return id;
-  }
-
-  const byExternalRef = await query<{ id: string }>(
-    `SELECT id::text FROM opportunities WHERE external_ref = $1 LIMIT 1`,
-    [raw],
-  );
-  if (byExternalRef[0]?.id) return Number.parseInt(byExternalRef[0].id, 10);
-
-  return null;
+  return resolveOpportunityRefToLegacy(raw);
 }
 
 async function lookupOpportunityIdByName(name: string, companyId?: number | null): Promise<number | null> {
   const params: unknown[] = [name.trim().toLowerCase()];
   let companyClause = "";
   if (companyId != null) {
-    companyClause = " AND company_id = $2";
+    companyClause = " AND company_id::text = $2::text";
     params.push(companyId);
   }
   const rows = await query<{ id: string }>(
@@ -194,13 +145,7 @@ async function lookupOpportunityIdByName(name: string, companyId?: number | null
 }
 
 async function lookupPremisesId(raw: string): Promise<string | null> {
-  if (await premisesExists(raw)) return raw;
-
-  const byExternalRef = await query<{ premises_id: string }>(
-    `SELECT premises_id FROM premises_v1 WHERE external_ref = $1 LIMIT 1`,
-    [raw],
-  );
-  return byExternalRef[0]?.premises_id ?? null;
+  return resolvePremisesRefToId(raw);
 }
 
 async function lookupPremisesIdByName(name: string): Promise<string | null> {
@@ -262,24 +207,54 @@ async function resolveReference(
 
   let resolved: string | number | null = null;
   switch (kind) {
-    case "company_v1":
-      resolved = await lookupCompanyV1Id(trimmed);
+    case "company_v1": {
+      const r = await resolveCompanyRef(trimmed);
+      if (r.v1Id) {
+        result.writablePatches[field] = r.v1Id;
+        if (r.warning) result.warnings.push(r.warning);
+        return result;
+      }
       break;
-    case "legacy_company":
-      resolved = await lookupLegacyCompanyId(trimmed);
+    }
+    case "legacy_company": {
+      const r = await resolveCompanyRef(trimmed);
+      if (r.legacyId != null) {
+        result.writablePatches[field] = r.legacyId;
+        if (r.warning) result.warnings.push(r.warning);
+        return result;
+      }
       break;
+    }
     case "building":
       resolved = await lookupBuildingId(trimmed);
       break;
-    case "contact":
-      resolved = await lookupContactId(trimmed);
+    case "contact": {
+      const r = await resolveContactRef(trimmed);
+      if (r.legacyId != null) {
+        result.writablePatches[field] = r.legacyId;
+        if (r.warning) result.warnings.push(r.warning);
+        return result;
+      }
       break;
-    case "opportunity":
-      resolved = await lookupOpportunityId(trimmed);
+    }
+    case "opportunity": {
+      const r = await resolveOpportunityRef(trimmed);
+      if (r.legacyId != null) {
+        result.writablePatches[field] = r.legacyId;
+        if (r.warning) result.warnings.push(r.warning);
+        return result;
+      }
       break;
-    case "premises":
-      resolved = await lookupPremisesId(trimmed);
+    }
+    case "premises": {
+      const r = await resolvePremisesRef(trimmed);
+      if (r.premisesId) {
+        result.writablePatches[field] = r.premisesId;
+        if (r.warning) result.warnings.push(r.warning);
+        return result;
+      }
       break;
+    }
     case "activity":
       resolved = await lookupActivityId(trimmed);
       break;
@@ -563,6 +538,12 @@ export async function resolveBuildingIdOrName(
   return emptyReferenceResult();
 }
 
+async function resolveLegacyCompanyScope(raw: unknown): Promise<number | null> {
+  if (raw == null || raw === "") return null;
+  if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+  return resolveCompanyRefToLegacy(String(raw));
+}
+
 /** Prefer contact ID; fall back to display name lookup when ID blank. */
 export async function resolveContactIdOrName(
   idField: string,
@@ -584,7 +565,9 @@ export async function resolveContactIdOrName(
   const nameTrimmed = parseOptionalText(nameRaw);
   const companyScope =
     scopeCompanyId ??
-    parseOptionalInt(pickRaw("company_id", values, suppliedFields, existing, writable));
+    (await resolveLegacyCompanyScope(
+      pickRaw("company_id", values, suppliedFields, existing, writable),
+    ));
 
   if (idTrimmed) {
     const byId = await resolveContactReference(idField, idTrimmed, mandatory);
@@ -640,7 +623,9 @@ export async function resolveOpportunityIdOrName(
   const nameTrimmed = parseOptionalText(nameRaw);
   const companyScope =
     scopeCompanyId ??
-    parseOptionalInt(pickRaw("company_id", values, suppliedFields, existing, writable));
+    (await resolveLegacyCompanyScope(
+      pickRaw("company_id", values, suppliedFields, existing, writable),
+    ));
 
   if (idTrimmed) {
     const byId = await resolveOpportunityReference(idField, idTrimmed, mandatory);

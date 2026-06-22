@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { parseRelationshipLines, syncRelationshipColumns, normalizeRelationshipLines } from "@/lib/premisesRelationships";
 import { loadCompanyLookupMaps } from "@/lib/companyV1Resolve";
 import { resolveToV1CompanyId } from "@/lib/companyIdResolve";
+import { normalizeOptionalV1CompanyId } from "@/lib/crmRefResolve";
 import { isPackageOperatingModel } from "@/lib/premisesCommercial";
 import { applyPremisesFieldPatch } from "@/lib/premisesFieldPatch";
 import { composePropertyFullAddresses } from "@/lib/composeAddress";
@@ -31,13 +32,14 @@ function nDec(v: FormDataEntryValue | null): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-async function parsePropertyV1Form(formData: FormData): Promise<PropertyV1Patch> {
+async function normalizeV1CompanyField(raw: FormDataEntryValue | null): Promise<string | null> {
+  const v = s(raw);
+  if (!v) return null;
   const maps = await loadCompanyLookupMaps();
-  const normalize = (raw: FormDataEntryValue | null) => {
-    const v = s(raw);
-    return v ? resolveToV1CompanyId(v, maps) : null;
-  };
+  return (resolveToV1CompanyId(v, maps) ?? (await normalizeOptionalV1CompanyId(v))) || null;
+}
 
+async function parsePropertyV1Form(formData: FormData): Promise<PropertyV1Patch> {
   const patch: PropertyV1Patch = {
     bldg_name_en: s(formData.get("bldg_name_en")),
     bldg_name_zh: s(formData.get("bldg_name_zh")),
@@ -67,10 +69,10 @@ async function parsePropertyV1Form(formData: FormData): Promise<PropertyV1Patch>
     site_area_sqm: nDec(formData.get("site_area_sqm")),
     lot_number: s(formData.get("lot_number")),
     grade: s(formData.get("grade")),
-    management_company_id: normalize(formData.get("management_company_id")),
-    operator_company_id: normalize(formData.get("operator_company_id")),
-    owner_company_id: normalize(formData.get("owner_company_id")),
-    current_tenant_company_id: normalize(formData.get("current_tenant_company_id")),
+    management_company_id: await normalizeV1CompanyField(formData.get("management_company_id")),
+    operator_company_id: await normalizeV1CompanyField(formData.get("operator_company_id")),
+    owner_company_id: await normalizeV1CompanyField(formData.get("owner_company_id")),
+    current_tenant_company_id: await normalizeV1CompanyField(formData.get("current_tenant_company_id")),
     title: s(formData.get("title")),
     mtr_station: s(formData.get("mtr_station")),
     walking_minutes: nInt(formData.get("walking_minutes")),
@@ -235,7 +237,9 @@ export async function patchPropertyFieldAction(
       const maps = await loadCompanyLookupMaps();
       const raw = patch[field as keyof PropertyV1Patch];
       const resolved =
-        typeof raw === "string" && raw ? resolveToV1CompanyId(raw, maps) : null;
+        typeof raw === "string" && raw
+          ? (resolveToV1CompanyId(raw, maps) ?? (await normalizeOptionalV1CompanyId(raw)))
+          : null;
       if (field === "management_company_id") patch.management_company_id = resolved;
       else if (field === "operator_company_id") patch.operator_company_id = resolved;
       else if (field === "owner_company_id") patch.owner_company_id = resolved;

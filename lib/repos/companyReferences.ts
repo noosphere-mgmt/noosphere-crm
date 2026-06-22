@@ -1,4 +1,5 @@
 import { query } from "@/lib/db";
+import { sqlMatchMixedCompanyFk } from "@/lib/import/lookupSql";
 
 export type CompanyReferenceItem = {
   module: string;
@@ -22,30 +23,30 @@ async function getV1CompanyIdForLegacy(legacyId: number): Promise<string | null>
   return rows[0]?.new_id ?? null;
 }
 
-async function countPremisesV1References(v1CompanyId: string): Promise<number> {
+async function countPremisesV1References(v1CompanyId: string, legacyId: number): Promise<number> {
   const rows = await query<{ n: number }>(
     `SELECT COUNT(DISTINCT p.premises_id)::int AS n
      FROM premises_v1 p
      LEFT JOIN LATERAL jsonb_array_elements(COALESCE(p.relationship_lines::jsonb, '[]'::jsonb)) AS line ON true
-     WHERE p.operator_company_id = $1
-        OR p.owner_company_id = $1
-        OR p.landlord_company_id = $1
-        OR p.current_tenant_company_id = $1
-        OR p.source_company_id = $1
-        OR line->>'company_id' = $1`,
-    [v1CompanyId],
+     WHERE ${sqlMatchMixedCompanyFk("p.operator_company_id", "$1", "$2")}
+        OR ${sqlMatchMixedCompanyFk("p.owner_company_id", "$1", "$2")}
+        OR ${sqlMatchMixedCompanyFk("p.landlord_company_id", "$1", "$2")}
+        OR ${sqlMatchMixedCompanyFk("p.current_tenant_company_id", "$1", "$2")}
+        OR ${sqlMatchMixedCompanyFk("p.source_company_id", "$1", "$2")}
+        OR line->>'company_id' IN ($1, $2)`,
+    [v1CompanyId, String(legacyId)],
   );
   return rows[0]?.n ?? 0;
 }
 
-async function countPropertiesV1References(v1CompanyId: string): Promise<number> {
+async function countPropertiesV1References(v1CompanyId: string, legacyId: number): Promise<number> {
   const rows = await query<{ n: number }>(
     `SELECT COUNT(*)::int AS n FROM properties_v1
-     WHERE management_company_id = $1
-        OR operator_company_id = $1
-        OR owner_company_id = $1
-        OR current_tenant_company_id = $1`,
-    [v1CompanyId],
+     WHERE ${sqlMatchMixedCompanyFk("management_company_id", "$1", "$2")}
+        OR ${sqlMatchMixedCompanyFk("operator_company_id", "$1", "$2")}
+        OR ${sqlMatchMixedCompanyFk("owner_company_id", "$1", "$2")}
+        OR ${sqlMatchMixedCompanyFk("current_tenant_company_id", "$1", "$2")}`,
+    [v1CompanyId, String(legacyId)],
   );
   return rows[0]?.n ?? 0;
 }
@@ -106,11 +107,21 @@ export async function getCompanyReferenceSummary(legacyId: number): Promise<Comp
   );
 
   if (v1CompanyId) {
-    const premisesCount = await countPremisesV1References(v1CompanyId);
+    const premisesCount = await countPremisesV1References(v1CompanyId, legacyId);
     if (premisesCount > 0) {
       items.push({ module: "premises_v1", count: premisesCount, label: "Premises" });
     }
-    const propertiesCount = await countPropertiesV1References(v1CompanyId);
+    const propertiesCount = await countPropertiesV1References(v1CompanyId, legacyId);
+    if (propertiesCount > 0) {
+      items.push({ module: "properties_v1", count: propertiesCount, label: "Buildings (v1)" });
+    }
+  } else {
+    const legacyStr = String(legacyId);
+    const premisesCount = await countPremisesV1References(legacyStr, legacyId);
+    if (premisesCount > 0) {
+      items.push({ module: "premises_v1", count: premisesCount, label: "Premises" });
+    }
+    const propertiesCount = await countPropertiesV1References(legacyStr, legacyId);
     if (propertiesCount > 0) {
       items.push({ module: "properties_v1", count: propertiesCount, label: "Buildings (v1)" });
     }

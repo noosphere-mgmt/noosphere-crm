@@ -29,6 +29,12 @@ export function sqlJoinV1Company(companyV1Alias: string, fkExpr: string): string
   return `${companyV1Alias}.company_id = ${fkExpr}::text`;
 }
 
+/** Join contacts_v1.contact_id (TEXT) to a FK column that may be TEXT or legacy BIGINT. */
+export function sqlJoinV1Contact(contactV1Alias: string, fkExpr: string): string {
+  return `${contactV1Alias}.contact_id = ${fkExpr}::text`;
+}
+
+/** Join legacy companies.id to a FK column (bigint or text). Cast numeric side to text. */
 export function sqlJoinLegacyCompany(companyAlias: string, fkExpr: string): string {
   return `${companyAlias}.id::text = ${fkExpr}::text`;
 }
@@ -43,6 +49,11 @@ export function sqlJoinLegacyOpportunity(opportunityAlias: string, fkExpr: strin
   return `${opportunityAlias}.id::text = ${fkExpr}::text`;
 }
 
+/** OR-match a mixed v1/legacy company FK against v1 COMP param and legacy numeric string param. */
+export function sqlMatchMixedCompanyFk(fkExpr: string, v1Param: string, legacyParam: string): string {
+  return `(${fkExpr}::text = ${v1Param} OR ${fkExpr}::text = ${legacyParam})`;
+}
+
 /** SQL subquery for relationship endpoint display name. */
 export function sqlRelationshipEntityName(typeExpr: string, idExpr: string): string {
   return `CASE ${typeExpr}
@@ -50,9 +61,10 @@ export function sqlRelationshipEntityName(typeExpr: string, idExpr: string): str
       (SELECT c.company_name FROM companies c WHERE ${sqlJoinLegacyCompany("c", idExpr)} LIMIT 1),
       (SELECT cv1.company_name_en FROM companies_v1 cv1 WHERE cv1.company_id = ${idExpr}::text LIMIT 1)
     )
-    WHEN 'contact' THEN (
-      SELECT COALESCE(ct.display_name::text, ct.contact_name::text)
-      FROM contacts ct WHERE ${sqlJoinLegacyContact("ct", idExpr)} LIMIT 1
+    WHEN 'contact' THEN COALESCE(
+      (SELECT COALESCE(ct.display_name::text, ct.contact_name::text)
+       FROM contacts ct WHERE ${sqlJoinLegacyContact("ct", idExpr)} LIMIT 1),
+      (SELECT cv1.display_name FROM contacts_v1 cv1 WHERE cv1.contact_id = ${idExpr}::text LIMIT 1)
     )
     ELSE NULL
   END`;

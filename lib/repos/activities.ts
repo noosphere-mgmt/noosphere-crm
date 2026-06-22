@@ -4,6 +4,7 @@ import {
   sqlJoinLegacyCompany,
   sqlJoinLegacyContact,
   sqlJoinLegacyOpportunity,
+  sqlJoinV1Company,
 } from "@/lib/import/lookupSql";
 
 const premisesLabelLateral = `
@@ -513,7 +514,7 @@ export async function searchActivityPremises(q: string, limit = 25): Promise<Act
   const premisesFrom = `
     FROM premises_v1 p
     JOIN properties_v1 pr ON pr.property_id = p.property_id
-    LEFT JOIN companies_v1 op ON op.company_id = NULLIF(trim(p.operator_company_id), '')
+    LEFT JOIN companies_v1 op ON ${sqlJoinV1Company("op", "NULLIF(trim(p.operator_company_id), '')")}
   `;
 
   if (!term) {
