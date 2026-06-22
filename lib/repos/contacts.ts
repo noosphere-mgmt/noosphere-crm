@@ -86,8 +86,8 @@ export async function listContacts(companyId?: number): Promise<Contact[]> {
     return query<Contact>(
       `SELECT ${contactSelect}, co.company_name, co.country AS company_country, co.city AS company_city
        FROM contacts c
-       JOIN companies co ON co.id = c.company_id
-       WHERE c.company_id = $1
+       LEFT JOIN companies co ON co.id::text = c.company_id::text
+       WHERE c.company_id::text = $1::text
        ORDER BY c.is_primary DESC, ${sqlContactDisplayName("c")} ASC`,
       [companyId],
     );
@@ -96,7 +96,7 @@ export async function listContacts(companyId?: number): Promise<Contact[]> {
     `SELECT ${contactSelect}, co.company_name, co.country AS company_country, co.city AS company_city,
             COALESCE(opp.open_opportunities, 0)::int AS open_opportunities
      FROM contacts c
-     JOIN companies co ON co.id = c.company_id
+     LEFT JOIN companies co ON co.id::text = c.company_id::text
      LEFT JOIN LATERAL (
        SELECT COUNT(DISTINCT o.id)::int AS open_opportunities
        FROM opportunities o
@@ -117,9 +117,14 @@ export type ContactOption = {
 
 export const listContactOptions = cache(async function listContactOptions(): Promise<ContactOption[]> {
   return query<ContactOption>(
-    `SELECT id, company_id::int AS company_id, ${sqlContactDisplayName()} AS contact_name, is_primary
-     FROM contacts WHERE is_active = TRUE
-     ORDER BY company_id, is_primary DESC, ${sqlContactDisplayName()} ASC`,
+    `SELECT c.id,
+            CASE WHEN c.company_id::text ~ '^\\d+$' THEN c.company_id::text::int ELSE co.id END AS company_id,
+            ${sqlContactDisplayName("c")} AS contact_name,
+            c.is_primary
+     FROM contacts c
+     LEFT JOIN companies co ON co.id::text = c.company_id::text
+     WHERE c.is_active = TRUE
+     ORDER BY company_id, c.is_primary DESC, ${sqlContactDisplayName("c")} ASC`,
   );
 });
 
@@ -127,7 +132,7 @@ export async function getContact(id: number): Promise<Contact | null> {
   const rows = await query<Contact>(
     `SELECT ${contactSelect}, co.company_name, co.country AS company_country, co.city AS company_city
      FROM contacts c
-     JOIN companies co ON co.id = c.company_id
+     LEFT JOIN companies co ON co.id::text = c.company_id::text
      WHERE c.id = $1`,
     [id],
   );

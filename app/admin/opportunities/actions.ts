@@ -13,8 +13,10 @@ import {
   createOpportunity,
   deleteOpportunity,
   bulkDeleteOpportunities,
+  getOpportunity,
   updateOpportunity,
 } from "@/lib/repos/opportunities";
+import { applyOpportunityPatch } from "@/lib/inlineRecordMerge";
 import { OPPORTUNITY_LEAD_TYPES } from "@/lib/lookups";
 import type { OpportunityLeadType } from "@/lib/types/entities";
 
@@ -124,6 +126,42 @@ export async function updateOpportunityAction(id: number, formData: FormData) {
   const returnTo = parseOptionalString(formData.get("return_to"));
   if (returnTo) redirect(returnTo);
   redirect(`/admin/opportunities/${id}`);
+}
+
+type PatchResult = { ok: true } | { ok: false; error: string };
+
+export async function patchOpportunityFieldAction(
+  id: number,
+  field: string,
+  valueJson: string,
+): Promise<PatchResult> {
+  try {
+    const opportunity = await getOpportunity(id);
+    if (!opportunity) return { ok: false, error: "Opportunity not found" };
+
+    let value: unknown;
+    try {
+      value = JSON.parse(valueJson);
+    } catch {
+      return { ok: false, error: "Invalid value" };
+    }
+
+    const merged = applyOpportunityPatch(opportunity, field, value);
+    if ("error" in merged) return { ok: false, error: merged.error };
+
+    if (field === "company_id" && merged.company_id) {
+      const company = await getCompany(merged.company_id);
+      if (company) merged.company_name = company.company_name;
+    }
+
+    await updateOpportunity(id, merged);
+    revalidatePath("/admin/opportunities");
+    revalidatePath(`/admin/opportunities/${id}`);
+    if (merged.company_id) revalidatePath(`/admin/companies/${merged.company_id}`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Save failed" };
+  }
 }
 
 export async function deleteOpportunityFromDetailAction(id: number) {

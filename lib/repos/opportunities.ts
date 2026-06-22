@@ -28,10 +28,10 @@ const opportunitySelect = `
 
 const opportunityFrom = `
   FROM opportunities o
-  LEFT JOIN companies lc ON lc.id = o.company_id
-  LEFT JOIN contacts pc ON pc.id = o.primary_contact_id
-  LEFT JOIN companies rc ON rc.id = o.referrer_company_id
-  LEFT JOIN contacts rfc ON rfc.id = o.referrer_contact_id
+  LEFT JOIN companies lc ON lc.id::text = o.company_id::text
+  LEFT JOIN contacts pc ON pc.id::text = o.primary_contact_id::text
+  LEFT JOIN companies rc ON rc.id::text = o.referrer_company_id::text
+  LEFT JOIN contacts rfc ON rfc.id::text = o.referrer_contact_id::text
 `;
 
 export type OpportunityInput = {

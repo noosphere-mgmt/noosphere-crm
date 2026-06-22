@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition, useEffect } from "react";
+import { useCallback, useMemo, useState, useTransition, useEffect } from "react";
 import { bulkDeleteActivitiesAction, bulkDuplicateActivitiesAction } from "@/app/admin/activities/actions";
 import {
   ActivityFormDrawer,
@@ -57,6 +57,18 @@ export function ActivitiesListClient({
     setEditing(row);
     setDrawerOpen(true);
   }, [initialActivityId, rows]);
+
+  const openActivity = useCallback(
+    (row: ActivityListRow) => {
+      setCreateDefaults(undefined);
+      setEditing(row);
+      setDrawerOpen(true);
+      const params = new URLSearchParams(window.location.search);
+      params.set("activity", row.activity_id);
+      router.replace(`/admin/activities?${params.toString()}`, { scroll: false });
+    },
+    [router],
+  );
 
   const companyOptions = useMemo(() => {
     const map = new Map<string, string>();
@@ -451,17 +463,13 @@ export function ActivitiesListClient({
                 <tr
                   key={row.activity_id}
                   className={`border-t border-slate-100 align-top hover:bg-slate-50 ${pending ? "opacity-60" : ""}`}
-                  onClick={() => {
-                    setEditing(row);
-                    setDrawerOpen(true);
-                  }}
+                  onClick={() => openActivity(row)}
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      setEditing(row);
-                      setDrawerOpen(true);
+                      openActivity(row);
                     }
                   }}
                 >

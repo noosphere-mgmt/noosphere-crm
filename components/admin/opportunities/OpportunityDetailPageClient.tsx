@@ -21,7 +21,7 @@ export function OpportunityDetailPageClient({ data }: { data: OpportunityDetailD
   const editMode = !isMobile && searchParams.get("mode") === "edit" && tab === "overview";
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <OpportunityDetailHeader
         opportunity={data.opportunity}
         lastActivityDate={data.lastActivityDate}
@@ -29,7 +29,7 @@ export function OpportunityDetailPageClient({ data }: { data: OpportunityDetailD
         editMode={editMode}
       />
       <OpportunityDetailTabs opportunityId={data.opportunity.id} variant="page" />
-      <div className="mt-2">
+      <div className="space-y-4">
       {tab === "overview" ? (
         <OpportunityOverviewTab data={data} initialEditMode={editMode} lastActivityDate={data.lastActivityDate} />
       ) : tab === "premises" ? (

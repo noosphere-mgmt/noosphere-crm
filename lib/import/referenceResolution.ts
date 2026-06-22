@@ -655,6 +655,23 @@ export async function resolveOpportunityIdOrName(
     return byId;
   }
 
+  if (nameTrimmed) {
+    const byName = await lookupOpportunityIdByName(nameTrimmed, companyScope);
+    if (byName != null) {
+      const result = emptyReferenceResult();
+      result.writablePatches[idField] = byName;
+      return result;
+    }
+    const result = emptyReferenceResult();
+    if (mandatory) {
+      result.errors.push(`${nameField} "${nameTrimmed}" not found`);
+    } else {
+      result.writablePatches[idField] = null;
+      result.warnings.push(optionalRelationshipWarning(nameField));
+    }
+    return result;
+  }
+
   return emptyReferenceResult();
 }
 

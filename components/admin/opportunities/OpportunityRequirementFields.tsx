@@ -16,14 +16,14 @@ import {
 import { V1_PROPERTY_TYPES } from "@/lib/v1ListValues";
 import type { Opportunity } from "@/lib/types/entities";
 
-const labelClass = "text-[10px] font-semibold uppercase tracking-wide text-slate-500";
+const labelClass = "text-xs font-medium text-slate-500";
 const selectClass = "mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm";
-const readOnlyValue = "mt-1.5 text-sm leading-relaxed text-slate-900";
-const fieldGrid = "grid w-full grid-cols-1 gap-x-5 gap-y-3.5 sm:grid-cols-2 lg:grid-cols-3";
+const readOnlyValue = "mt-1 text-sm font-normal leading-relaxed text-slate-900";
+const fieldGrid = "grid w-full grid-cols-2 gap-x-5 gap-y-4 md:grid-cols-3";
 
 function CompactField({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0 py-0.5">
+    <div className="min-w-0 py-1">
       <dt className={labelClass}>{label}</dt>
       <dd className={readOnlyValue}>{value || "—"}</dd>
     </div>
@@ -34,7 +34,7 @@ function SummaryBlock({ label, value }: { label: string; value: string }) {
   return (
     <div className="pt-1">
       <dt className={labelClass}>{label}</dt>
-      <dd className="mt-1.5 line-clamp-4 text-sm leading-relaxed text-slate-900">{value || "—"}</dd>
+      <dd className="mt-1 text-sm font-normal leading-relaxed text-slate-900 line-clamp-4">{value || "—"}</dd>
     </div>
   );
 }
@@ -215,7 +215,7 @@ export function OpportunitySalesRoleSelect({
 }) {
   if (readOnlyLabel != null) {
     return (
-      <div className="min-w-0 py-0.5">
+      <div className="min-w-0 py-1">
         <dt className={labelClass}>Sales role</dt>
         <dd className={readOnlyValue}>{readOnlyLabel}</dd>
       </div>

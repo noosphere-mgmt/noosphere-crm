@@ -22,10 +22,14 @@ export function EntityActivitiesTab({
   activities,
   defaults,
   newActivityHref,
+  embedded = false,
+  limit,
 }: {
   activities: ActivityListRow[];
   defaults?: ActivityFormDefaults;
   newActivityHref?: string;
+  embedded?: boolean;
+  limit?: number;
 }) {
   const theme = moduleAccentClasses("activities");
   const router = useRouter();
@@ -50,8 +54,13 @@ export function EntityActivitiesTab({
     [defaults, editing, createType],
   );
 
+  const visibleActivities = useMemo(
+    () => (limit != null && limit > 0 ? activities.slice(0, limit) : activities),
+    [activities, limit],
+  );
+
   return (
-    <div className="space-y-4">
+    <div className={embedded ? "space-y-2" : "space-y-4"}>
       <div className="flex flex-wrap items-center gap-2">
         <button type="button" onClick={() => openCreate()} className={theme.primaryButton}>
           New
@@ -80,14 +89,14 @@ export function EntityActivitiesTab({
             </tr>
           </thead>
           <tbody>
-            {activities.length === 0 ? (
+            {visibleActivities.length === 0 ? (
               <tr>
                 <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
                   No activities recorded yet.
                 </td>
               </tr>
             ) : (
-              activities.map((row) => (
+              visibleActivities.map((row) => (
                 <tr key={row.activity_id} className="border-t border-slate-100 align-top">
                   <td className="px-3 py-2 text-slate-700">{formatActivityDate(row)}</td>
                   <td className="px-3 py-2 text-slate-900">{row.activity_type}</td>

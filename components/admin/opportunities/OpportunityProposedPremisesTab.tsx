@@ -10,7 +10,13 @@ import { ProposedPremisesLinePanel } from "@/components/admin/opportunities/Prop
 import { ProposedPremisesListRow } from "@/components/admin/opportunities/ProposedPremisesListRow";
 import type { OpportunityDetailData } from "@/lib/repos/opportunityDetail";
 
-export function OpportunityProposedPremisesTab({ data }: { data: OpportunityDetailData }) {
+export function OpportunityProposedPremisesTab({
+  data,
+  embedded = false,
+}: {
+  data: OpportunityDetailData;
+  embedded?: boolean;
+}) {
   const theme = moduleAccentClasses("opportunities");
   const { opportunity, proposedPremises } = data;
   const [selectorOpen, setSelectorOpen] = useState(false);
@@ -48,7 +54,7 @@ export function OpportunityProposedPremisesTab({ data }: { data: OpportunityDeta
   }
 
   return (
-    <div className="space-y-4">
+    <div className={embedded ? "space-y-2" : "space-y-4"}>
       <div className="flex flex-wrap items-center gap-2">
         <button type="button" onClick={() => setSelectorOpen(true)} className={theme.primaryButton}>
           + Add Premises
@@ -105,7 +111,7 @@ export function OpportunityProposedPremisesTab({ data }: { data: OpportunityDeta
         </table>
       </div>
 
-      <p className="text-xs text-slate-500">
+      <p className={`text-xs text-slate-500 ${embedded ? "hidden" : ""}`}>
         Edit price, tour date, status, preference, and remarks inline. Open the drawer for fees and full detail.
       </p>
 

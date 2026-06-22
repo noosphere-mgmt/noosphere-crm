@@ -45,7 +45,7 @@ function editableFieldProps(editHighlight: boolean, beginEdit: () => void) {
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{children}</dt>;
+  return <dt className="whitespace-nowrap text-xs font-medium text-slate-500">{children}</dt>;
 }
 
 function FieldValue({ children }: { children: React.ReactNode }) {
@@ -379,11 +379,14 @@ export function InlineTextAreaField({
   value,
   onSave,
   compact = false,
+  fullWidth = false,
 }: {
   label: string;
   value: string | null;
   onSave: SaveFn;
   compact?: boolean;
+  /** Span all columns in a multi-column overview grid. */
+  fullWidth?: boolean;
 }) {
   const { editHighlight, runSave, editing, setEditing, beginEdit } = useGatedInlineEdit();
   const [draft, setDraft] = useState(value ?? "");
@@ -407,9 +410,11 @@ export function InlineTextAreaField({
     if (ok) setEditing(false);
   }
 
+  const spanClass = fullWidth ? "col-span-full" : "sm:col-span-2";
+
   if (editing) {
     return (
-      <div className={`${inlineFieldShellClass(editHighlight, true)} sm:col-span-2`}>
+      <div className={`${inlineFieldShellClass(editHighlight, true)} ${spanClass}`}>
         <FieldLabel>{label}</FieldLabel>
         <textarea
           ref={ref}
@@ -433,7 +438,7 @@ export function InlineTextAreaField({
 
   return (
     <div
-      className={`${inlineFieldShellClass(editHighlight, false)} sm:col-span-2`}
+      className={`${inlineFieldShellClass(editHighlight, false)} ${spanClass}`}
       {...editableFieldProps(editHighlight, beginEdit)}
     >
       <FieldLabel>{label}</FieldLabel>

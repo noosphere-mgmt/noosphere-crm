@@ -13,7 +13,7 @@ export function buildOpportunitiesReturnTo(searchParams: URLSearchParams): strin
 
 export function opportunityDrawerHref(
   searchParams: URLSearchParams,
-  opportunityId: number,
+  opportunityId: number | string,
   tab: OpportunityDetailTabId = "overview",
   mode?: "edit",
 ): string {

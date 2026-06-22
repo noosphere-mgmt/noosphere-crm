@@ -16,7 +16,7 @@ import { getContact, listContacts } from "@/lib/repos/contacts";
 import { getCompanyCrmSummary, type CompanyCrmSummary } from "@/lib/repos/companyCrmSummary";
 import { getContactCrmSummary, type ContactCrmSummary } from "@/lib/repos/contactCrmSummary";
 import { lookupV1CompanyId } from "@/lib/companyDrawerResolve";
-import { resolveLegacyCompanyIdFromContactRef } from "@/lib/contactDrawerResolve";
+import { lookupV1ContactId, resolveLegacyCompanyIdFromContactRef } from "@/lib/contactDrawerResolve";
 import { listEntityRelationships } from "@/lib/repos/relationships";
 import type { EntityRelationshipRow } from "@/lib/entityRelationships";
 import type { Asset, Company, Contact } from "@/lib/types/entities";
@@ -36,6 +36,7 @@ export type CompanyDrawerData = {
 
 export type ContactDrawerData = {
   contact: Contact;
+  v1ContactId: string | null;
   company: Company | null;
   companyCrmSummary: CompanyCrmSummary | null;
   companies: { id: number; company_name: string }[];
@@ -73,7 +74,7 @@ export async function getContactDrawerData(id: number): Promise<ContactDrawerDat
 
   const legacyCompanyId = await resolveLegacyCompanyIdFromContactRef(contact.company_id);
 
-  const [company, companies, opportunities, relationships, activities, spaces, crmSummary, companyCrmSummary, lastActivityDate] =
+  const [company, companies, opportunities, relationships, activities, spaces, crmSummary, companyCrmSummary, lastActivityDate, v1ContactId] =
     await Promise.all([
       legacyCompanyId ? getCompany(legacyCompanyId) : Promise.resolve(null),
       listCompanyOptions(),
@@ -84,10 +85,12 @@ export async function getContactDrawerData(id: number): Promise<ContactDrawerDat
       getContactCrmSummary(id),
       legacyCompanyId ? getCompanyCrmSummary(legacyCompanyId) : Promise.resolve(null),
       getLastActivityDateForContact(id).catch(() => null),
+      lookupV1ContactId(id),
     ]);
 
   return {
     contact,
+    v1ContactId,
     company,
     companyCrmSummary,
     companies,

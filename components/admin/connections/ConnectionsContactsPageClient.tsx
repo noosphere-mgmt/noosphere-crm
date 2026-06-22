@@ -36,8 +36,11 @@ export function ConnectionsContactsPageClient({
   const returnTo = useMemo(() => buildContactsReturnTo(searchParams), [searchParams]);
 
   const drawerData = useMemo(() => {
-    if (!openId || !selectedContact || String(selectedContact.contact.id) !== openId) return null;
-    return selectedContact;
+    if (!openId || !selectedContact) return null;
+    const legacyId = String(selectedContact.contact.id);
+    if (legacyId === openId) return selectedContact;
+    if (selectedContact.v1ContactId === openId) return selectedContact;
+    return null;
   }, [openId, selectedContact]);
 
   const closeDrawer = useCallback(() => {

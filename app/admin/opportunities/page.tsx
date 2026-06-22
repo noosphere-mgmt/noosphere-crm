@@ -3,6 +3,7 @@ import { AdminShell } from "@/components/admin/AdminShell";
 import { OpportunitiesListError } from "@/components/admin/opportunities/OpportunitiesListError";
 import { OpportunitiesPageClient } from "@/components/admin/opportunities/OpportunitiesPageClient";
 import { AdminListLoadingFallback } from "@/components/admin/layout/AdminListLoadingFallback";
+import { resolveOpportunityQueryParam } from "@/lib/opportunityDrawerResolve";
 import { listCompanyOptions } from "@/lib/repos/companies";
 import { listContactOptions } from "@/lib/repos/contacts";
 import { listOpportunities } from "@/lib/repos/opportunities";
@@ -33,14 +34,21 @@ export default async function OpportunitiesListPage({ searchParams }: Props) {
   }
 
   const opportunityIdRaw = sp.opportunity?.trim();
-  const opportunityId = opportunityIdRaw ? Number.parseInt(opportunityIdRaw, 10) : NaN;
   let selectedOpportunity: Awaited<ReturnType<typeof getOpportunityDrawerData>> = null;
+  let drawerError: string | null = null;
 
-  if (!loadError && Number.isFinite(opportunityId) && opportunityId > 0) {
-    try {
-      selectedOpportunity = await getOpportunityDrawerData(opportunityId);
-    } catch {
-      selectedOpportunity = null;
+  if (!loadError && opportunityIdRaw) {
+    const legacyId = await resolveOpportunityQueryParam(opportunityIdRaw);
+    if (legacyId) {
+      try {
+        selectedOpportunity = await getOpportunityDrawerData(legacyId);
+        if (!selectedOpportunity) drawerError = `Opportunity "${opportunityIdRaw}" was not found.`;
+      } catch (err) {
+        drawerError = err instanceof Error ? err.message : "Failed to load opportunity.";
+        selectedOpportunity = null;
+      }
+    } else {
+      drawerError = `Opportunity "${opportunityIdRaw}" was not found.`;
     }
   }
 
@@ -55,6 +63,7 @@ export default async function OpportunitiesListPage({ searchParams }: Props) {
             companies={companies}
             contacts={contacts}
             selectedOpportunity={selectedOpportunity}
+            drawerError={drawerError}
             initialStatus={sp.status?.trim() || undefined}
             initialStage={
               sp.stage === "open" || sp.stage === "viewing" || sp.stage === "won_month"

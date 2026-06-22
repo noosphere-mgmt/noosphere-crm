@@ -8,7 +8,6 @@ import {
   CompactField,
   OpportunityRequirementFields,
   OpportunitySalesRoleSelect,
-  fieldGrid,
   labelClass,
   selectClass,
 } from "@/components/admin/opportunities/OpportunityRequirementFields";
@@ -24,8 +23,6 @@ import { OPPORTUNITY_SALES_ROLE_LABELS, type OpportunitySalesRole } from "@/lib/
 import type { ContactOption } from "@/lib/repos/contacts";
 import type { Opportunity, OpportunityParty } from "@/lib/types/entities";
 import { TextAreaField } from "@/components/admin/AdminFormFields";
-
-const cardShell = "!px-3.5 !pt-3 !pb-3.5";
 
 type CompanyOption = { id: number; company_name: string };
 
@@ -48,10 +45,10 @@ export function OpportunityOverviewFields({
   const [salesRole, setSalesRole] = useState<OpportunitySalesRole>(opportunity.sales_role ?? "to_lease");
 
   return (
-    <div className="space-y-4">
-      <DrawerOverviewCard title="Opportunity" dense bare className={cardShell}>
+    <div className="flex w-full min-w-0 flex-col gap-4">
+      <DrawerOverviewCard title="Opportunity" columns={3} dense={false} className="w-full">
         {editing ? (
-          <dl className={fieldGrid}>
+          <>
             <FormField label="Opportunity name" name="client_name" defaultValue={opportunity.client_name} required />
             <label className="block min-w-0 text-sm">
               <span className={labelClass}>Company</span>
@@ -98,9 +95,9 @@ export function OpportunityOverviewFields({
               </select>
             </label>
             <OpportunitySalesRoleSelect value={salesRole} onChange={setSalesRole} />
-          </dl>
+          </>
         ) : (
-          <dl className={fieldGrid}>
+          <>
             <CompactField label="Opportunity name" value={opportunity.client_name} />
             <CompactField label="Company" value={opportunity.linked_company_name ?? ""} />
             <CompactField label="Contact" value={opportunity.primary_contact_name ?? ""} />
@@ -113,7 +110,7 @@ export function OpportunityOverviewFields({
               value={salesRole}
               readOnlyLabel={OPPORTUNITY_SALES_ROLE_LABELS[opportunity.sales_role ?? "to_lease"]}
             />
-          </dl>
+          </>
         )}
       </DrawerOverviewCard>
 
@@ -124,30 +121,32 @@ export function OpportunityOverviewFields({
         <input type="hidden" name="referrer_contact_id" value={opportunity.referrer_contact_id} />
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <DrawerOverviewCard title="Requirement" dense matchHeight bare className={cardShell}>
-          <OpportunityRequirementFields opportunity={opportunity} salesRole={salesRole} editing={editing} />
+      <div className="grid w-full min-w-0 grid-cols-1 items-stretch gap-4 md:grid-cols-2">
+        <DrawerOverviewCard title="Requirement" columns={1} dense={false} matchHeight className="w-full min-w-0">
+          <div className="col-span-full w-full">
+            <OpportunityRequirementFields opportunity={opportunity} salesRole={salesRole} editing={editing} />
+          </div>
         </DrawerOverviewCard>
 
-        <DrawerOverviewCard title="Parties summary" dense matchHeight bare className={cardShell}>
+        <DrawerOverviewCard title="Parties summary" columns={1} dense={false} matchHeight className="w-full min-w-0">
           <dl className="space-y-3">
             {summary.map((row) => (
-              <div key={row.label} className="flex min-w-0 items-baseline gap-4 py-0.5">
-                <dt className={`${labelClass} w-20 shrink-0`}>{row.label}</dt>
-                <dd className="min-w-0 flex-1 text-sm leading-relaxed text-slate-900">{row.value}</dd>
+              <div key={row.label} className="min-w-0 py-1">
+                <dt className={labelClass}>{row.label}</dt>
+                <dd className="mt-1 text-sm font-normal leading-relaxed text-slate-900">{row.value}</dd>
               </div>
             ))}
           </dl>
         </DrawerOverviewCard>
       </div>
 
-      <DrawerOverviewCard title="Notes" dense bare className={cardShell}>
+      <DrawerOverviewCard title="Notes" columns={1} dense={false} className="w-full">
         {editing ? (
           <TextAreaField label="Internal remarks" name="remarks" defaultValue={opportunity.remarks ?? ""} />
         ) : (
-          <div className="pt-1">
+          <div className="py-1">
             <dt className={labelClass}>Internal remarks</dt>
-            <dd className="mt-1.5 line-clamp-4 text-sm leading-relaxed text-slate-900">
+            <dd className="mt-1 text-sm font-normal leading-relaxed text-slate-900 whitespace-pre-wrap">
               {opportunity.remarks?.trim() || "—"}
             </dd>
           </div>

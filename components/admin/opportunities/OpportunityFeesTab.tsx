@@ -4,29 +4,40 @@ import { formatMoney } from "@/lib/formatCurrency";
 import { partyRoleLabel } from "@/lib/opportunityPartiesDisplay";
 import type { OpportunityDetailData } from "@/lib/repos/opportunityDetail";
 
-export function OpportunityFeesTab({ data }: { data: OpportunityDetailData }) {
+export function OpportunityFeesTab({
+  data,
+  embedded = false,
+}: {
+  data: OpportunityDetailData;
+  embedded?: boolean;
+}) {
   const { feeSummary } = data;
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-slate-600">
-        Read-only summary calculated from party fee records. Edit fees on the Parties tab.
-      </p>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className={embedded ? "space-y-2" : "space-y-4"}>
+      {!embedded ? (
+        <p className="text-sm text-slate-600">
+          Read-only summary calculated from party fee records. Edit fees on the Parties tab.
+        </p>
+      ) : null}
+      <div className={`grid gap-2 ${embedded ? "sm:grid-cols-2 lg:grid-cols-4" : "gap-3 sm:grid-cols-2 lg:grid-cols-4"}`}>
         {[
           { label: "Expected collect fee", value: feeSummary.expected_collect },
           { label: "Confirmed collect fee", value: feeSummary.confirmed_collect },
           { label: "Paid out fee", value: feeSummary.paid_out },
           { label: "Net fee", value: feeSummary.net_fee },
         ].map((card) => (
-          <div key={card.label} className="rounded-xl border border-slate-200 bg-white p-3">
+          <div
+            key={card.label}
+            className={`rounded-lg border border-slate-200 bg-white ${embedded ? "p-2.5" : "rounded-xl p-3"}`}
+          >
             <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{card.label}</p>
             <p className="mt-1 text-lg font-semibold text-slate-900">{formatMoney(card.value)}</p>
           </div>
         ))}
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <div className={`overflow-x-auto border border-slate-200 bg-white ${embedded ? "rounded-lg" : "rounded-xl"}`}>
         <table className="min-w-full text-sm">
           <thead className="bg-slate-50 text-left text-slate-600">
             <tr>

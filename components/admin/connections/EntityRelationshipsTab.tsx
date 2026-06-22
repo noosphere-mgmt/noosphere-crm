@@ -16,7 +16,6 @@ import {
   isCreationRelationshipType,
   type EntityRelationshipRow,
   type EntityType,
-  parseEntityId,
 } from "@/lib/entityRelationships";
 import { companyDrawerHref, contactDrawerHref } from "@/lib/connectionsDrawerNav";
 import type { RelationshipSearchHit } from "@/lib/repos/relationships";
@@ -30,7 +29,7 @@ function relatedPartyHref(
   searchParams: URLSearchParams,
   row: EntityRelationshipRow,
 ): string {
-  const id = parseEntityId(row.related_entity_id);
+  const id = row.related_entity_id.trim();
   if (!id) return "#";
   if (row.related_entity_type === "company") {
     return companyDrawerHref(basePath === "/admin/contacts" ? "/admin/companies" : basePath, searchParams, id, "overview");

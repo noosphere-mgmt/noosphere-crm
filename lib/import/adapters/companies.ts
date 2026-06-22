@@ -1,9 +1,11 @@
 import { query } from "@/lib/db";
+import { sqlContactDisplayName } from "@/lib/contactName";
 import { COMPANY_ROLES, COMPANY_ROLE_LABELS } from "@/lib/lookups";
 import type { CompanyRole } from "@/lib/types/entities";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
+import { sqlJoinLegacyContact } from "../lookupSql";
 import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
-import { mergeReferenceResults, resolveContactReference } from "../referenceResolution";
+import { mergeReferenceResults, resolveContactIdOrName } from "../referenceResolution";
 import type { ImportObjectDefinition } from "../objectRegistry";
 import type { ExistingRecord } from "../types";
 
@@ -24,22 +26,26 @@ const FIELD_KEYS = [
   "phone",
   "email",
   "primary_contact_id",
+  "primary_contact_name",
   "remarks",
 ] as const;
 
 const SELECT = `
-  id::text AS company_id,
-  external_ref,
-  company_name AS company_name_en,
-  company_name_zh,
-  company_name_cn,
-  array_to_string(roles, '; ') AS role,
-  array_to_string(coverage, '; ') AS coverage,
-  country, city, district,
-  industry, source, website, phone, email,
-  primary_contact_id::text AS primary_contact_id,
-  notes AS remarks
+  co.id::text AS company_id,
+  co.external_ref,
+  co.company_name AS company_name_en,
+  co.company_name_zh,
+  co.company_name_cn,
+  array_to_string(co.roles, '; ') AS role,
+  array_to_string(co.coverage, '; ') AS coverage,
+  co.country, co.city, co.district,
+  co.industry, co.source, co.website, co.phone, co.email,
+  co.primary_contact_id::text AS primary_contact_id,
+  ${sqlContactDisplayName("pc")} AS primary_contact_name,
+  co.notes AS remarks
 `;
+
+const FROM = `companies co LEFT JOIN contacts pc ON ${sqlJoinLegacyContact("pc", "co.primary_contact_id")}`;
 
 function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
   const p: Record<string, unknown> = {};
@@ -73,7 +79,7 @@ function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
 }
 
 async function load(where: string, params: unknown[]): Promise<ExistingRecord[]> {
-  const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM companies WHERE ${where}`, params);
+  const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM ${FROM} WHERE ${where}`, params);
   return rows.map((row) => rowToRecord(row, Number.parseInt(String(row.company_id), 10), FIELD_KEYS));
 }
 
@@ -100,16 +106,17 @@ export const companiesImportDefinition: ImportObjectDefinition = {
     { key: "phone", label: "phone", type: "string" },
     { key: "email", label: "email", type: "string" },
     { key: "primary_contact_id", label: "primary_contact_id", type: "number", integer: true },
+    { key: "primary_contact_name", label: "primary_contact_name", type: "string", lookupOnly: true },
     { key: "remarks", label: "remarks", type: "string", aliases: ["notes"] },
   ],
 
   async findById(id) {
-    const rows = await load("id = $1", [Number(id)]);
+    const rows = await load("co.id = $1", [Number(id)]);
     return rows[0] ?? null;
   },
 
   async findByExternalRef(externalRef) {
-    return load("external_ref = $1", [externalRef.trim()]);
+    return load("co.external_ref = $1", [externalRef.trim()]);
   },
 
   buildNaturalKey(values) {
@@ -130,16 +137,24 @@ export const companiesImportDefinition: ImportObjectDefinition = {
       [name, city ?? ""],
     );
     if (rows.length === 0) return [];
-    return load(`id = ANY($1::bigint[])`, [rows.map((r) => Number.parseInt(r.id, 10))]);
+    return load(`co.id = ANY($1::bigint[])`, [rows.map((r) => Number.parseInt(r.id, 10))]);
   },
 
-  async validateReferences(values, suppliedFields, _existing, writable) {
-    if (!suppliedFields.has("primary_contact_id") && !("primary_contact_id" in writable)) {
+  async validateReferences(values, suppliedFields, existing, writable) {
+    if (
+      !suppliedFields.has("primary_contact_id") &&
+      !("primary_contact_id" in writable) &&
+      !suppliedFields.has("primary_contact_name")
+    ) {
       return mergeReferenceResults();
     }
-    return resolveContactReference(
+    return resolveContactIdOrName(
       "primary_contact_id",
-      values.primary_contact_id ?? writable.primary_contact_id,
+      "primary_contact_name",
+      values,
+      suppliedFields,
+      existing,
+      writable,
       false,
     );
   },
@@ -182,7 +197,7 @@ export const companiesImportDefinition: ImportObjectDefinition = {
   },
 
   async exportRows() {
-    const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM companies ORDER BY company_name_en ASC`);
+    const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM ${FROM} ORDER BY co.company_name ASC`);
     return rows.map((r) => rowToRecord(r, Number.parseInt(String(r.company_id), 10), FIELD_KEYS).values);
   },
 };

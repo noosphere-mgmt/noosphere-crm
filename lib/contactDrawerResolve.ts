@@ -51,6 +51,14 @@ export async function resolveContactQueryParam(
   return null;
 }
 
+export async function lookupV1ContactId(legacyContactId: number): Promise<string | null> {
+  const rows = await query<{ new_id: string }>(
+    `SELECT new_id FROM id_map_v1 WHERE entity_type = 'contact' AND legacy_id = $1`,
+    [legacyContactId],
+  );
+  return rows[0]?.new_id ?? null;
+}
+
 /** Normalize a stored company reference on a contact row to legacy companies.id. */
 export async function resolveLegacyCompanyIdFromContactRef(
   companyRef: number | string | null | undefined,

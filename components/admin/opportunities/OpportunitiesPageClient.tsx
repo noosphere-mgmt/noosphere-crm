@@ -7,6 +7,7 @@ import { OpportunityDrawer } from "@/components/admin/opportunities/OpportunityD
 import { OpportunityFormDrawer } from "@/components/admin/opportunities/OpportunityFormDrawer";
 import { OpportunitiesListSelectionProvider } from "@/components/admin/opportunities/OpportunitiesListSelectionContext";
 import { ModuleListingExportProvider } from "@/components/admin/ModuleListingExportContext";
+import { DrawerLoadError } from "@/components/admin/connections/DrawerLoadError";
 import {
   buildOpportunitiesReturnTo,
   opportunityCreateHref,
@@ -24,6 +25,7 @@ export function OpportunitiesPageClient({
   companies,
   contacts,
   selectedOpportunity,
+  drawerError,
   initialStatus,
   initialStage,
 }: {
@@ -31,6 +33,7 @@ export function OpportunitiesPageClient({
   companies: CompanyOption[];
   contacts: ContactOption[];
   selectedOpportunity: OpportunityDrawerData | null;
+  drawerError?: string | null;
   initialStatus?: string;
   initialStage?: OpportunitiesDashboardStage;
 }) {
@@ -41,10 +44,11 @@ export function OpportunitiesPageClient({
   const returnTo = useMemo(() => buildOpportunitiesReturnTo(searchParams), [searchParams]);
 
   const drawerData = useMemo(() => {
-    if (!openId || !selectedOpportunity || String(selectedOpportunity.opportunity.id) !== openId) {
-      return null;
-    }
-    return selectedOpportunity;
+    if (!openId || !selectedOpportunity) return null;
+    const legacyId = String(selectedOpportunity.opportunity.id);
+    if (legacyId === openId) return selectedOpportunity;
+    if (selectedOpportunity.v1OpportunityId === openId) return selectedOpportunity;
+    return null;
   }, [openId, selectedOpportunity]);
 
   const closeDrawer = useCallback(() => {
@@ -87,6 +91,9 @@ export function OpportunitiesPageClient({
           initialStatus={initialStatus}
           initialStage={initialStage}
         />
+        {drawerError && openId ? (
+          <DrawerLoadError label="opportunity" message={drawerError} onClose={closeDrawer} />
+        ) : null}
         <OpportunityDrawer data={drawerData} onClose={closeDrawer} />
         <OpportunityFormDrawer
           open={createOpen}

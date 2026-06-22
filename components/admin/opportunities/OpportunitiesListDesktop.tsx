@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { ListingRecordCount } from "@/components/admin/ListingRecordCount";
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
@@ -10,6 +11,7 @@ import {
   formatOpportunityAreaCapacity,
   formatOpportunityBudget,
 } from "@/lib/opportunitiesList";
+import { opportunityDrawerHref } from "@/lib/opportunitiesDrawerNav";
 import { opportunityStatusChip } from "@/lib/opportunityStatusTheme";
 
 function formatDateLabel(value: string | null | undefined): string {
@@ -67,6 +69,7 @@ export function OpportunitiesListDesktop({
     handleSort,
   } = state;
   const theme = moduleAccentClasses("opportunities");
+  const searchParams = useSearchParams();
 
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
@@ -118,8 +121,12 @@ export function OpportunitiesListDesktop({
                     className="rounded border-slate-300"
                   />
                 </td>
-                <td className="px-3 py-1.5">
-                  <Link href={`/admin/opportunities/${row.id}`} className={`text-left ${theme.link}`}>
+                <td className="max-w-[14rem] px-3 py-1.5">
+                  <Link
+                    href={opportunityDrawerHref(searchParams, row.id)}
+                    className={`block truncate text-left ${theme.link}`}
+                    title={row.client_name}
+                  >
                     {row.client_name}
                     {row.district_preference ? ` – ${row.district_preference.split(/[,;/|]/)[0]?.trim()}` : ""}
                   </Link>

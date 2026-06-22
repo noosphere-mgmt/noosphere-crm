@@ -25,7 +25,7 @@ export function buildContactsReturnTo(searchParams: URLSearchParams): string {
 export function companyDrawerHref(
   basePath: string,
   searchParams: URLSearchParams,
-  companyId: number,
+  companyId: number | string,
   tab: CompanyDetailTabId = "overview",
   mode?: "edit" | "full",
 ): string {
@@ -47,7 +47,7 @@ export function companyDrawerHref(
 export function contactDrawerHref(
   basePath: string,
   searchParams: URLSearchParams,
-  contactId: number,
+  contactId: number | string,
   tab: ContactDetailTabId = "overview",
   mode?: "edit",
 ): string {

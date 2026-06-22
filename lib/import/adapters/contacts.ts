@@ -1,5 +1,5 @@
 import { query } from "@/lib/db";
-import { sqlContactDisplayName } from "@/lib/contactName";
+import { resolveContactName, sqlContactDisplayName, syncContactDerivedNames } from "@/lib/contactName";
 import { COMPANY_ROLES, COMPANY_ROLE_LABELS } from "@/lib/lookups";
 import type { CompanyRole } from "@/lib/types/entities";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
@@ -37,7 +37,9 @@ const SELECT = `
   ct.external_ref,
   ct.company_id::text AS company_id,
   c.company_name AS company_name_en,
-  ct.first_name, ct.last_name, ct.chinese_name, ct.display_name, ct.title,
+  ct.first_name, ct.last_name, ct.chinese_name,
+  ${sqlContactDisplayName("ct")} AS display_name,
+  ct.title,
   array_to_string(ct.contact_role, '; ') AS contact_role,
   array_to_string(ct.coverage, '; ') AS coverage,
   ct.preferred_language,
@@ -110,7 +112,7 @@ function contactFieldDef(key: (typeof FIELD_KEYS)[number]): ImportFieldDef {
     return { ...base, type: "string", lookupOnly: true, aliases: ["company_name"] };
   }
   if (key === "display_name") {
-    return { ...base, type: "string", requiredOnCreate: true };
+    return { ...base, type: "string" };
   }
   if (key === "coverage") {
     return { ...base, type: "string_array" };
@@ -157,10 +159,30 @@ export const contactsImportDefinition: ImportObjectDefinition = {
   },
 
   buildNaturalKey(values) {
-    const name = String(values.display_name ?? "").trim();
+    const name = resolveContactName({
+      display_name: values.display_name as string | null,
+      first_name: values.first_name as string | null,
+      last_name: values.last_name as string | null,
+      chinese_name: values.chinese_name as string | null,
+    }).trim();
     const companyId = String(values.company_id ?? "").trim();
     if (!name || !companyId) return { ok: false, key: "" };
     return { ok: true, key: buildNaturalKeyParts([name, companyId]) };
+  },
+
+  async prepareMatchValues(values) {
+    const synced = syncContactDerivedNames({
+      first_name: values.first_name as string | null,
+      last_name: values.last_name as string | null,
+      chinese_name: values.chinese_name as string | null,
+      display_name: values.display_name as string | null,
+    });
+    const composed = resolveContactName(synced);
+    if (!composed) return values;
+    if (!String(values.display_name ?? "").trim()) {
+      return { ...values, display_name: composed };
+    }
+    return values;
   },
 
   async findByNaturalKey(key) {
@@ -186,13 +208,19 @@ export const contactsImportDefinition: ImportObjectDefinition = {
       suppliedFields,
       existing,
       writable,
-      true,
+      !existing,
     );
   },
 
   async createRecord(values, ctx) {
     const v = applySessionMetadata(dbPatch(values), ctx);
-    const displayName = String(values.display_name ?? "").trim() || null;
+    const synced = syncContactDerivedNames({
+      first_name: values.first_name as string | null,
+      last_name: values.last_name as string | null,
+      chinese_name: values.chinese_name as string | null,
+      display_name: values.display_name as string | null,
+    });
+    const displayName = resolveContactName(synced) || null;
     const rows = await query<{ id: string }>(
       `INSERT INTO contacts (
          company_id, first_name, last_name, chinese_name, display_name, contact_name,

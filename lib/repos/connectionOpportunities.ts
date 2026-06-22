@@ -48,8 +48,8 @@ async function loadOpportunityDetails(
             lc.company_name,
             pc.contact_name AS primary_contact_name
      FROM opportunities o
-     LEFT JOIN companies lc ON lc.id = o.company_id
-     LEFT JOIN contacts pc ON pc.id = o.primary_contact_id
+     LEFT JOIN companies lc ON lc.id::text = o.company_id::text
+     LEFT JOIN contacts pc ON pc.id::text = o.primary_contact_id::text
      WHERE o.id = ANY($1::bigint[])
      ORDER BY o.updated_at DESC NULLS LAST, o.id DESC`,
     [ids],

@@ -27,7 +27,6 @@ export function ImportModuleCard({
     <form
       id={`import-${objectType}`}
       action={uploadAction}
-      encType="multipart/form-data"
       className={`px-3 py-2.5 ${focused ? "bg-slate-50" : "bg-white"}`}
     >
       <input type="hidden" name="object_type" value={objectType} />
