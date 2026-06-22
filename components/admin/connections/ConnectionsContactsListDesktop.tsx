@@ -43,8 +43,8 @@ export function ConnectionsContactsListDesktop({
   onOpenCompany,
 }: {
   state: ConnectionsContactsListState;
-  onOpenContact: (id: number) => void;
-  onOpenCompany: (id: number) => void;
+  onOpenContact: (id: number | string) => void;
+  onOpenCompany: (id: number | string) => void;
 }) {
   const {
     rows,

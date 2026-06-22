@@ -13,8 +13,8 @@ export function ConnectionsContactsDesktop({
   onNewContact,
 }: {
   state: ConnectionsContactsListState;
-  onOpenContact: (id: number) => void;
-  onOpenCompany: (id: number) => void;
+  onOpenContact: (id: number | string) => void;
+  onOpenCompany: (id: number | string) => void;
   onNewContact: () => void;
 }) {
   return (

@@ -1,6 +1,7 @@
 import { query } from "@/lib/db";
 import { allocatePropertyV1Id } from "@/lib/repos/propertiesV1";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
+import { sqlJoinV1Company } from "../lookupSql";
 import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
 import {
   mergeReferenceResults,
@@ -73,9 +74,9 @@ const SELECT = `
 
 const FROM = `
   properties_v1 p
-  LEFT JOIN companies_v1 mgmt ON mgmt.company_id = p.management_company_id
-  LEFT JOIN companies_v1 opco ON opco.company_id = p.operator_company_id
-  LEFT JOIN companies_v1 own ON own.company_id = p.owner_company_id
+  LEFT JOIN companies_v1 mgmt ON ${sqlJoinV1Company("mgmt", "p.management_company_id")}
+  LEFT JOIN companies_v1 opco ON ${sqlJoinV1Company("opco", "p.operator_company_id")}
+  LEFT JOIN companies_v1 own ON ${sqlJoinV1Company("own", "p.owner_company_id")}
 `;
 
 function dbPatch(values: Record<string, unknown>): Record<string, unknown> {

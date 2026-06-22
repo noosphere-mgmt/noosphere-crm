@@ -19,7 +19,7 @@ export function ConnectionsContactsListMobile({
   onOpenContact,
 }: {
   state: ConnectionsContactsListState;
-  onOpenContact: (id: number) => void;
+  onOpenContact: (id: number | string) => void;
 }) {
   const router = useRouter();
   const [isDeleting, startDelete] = useTransition();

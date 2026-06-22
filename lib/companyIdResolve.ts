@@ -1,14 +1,8 @@
 /** V1 company IDs: COMP-YYYY-#### */
-const V1_COMPANY_ID_RE = /^COMP-\d{4}-\d{4}$/;
+export { isV1CompanyRef as isV1CompanyId, V1_COMPANY_ID_RE } from "@/lib/entityRefGuards";
+import { isV1CompanyRef, isLegacyNumericRef as isLegacyNumericCompanyId } from "@/lib/entityRefGuards";
 
-export function isV1CompanyId(value: string | null | undefined): boolean {
-  return V1_COMPANY_ID_RE.test(value?.trim() ?? "");
-}
-
-export function isLegacyNumericCompanyId(value: string | null | undefined): boolean {
-  const s = value?.trim() ?? "";
-  return /^\d+$/.test(s) && Number.parseInt(s, 10) > 0;
-}
+export { isLegacyNumericCompanyId };
 
 export type CompanyLookupMaps = {
   v1ByLegacyId: Map<number, string>;
@@ -53,7 +47,7 @@ export function resolveToV1CompanyId(
 ): string | null {
   const value = raw?.trim();
   if (!value) return null;
-  if (isV1CompanyId(value)) return value;
+  if (isV1CompanyRef(value)) return value;
 
   if (isLegacyNumericCompanyId(value)) {
     const legacyId = Number.parseInt(value, 10);

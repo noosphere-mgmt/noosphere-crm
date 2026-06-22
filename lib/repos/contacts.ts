@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { query } from "@/lib/db";
+import { coerceLegacyContactId } from "@/lib/entityRefGuards";
 import { resolveContactName, sqlContactDisplayName, syncContactDerivedNames } from "@/lib/contactName";
 import type { CompanyRole, Contact } from "@/lib/types/entities";
 
@@ -128,13 +129,16 @@ export const listContactOptions = cache(async function listContactOptions(): Pro
   );
 });
 
-export async function getContact(id: number): Promise<Contact | null> {
+export async function getContact(id: number | string): Promise<Contact | null> {
+  const legacyId = coerceLegacyContactId(id);
+  if (legacyId == null) return null;
+
   const rows = await query<Contact>(
     `SELECT ${contactSelect}, co.company_name, co.country AS company_country, co.city AS company_city
      FROM contacts c
      LEFT JOIN companies co ON co.id::text = c.company_id::text
      WHERE c.id = $1`,
-    [id],
+    [legacyId],
   );
   return rows[0] ?? null;
 }

@@ -8,11 +8,14 @@ import { ContactFormDrawer } from "@/components/admin/connections/ContactFormDra
 import { ConnectionsListSelectionProvider } from "@/components/admin/connections/ConnectionsListSelectionContext";
 import { ModuleListingExportProvider } from "@/components/admin/ModuleListingExportContext";
 import { DrawerLoadError } from "@/components/admin/connections/DrawerLoadError";
+import { shouldShowConnectionsDrawer } from "@/lib/connectionsDrawerMatch";
 import {
   buildContactsReturnTo,
   companyDrawerHref,
-  contactDrawerHref,
+  connectionsCompanyNavHref,
+  connectionsContactNavHref,
 } from "@/lib/connectionsDrawerNav";
+import { isV1CompanyRef } from "@/lib/entityRefGuards";
 import type { Contact } from "@/lib/types/entities";
 import type { ContactDrawerData } from "@/lib/repos/connectionsDrawer";
 
@@ -22,11 +25,13 @@ export function ConnectionsContactsPageClient({
   rows,
   companies,
   selectedContact,
+  drawerQuery,
   drawerError,
 }: {
   rows: Contact[];
   companies: CompanyOption[];
   selectedContact: ContactDrawerData | null;
+  drawerQuery?: string | null;
   drawerError?: string | null;
 }) {
   const router = useRouter();
@@ -35,13 +40,27 @@ export function ConnectionsContactsPageClient({
   const createOpen = searchParams.get("new") === "1";
   const returnTo = useMemo(() => buildContactsReturnTo(searchParams), [searchParams]);
 
+  useEffect(() => {
+    if (openId && isV1CompanyRef(openId)) {
+      router.replace(companyDrawerHref("/admin/companies", new URLSearchParams(searchParams.toString()), openId));
+    }
+  }, [openId, router, searchParams]);
+
   const drawerData = useMemo(() => {
-    if (!openId || !selectedContact) return null;
-    const legacyId = String(selectedContact.contact.id);
-    if (legacyId === openId) return selectedContact;
-    if (selectedContact.v1ContactId === openId) return selectedContact;
-    return null;
-  }, [openId, selectedContact]);
+    if (openId && isV1CompanyRef(openId)) return null;
+    if (
+      !shouldShowConnectionsDrawer(
+        openId,
+        drawerQuery,
+        selectedContact,
+        selectedContact?.contact.id,
+        selectedContact?.v1ContactId,
+      )
+    ) {
+      return null;
+    }
+    return selectedContact;
+  }, [openId, drawerQuery, selectedContact]);
 
   const closeDrawer = useCallback(() => {
     router.replace(returnTo);
@@ -56,15 +75,15 @@ export function ConnectionsContactsPageClient({
   }, [closeDrawer, openId]);
 
   const openContact = useCallback(
-    (id: number, mode?: "edit") => {
-      router.push(contactDrawerHref("/admin/contacts", searchParams, id, "overview", mode));
+    (id: number | string, mode?: "edit") => {
+      router.push(connectionsContactNavHref(searchParams, id, "overview", mode));
     },
     [router, searchParams],
   );
 
   const openCompany = useCallback(
-    (id: number) => {
-      router.push(companyDrawerHref("/admin/companies", new URLSearchParams(), id));
+    (id: number | string) => {
+      router.push(connectionsCompanyNavHref(new URLSearchParams(), id));
     },
     [router],
   );
@@ -95,11 +114,8 @@ export function ConnectionsContactsPageClient({
           onOpenCompany={openCompany}
           onNewContact={openCreateDrawer}
         />
-        <ContactDrawer
-          data={drawerData}
-          onClose={closeDrawer}
-        />
-        {openId && !drawerData ? (
+        <ContactDrawer data={drawerData} onClose={closeDrawer} />
+        {openId && !isV1CompanyRef(openId) && !drawerData ? (
           <DrawerLoadError
             label="contact"
             message={

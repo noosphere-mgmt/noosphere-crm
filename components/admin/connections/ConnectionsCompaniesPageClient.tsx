@@ -7,17 +7,20 @@ import { ConnectionsCompaniesListClient } from "@/components/admin/connections/C
 import { ConnectionsListSelectionProvider } from "@/components/admin/connections/ConnectionsListSelectionContext";
 import { ModuleListingExportProvider } from "@/components/admin/ModuleListingExportContext";
 import { DrawerLoadError } from "@/components/admin/connections/DrawerLoadError";
-import { buildCompaniesReturnTo, companyDrawerHref } from "@/lib/connectionsDrawerNav";
+import { shouldShowConnectionsDrawer } from "@/lib/connectionsDrawerMatch";
+import { buildCompaniesReturnTo } from "@/lib/connectionsDrawerNav";
 import type { ConnectionCompanyListRow } from "@/lib/connectionsDisplay";
 import type { CompanyDrawerData } from "@/lib/repos/connectionsDrawer";
 
 export function ConnectionsCompaniesPageClient({
   rows,
   selectedCompany,
+  drawerQuery,
   drawerError,
 }: {
   rows: ConnectionCompanyListRow[];
   selectedCompany: CompanyDrawerData | null;
+  drawerQuery?: string | null;
   drawerError?: string | null;
 }) {
   const router = useRouter();
@@ -26,12 +29,19 @@ export function ConnectionsCompaniesPageClient({
   const returnTo = useMemo(() => buildCompaniesReturnTo(searchParams), [searchParams]);
 
   const drawerData = useMemo(() => {
-    if (!openId || !selectedCompany) return null;
-    const legacyId = String(selectedCompany.company.id);
-    if (legacyId === openId) return selectedCompany;
-    if (selectedCompany.v1CompanyId === openId) return selectedCompany;
-    return null;
-  }, [openId, selectedCompany]);
+    if (
+      !shouldShowConnectionsDrawer(
+        openId,
+        drawerQuery,
+        selectedCompany,
+        selectedCompany?.company.id,
+        selectedCompany?.v1CompanyId,
+      )
+    ) {
+      return null;
+    }
+    return selectedCompany;
+  }, [openId, drawerQuery, selectedCompany]);
 
   const closeDrawer = useCallback(() => {
     router.replace(returnTo);
@@ -44,13 +54,6 @@ export function ConnectionsCompaniesPageClient({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [closeDrawer, openId]);
-
-  const openCompany = useCallback(
-    (id: number, mode?: "edit" | "full") => {
-      router.push(companyDrawerHref("/admin/companies", searchParams, id, "overview", mode));
-    },
-    [router, searchParams],
-  );
 
   return (
     <ConnectionsListSelectionProvider>

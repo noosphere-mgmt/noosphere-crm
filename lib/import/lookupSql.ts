@@ -24,7 +24,11 @@ export function sqlActivityLabel(aAlias = "a"): string {
   ))`;
 }
 
-/** Join legacy companies.id to a FK column (bigint or text). Cast numeric side to text. */
+/** Join companies_v1.company_id (TEXT) to a FK column that may be TEXT or legacy BIGINT. */
+export function sqlJoinV1Company(companyV1Alias: string, fkExpr: string): string {
+  return `${companyV1Alias}.company_id = ${fkExpr}::text`;
+}
+
 export function sqlJoinLegacyCompany(companyAlias: string, fkExpr: string): string {
   return `${companyAlias}.id::text = ${fkExpr}::text`;
 }
@@ -44,7 +48,7 @@ export function sqlRelationshipEntityName(typeExpr: string, idExpr: string): str
   return `CASE ${typeExpr}
     WHEN 'company' THEN COALESCE(
       (SELECT c.company_name FROM companies c WHERE ${sqlJoinLegacyCompany("c", idExpr)} LIMIT 1),
-      (SELECT cv1.company_name_en FROM companies_v1 cv1 WHERE cv1.company_id = ${idExpr} LIMIT 1)
+      (SELECT cv1.company_name_en FROM companies_v1 cv1 WHERE cv1.company_id = ${idExpr}::text LIMIT 1)
     )
     WHEN 'contact' THEN (
       SELECT COALESCE(ct.display_name::text, ct.contact_name::text)

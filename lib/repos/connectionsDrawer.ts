@@ -17,6 +17,7 @@ import { getCompanyCrmSummary, type CompanyCrmSummary } from "@/lib/repos/compan
 import { getContactCrmSummary, type ContactCrmSummary } from "@/lib/repos/contactCrmSummary";
 import { lookupV1CompanyId } from "@/lib/companyDrawerResolve";
 import { lookupV1ContactId, resolveLegacyCompanyIdFromContactRef } from "@/lib/contactDrawerResolve";
+import { coerceLegacyContactId } from "@/lib/entityRefGuards";
 import { listEntityRelationships } from "@/lib/repos/relationships";
 import type { EntityRelationshipRow } from "@/lib/entityRelationships";
 import type { Asset, Company, Contact } from "@/lib/types/entities";
@@ -68,8 +69,11 @@ export async function getCompanyDrawerData(id: number): Promise<CompanyDrawerDat
   return { company, v1CompanyId, contacts, opportunities, relationships, spaces, timeline, companies, crmSummary, lastActivityDate };
 }
 
-export async function getContactDrawerData(id: number): Promise<ContactDrawerData | null> {
-  const contact = await getContact(id);
+export async function getContactDrawerData(id: number | string): Promise<ContactDrawerData | null> {
+  const legacyId = coerceLegacyContactId(id);
+  if (legacyId == null) return null;
+
+  const contact = await getContact(legacyId);
   if (!contact) return null;
 
   const legacyCompanyId = await resolveLegacyCompanyIdFromContactRef(contact.company_id);
@@ -78,14 +82,14 @@ export async function getContactDrawerData(id: number): Promise<ContactDrawerDat
     await Promise.all([
       legacyCompanyId ? getCompany(legacyCompanyId) : Promise.resolve(null),
       listCompanyOptions(),
-      listLinkedOpportunitiesForContact(id),
-      listEntityRelationships("contact", id),
-      listActivitiesForContact(id).catch(() => [] as ActivityListRow[]),
+      listLinkedOpportunitiesForContact(legacyId),
+      listEntityRelationships("contact", legacyId),
+      listActivitiesForContact(legacyId).catch(() => [] as ActivityListRow[]),
       legacyCompanyId ? listAssetsForCompany(legacyCompanyId) : Promise.resolve([]),
-      getContactCrmSummary(id),
+      getContactCrmSummary(legacyId),
       legacyCompanyId ? getCompanyCrmSummary(legacyCompanyId) : Promise.resolve(null),
-      getLastActivityDateForContact(id).catch(() => null),
-      lookupV1ContactId(id),
+      getLastActivityDateForContact(legacyId).catch(() => null),
+      lookupV1ContactId(legacyId),
     ]);
 
   return {

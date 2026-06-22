@@ -5,6 +5,7 @@ import { ConnectionsContactsPageClient } from "@/components/admin/connections/Co
 import { ConnectionsListError } from "@/components/admin/connections/ConnectionsListError";
 import { AdminListLoadingFallback } from "@/components/admin/layout/AdminListLoadingFallback";
 import { resolveContactQueryParam } from "@/lib/contactDrawerResolve";
+import { classifyContactQueryParam } from "@/lib/entityRefGuards";
 import { listCompanyOptions } from "@/lib/repos/companies";
 import { listContacts } from "@/lib/repos/contacts";
 import { getContactDrawerData } from "@/lib/repos/connectionsDrawer";
@@ -30,9 +31,14 @@ export default async function ContactsListPage({ searchParams }: Props) {
   let drawerError: string | null = null;
 
   if (!loadError && contactIdRaw) {
+    const precheck = classifyContactQueryParam(contactIdRaw);
+    if (precheck?.kind === "company_mismatch") {
+      redirect(`/admin/companies?company=${encodeURIComponent(precheck.redirectToCompany)}`);
+    }
+
     const resolved = await resolveContactQueryParam(contactIdRaw);
     if (resolved?.kind === "company_mismatch") {
-      redirect(`/admin/companies?company=${encodeURIComponent(resolved.companyQuery)}`);
+      redirect(`/admin/companies?company=${encodeURIComponent(resolved.redirectToCompany)}`);
     }
     if (resolved?.kind === "contact") {
       try {
@@ -53,7 +59,13 @@ export default async function ContactsListPage({ searchParams }: Props) {
         <ConnectionsListError message={loadError} />
       ) : (
         <Suspense fallback={<AdminListLoadingFallback />}>
-          <ConnectionsContactsPageClient rows={rows} companies={companies} selectedContact={selectedContact} drawerError={drawerError} />
+          <ConnectionsContactsPageClient
+            rows={rows}
+            companies={companies}
+            selectedContact={selectedContact}
+            drawerQuery={contactIdRaw ?? null}
+            drawerError={drawerError}
+          />
         </Suspense>
       )}
     </AdminShell>

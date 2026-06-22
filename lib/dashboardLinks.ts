@@ -1,5 +1,7 @@
 /** Drill-down links from dashboard cards to filtered module listings. */
 
+import { isV1CompanyRef, isV1ContactRef } from "@/lib/entityRefGuards";
+
 export function opportunitiesHref(params?: {
   status?: string;
   stage?: "open" | "viewing" | "won_month";
@@ -19,19 +21,32 @@ export function activityHref(activityId: string): string {
   return `/admin/activities?activity=${encodeURIComponent(activityId)}`;
 }
 
-export function companyHref(id: number): string {
-  return `/admin/companies?company=${id}`;
+export function companyHref(id: number | string): string {
+  const ref = String(id).trim();
+  if (isV1ContactRef(ref)) {
+    return `/admin/contacts?contact=${encodeURIComponent(ref)}`;
+  }
+  return `/admin/companies?company=${encodeURIComponent(ref)}`;
 }
 
-export function contactHref(id: number): string {
-  return `/admin/contacts?contact=${id}`;
+export function contactHref(id: number | string): string {
+  const ref = String(id).trim();
+  if (isV1CompanyRef(ref)) {
+    return `/admin/companies?company=${encodeURIComponent(ref)}`;
+  }
+  return `/admin/contacts?contact=${encodeURIComponent(ref)}`;
+}
+
+export function partyHref(companyId: number | string, contactId: number | string | null): string {
+  if (contactId != null && String(contactId).trim()) {
+    const contactRef = String(contactId).trim();
+    if (!isV1CompanyRef(contactRef)) {
+      return contactHref(contactRef);
+    }
+  }
+  return companyHref(companyId);
 }
 
 export function premisesHref(premisesId: string): string {
   return `/admin/properties?premises=${encodeURIComponent(premisesId)}`;
-}
-
-export function partyHref(companyId: number, contactId: number | null): string {
-  if (contactId) return contactHref(contactId);
-  return companyHref(companyId);
 }

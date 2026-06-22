@@ -21,6 +21,7 @@ import {
   formatActivityNotesPreview,
   formatActivityPremisesListCell,
 } from "@/lib/activitiesDisplay";
+import { companyHref, contactHref } from "@/lib/dashboardLinks";
 import {
   activityMatchesGlobalSearch,
   activityMatchesQuickFilters,
@@ -487,7 +488,7 @@ export function ActivitiesListClient({
                   <td className="px-3 py-1.5 text-slate-700" onClick={(e) => e.stopPropagation()}>
                     <div className="flex flex-col gap-0.5">
                       {row.company_id ? (
-                        <Link href={`/admin/companies?company=${row.company_id}&tab=activities`} className={theme.link}>
+                        <Link href={`${companyHref(row.company_id)}&tab=activities`} className={theme.link}>
                           {row.company_name ?? `#${row.company_id}`}
                         </Link>
                       ) : (
@@ -495,7 +496,7 @@ export function ActivitiesListClient({
                       )}
                       {row.contact_id ? (
                         <Link
-                          href={`/admin/contacts?contact=${row.contact_id}&tab=activities`}
+                          href={`${contactHref(row.contact_id)}&tab=activities`}
                           className="text-xs text-slate-500 hover:underline"
                         >
                           {row.contact_name ?? `#${row.contact_id}`}

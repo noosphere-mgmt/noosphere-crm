@@ -44,7 +44,21 @@ export async function exportObjectCsv(
   }
   const fields = listExportFields(objectType);
   const headers = fields.map((f) => f.key);
-  let rows = await def.exportRows();
+  let rows: Record<string, unknown>[];
+  const debug = process.env.EXPORT_ROWS_DEBUG === "1";
+  if (debug) {
+    console.error(`[exportRows] start objectType=${objectType} table=${def.tableName}`);
+  }
+  try {
+    rows = await def.exportRows();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[exportRows] FAILED objectType=${objectType} table=${def.tableName}: ${message}`);
+    throw err;
+  }
+  if (debug) {
+    console.error(`[exportRows] ok objectType=${objectType} rows=${rows.length}`);
+  }
   if (options?.ids?.length) {
     const idSet = new Set(options.ids.map(String));
     rows = rows.filter((row) => idSet.has(String(row[def.matchIdField] ?? "")));

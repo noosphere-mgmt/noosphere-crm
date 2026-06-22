@@ -1,9 +1,10 @@
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { ConnectionsCompaniesPageClient } from "@/components/admin/connections/ConnectionsCompaniesPageClient";
 import { ConnectionsListError } from "@/components/admin/connections/ConnectionsListError";
 import { AdminListLoadingFallback } from "@/components/admin/layout/AdminListLoadingFallback";
-import { resolveLegacyCompanyIdFromQuery } from "@/lib/companyDrawerResolve";
+import { resolveCompanyQueryParam } from "@/lib/companyDrawerResolve";
 import { listConnectionCompanies } from "@/lib/repos/connections";
 import { getCompanyDrawerData } from "@/lib/repos/connectionsDrawer";
 
@@ -20,14 +21,19 @@ export default async function CompaniesListPage({ searchParams }: Props) {
   let legacyCompanyId: number | null = null;
 
   try {
-    const [listRows, resolvedId] = await Promise.all([
-      listConnectionCompanies(),
-      companyIdRaw ? resolveLegacyCompanyIdFromQuery(companyIdRaw) : Promise.resolve(null),
-    ]);
-    rows = listRows;
-    legacyCompanyId = resolvedId;
+    rows = await listConnectionCompanies();
   } catch (err) {
     loadError = err instanceof Error ? err.message : "Database query failed";
+  }
+
+  if (!loadError && companyIdRaw) {
+    const resolved = await resolveCompanyQueryParam(companyIdRaw);
+    if (resolved?.kind === "contact_mismatch") {
+      redirect(`/admin/contacts?contact=${encodeURIComponent(resolved.redirectToContact)}`);
+    }
+    if (resolved?.kind === "company") {
+      legacyCompanyId = resolved.legacyCompanyId;
+    }
   }
 
   let selectedCompany: Awaited<ReturnType<typeof getCompanyDrawerData>> = null;
@@ -51,7 +57,12 @@ export default async function CompaniesListPage({ searchParams }: Props) {
         <ConnectionsListError message={loadError} />
       ) : (
         <Suspense fallback={<AdminListLoadingFallback />}>
-          <ConnectionsCompaniesPageClient rows={rows} selectedCompany={selectedCompany} drawerError={drawerError} />
+          <ConnectionsCompaniesPageClient
+            rows={rows}
+            selectedCompany={selectedCompany}
+            drawerQuery={companyIdRaw ?? null}
+            drawerError={drawerError}
+          />
         </Suspense>
       )}
     </AdminShell>

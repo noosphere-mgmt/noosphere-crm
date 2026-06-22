@@ -12,10 +12,13 @@ async function verifyExport(objectType: ImportObjectType): Promise<{ ok: boolean
     return { ok: true };
   }
   try {
+    console.error(`[exportRows] verifying objectType=${objectType} table=${def.tableName}`);
     await def.exportRows();
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    const message = e instanceof Error ? e.message : String(e);
+    console.error(`[exportRows] FAILED objectType=${objectType} table=${def.tableName}: ${message}`);
+    return { ok: false, error: message };
   }
 }
 

@@ -18,6 +18,7 @@ import {
   type EntityType,
 } from "@/lib/entityRelationships";
 import { companyDrawerHref, contactDrawerHref } from "@/lib/connectionsDrawerNav";
+import { isV1CompanyRef, isV1ContactRef } from "@/lib/entityRefGuards";
 import type { RelationshipSearchHit } from "@/lib/repos/relationships";
 
 function partyTypeLabel(type: EntityType): string {
@@ -31,10 +32,21 @@ function relatedPartyHref(
 ): string {
   const id = row.related_entity_id.trim();
   if (!id) return "#";
-  if (row.related_entity_type === "company") {
-    return companyDrawerHref(basePath === "/admin/contacts" ? "/admin/companies" : basePath, searchParams, id, "overview");
+
+  if (isV1CompanyRef(id) || row.related_entity_type === "company") {
+    return companyDrawerHref(
+      basePath === "/admin/contacts" ? "/admin/companies" : basePath,
+      searchParams,
+      id,
+      "overview",
+    );
   }
-  return contactDrawerHref("/admin/contacts", searchParams, id, "overview");
+
+  if (isV1ContactRef(id) || row.related_entity_type === "contact") {
+    return contactDrawerHref("/admin/contacts", searchParams, id, "overview");
+  }
+
+  return "#";
 }
 
 export function EntityRelationshipsTab({

@@ -12,7 +12,7 @@ export function ConnectionsContactsMobile({
   onNewContact,
 }: {
   state: ConnectionsContactsListState;
-  onOpenContact: (id: number) => void;
+  onOpenContact: (id: number | string) => void;
   onNewContact: () => void;
 }) {
   return (
