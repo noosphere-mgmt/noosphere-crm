@@ -5,8 +5,8 @@ import { redirect } from "next/navigation";
 import {
   parseRelationshipLines,
   syncRelationshipColumns,
-  normalizeRelationshipLinesForSave,
 } from "@/lib/premisesRelationships";
+import { normalizeRelationshipLinesForSave } from "@/lib/premisesRelationshipsServer";
 import { isPackageOperatingModel } from "@/lib/premisesCommercial";
 import { applyPremisesFieldPatch } from "@/lib/premisesFieldPatch";
 import { composePropertyFullAddresses } from "@/lib/composeAddress";

@@ -6,10 +6,6 @@ import {
   coerceCompanyIdToSelectValue,
   type CompanyV1SelectOption,
 } from "@/lib/companyV1Display";
-import {
-  normalizePremisesV1ContactIdForDb,
-  normalizePropertyV1CompanyIdForDb,
-} from "@/lib/propertyCompanyFields";
 
 export function parseRelationshipLines(raw: string | null | undefined): PremisesRelationshipLine[] {
   if (!raw?.trim()) return [];
@@ -31,22 +27,6 @@ export function coerceRelationshipLinesForSelect(
       ? coerceCompanyIdToSelectValue(line.company_id, companyOptions) || null
       : null,
   }));
-}
-
-export async function normalizeRelationshipLinesForSave(
-  lines: PremisesRelationshipLine[],
-): Promise<PremisesRelationshipLine[]> {
-  const normalized: PremisesRelationshipLine[] = [];
-  for (const line of lines) {
-    const company_id = line.company_id?.trim()
-      ? await normalizePropertyV1CompanyIdForDb(line.company_id)
-      : null;
-    const contact_id = line.contact_id?.trim()
-      ? await normalizePremisesV1ContactIdForDb(line.contact_id)
-      : null;
-    normalized.push({ ...line, company_id, contact_id });
-  }
-  return normalized;
 }
 
 /** Sync normalize using preloaded maps (audit scripts). */

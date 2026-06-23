@@ -17,7 +17,8 @@ import {
   updatePremisesV1,
 } from "../lib/repos/premisesV1";
 import { normalizePropertyV1CompanyIdForDb } from "../lib/propertyCompanyFields";
-import { normalizeRelationshipLinesForSave, syncRelationshipColumns } from "../lib/premisesRelationships";
+import { normalizeRelationshipLinesForSave } from "../lib/premisesRelationshipsServer";
+import { syncRelationshipColumns } from "../lib/premisesRelationships";
 
 async function sampleCompany(): Promise<{ legacyId: number; v1Id: string }> {
   const row = await query<{ legacy_company_id: number; company_id: string }>(
