@@ -23,6 +23,7 @@
     "verify:import-export-schema": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-import-export-schema.ts",
     "verify:crm-ref-resolve": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-crm-ref-resolve.ts",
     "verify:property-company-save": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-property-company-save.ts",
+    "diagnose:property-v1-fk-params": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/diagnose-property-v1-fk-params.ts",
     "verify:contacts-import-pipe": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-contacts-import-pipe.ts",
     "verify:import-lookup-fields": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-import-lookup-fields.ts",
     "verify:premises-import-commit": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-premises-import-commit.ts",

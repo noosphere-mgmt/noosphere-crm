@@ -1,6 +1,10 @@
 import { query } from "@/lib/db";
 import { sqlJoinV1Company } from "@/lib/import/lookupSql";
-import { coercePropertyV1PatchForDb } from "@/lib/propertyV1DbCoerce";
+import {
+  coercePropertyV1PatchForDb,
+  describePropertyV1UpdateParams,
+  formatSqlParamDebug,
+} from "@/lib/propertyV1DbCoerce";
 
 export type PropertyV1 = {
   property_id: string;
@@ -145,7 +149,13 @@ export async function updatePropertyV1(propertyId: string, patch: PropertyV1Patc
     params.push(v);
     i++;
   }
-  await query(`UPDATE properties_v1 SET ${sets.join(", ")} WHERE property_id = $1`, params);
+  try {
+    await query(`UPDATE properties_v1 SET ${sets.join(", ")} WHERE property_id = $1`, params);
+  } catch (err) {
+    const debug = formatSqlParamDebug(describePropertyV1UpdateParams(propertyId, coerced));
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`${message} | properties_v1 UPDATE params: ${debug}`);
+  }
 }
 
 function pad4(n: number): string {

@@ -63,7 +63,6 @@ async function parsePropertyV1Form(formData: FormData): Promise<PropertyV1Patch>
     lot_number: s(formData.get("lot_number")),
     grade: s(formData.get("grade")),
     management_company_id: s(formData.get("management_company_id")),
-    operator_company_id: s(formData.get("operator_company_id")),
     owner_company_id: s(formData.get("owner_company_id")),
     current_tenant_company_id: s(formData.get("current_tenant_company_id")),
     title: s(formData.get("title")),

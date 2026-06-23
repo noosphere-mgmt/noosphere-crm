@@ -8,7 +8,9 @@ import {
   coercePremisesV1PatchForDb,
   coercePropertyV1PatchForDb,
   describePropertyV1UpdateParams,
+  fullFormParamIndex,
   getPropertyV1FkColumnTypes,
+  PROPERTY_V1_FULL_FORM_UPDATE_PARAMS,
 } from "../lib/propertyV1DbCoerce";
 import {
   createPropertyV1,
@@ -50,20 +52,26 @@ function assertNoCompOnBigint(
 
 async function logSchemaAndParam31(v1Id: string): Promise<void> {
   const types = await getPropertyV1FkColumnTypes();
-  console.log("FK column storage:");
+  console.log("FK column storage (public schema):");
   for (const [key, storage] of [...types.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
     console.log(`  ${key}: ${storage}`);
   }
 
-  const actionPatch = {
-    bldg_name_en: "Param probe",
-    operator_company_id: v1Id,
-  };
-  const coerced = await coercePropertyV1PatchForDb(actionPatch);
+  const operatorIdx = fullFormParamIndex("operator_company_id");
+  const mgmtIdx = fullFormParamIndex("management_company_id");
+  console.log(
+    `Full building form save: $${mgmtIdx}=management_company_id, $${operatorIdx}=operator_company_id ` +
+      `(${PROPERTY_V1_FULL_FORM_UPDATE_PARAMS.length} SET columns when all fields present)`,
+  );
+
+  const fullPatch = Object.fromEntries(
+    PROPERTY_V1_FULL_FORM_UPDATE_PARAMS.map((k) => [k, k.endsWith("_company_id") ? v1Id : null]),
+  );
+  const coerced = await coercePropertyV1PatchForDb(fullPatch);
   const params = describePropertyV1UpdateParams("BLDG-TEST", coerced);
   const p31 = params.find((p) => p.index === 31);
   console.log(
-    `Parameter $31 probe: ${p31 ? `${p31.column}=${JSON.stringify(p31.value)}` : "(patch has < 31 params — operator is earlier)"}`,
+    `Parameter $31 on full form: ${p31 ? `${p31.column}=${JSON.stringify(p31.value)}` : "not reached"}`,
   );
   for (const p of params) {
     if (p.column.endsWith("_company_id")) {

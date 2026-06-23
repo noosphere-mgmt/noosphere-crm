@@ -1,6 +1,10 @@
 import { query } from "@/lib/db";
 import { sqlJoinV1Company } from "@/lib/import/lookupSql";
-import { coercePremisesV1PatchForDb } from "@/lib/propertyV1DbCoerce";
+import {
+  coercePremisesV1PatchForDb,
+  describeV1UpdateParams,
+  formatSqlParamDebug,
+} from "@/lib/propertyV1DbCoerce";
 
 export type PremisesV1 = {
   premises_id: string;
@@ -156,7 +160,13 @@ export async function updatePremisesV1(premisesId: string, patch: PremisesV1Patc
     params.push(k === "relationship_lines" ? JSON.stringify(v) : v);
     i++;
   }
-  await query(`UPDATE premises_v1 SET ${sets.join(", ")} WHERE premises_id = $1`, params);
+  try {
+    await query(`UPDATE premises_v1 SET ${sets.join(", ")} WHERE premises_id = $1`, params);
+  } catch (err) {
+    const debug = formatSqlParamDebug(describeV1UpdateParams("premises_id", premisesId, coerced));
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`${message} | premises_v1 UPDATE params: ${debug}`);
+  }
 }
 
 function pad4(n: number): string {

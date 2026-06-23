@@ -1,4 +1,12 @@
 import { query } from "@/lib/db";
+import {
+  coercePremisesV1PatchForDb,
+  coercePropertyV1PatchForDb,
+  describeV1UpdateParams,
+  formatSqlParamDebug,
+} from "@/lib/propertyV1DbCoerce";
+import type { PremisesV1Patch } from "@/lib/repos/premisesV1";
+import type { PropertyV1Patch } from "@/lib/repos/propertiesV1";
 import type { ImportFieldDef, ImportObjectDefinition } from "./objectRegistry";
 import type { ExistingRecord, ImportWriteContext, RecordId } from "./types";
 
@@ -31,6 +39,19 @@ export async function loadRecords(
   );
 }
 
+async function coerceImportPatch(
+  tableName: string,
+  patch: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  if (tableName === "properties_v1") {
+    return (await coercePropertyV1PatchForDb(patch as PropertyV1Patch)) as Record<string, unknown>;
+  }
+  if (tableName === "premises_v1") {
+    return (await coercePremisesV1PatchForDb(patch as PremisesV1Patch)) as Record<string, unknown>;
+  }
+  return patch;
+}
+
 export async function genericUpdateRecord(
   tableName: string,
   idColumn: string,
@@ -39,11 +60,12 @@ export async function genericUpdateRecord(
   ctx: ImportWriteContext,
   extraSets?: Record<string, unknown>,
 ): Promise<void> {
+  const coercedPatch = await coerceImportPatch(tableName, patch);
   const sets: string[] = [];
   const params: unknown[] = [id];
   let i = 2;
 
-  for (const [key, val] of Object.entries(patch)) {
+  for (const [key, val] of Object.entries(coercedPatch)) {
     if (key === "id") continue;
     sets.push(`${key} = $${i}`);
     params.push(val);
@@ -62,7 +84,15 @@ export async function genericUpdateRecord(
     i++;
   }
   if (sets.length === 0) return;
-  await query(`UPDATE ${tableName} SET ${sets.join(", ")} WHERE ${idColumn} = $1`, params);
+  try {
+    await query(`UPDATE ${tableName} SET ${sets.join(", ")} WHERE ${idColumn} = $1`, params);
+  } catch (err) {
+    const debug = formatSqlParamDebug(
+      describeV1UpdateParams(idColumn, String(id), { ...coercedPatch, ...extraSets }),
+    );
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`${message} | ${tableName} UPDATE params: ${debug}`);
+  }
 }
 
 export function applySessionMetadata(
