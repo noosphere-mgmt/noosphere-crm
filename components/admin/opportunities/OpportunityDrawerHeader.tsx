@@ -9,12 +9,15 @@ import { OPPORTUNITY_STATUS_LABELS } from "@/lib/lookups";
 import { opportunityDetailHref } from "@/lib/opportunityDetailNav";
 import { opportunityStatusChip } from "@/lib/opportunityStatusTheme";
 import type { Opportunity } from "@/lib/types/entities";
+import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 
 export function OpportunityDrawerHeader({
   opportunity,
+  businessId,
   onClose,
 }: {
   opportunity: Opportunity;
+  businessId?: string | null;
   onClose: () => void;
 }) {
   const { editHighlight, setEditHighlight } = useInlineEdit();
@@ -29,6 +32,7 @@ export function OpportunityDrawerHeader({
           <h2 className="mt-0.5 text-lg font-semibold tracking-tight text-slate-900">
             {opportunity.client_name}
           </h2>
+          <RecordBusinessId id={businessId} className="mt-0.5 block" />
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <span {...opportunityStatusChip(opportunity.status)}>
               {OPPORTUNITY_STATUS_LABELS[opportunity.status]}

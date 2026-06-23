@@ -12,6 +12,7 @@ import { formatDateLabel } from "@/lib/connectionsDisplay";
 import { getContactLabel } from "@/lib/contactName";
 import { connectionsGlassClasses } from "@/lib/connectionsGlassTheme";
 import { MobileCardMeta, MobileCardTitle } from "@/components/admin/mobile/MobileCard";
+import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { MobileContactActions } from "@/components/admin/mobile/MobileContactActions";
 
 export function ConnectionsContactsListMobile({
@@ -58,6 +59,7 @@ export function ConnectionsContactsListMobile({
                   className={`w-full cursor-pointer px-3 py-3 text-left active:bg-slate-50 ${connectionsGlassClasses.link}`}
                 >
                   <MobileCardTitle>{label}</MobileCardTitle>
+                  <RecordBusinessId id={row.v1_contact_id} className="mt-0.5 block" />
                   <MobileCardMeta>
                     {row.company_name ?? "No company"} · {row.open_opportunities ?? 0} open opps
                   </MobileCardMeta>

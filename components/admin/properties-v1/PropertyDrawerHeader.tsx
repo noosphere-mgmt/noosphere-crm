@@ -5,15 +5,18 @@ import { moduleEditButtonClass } from "@/components/admin/ModuleActionBar";
 import { InlineSaveStatus } from "@/components/admin/inline/InlineRecordChrome";
 import { useInlineEdit } from "@/components/admin/inline/InlineEditProvider";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
+import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 
 export function PropertyDrawerHeader({
   title,
   subtitle,
+  businessId,
   onClose,
   onFullEdit,
 }: {
   title: string;
   subtitle?: string | null;
+  businessId?: string | null;
   onClose: () => void;
   onFullEdit: () => void;
 }) {
@@ -26,6 +29,7 @@ export function PropertyDrawerHeader({
         <div className="min-w-0">
           <p className="text-xs text-slate-500">{editHighlight ? "Click a field to edit" : "Review"}</p>
           <h2 className="mt-0.5 text-lg font-semibold tracking-tight text-slate-900">{title}</h2>
+          <RecordBusinessId id={businessId} className="mt-0.5 block" />
           {subtitle ? <p className="mt-1 text-sm text-slate-600">{subtitle}</p> : null}
         </div>
         <div className="flex shrink-0 items-center gap-1">

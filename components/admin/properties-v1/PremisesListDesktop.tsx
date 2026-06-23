@@ -5,6 +5,7 @@ import { updatePremisesV1Action } from "@/app/admin/properties/actions";
 import { PremisesDrawer } from "@/components/admin/properties-v1/PremisesDrawer";
 import { ListingRecordCount } from "@/components/admin/ListingRecordCount";
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
+import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { formatAreaSqft } from "@/lib/formatCurrency";
 import { formatPremisesCompactLabel, formatPremisesName, formatVerifiedDate } from "@/lib/premisesDisplay";
 import { formatListingStatus } from "@/lib/premisesListing";
@@ -251,6 +252,7 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                       >
                         {formatPremisesCompactLabel(row.floor, row.unit)}
                       </button>
+                      <RecordBusinessId id={row.premises_id} className="mt-0.5 block" />
                     </td>
                     <td className="px-3 py-1.5 text-slate-700">{row.district_en ?? "—"}</td>
                     <td className="px-3 py-1.5 text-slate-700">{row.operator_name ?? "—"}</td>

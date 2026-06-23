@@ -212,6 +212,7 @@ export type Company = {
   updated_at: string;
   primary_contact_name?: string | null;
   open_opportunities?: number;
+  v1_company_id?: string | null;
 };
 
 export type Contact = {
@@ -242,6 +243,7 @@ export type Contact = {
   company_country?: string | null;
   company_city?: string | null;
   open_opportunities?: number;
+  v1_contact_id?: string | null;
 };
 
 export type OpportunitySalesRole = "to_lease" | "to_buy";
@@ -287,6 +289,7 @@ export type Opportunity = {
   referrer_company_name?: string | null;
   referrer_contact_name?: string | null;
   has_viewing_premises?: boolean;
+  v1_opportunity_id?: string | null;
 };
 
 export type ProposedPremisesStatus =

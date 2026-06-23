@@ -191,6 +191,7 @@ export function CompanyDrawer({
             companyId={company.id}
             title={company.company_name}
             subtitle={roleLabel}
+            businessId={data.v1CompanyId}
             fullEdit={fullEdit}
             onClose={onClose}
           />

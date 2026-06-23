@@ -8,6 +8,7 @@ import {
 } from "@/components/admin/properties-v1/PropertyDrawer";
 import { ListingRecordCount } from "@/components/admin/ListingRecordCount";
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
+import { RecordNameWithId } from "@/components/admin/RecordBusinessId";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import { usePropertiesListSelection } from "@/components/admin/properties-v1/PropertiesListSelectionContext";
 import type { PropertyV1, PropertyV1SelectOption } from "@/lib/repos/propertiesV1";
@@ -159,7 +160,11 @@ export function PropertiesFlatListClient({
                       className={`text-left ${theme.link}`}
                       onClick={() => openView(row.property_id)}
                     >
-                      {row.bldg_name_en ?? "—"}
+                      <RecordNameWithId
+                        name={row.bldg_name_en ?? "—"}
+                        id={row.property_id}
+                        nameClassName={theme.link}
+                      />
                     </button>
                   </td>
                   <td className="px-3 py-1.5 text-slate-700">{row.district_en ?? "—"}</td>

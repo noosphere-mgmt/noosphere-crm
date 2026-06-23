@@ -5,11 +5,13 @@ export type ContactV1Option = {
   contact_id: string;
   display_name: string;
   company_id: string | null;
+  legacy_contact_id: number | null;
 };
 
 export const listContactV1Options = cache(async function listContactV1Options(): Promise<ContactV1Option[]> {
   const v1 = await query<ContactV1Option>(
-    `SELECT contact_id, COALESCE(display_name, contact_id) AS display_name, company_id
+    `SELECT contact_id, COALESCE(display_name, contact_id) AS display_name, company_id,
+            legacy_contact_id::int AS legacy_contact_id
      FROM contacts_v1
      ORDER BY display_name ASC NULLS LAST, contact_id ASC`,
   );
@@ -18,7 +20,8 @@ export const listContactV1Options = cache(async function listContactV1Options():
   return query<ContactV1Option>(
     `SELECT ('legacy:' || c.id::text) AS contact_id,
             c.contact_name AS display_name,
-            COALESCE(m.new_id, 'legacy:' || c.company_id::text) AS company_id
+            COALESCE(m.new_id, 'legacy:' || c.company_id::text) AS company_id,
+            c.id::int AS legacy_contact_id
      FROM contacts c
      LEFT JOIN id_map_v1 m ON m.entity_type = 'company' AND m.legacy_id = c.company_id
      WHERE c.is_active = TRUE

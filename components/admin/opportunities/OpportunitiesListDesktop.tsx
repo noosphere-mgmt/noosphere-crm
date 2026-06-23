@@ -13,6 +13,7 @@ import {
 } from "@/lib/opportunitiesList";
 import { opportunityDrawerHref } from "@/lib/opportunitiesDrawerNav";
 import { opportunityStatusChip } from "@/lib/opportunityStatusTheme";
+import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 
 function formatDateLabel(value: string | null | undefined): string {
   if (!value) return "—";
@@ -130,6 +131,7 @@ export function OpportunitiesListDesktop({
                     {row.client_name}
                     {row.district_preference ? ` – ${row.district_preference.split(/[,;/|]/)[0]?.trim()}` : ""}
                   </Link>
+                  <RecordBusinessId id={row.v1_opportunity_id} className="mt-0.5 block" />
                 </td>
                 <td className="px-3 py-1.5 text-slate-700">{row.linked_company_name ?? "—"}</td>
                 <td className="px-3 py-1.5 text-slate-700">{row.primary_contact_name ?? "—"}</td>

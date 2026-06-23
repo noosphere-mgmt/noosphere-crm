@@ -6,9 +6,11 @@ import { useFormEditing } from "@/components/admin/ModuleActionBar";
 import { COVERAGE_OPTIONS } from "@/lib/connectionsValues";
 import { suggestDisplayName } from "@/lib/contactName";
 import { COMPANY_ROLE_LABELS, COMPANY_ROLES, PREFERRED_LANGUAGES } from "@/lib/lookups";
+import { toLegacyCompanySelectOptions } from "@/lib/crmSelectOptions";
 import type { CompanyRole, Contact } from "@/lib/types/entities";
+import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 
-type CompanyOption = { id: number; company_name: string };
+type CompanyOption = { id: number; company_name: string; v1_company_id?: string | null };
 
 type Props = {
   defaults?: Contact;
@@ -132,7 +134,10 @@ export function ContactFormFields({ defaults, companies, fixedCompanyId, layout 
         defaultValue={companyId?.toString() ?? ""}
         placeholder="— Select company —"
         required
-        options={companies.map((c) => ({ value: String(c.id), label: c.company_name }))}
+        options={toLegacyCompanySelectOptions(companies).map((c) => ({
+          value: c.value,
+          label: c.label,
+        }))}
       />
     );
 
@@ -218,6 +223,7 @@ export function ContactFormFields({ defaults, companies, fixedCompanyId, layout 
 
   return (
     <div className="space-y-4">
+      {defaults?.v1_contact_id ? <RecordBusinessId id={defaults.v1_contact_id} /> : null}
       {companyField}
       {nameRow}
       {identityRow}

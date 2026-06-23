@@ -11,6 +11,7 @@ import { PropertyEditForm, propertyFormId } from "@/components/admin/properties-
 import { PropertyInlineOverview } from "@/components/admin/properties-v1/PropertyInlineOverview";
 import { composeAddressEnglish, hasAddressParts } from "@/lib/composeAddress";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
+import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
 import type { ContactV1Option } from "@/lib/repos/contactsV1";
 import type { PremisesDrawerData } from "@/lib/repos/premisesDrawer";
@@ -60,6 +61,7 @@ function PropertyPageHeader({
       <div className="min-w-0 flex-1">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Properties</p>
         <h1 className="text-xl font-semibold tracking-tight text-slate-900">{propertyTitle(property)}</h1>
+        <RecordBusinessId id={property.property_id} className="mt-0.5 block" />
         {address ? (
           <p className="mt-1 text-sm leading-snug text-slate-600">{address}</p>
         ) : (

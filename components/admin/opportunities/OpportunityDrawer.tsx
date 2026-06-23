@@ -45,7 +45,11 @@ export function OpportunityDrawer({
           className="absolute inset-y-0 left-0 z-20 hidden w-1.5 cursor-col-resize touch-none hover:bg-emerald-500/20 lg:block"
         />
         <InlineEditProvider initialEditHighlight={false} resetKey={opportunity.id}>
-          <OpportunityDrawerHeader opportunity={opportunity} onClose={onClose} />
+          <OpportunityDrawerHeader
+            opportunity={opportunity}
+            businessId={data.v1OpportunityId ?? opportunity.v1_opportunity_id}
+            onClose={onClose}
+          />
           <div className="shrink-0 bg-white px-4 pt-2">
             <OpportunityDetailTabs opportunityId={opportunity.id} variant="drawer" />
           </div>

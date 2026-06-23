@@ -24,9 +24,8 @@ import {
   type OpportunitySalesRole,
 } from "@/lib/opportunityValues";
 import type { OpportunityDetailData } from "@/lib/repos/opportunityDetail";
-import type { ContactOption } from "@/lib/repos/contacts";
-
-type CompanyOption = { id: number; company_name: string };
+import { toLegacyContactSelectOptions } from "@/lib/crmSelectOptions";
+import type { CompanyOption } from "@/lib/repos/companies";
 
 export function OpportunityInlineOverview({ data }: { data: OpportunityDetailData }) {
   const { opportunity, companies, contacts, parties } = data;
@@ -39,11 +38,13 @@ export function OpportunityInlineOverview({ data }: { data: OpportunityDetailDat
   }, [contacts, opportunity.company_id]);
 
   const contactOptions = useMemo(
-    () =>
-      companyContacts.map((c: ContactOption) => ({
-        value: String(c.id),
-        label: c.contact_name,
+    () => [
+      { value: "", label: "—" },
+      ...toLegacyContactSelectOptions(companyContacts).map((c) => ({
+        value: c.value,
+        label: c.label,
       })),
+    ],
     [companyContacts],
   );
 
@@ -73,7 +74,7 @@ export function OpportunityInlineOverview({ data }: { data: OpportunityDetailDat
         <InlineSelectField
           label="Contact"
           value={opportunity.primary_contact_id ? String(opportunity.primary_contact_id) : ""}
-          options={[{ value: "", label: "—" }, ...contactOptions]}
+          options={contactOptions}
           onSave={async (value) => {
             const id = value ? Number.parseInt(String(value), 10) : null;
             return save("primary_contact_id")(Number.isFinite(id) ? id : null);

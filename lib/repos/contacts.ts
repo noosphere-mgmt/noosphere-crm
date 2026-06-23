@@ -84,20 +84,24 @@ async function clearPrimaryForCompany(companyId: number, exceptId?: number): Pro
 
 export async function listContacts(companyId?: number): Promise<Contact[]> {
   if (companyId != null) {
-    return query<Contact>(
-      `SELECT ${contactSelect}, co.company_name, co.country AS company_country, co.city AS company_city
-       FROM contacts c
-       LEFT JOIN companies co ON co.id::text = c.company_id::text
-       WHERE c.company_id::text = $1::text
-       ORDER BY c.is_primary DESC, ${sqlContactDisplayName("c")} ASC`,
-      [companyId],
-    );
+  return query<Contact>(
+    `SELECT ${contactSelect}, co.company_name, co.country AS company_country, co.city AS company_city,
+            cm.new_id AS v1_contact_id
+     FROM contacts c
+     LEFT JOIN companies co ON co.id::text = c.company_id::text
+     LEFT JOIN id_map_v1 cm ON cm.entity_type = 'contact' AND cm.legacy_id = c.id
+     WHERE c.company_id::text = $1::text
+     ORDER BY c.is_primary DESC, ${sqlContactDisplayName("c")} ASC`,
+    [companyId],
+  );
   }
   return query<Contact>(
     `SELECT ${contactSelect}, co.company_name, co.country AS company_country, co.city AS company_city,
-            COALESCE(opp.open_opportunities, 0)::int AS open_opportunities
+            COALESCE(opp.open_opportunities, 0)::int AS open_opportunities,
+            cm.new_id AS v1_contact_id
      FROM contacts c
      LEFT JOIN companies co ON co.id::text = c.company_id::text
+     LEFT JOIN id_map_v1 cm ON cm.entity_type = 'contact' AND cm.legacy_id = c.id
      LEFT JOIN LATERAL (
        SELECT COUNT(DISTINCT o.id)::int AS open_opportunities
        FROM opportunities o
@@ -114,6 +118,7 @@ export type ContactOption = {
   company_id: number;
   contact_name: string;
   is_primary: boolean;
+  v1_contact_id?: string | null;
 };
 
 export const listContactOptions = cache(async function listContactOptions(): Promise<ContactOption[]> {
@@ -121,9 +126,11 @@ export const listContactOptions = cache(async function listContactOptions(): Pro
     `SELECT c.id,
             CASE WHEN c.company_id::text ~ '^\\d+$' THEN c.company_id::text::int ELSE co.id END AS company_id,
             ${sqlContactDisplayName("c")} AS contact_name,
-            c.is_primary
+            c.is_primary,
+            cm.new_id AS v1_contact_id
      FROM contacts c
      LEFT JOIN companies co ON co.id::text = c.company_id::text
+     LEFT JOIN id_map_v1 cm ON cm.entity_type = 'contact' AND cm.legacy_id = c.id
      WHERE c.is_active = TRUE
      ORDER BY company_id, c.is_primary DESC, ${sqlContactDisplayName("c")} ASC`,
   );
@@ -134,9 +141,11 @@ export async function getContact(id: number | string): Promise<Contact | null> {
   if (legacyId == null) return null;
 
   const rows = await query<Contact>(
-    `SELECT ${contactSelect}, co.company_name, co.country AS company_country, co.city AS company_city
+    `SELECT ${contactSelect}, co.company_name, co.country AS company_country, co.city AS company_city,
+            cm.new_id AS v1_contact_id
      FROM contacts c
      LEFT JOIN companies co ON co.id::text = c.company_id::text
+     LEFT JOIN id_map_v1 cm ON cm.entity_type = 'contact' AND cm.legacy_id = c.id
      WHERE c.id = $1`,
     [legacyId],
   );

@@ -28,6 +28,7 @@ import {
   EMPTY_ACTIVITIES_QUICK_FILTERS,
 } from "@/lib/activitiesList";
 import { ACTIVITY_TYPES } from "@/lib/activityValues";
+import { formatLabelWithBusinessId } from "@/lib/crmSelectOptions";
 import type { ActivityListRow } from "@/lib/repos/activities";
 
 export function ActivitiesListClient({
@@ -74,7 +75,9 @@ export function ActivitiesListClient({
   const companyOptions = useMemo(() => {
     const map = new Map<string, string>();
     for (const row of rows) {
-      if (row.company_id && row.company_name) map.set(String(row.company_id), row.company_name);
+      if (row.company_id && row.company_name) {
+        map.set(String(row.company_id), formatLabelWithBusinessId(row.company_name, row.v1_company_id));
+      }
     }
     return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
   }, [rows]);
@@ -82,7 +85,9 @@ export function ActivitiesListClient({
   const contactOptions = useMemo(() => {
     const map = new Map<string, string>();
     for (const row of rows) {
-      if (row.contact_id && row.contact_name) map.set(String(row.contact_id), row.contact_name);
+      if (row.contact_id && row.contact_name) {
+        map.set(String(row.contact_id), formatLabelWithBusinessId(row.contact_name, row.v1_contact_id));
+      }
     }
     return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
   }, [rows]);
@@ -91,7 +96,10 @@ export function ActivitiesListClient({
     const map = new Map<string, string>();
     for (const row of rows) {
       if (row.opportunity_id && row.opportunity_name) {
-        map.set(String(row.opportunity_id), row.opportunity_name);
+        map.set(
+          String(row.opportunity_id),
+          formatLabelWithBusinessId(row.opportunity_name, row.v1_opportunity_id),
+        );
       }
     }
     return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));

@@ -12,6 +12,7 @@ import { OPPORTUNITY_STATUS_LABELS } from "@/lib/lookups";
 import { formatOpportunityBudget } from "@/lib/opportunitiesList";
 import { opportunityStatusChip } from "@/lib/opportunityStatusTheme";
 import { MobileCardMeta, MobileCardTitle } from "@/components/admin/mobile/MobileCard";
+import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 
 function formatDateLabel(value: string | null | undefined): string {
   if (!value) return "—";
@@ -62,6 +63,7 @@ export function OpportunitiesListMobile({
                 >
                   <div className="flex items-start justify-between gap-2">
                     <MobileCardTitle>{row.client_name}</MobileCardTitle>
+                    <RecordBusinessId id={row.v1_opportunity_id} className="mt-0.5 block" />
                     <span {...opportunityStatusChip(row.status)} className="shrink-0 text-xs">
                       {OPPORTUNITY_STATUS_LABELS[row.status]}
                     </span>

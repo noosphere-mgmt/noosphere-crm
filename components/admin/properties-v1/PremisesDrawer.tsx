@@ -415,6 +415,7 @@ export function PremisesDrawer({
           <PremisesDrawerHeader
             title={title}
             subtitle={buildingSubtitle}
+            businessId={premises.premises_id}
             onClose={onClose}
             onEdit={() => onModeChange("edit")}
             onFullEdit={() => onModeChange("edit")}
@@ -425,6 +426,7 @@ export function PremisesDrawer({
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Edit premises</p>
               <h2 className="mt-0.5 text-lg font-semibold tracking-tight text-slate-900">{title}</h2>
+              <span className="mt-0.5 block font-mono text-xs text-slate-500">{premises.premises_id}</span>
               <p className="mt-1 text-sm text-slate-600">{buildingSubtitle}</p>
             </div>
             <ModuleActionBar mode="edit" formId={formId} onCancel={() => onModeChange("view")} module="properties" />

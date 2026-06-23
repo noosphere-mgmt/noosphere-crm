@@ -10,6 +10,7 @@ import {
   RELATIONSHIP_STRENGTH_LABELS,
 } from "@/lib/lookups";
 import type { Company, CompanyRole, RelationshipStrength } from "@/lib/types/entities";
+import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 
 const selectClass = "mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm";
 
@@ -26,6 +27,11 @@ export function CompanyFormFields({ defaults }: Props) {
 
   return (
     <>
+      {defaults?.v1_company_id ? (
+        <div className="mb-2">
+          <RecordBusinessId id={defaults.v1_company_id} />
+        </div>
+      ) : null}
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField label="Company name (EN)" name="company_name" defaultValue={defaults?.company_name ?? ""} required />
         <FormField label="Company name (CN)" name="company_name_cn" defaultValue={defaults?.company_name_cn ?? ""} />

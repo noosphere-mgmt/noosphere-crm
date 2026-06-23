@@ -21,6 +21,7 @@ import { coerceLegacyContactId } from "@/lib/entityRefGuards";
 import { listEntityRelationships } from "@/lib/repos/relationships";
 import type { EntityRelationshipRow } from "@/lib/entityRelationships";
 import type { Asset, Company, Contact } from "@/lib/types/entities";
+import type { CompanyOption } from "@/lib/repos/companies";
 
 export type CompanyDrawerData = {
   company: Company;
@@ -30,7 +31,7 @@ export type CompanyDrawerData = {
   relationships: EntityRelationshipRow[];
   spaces: Asset[];
   timeline: ActivityListRow[];
-  companies: { id: number; company_name: string }[];
+  companies: CompanyOption[];
   crmSummary: CompanyCrmSummary;
   lastActivityDate: string | null;
 };
@@ -40,7 +41,7 @@ export type ContactDrawerData = {
   v1ContactId: string | null;
   company: Company | null;
   companyCrmSummary: CompanyCrmSummary | null;
-  companies: { id: number; company_name: string }[];
+  companies: CompanyOption[];
   opportunities: LinkedOpportunityRow[];
   relationships: EntityRelationshipRow[];
   activities: ActivityListRow[];

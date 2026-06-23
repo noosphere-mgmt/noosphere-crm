@@ -12,6 +12,7 @@ import type { CompanyV1Option } from "@/lib/repos/companiesV1";
 import type { ContactV1Option } from "@/lib/repos/contactsV1";
 import { formatBuildingGradeShort } from "@/lib/buildingGradeDisplay";
 import { ListingRecordCount } from "@/components/admin/ListingRecordCount";
+import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { MobileCard, MobileCardList, MobileCardMeta, MobileCardTitle } from "@/components/admin/mobile/MobileCard";
 
 export type BuildingLookupRow = Pick<
@@ -50,6 +51,7 @@ function BuildingRow({
   return (
     <MobileCard onClick={() => onOpen(row.property_id)}>
       <MobileCardTitle>{name}</MobileCardTitle>
+      <RecordBusinessId id={row.property_id} className="mt-0.5 block" />
       <MobileCardMeta>{metaParts.join(" · ")}</MobileCardMeta>
     </MobileCard>
   );

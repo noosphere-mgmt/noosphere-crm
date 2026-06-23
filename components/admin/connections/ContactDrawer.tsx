@@ -174,6 +174,7 @@ export function ContactDrawer({
           <ConnectionsDrawerHeader
             title={getContactLabel(contact)}
             subtitle={contact.company_name ?? undefined}
+            businessId={data.v1ContactId}
             onClose={onClose}
           />
           <div className="shrink-0 bg-white px-4 pt-2">

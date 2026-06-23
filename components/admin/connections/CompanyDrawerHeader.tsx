@@ -7,17 +7,20 @@ import { ModuleActionBar, moduleEditButtonClass } from "@/components/admin/Modul
 import { InlineSaveStatus } from "@/components/admin/inline/InlineRecordChrome";
 import { useInlineEdit } from "@/components/admin/inline/InlineEditProvider";
 import { companyDrawerHref } from "@/lib/connectionsDrawerNav";
+import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 
 export function CompanyDrawerHeader({
   companyId,
   title,
   subtitle,
+  businessId,
   fullEdit,
   onClose,
 }: {
   companyId: number;
   title: string;
   subtitle?: string | null;
+  businessId?: string | null;
   fullEdit: boolean;
   onClose: () => void;
 }) {
@@ -40,6 +43,7 @@ export function CompanyDrawerHeader({
         <div className="min-w-0">
           <p className="text-xs text-slate-500">{fullEdit ? "Edit company" : editHighlight ? "Click a field to edit" : "Review"}</p>
           <h2 className="mt-0.5 text-lg font-semibold tracking-tight text-slate-900">{title}</h2>
+          <RecordBusinessId id={businessId} className="mt-0.5 block" />
           {subtitle ? <p className="mt-1 text-sm text-slate-600">{subtitle}</p> : null}
         </div>
         <div className="flex shrink-0 items-center gap-1">

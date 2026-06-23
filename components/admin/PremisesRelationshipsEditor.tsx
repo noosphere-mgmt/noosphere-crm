@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { CompanyV1SelectOption } from "@/lib/companyV1Display";
+import { toContactV1SelectOptions } from "@/lib/contactV1Display";
 import type { ContactV1Option } from "@/lib/repos/contactsV1";
 import {
   coerceRelationshipLinesForSelect,
@@ -44,6 +45,8 @@ export function PremisesRelationshipsEditor({
   const [lines, setLines] = useState<PremisesRelationshipLine[]>(() =>
     coerceRelationshipLinesForSelect(initialPremisesRelationshipLines(premises), companyOptions),
   );
+
+  const contactSelectOptions = useMemo(() => toContactV1SelectOptions(contacts), [contacts]);
 
   function updateLine(index: number, patch: Partial<PremisesRelationshipLine>) {
     setLines((prev) => prev.map((line, i) => (i === index ? { ...line, ...patch } : line)));
@@ -107,11 +110,14 @@ export function PremisesRelationshipsEditor({
                 onChange={(e) => updateLine(index, { contact_id: e.target.value || null })}
               >
                 <option value="">— Select contact —</option>
-                {contactsForCompany(contacts, line.company_id, companyOptions).map((c) => (
-                  <option key={c.contact_id} value={c.contact_id}>
-                    {c.display_name}
-                  </option>
-                ))}
+                {contactsForCompany(contacts, line.company_id, companyOptions).map((c) => {
+                  const opt = contactSelectOptions.find((o) => o.value === c.contact_id);
+                  return (
+                    <option key={c.contact_id} value={c.contact_id}>
+                      {opt?.label ?? c.display_name}
+                    </option>
+                  );
+                })}
               </select>
             </label>
             <label className="block text-sm font-medium text-slate-700">

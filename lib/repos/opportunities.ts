@@ -23,7 +23,8 @@ const opportunitySelect = `
   lc.company_name AS linked_company_name,
   pc.contact_name AS primary_contact_name,
   rc.company_name AS referrer_company_name,
-  rfc.contact_name AS referrer_contact_name
+  rfc.contact_name AS referrer_contact_name,
+  om.new_id AS v1_opportunity_id
 `;
 
 const opportunityFrom = `
@@ -32,6 +33,7 @@ const opportunityFrom = `
   LEFT JOIN contacts pc ON pc.id::text = o.primary_contact_id::text
   LEFT JOIN companies rc ON rc.id::text = o.referrer_company_id::text
   LEFT JOIN contacts rfc ON rfc.id::text = o.referrer_contact_id::text
+  LEFT JOIN id_map_v1 om ON om.entity_type = 'opportunity' AND om.legacy_id = o.id
 `;
 
 export type OpportunityInput = {

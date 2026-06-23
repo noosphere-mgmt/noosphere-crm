@@ -6,6 +6,7 @@ import { contactDrawerHref } from "@/lib/connectionsDrawerNav";
 import { formatCoverage, formatDateLabel } from "@/lib/connectionsDisplay";
 import { getContactLabel } from "@/lib/contactName";
 import { connectionsGlassClasses } from "@/lib/connectionsGlassTheme";
+import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 
 function SortableHeader({
   label,
@@ -125,6 +126,7 @@ export function ConnectionsContactsListDesktop({
                     >
                       {getContactLabel(row)}
                     </button>
+                    <RecordBusinessId id={row.v1_contact_id} className="mt-0.5 block" />
                   </td>
                   <td className="px-3 py-1.5 text-slate-700">
                     <button

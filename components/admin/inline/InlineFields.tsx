@@ -11,6 +11,7 @@ import {
   inlineViewFieldClass,
 } from "@/components/admin/inline/InlineRecordChrome";
 import { connectionsGlassClasses } from "@/lib/connectionsGlassTheme";
+import { formatLabelWithBusinessId } from "@/lib/crmSelectOptions";
 
 type SaveFn = (value: unknown) => Promise<{ ok: boolean; error?: string }>;
 
@@ -737,7 +738,7 @@ export function InlineCompanyPickerField({
   label: string;
   companyId: number;
   companyName: string | null;
-  companies: { id: number; company_name: string }[];
+  companies: { id: number; company_name: string; v1_company_id?: string | null }[];
   onSave: SaveFn;
 }) {
   const { editHighlight, runSave, editing, setEditing, beginEdit } = useGatedInlineEdit();
@@ -748,6 +749,8 @@ export function InlineCompanyPickerField({
   const filtered = companies.filter((c) =>
     c.company_name.toLowerCase().includes(query.trim().toLowerCase()),
   );
+  const companyLabel = (c: { company_name: string; v1_company_id?: string | null }) =>
+    formatLabelWithBusinessId(c.company_name, c.v1_company_id);
 
   useEffect(() => {
     if (!editing) {
@@ -804,7 +807,7 @@ export function InlineCompanyPickerField({
                     void commit(c.id);
                   }}
                 >
-                  {c.company_name}
+                  {companyLabel(c)}
                 </button>
               </li>
             ))

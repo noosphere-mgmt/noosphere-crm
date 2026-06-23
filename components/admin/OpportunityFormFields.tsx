@@ -20,12 +20,14 @@ import {
 import {
   type OpportunitySalesRole,
 } from "@/lib/opportunityValues";
+import { toLegacyCompanySelectOptions, toLegacyContactSelectOptions } from "@/lib/crmSelectOptions";
 import type { ContactOption } from "@/lib/repos/contacts";
 import type { Opportunity } from "@/lib/types/entities";
+import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
+
+type CompanyOption = { id: number; company_name: string; v1_company_id?: string | null };
 
 const selectReadOnlyClass = "mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800";
-
-type CompanyOption = { id: number; company_name: string };
 
 type Props = {
   defaults?: Opportunity;
@@ -38,6 +40,9 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
   const [companyId, setCompanyId] = useState(defaults?.company_id?.toString() ?? "");
   const [primaryContactId, setPrimaryContactId] = useState(defaults?.primary_contact_id?.toString() ?? "");
   const [salesRole, setSalesRole] = useState<OpportunitySalesRole>(defaults?.sales_role ?? "to_lease");
+
+  const companyOptions = useMemo(() => toLegacyCompanySelectOptions(companies), [companies]);
+  const contactOptions = useMemo(() => toLegacyContactSelectOptions(contacts), [contacts]);
 
   const contactsForCompanyList = useMemo(
     () => contactsForCompany(contacts, companyId),
@@ -88,6 +93,11 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
 
   return (
     <>
+      {defaults?.v1_opportunity_id ? (
+        <div className="mb-2">
+          <RecordBusinessId id={defaults.v1_opportunity_id} />
+        </div>
+      ) : null}
       <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
         <p className="mb-3 text-sm font-medium text-slate-800">Referrer & admin</p>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -100,9 +110,9 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
               className={editing ? selectClass : selectReadOnlyClass}
             >
               <option value="">— None —</option>
-              {companies.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.company_name}
+              {companyOptions.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
                 </option>
               ))}
             </select>
@@ -130,9 +140,9 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
               className={editing ? selectClass : selectReadOnlyClass}
             >
               <option value="">— Select company —</option>
-              {companies.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.company_name}
+              {companyOptions.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
                 </option>
               ))}
             </select>
@@ -147,11 +157,14 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
               disabled={!editing || !companyId}
             >
               <option value="">— Select contact —</option>
-              {contactsForCompanyList.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.contact_name}
-                </option>
-              ))}
+              {contactsForCompanyList.map((c) => {
+                const opt = contactOptions.find((o) => o.value === String(c.id));
+                return (
+                  <option key={c.id} value={c.id}>
+                    {opt?.label ?? c.contact_name}
+                  </option>
+                );
+              })}
             </select>
           </label>
           <label className="block min-w-0 text-sm">

@@ -87,22 +87,32 @@ export async function listCompanies(roleFilter?: CompanyRole): Promise<Company[]
   );
 }
 
-export const listCompanyOptions = cache(async function listCompanyOptions(): Promise<
-  { id: number; company_name: string }[]
-> {
-  return query<{ id: number; company_name: string }>(
-    `SELECT id, company_name FROM companies WHERE is_active = TRUE ORDER BY company_name ASC`,
+export type CompanyOption = {
+  id: number;
+  company_name: string;
+  v1_company_id?: string | null;
+};
+
+export const listCompanyOptions = cache(async function listCompanyOptions(): Promise<CompanyOption[]> {
+  return query<CompanyOption>(
+    `SELECT c.id, c.company_name, m.new_id AS v1_company_id
+     FROM companies c
+     LEFT JOIN id_map_v1 m ON m.entity_type = 'company' AND m.legacy_id = c.id
+     WHERE c.is_active = TRUE
+     ORDER BY c.company_name ASC`,
   );
 });
 
 export async function listCompanyOptionsByRole(
   role?: CompanyRole,
-): Promise<{ id: number; company_name: string }[]> {
+): Promise<CompanyOption[]> {
   if (role) {
-    const filtered = await query<{ id: number; company_name: string }>(
-      `SELECT id, company_name FROM companies
-       WHERE is_active = TRUE AND $1 = ANY(roles)
-       ORDER BY company_name ASC`,
+    const filtered = await query<CompanyOption>(
+      `SELECT c.id, c.company_name, m.new_id AS v1_company_id
+       FROM companies c
+       LEFT JOIN id_map_v1 m ON m.entity_type = 'company' AND m.legacy_id = c.id
+       WHERE c.is_active = TRUE AND $1 = ANY(c.roles)
+       ORDER BY c.company_name ASC`,
       [role],
     );
     if (filtered.length > 0) return filtered;
@@ -112,7 +122,10 @@ export async function listCompanyOptionsByRole(
 
 export async function getCompany(id: number): Promise<Company | null> {
   const rows = await query<Company>(
-    `SELECT ${companySelect} FROM companies WHERE id = $1`,
+    `SELECT ${companySelect.replace(/\bid\b/g, "companies.id")}, m.new_id AS v1_company_id
+     FROM companies
+     LEFT JOIN id_map_v1 m ON m.entity_type = 'company' AND m.legacy_id = companies.id
+     WHERE companies.id = $1`,
     [id],
   );
   return rows[0] ?? null;

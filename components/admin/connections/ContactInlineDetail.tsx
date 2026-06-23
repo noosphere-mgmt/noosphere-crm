@@ -24,9 +24,8 @@ import { contactDrawerHref } from "@/lib/connectionsDrawerNav";
 import type { ContactDetailTabId } from "@/lib/contactDetailTab";
 import { COMPANY_ROLE_LABELS, COMPANY_ROLES, PREFERRED_LANGUAGES } from "@/lib/lookups";
 import type { ContactCrmSummary } from "@/lib/repos/contactCrmSummary";
+import type { CompanyOption } from "@/lib/repos/companies";
 import type { Contact } from "@/lib/types/entities";
-
-type CompanyOption = { id: number; company_name: string };
 
 function CrmStat({
   label,

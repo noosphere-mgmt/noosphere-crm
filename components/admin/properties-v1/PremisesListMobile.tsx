@@ -14,6 +14,7 @@ import {
 import { formatAreaSqft } from "@/lib/formatCurrency";
 import { formatPremisesCompactLabel, formatPremisesName } from "@/lib/premisesDisplay";
 import { formatListingStatus } from "@/lib/premisesListing";
+import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { premisesDrawerHref } from "@/lib/premisesDrawerNav";
 import {
   resolvePremisesFlatListFilters,
@@ -119,6 +120,7 @@ export function PremisesListMobile(props: PremisesListComponentProps) {
                             {premiseLabel !== "—" ? premiseLabel : "Unnamed premise"}
                           </span>
                         </p>
+                        <RecordBusinessId id={row.premises_id} className="mt-0.5 block" />
                         {metaParts.length > 0 ? (
                           <MobileCardMeta>{metaParts.join(" · ")}</MobileCardMeta>
                         ) : null}

@@ -95,6 +95,7 @@ export function PropertyDrawer({
             <PropertyDrawerHeader
               title={propertyHeading(property)}
               subtitle={propertySubtitle(property)}
+              businessId={property.property_id}
               onClose={onClose}
               onFullEdit={() => onModeChange("edit")}
             />
