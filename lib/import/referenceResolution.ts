@@ -7,6 +7,7 @@ import {
   resolveCompanyRefToV1,
   resolveContactRef,
   resolveContactRefToLegacy,
+  resolveContactRefToV1,
   resolveOpportunityRef,
   resolveOpportunityRefToLegacy,
   resolvePremisesRef,
@@ -193,7 +194,7 @@ async function lookupActivityIdByName(name: string): Promise<string | null> {
   return null;
 }
 
-type ReferenceKind = "company_v1" | "legacy_company" | "building" | "contact" | "opportunity" | "premises" | "activity";
+type ReferenceKind = "company_v1" | "legacy_company" | "contact_v1" | "building" | "contact" | "opportunity" | "premises" | "activity";
 
 async function resolveReference(
   field: string,
@@ -232,6 +233,15 @@ async function resolveReference(
       const r = await resolveContactRef(trimmed);
       if (r.legacyId != null) {
         result.writablePatches[field] = r.legacyId;
+        if (r.warning) result.warnings.push(r.warning);
+        return result;
+      }
+      break;
+    }
+    case "contact_v1": {
+      const r = await resolveContactRef(trimmed);
+      if (r.v1Id) {
+        result.writablePatches[field] = r.v1Id;
         if (r.warning) result.warnings.push(r.warning);
         return result;
       }
@@ -420,6 +430,14 @@ export async function resolveLegacyCompanyIdOrName(
   return emptyReferenceResult();
 }
 
+export async function resolveContactV1Reference(
+  field: string,
+  raw: unknown,
+  mandatory: boolean,
+): Promise<ReferenceValidationResult> {
+  return resolveReference(field, raw, "contact_v1", mandatory);
+}
+
 /** Prefer v1 company ID; fall back to company_name_en lookup when ID blank. */
 export async function resolveCompanyV1IdOrName(
   idField: string,
@@ -456,6 +474,66 @@ export async function resolveCompanyV1IdOrName(
   if (nameTrimmed) {
     const maps = await loadCompanyLookupMaps();
     const byName = resolveToV1CompanyId(nameTrimmed, maps);
+    if (byName) {
+      const result = emptyReferenceResult();
+      result.writablePatches[idField] = byName;
+      return result;
+    }
+    const result = emptyReferenceResult();
+    if (mandatory) {
+      result.errors.push(`${nameField} "${nameTrimmed}" not found`);
+    } else {
+      result.writablePatches[idField] = null;
+      result.warnings.push(optionalRelationshipWarning(nameField));
+    }
+    return result;
+  }
+
+  return emptyReferenceResult();
+}
+
+/** Prefer v1 contact ID; fall back to display name lookup when ID blank. */
+export async function resolveContactV1IdOrName(
+  idField: string,
+  nameField: string,
+  values: Record<string, unknown>,
+  suppliedFields: Set<string>,
+  existing: ExistingRecord | null,
+  writable: Record<string, unknown>,
+  mandatory: boolean,
+  scopeCompanyId?: number | null,
+): Promise<ReferenceValidationResult> {
+  const hasId = fieldSupplied(idField, suppliedFields, writable);
+  const hasName = suppliedFields.has(nameField);
+  if (!hasId && !hasName) return emptyReferenceResult();
+
+  const idRaw = pickRaw(idField, values, suppliedFields, existing, writable);
+  const nameRaw = suppliedFields.has(nameField) ? values[nameField] : undefined;
+  const idTrimmed = parseOptionalText(idRaw);
+  const nameTrimmed = parseOptionalText(nameRaw);
+  const companyScope =
+    scopeCompanyId ??
+    (await resolveLegacyCompanyScope(
+      pickRaw("company_id", values, suppliedFields, existing, writable),
+    ));
+
+  if (idTrimmed) {
+    const byId = await resolveContactV1Reference(idField, idTrimmed, mandatory);
+    if (byId.errors.length > 0) return byId;
+    if (nameTrimmed) {
+      const legacyByName = await lookupContactIdByDisplayName(nameTrimmed, companyScope);
+      const nameV1 = legacyByName != null ? await resolveContactRefToV1(legacyByName) : null;
+      const resolvedId = byId.writablePatches[idField];
+      if (nameV1 && resolvedId && nameV1 !== resolvedId) {
+        byId.warnings.push(`${nameField} "${nameTrimmed}" does not match ${idField} ${resolvedId}`);
+      }
+    }
+    return byId;
+  }
+
+  if (nameTrimmed) {
+    const legacyByName = await lookupContactIdByDisplayName(nameTrimmed, companyScope);
+    const byName = legacyByName != null ? await resolveContactRefToV1(legacyByName) : null;
     if (byName) {
       const result = emptyReferenceResult();
       result.writablePatches[idField] = byName;
@@ -806,7 +884,7 @@ export async function resolveRelationshipEntityIdOrName(
     .toLowerCase();
 
   if (entityType === "company") {
-    const result = await resolveLegacyCompanyIdOrName(
+    const result = await resolveCompanyV1IdOrName(
       idField,
       nameField,
       values,
@@ -815,13 +893,10 @@ export async function resolveRelationshipEntityIdOrName(
       writable,
       mandatory,
     );
-    if (result.writablePatches[idField] != null) {
-      result.writablePatches[idField] = String(result.writablePatches[idField]);
-    }
     return result;
   }
   if (entityType === "contact") {
-    const result = await resolveContactIdOrName(
+    const result = await resolveContactV1IdOrName(
       idField,
       nameField,
       values,
@@ -830,9 +905,6 @@ export async function resolveRelationshipEntityIdOrName(
       writable,
       mandatory,
     );
-    if (result.writablePatches[idField] != null) {
-      result.writablePatches[idField] = String(result.writablePatches[idField]);
-    }
     return result;
   }
 

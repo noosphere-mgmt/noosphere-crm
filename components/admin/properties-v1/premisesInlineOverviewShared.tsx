@@ -4,12 +4,14 @@ import Link from "next/link";
 import { labelCompanyV1 } from "@/lib/companyV1Display";
 import type { PremisesDetailTabId } from "@/lib/premisesDetailTab";
 import type { PropertyV1SelectOption } from "@/lib/repos/propertiesV1";
+import type { CompanyV1Option } from "@/lib/repos/companiesV1";
 import type { PremisesV1 } from "@/lib/repos/premisesV1";
 
 export type PremisesInlineOverviewProps = {
   premises: PremisesV1;
   buildingName: string | null;
   propertyOptions: PropertyV1SelectOption[];
+  companies: CompanyV1Option[];
   relatedCounts?: { relationships: number; opportunities: number; fees: number };
   companyLabels: Map<string, string>;
   lastActivityDate?: string | null;

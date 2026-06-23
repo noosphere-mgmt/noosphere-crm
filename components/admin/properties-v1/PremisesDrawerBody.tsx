@@ -11,6 +11,8 @@ import { formatPremisesName } from "@/lib/premisesDisplay";
 import { getPremisesTab } from "@/lib/premisesDetailTab";
 import type { PremisesDrawerData } from "@/lib/repos/premisesDrawer";
 import type { PropertyV1SelectOption } from "@/lib/repos/propertiesV1";
+import type { CompanyV1Option } from "@/lib/repos/companiesV1";
+import type { ContactV1Option } from "@/lib/repos/contactsV1";
 import type { PremisesV1 } from "@/lib/repos/premisesV1";
 
 export function PremisesDrawerBody({
@@ -20,6 +22,8 @@ export function PremisesDrawerBody({
   companyLabels,
   contactLabels,
   propertyOptions,
+  companies,
+  contacts,
   onAddRelationship,
   drawerBasePath = "/admin/properties",
 }: {
@@ -29,6 +33,8 @@ export function PremisesDrawerBody({
   companyLabels: Map<string, string>;
   contactLabels: Map<string, string>;
   propertyOptions: PropertyV1SelectOption[];
+  companies: CompanyV1Option[];
+  contacts: ContactV1Option[];
   onAddRelationship: () => void;
   drawerBasePath?: string;
 }) {
@@ -47,6 +53,7 @@ export function PremisesDrawerBody({
           premises={premises}
           buildingName={buildingName}
           propertyOptions={propertyOptions}
+          companies={companies}
           relatedCounts={counts}
           companyLabels={companyLabels}
           lastActivityDate={drawerData.lastActivityDate}
@@ -57,6 +64,8 @@ export function PremisesDrawerBody({
           premises={premises}
           companyLabels={companyLabels}
           contactLabels={contactLabels}
+          companies={companies}
+          contacts={contacts}
           onAddRelationship={onAddRelationship}
         />
       ) : tab === "opportunities" ? (

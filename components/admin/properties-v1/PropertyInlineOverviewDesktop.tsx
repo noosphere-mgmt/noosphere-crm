@@ -76,6 +76,13 @@ export function PropertyInlineOverviewDesktop({
       <PremisesSectionCard title="Companies">
         <div className="grid gap-3 sm:grid-cols-2">
           <InlineSelectField
+            label="Owner"
+            value={coerceCompanyId(property.owner_company_id) || null}
+            options={companyOptions}
+            onSave={save("owner_company_id")}
+            placeholder="— Select company —"
+          />
+          <InlineSelectField
             label="Management company"
             value={coerceCompanyId(property.management_company_id) || null}
             options={companyOptions}
@@ -83,24 +90,10 @@ export function PropertyInlineOverviewDesktop({
             placeholder="— Select company —"
           />
           <InlineSelectField
-            label="Operator"
-            value={coerceCompanyId(property.operator_company_id) || null}
-            options={companyOptions}
-            onSave={save("operator_company_id")}
-            placeholder="— Select company —"
-          />
-          <InlineSelectField
             label="Current tenant"
             value={coerceCompanyId(property.current_tenant_company_id) || null}
             options={companyOptions}
             onSave={save("current_tenant_company_id")}
-            placeholder="— Select company —"
-          />
-          <InlineSelectField
-            label="Owner"
-            value={coerceCompanyId(property.owner_company_id) || null}
-            options={companyOptions}
-            onSave={save("owner_company_id")}
             placeholder="— Select company —"
           />
         </div>

@@ -6,9 +6,12 @@ import {
   isEntityType,
 } from "@/lib/entityRelationships";
 import { genericUpdateRecord, rowToRecord } from "../adapterUtils";
-import { sqlRelationshipEntityName } from "../lookupSql";
+import { sqlExportRelationshipEntityId, sqlRelationshipEntityName } from "../lookupSql";
 import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
-import { mergeReferenceResults, resolveRelationshipEntityIdOrName } from "../referenceResolution";
+import {
+  mergeReferenceResults,
+  resolveRelationshipEntityIdOrName,
+} from "../referenceResolution";
 import type { ImportObjectDefinition } from "../objectRegistry";
 import type { ExistingRecord } from "../types";
 
@@ -30,11 +33,11 @@ const FIELD_KEYS = [
 const SELECT = `
   r.relationship_id,
   r.from_entity_type,
-  r.from_entity_id,
+  ${sqlExportRelationshipEntityId("r.from_entity_type", "r.from_entity_id")} AS from_entity_id,
   ${sqlRelationshipEntityName("r.from_entity_type", "r.from_entity_id")} AS from_entity_name,
   r.relationship_type,
   r.to_entity_type,
-  r.to_entity_id,
+  ${sqlExportRelationshipEntityId("r.to_entity_type", "r.to_entity_id")} AS to_entity_id,
   ${sqlRelationshipEntityName("r.to_entity_type", "r.to_entity_id")} AS to_entity_name,
   r.status,
   r.start_date::text AS start_date,

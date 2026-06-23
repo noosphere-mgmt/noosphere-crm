@@ -10,7 +10,7 @@ import type { ConnectionsCompaniesListState } from "@/components/admin/connectio
 export function ConnectionsCompaniesDesktop({ state }: { state: ConnectionsCompaniesListState }) {
   return (
     <>
-      <ConnectionsCompaniesListHeaderDesktop />
+      <ConnectionsCompaniesListHeaderDesktop exportSelectedIds={state.exportSelectedIds} />
       <ConnectionsSearchToolbarDesktop
         variant="companies"
         searchQuery={state.searchQuery}

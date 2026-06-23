@@ -8,13 +8,20 @@ import type { Contact } from "@/lib/types/entities";
 export function ConnectionsContactsListHeader({
   rows: _rows,
   onNewContact,
+  exportSelectedIds = [],
 }: {
   rows: Contact[];
   onNewContact: () => void;
+  exportSelectedIds?: string[];
 }) {
   return (
     <AdminViewportSwitch
-      desktop={<ConnectionsContactsListHeaderDesktop onNewContact={onNewContact} />}
+      desktop={
+        <ConnectionsContactsListHeaderDesktop
+          onNewContact={onNewContact}
+          exportSelectedIds={exportSelectedIds}
+        />
+      }
       mobile={<ConnectionsContactsListHeaderMobile onNewContact={onNewContact} />}
     />
   );

@@ -118,6 +118,13 @@ export function applyPremisesFieldPatch(
     case "government_rates":
       patch.government_rates = isPackageOperatingModel(premises.operating_model) ? 0 : numOrNull(value);
       break;
+    case "operator_company_id":
+    case "owner_company_id":
+    case "landlord_company_id":
+    case "current_tenant_company_id":
+    case "source_company_id":
+      patch[field] = strOrNull(value);
+      break;
     case "contract_term_months":
       patch.contract_term_months = intOrNull(value);
       break;

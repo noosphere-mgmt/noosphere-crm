@@ -11,6 +11,7 @@ import {
   contactMatchesQuickFilters,
   EMPTY_CONNECTIONS_QUICK_FILTERS,
 } from "@/lib/connectionsList";
+import { contactBusinessExportId } from "@/lib/exportBusinessIds";
 import type { Contact } from "@/lib/types/entities";
 
 type SortKey = "name" | "company" | "coverage" | "updated";
@@ -60,7 +61,14 @@ export function useConnectionsContactsList(rows: Contact[]) {
     });
   }, [rows, quickFilters, searchQuery, sortKey, sortDir]);
 
-  const displayedIds = useMemo(() => displayedRows.map((r) => String(r.id)), [displayedRows]);
+  const displayedIds = useMemo(
+    () => displayedRows.map((r) => contactBusinessExportId(r)),
+    [displayedRows],
+  );
+  const exportSelectedIds = useMemo(
+    () => displayedRows.filter((r) => selected.has(String(r.id))).map((r) => contactBusinessExportId(r)),
+    [displayedRows, selected],
+  );
   useSyncListingExportIds(displayedIds);
   const allDisplayedSelected =
     displayedIds.length > 0 && displayedIds.every((id) => selected.has(id));
@@ -91,6 +99,7 @@ export function useConnectionsContactsList(rows: Contact[]) {
     cities,
     displayedRows,
     displayedIds,
+    exportSelectedIds,
     allDisplayedSelected,
     handleSort,
   };

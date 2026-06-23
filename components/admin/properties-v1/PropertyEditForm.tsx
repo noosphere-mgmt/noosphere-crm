@@ -5,7 +5,7 @@ import { composeAddressChinese, composeAddressEnglish, hasAddressParts } from "@
 import { BUILDING_GRADES, BUILDING_TITLES } from "@/lib/lookups";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
 import type { PropertyV1 } from "@/lib/repos/propertiesV1";
-import { toCompanyV1SelectOptions, coerceCompanyIdToSelectValue } from "@/lib/companyV1Display";
+import { toCompanyV1SelectOptions } from "@/lib/companyV1Display";
 import { CompanyConnectionFields } from "@/components/admin/CompanyConnectionFields";
 import { FormField, SelectField, TextAreaField } from "@/components/admin/AdminFormFields";
 import { FormEditingContext } from "@/components/admin/ModuleActionBar";
@@ -181,14 +181,7 @@ export function PropertyEditForm({
           <section className={sectionCardClass}>
             <h2 className={sectionTitleClass}>Companies</h2>
             <div className={`${fieldGridClass} [&_.grid]:grid-cols-1 [&_.grid]:sm:grid-cols-1`}>
-              <CompanyConnectionFields defaults={property} companyOptions={companyOptions} showManagement={false} />
-              <SelectField
-                label="Management company"
-                name="management_company_id"
-                defaultValue={coerceCompanyIdToSelectValue(property.management_company_id, companyOptions)}
-                placeholder="— Select company —"
-                options={companyOptions}
-              />
+              <CompanyConnectionFields defaults={property} companyOptions={companyOptions} />
             </div>
           </section>
 

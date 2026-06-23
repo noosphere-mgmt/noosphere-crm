@@ -7,6 +7,19 @@ import {
   type CompanyV1SelectOption,
 } from "@/lib/companyV1Display";
 
+export function relationshipLineHasContent(line: PremisesRelationshipLine): boolean {
+  return Boolean(
+    line.company_id?.trim() ||
+      line.contact_id?.trim() ||
+      line.relationship_type?.trim() ||
+      line.remarks?.trim() ||
+      line.partnership_mode?.trim() ||
+      line.contact_role?.trim() ||
+      line.source_url?.trim() ||
+      line.source_file?.trim(),
+  );
+}
+
 export function parseRelationshipLines(raw: string | null | undefined): PremisesRelationshipLine[] {
   if (!raw?.trim()) return [];
   try {

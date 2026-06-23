@@ -4,6 +4,8 @@ import { useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { patchPremisesFieldAction } from "@/app/admin/properties/actions";
 import { controllingParty } from "@/components/admin/properties-v1/premisesInlineOverviewShared";
+import { toCompanyV1SelectOptions, coerceCompanyIdToSelectValue } from "@/lib/companyV1Display";
+import type { CompanyV1Option } from "@/lib/repos/companiesV1";
 import {
   isPackageOperatingModel,
   monthlyRentFieldLabel,
@@ -22,6 +24,7 @@ import type { PremisesV1 } from "@/lib/repos/premisesV1";
 export function usePremisesInlineOverview(
   premises: PremisesV1,
   propertyOptions: PropertyV1SelectOption[],
+  companies: CompanyV1Option[],
   companyLabels: Map<string, string>,
   drawerBasePath = "/admin/properties",
 ) {
@@ -33,10 +36,16 @@ export function usePremisesInlineOverview(
   const forLease = isListingIntentForLease(premises.inventory_status);
   const forSale = isListingIntentForSale(premises.inventory_status);
   const controller = controllingParty(premises, companyLabels);
+  const companyOptions = useMemo(() => toCompanyV1SelectOptions(companies), [companies]);
 
   const propertySelectOptions = useMemo(
     () => propertyOptions.map((p) => ({ value: p.property_id, label: p.label })),
     [propertyOptions],
+  );
+
+  const coerceCompanyId = useCallback(
+    (id: string | null | undefined) => coerceCompanyIdToSelectValue(id, companyOptions),
+    [companyOptions],
   );
 
   const save = useCallback(
@@ -59,6 +68,8 @@ export function usePremisesInlineOverview(
     forLease,
     forSale,
     controller,
+    companyOptions,
+    coerceCompanyId,
     propertySelectOptions,
     save,
     tabHref,

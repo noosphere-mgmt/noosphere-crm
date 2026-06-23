@@ -7,11 +7,10 @@ import { ListingRecordCount } from "@/components/admin/ListingRecordCount";
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { formatAreaSqft } from "@/lib/formatCurrency";
-import { formatPremisesCompactLabel, formatPremisesName, formatVerifiedDate } from "@/lib/premisesDisplay";
+import { formatPremisesListLabel, formatPremisesName, formatVerifiedDate } from "@/lib/premisesDisplay";
 import { formatListingStatus } from "@/lib/premisesListing";
 import { premisesDrawerHref } from "@/lib/premisesDrawerNav";
 import {
-  buildingDetailsHref,
   resolvePremisesFlatListFilters,
   usePremisesFlatList,
   type PremisesListComponentProps,
@@ -237,21 +236,12 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                       />
                     </td>
                     <td className="px-3 py-1.5">
-                      {row.building_name_en ? (
-                        <Link
-                          href={buildingDetailsHref(row.property_id)}
-                          className={`mb-0.5 block text-xs ${theme.link}`}
-                        >
-                          {row.building_name_en}
-                        </Link>
-                      ) : null}
-                      <button
-                        type="button"
-                        className={`text-left ${theme.link}`}
-                        onClick={() => openView(row.premises_id)}
+                      <Link
+                        href={premisesDrawerHref(searchParams, row.premises_id, "overview", "view")}
+                        className={`text-left text-sm font-medium underline-offset-2 hover:underline ${theme.link}`}
                       >
-                        {formatPremisesCompactLabel(row.floor, row.unit)}
-                      </button>
+                        {formatPremisesListLabel(row.building_name_en, row.floor, row.unit)}
+                      </Link>
                       <RecordBusinessId id={row.premises_id} className="mt-0.5 block" />
                     </td>
                     <td className="px-3 py-1.5 text-slate-700">{row.district_en ?? "—"}</td>

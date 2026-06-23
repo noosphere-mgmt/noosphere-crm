@@ -1,13 +1,14 @@
 import { query } from "@/lib/db";
 import { sqlContactDisplayName } from "@/lib/contactName";
+import { resolveCompanyRefToLegacy, resolveContactRefToLegacy } from "@/lib/crmRefResolve";
 import { COMPANY_ROLES, COMPANY_ROLE_LABELS } from "@/lib/lookups";
 import type { CompanyRole } from "@/lib/types/entities";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
-import { sqlJoinLegacyContact } from "../lookupSql";
+import { sqlExportCompanyId, sqlExportContactId, sqlJoinLegacyContact } from "../lookupSql";
 import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
 import { mergeReferenceResults, resolveContactIdOrName } from "../referenceResolution";
 import type { ImportObjectDefinition } from "../objectRegistry";
-import type { ExistingRecord } from "../types";
+import type { ExistingRecord, RecordId } from "../types";
 
 const FIELD_KEYS = [
   "company_id",
@@ -31,7 +32,7 @@ const FIELD_KEYS = [
 ] as const;
 
 const SELECT = `
-  co.id::text AS company_id,
+  ${sqlExportCompanyId("co.id")} AS company_id,
   co.external_ref,
   co.company_name AS company_name_en,
   co.company_name_zh,
@@ -40,7 +41,8 @@ const SELECT = `
   array_to_string(co.coverage, '; ') AS coverage,
   co.country, co.city, co.district,
   co.industry, co.source, co.website, co.phone, co.email,
-  co.primary_contact_id::text AS primary_contact_id,
+  CASE WHEN co.primary_contact_id IS NULL THEN NULL
+       ELSE ${sqlExportContactId("co.primary_contact_id")} END AS primary_contact_id,
   ${sqlContactDisplayName("pc")} AS primary_contact_name,
   co.notes AS remarks
 `;
@@ -80,17 +82,22 @@ function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
 
 async function load(where: string, params: unknown[]): Promise<ExistingRecord[]> {
   const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM ${FROM} WHERE ${where}`, params);
-  return rows.map((row) => rowToRecord(row, Number.parseInt(String(row.company_id), 10), FIELD_KEYS));
+  return rows.map((row) => rowToRecord(row, String(row.company_id), FIELD_KEYS));
+}
+
+async function resolveCompanyRecordId(id: RecordId): Promise<number | null> {
+  if (typeof id === "number") return id;
+  return resolveCompanyRefToLegacy(id);
 }
 
 export const companiesImportDefinition: ImportObjectDefinition = {
   objectType: "companies",
   tableName: "companies",
   matchIdField: "company_id",
-  idType: "number",
+  idType: "text",
 
   fields: [
-    { key: "company_id", label: "company_id", type: "number", integer: true, matchOnly: true, aliases: ["id"] },
+    { key: "company_id", label: "company_id", type: "string", matchOnly: true, aliases: ["id"] },
     { key: "external_ref", label: "external_ref", type: "string" },
     { key: "company_name_en", label: "company_name_en", type: "string", requiredOnCreate: true, aliases: ["company_name"] },
     { key: "company_name_zh", label: "company_name_zh", type: "string" },
@@ -105,13 +112,15 @@ export const companiesImportDefinition: ImportObjectDefinition = {
     { key: "website", label: "website", type: "string" },
     { key: "phone", label: "phone", type: "string" },
     { key: "email", label: "email", type: "string" },
-    { key: "primary_contact_id", label: "primary_contact_id", type: "number", integer: true },
+    { key: "primary_contact_id", label: "primary_contact_id", type: "string" },
     { key: "primary_contact_name", label: "primary_contact_name", type: "string", lookupOnly: true },
     { key: "remarks", label: "remarks", type: "string", aliases: ["notes"] },
   ],
 
   async findById(id) {
-    const rows = await load("co.id = $1", [Number(id)]);
+    const legacyId = await resolveCompanyRecordId(id);
+    if (legacyId == null) return null;
+    const rows = await load("co.id = $1", [legacyId]);
     return rows[0] ?? null;
   },
 
@@ -193,12 +202,14 @@ export const companiesImportDefinition: ImportObjectDefinition = {
   },
 
   async updateRecord(id, patch, ctx) {
-    await genericUpdateRecord("companies", "id", id, dbPatch(patch), ctx);
+    const legacyId = await resolveCompanyRecordId(id);
+    if (legacyId == null) throw new Error(`company_id ${id} not found`);
+    await genericUpdateRecord("companies", "id", legacyId, dbPatch(patch), ctx);
   },
 
   async exportRows() {
     const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM ${FROM} ORDER BY co.company_name ASC`);
-    return rows.map((r) => rowToRecord(r, Number.parseInt(String(r.company_id), 10), FIELD_KEYS).values);
+    return rows.map((r) => rowToRecord(r, String(r.company_id), FIELD_KEYS).values);
   },
 };
 

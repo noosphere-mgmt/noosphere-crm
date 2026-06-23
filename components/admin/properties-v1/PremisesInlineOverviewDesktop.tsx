@@ -30,6 +30,7 @@ export function PremisesInlineOverviewDesktop({
   premises,
   buildingName,
   propertyOptions,
+  companies,
   relatedCounts,
   companyLabels,
   lastActivityDate,
@@ -42,11 +43,12 @@ export function PremisesInlineOverviewDesktop({
     listingIntent,
     forLease,
     forSale,
-    controller,
+    companyOptions,
+    coerceCompanyId,
     propertySelectOptions,
     save,
     tabHref,
-  } = usePremisesInlineOverview(premises, propertyOptions, companyLabels, drawerBasePath);
+  } = usePremisesInlineOverview(premises, propertyOptions, companies, companyLabels, drawerBasePath);
 
   return (
     <div className="space-y-4">
@@ -118,7 +120,24 @@ export function PremisesInlineOverviewDesktop({
               onSave={save("view_type")}
             />
           </div>
-          <PremisesMetric label="Operator / owner" value={controller} />
+          <div className="rounded-lg border border-white/80 bg-white/70 px-3 py-2">
+            <InlineSelectField
+              label="Operator company"
+              value={coerceCompanyId(premises.operator_company_id) || null}
+              options={companyOptions}
+              onSave={save("operator_company_id")}
+              placeholder="— Select company —"
+            />
+          </div>
+          <div className="rounded-lg border border-white/80 bg-white/70 px-3 py-2">
+            <InlineSelectField
+              label="Owner company"
+              value={coerceCompanyId(premises.owner_company_id) || null}
+              options={companyOptions}
+              onSave={save("owner_company_id")}
+              placeholder="— Select company —"
+            />
+          </div>
           <div className="rounded-lg border border-white/80 bg-white/70 px-3 py-2">
             <InlineTextField
               label="Last verified"

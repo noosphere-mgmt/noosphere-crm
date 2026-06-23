@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updatePremisesV1Action } from "@/app/admin/properties/actions";
@@ -12,7 +13,7 @@ import {
   MobileSwipeToDeleteRow,
 } from "@/components/admin/mobile/MobileSwipeToDeleteRow";
 import { formatAreaSqft } from "@/lib/formatCurrency";
-import { formatPremisesCompactLabel, formatPremisesName } from "@/lib/premisesDisplay";
+import { formatPremisesListLabel, formatPremisesName } from "@/lib/premisesDisplay";
 import { formatListingStatus } from "@/lib/premisesListing";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { premisesDrawerHref } from "@/lib/premisesDrawerNav";
@@ -37,7 +38,6 @@ export function PremisesListMobile(props: PremisesListComponentProps) {
     activeTab,
     openPremises,
     displayedRows,
-    openView,
     closeDrawer,
     setMode,
     getPremisesRowPriceDisplay,
@@ -83,7 +83,7 @@ export function PremisesListMobile(props: PremisesListComponentProps) {
           ) : (
             displayedRows.map((row) => {
               const prices = getPremisesRowPriceDisplay(row);
-              const premiseLabel = formatPremisesCompactLabel(row.floor, row.unit);
+              const listLabel = formatPremisesListLabel(row.building_name_en, row.floor, row.unit);
               const metaParts = [
                 row.district_en,
                 row.operator_name,
@@ -96,30 +96,21 @@ export function PremisesListMobile(props: PremisesListComponentProps) {
                   key={row.premises_id}
                   rowId={row.premises_id}
                   disabled={isDeleting}
-                  deleteLabel={`Delete ${premiseLabel}`}
+                  deleteLabel={`Delete ${listLabel}`}
                   onDelete={() =>
                     deletePremisesRow(row.premises_id, row.building_name_en, row.floor, row.unit)
                   }
                   className="border-b border-slate-100 last:border-b-0"
                 >
-                  <button
-                    type="button"
-                    onClick={() => openView(row.premises_id)}
-                    className="w-full cursor-pointer px-3 py-3 text-left active:bg-slate-50"
-                  >
+                  <div className="px-3 py-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm leading-snug">
-                          {row.building_name_en?.trim() ? (
-                            <>
-                              <span className="font-semibold text-slate-900">{row.building_name_en.trim()}</span>
-                              <span className="text-slate-400"> · </span>
-                            </>
-                          ) : null}
-                          <span className="font-bold text-blue-800">
-                            {premiseLabel !== "—" ? premiseLabel : "Unnamed premise"}
-                          </span>
-                        </p>
+                        <Link
+                          href={premisesDrawerHref(searchParams, row.premises_id, "overview", "view")}
+                          className="block truncate text-sm font-semibold text-blue-800 underline-offset-2 hover:underline"
+                        >
+                          {listLabel !== "—" ? listLabel : "Unnamed premise"}
+                        </Link>
                         <RecordBusinessId id={row.premises_id} className="mt-0.5 block" />
                         {metaParts.length > 0 ? (
                           <MobileCardMeta>{metaParts.join(" · ")}</MobileCardMeta>
@@ -129,7 +120,7 @@ export function PremisesListMobile(props: PremisesListComponentProps) {
                         {prices.price}
                       </span>
                     </div>
-                  </button>
+                  </div>
                 </MobileSwipeToDeleteRow>
               );
             })

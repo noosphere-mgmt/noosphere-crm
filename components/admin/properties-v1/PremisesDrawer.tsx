@@ -308,7 +308,12 @@ function PremisesEditForm({
           </Card>
 
           <Card title="Relationships">
-            <PremisesRelationshipsEditor premises={premises} companyOptions={companyOptions} contacts={contacts} />
+            <PremisesRelationshipsEditor
+              key={`${premises.premises_id}:${premises.updated_at}`}
+              premises={premises}
+              companyOptions={companyOptions}
+              contacts={contacts}
+            />
           </Card>
 
           <Card title="Remarks">
@@ -452,6 +457,8 @@ export function PremisesDrawer({
               companyLabels={companyLabels}
               contactLabels={contactLabels}
               propertyOptions={propertyOptions}
+              companies={companies}
+              contacts={contacts}
               onAddRelationship={() => onModeChange("edit")}
               drawerBasePath={drawerBasePath}
             />

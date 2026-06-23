@@ -3,13 +3,13 @@
 import { useMemo, useState } from "react";
 import type { CompanyV1SelectOption } from "@/lib/companyV1Display";
 import { toContactV1SelectOptions } from "@/lib/contactV1Display";
-import type { ContactV1Option } from "@/lib/repos/contactsV1";
 import {
   coerceRelationshipLinesForSelect,
   emptyRelationshipLine,
   initialPremisesRelationshipLines,
 } from "@/lib/premisesRelationships";
 import type { PremisesV1 } from "@/lib/repos/premisesV1";
+import type { ContactV1Option } from "@/lib/repos/contactsV1";
 import {
   OPPORTUNITY_PARTNERSHIP_MODES,
   OPPORTUNITY_PARTNERSHIP_MODE_LABELS,

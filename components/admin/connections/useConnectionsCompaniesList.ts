@@ -15,6 +15,7 @@ import {
   EMPTY_CONNECTIONS_QUICK_FILTERS,
   matchesQuickFilters,
 } from "@/lib/connectionsList";
+import { companyBusinessExportId } from "@/lib/exportBusinessIds";
 import type { CompanyRole } from "@/lib/types/entities";
 
 type SortKey = "company" | "contact" | "role" | "coverage" | "opportunities" | "updated";
@@ -76,7 +77,14 @@ export function useConnectionsCompaniesList(rows: ConnectionCompanyListRow[]) {
     });
   }, [rows, quickFilters, roleFilter, searchQuery, sortKey, sortDir]);
 
-  const displayedIds = useMemo(() => displayedRows.map((r) => String(r.id)), [displayedRows]);
+  const displayedIds = useMemo(
+    () => displayedRows.map((r) => companyBusinessExportId(r)),
+    [displayedRows],
+  );
+  const exportSelectedIds = useMemo(
+    () => displayedRows.filter((r) => selected.has(String(r.id))).map((r) => companyBusinessExportId(r)),
+    [displayedRows, selected],
+  );
   useSyncListingExportIds(displayedIds);
   const allDisplayedSelected =
     displayedIds.length > 0 && displayedIds.every((id) => selected.has(id));
@@ -107,6 +115,7 @@ export function useConnectionsCompaniesList(rows: ConnectionCompanyListRow[]) {
     cities,
     displayedRows,
     displayedIds,
+    exportSelectedIds,
     allDisplayedSelected,
     handleSort,
   };

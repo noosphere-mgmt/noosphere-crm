@@ -30,6 +30,7 @@ export function PremisesInlineOverviewMobile({
   premises,
   buildingName,
   propertyOptions,
+  companies,
   relatedCounts,
   companyLabels,
   lastActivityDate,
@@ -42,11 +43,12 @@ export function PremisesInlineOverviewMobile({
     listingIntent,
     forLease,
     forSale,
-    controller,
+    companyOptions,
+    coerceCompanyId,
     propertySelectOptions,
     save,
     tabHref,
-  } = usePremisesInlineOverview(premises, propertyOptions, companyLabels, drawerBasePath);
+  } = usePremisesInlineOverview(premises, propertyOptions, companies, companyLabels, drawerBasePath);
 
   const premiseLabel = formatPremisesCompactLabel(premises.floor, premises.unit);
 
@@ -121,7 +123,24 @@ export function PremisesInlineOverviewMobile({
               onSave={save("view_type")}
             />
           </div>
-          <PremisesMetric label="Operator / owner" value={controller} />
+          <div className="rounded-lg border border-white/80 bg-white/70 px-3 py-2">
+            <InlineSelectField
+              label="Operator company"
+              value={coerceCompanyId(premises.operator_company_id) || null}
+              options={companyOptions}
+              onSave={save("operator_company_id")}
+              placeholder="— Select company —"
+            />
+          </div>
+          <div className="rounded-lg border border-white/80 bg-white/70 px-3 py-2">
+            <InlineSelectField
+              label="Owner company"
+              value={coerceCompanyId(premises.owner_company_id) || null}
+              options={companyOptions}
+              onSave={save("owner_company_id")}
+              placeholder="— Select company —"
+            />
+          </div>
           <div className="rounded-lg border border-white/80 bg-white/70 px-3 py-2">
             <InlineTextField
               label="Last verified"

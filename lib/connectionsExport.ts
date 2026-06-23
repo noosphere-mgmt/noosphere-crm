@@ -1,4 +1,5 @@
 import { formatCompanyRoles, formatCoverage, type ConnectionCompanyListRow } from "@/lib/connectionsDisplay";
+import { companyBusinessExportId, contactBusinessExportId } from "@/lib/exportBusinessIds";
 import { buildCsvContent, downloadCsvInBrowser } from "@/lib/csvEncoding";
 import { getContactLabel } from "@/lib/contactName";
 import type { Contact } from "@/lib/types/entities";
@@ -19,7 +20,7 @@ export function exportCompaniesCsv(companies: ConnectionCompanyListRow[]): void 
     "Notes",
   ];
   const rows = companies.map((c) => [
-    String(c.id),
+    companyBusinessExportId(c),
     c.company_name,
     c.primary_contact_name ?? "",
     formatCompanyRoles(c.roles),
@@ -50,7 +51,7 @@ export function exportContactsCsv(contacts: Contact[]): void {
     "Notes",
   ];
   const rows = contacts.map((c) => [
-    String(c.id),
+    contactBusinessExportId(c),
     getContactLabel(c),
     c.company_name ?? "",
     c.title ?? "",

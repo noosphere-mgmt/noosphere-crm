@@ -4,9 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   parseRelationshipLines,
-  syncRelationshipColumns,
 } from "@/lib/premisesRelationships";
-import { normalizeRelationshipLinesForSave } from "@/lib/premisesRelationshipsServer";
+import { buildPremisesRelationshipLinesPatch } from "@/lib/premisesRelationshipPatch";
 import { isPackageOperatingModel } from "@/lib/premisesCommercial";
 import { applyPremisesFieldPatch } from "@/lib/premisesFieldPatch";
 import { composePropertyFullAddresses } from "@/lib/composeAddress";
@@ -115,10 +114,9 @@ export async function updatePropertyV1Action(propertyId: string, formData: FormD
 }
 
 async function parsePremisesV1Form(formData: FormData): Promise<PremisesV1Patch> {
-  const relationshipLines = await normalizeRelationshipLinesForSave(
+  const relationshipPatch = await buildPremisesRelationshipLinesPatch(
     parseRelationshipLines(s(formData.get("relationship_lines"))),
   );
-  const synced = syncRelationshipColumns(relationshipLines);
 
   const operatingModel = s(formData.get("operating_model"));
   const packageFees = isPackageOperatingModel(operatingModel);
@@ -141,16 +139,7 @@ async function parsePremisesV1Form(formData: FormData): Promise<PremisesV1Patch>
     management_fee: packageFees ? 0 : nDec(formData.get("management_fee")),
     government_rates: packageFees ? 0 : nDec(formData.get("government_rates")),
     remarks: s(formData.get("remarks")),
-    owner_company_id: synced.owner_company_id,
-    landlord_company_id: synced.landlord_company_id,
-    current_tenant_company_id: synced.current_tenant_company_id,
-    operator_company_id: synced.operator_company_id,
-    source_company_id: synced.source_company_id,
-    source_contact_id: synced.source_contact_id,
-    source_contact_role: synced.source_contact_role,
-    source_url: synced.source_url,
-    source_file: synced.source_file,
-    relationship_lines: relationshipLines,
+    ...relationshipPatch,
     offer_type: s(formData.get("offer_type")),
     offer_status: s(formData.get("offer_status")),
     capacity_pax: nInt(formData.get("capacity_pax")),
@@ -279,7 +268,13 @@ export async function patchPremisesFieldAction(
     const patch = applyPremisesFieldPatch(premises, field, value);
     if ("error" in patch) return { ok: false, error: patch.error };
 
-    await updatePremisesV1(premisesId, patch);
+    if (field === "relationship_lines") {
+      if (!Array.isArray(value)) return { ok: false, error: "Invalid relationship lines" };
+      const relPatch = await buildPremisesRelationshipLinesPatch(value as import("@/lib/v1ListValues").PremisesRelationshipLine[]);
+      await updatePremisesV1(premisesId, relPatch);
+    } else {
+      await updatePremisesV1(premisesId, patch);
+    }
 
     const nextPropertyId = patch.property_id ?? premises.property_id;
     revalidatePath("/admin/properties");

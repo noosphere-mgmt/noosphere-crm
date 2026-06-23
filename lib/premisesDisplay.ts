@@ -44,6 +44,20 @@ export function formatPremisesName(
   return parts.length > 0 ? parts.join(" - ") : "—";
 }
 
+/** Premises module list: {Building} | {Floor}/F - #{Unit} — one clickable label, building not linked separately. */
+export function formatPremisesListLabel(
+  buildingName: string | null | undefined,
+  floor: string | null | undefined,
+  unit: string | null | undefined,
+): string {
+  const building = (buildingName ?? "").trim();
+  const compact = formatPremisesCompactLabel(floor, unit);
+  if (building && compact !== "—") return `${building} | ${compact}`;
+  if (building) return building;
+  if (compact !== "—") return compact;
+  return "—";
+}
+
 /** Market verification date for list display (YYYY-MM-DD). */
 export function formatVerifiedDate(value: string | null | undefined): string {
   if (!value) return "—";

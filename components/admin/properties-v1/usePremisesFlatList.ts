@@ -6,7 +6,7 @@ import type { PremisesDrawerMode } from "@/components/admin/properties-v1/Premis
 import { usePremisesListSelection } from "@/components/admin/properties-v1/PremisesListSelectionContext";
 import { useSyncListingExportIds } from "@/components/admin/ModuleListingExportContext";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
-import { formatPremisesName } from "@/lib/premisesDisplay";
+import { formatPremisesListLabel, formatPremisesName } from "@/lib/premisesDisplay";
 import {
   formatListingStatus,
   getPremisesListPriceHeaderLabels,
@@ -138,8 +138,8 @@ export function usePremisesFlatList(
     const operatorQ = colFilters.operator.trim().toLowerCase();
 
     const filtered = props.rows.filter((row) => {
-      const premisesName = formatPremisesName(row.building_name_en, row.floor, row.unit);
-      if (!fuzzyMatch(premisesName, premisesQ)) return false;
+      const listLabel = formatPremisesListLabel(row.building_name_en, row.floor, row.unit).toLowerCase();
+      if (!fuzzyMatch(listLabel === "—" ? "" : listLabel, premisesQ)) return false;
       if (!fuzzyMatch(row.district_en, districtQ)) return false;
       if (!fuzzyMatch(row.operator_name, operatorQ)) return false;
       return true;
@@ -148,8 +148,8 @@ export function usePremisesFlatList(
     const sorted = [...filtered].sort((a, b) => {
       switch (sortKey) {
         case "premises": {
-          const av = formatPremisesName(a.building_name_en, a.floor, a.unit);
-          const bv = formatPremisesName(b.building_name_en, b.floor, b.unit);
+          const av = formatPremisesListLabel(a.building_name_en, a.floor, a.unit);
+          const bv = formatPremisesListLabel(b.building_name_en, b.floor, b.unit);
           return compareText(av, bv, sortDir);
         }
         case "district":

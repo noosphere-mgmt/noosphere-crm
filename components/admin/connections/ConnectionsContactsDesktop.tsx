@@ -19,7 +19,10 @@ export function ConnectionsContactsDesktop({
 }) {
   return (
     <>
-      <ConnectionsContactsListHeaderDesktop onNewContact={onNewContact} />
+      <ConnectionsContactsListHeaderDesktop
+        onNewContact={onNewContact}
+        exportSelectedIds={state.exportSelectedIds}
+      />
       <ConnectionsSearchToolbarDesktop
         variant="contacts"
         searchQuery={state.searchQuery}
