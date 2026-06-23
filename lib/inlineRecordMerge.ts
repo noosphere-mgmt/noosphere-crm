@@ -4,6 +4,7 @@ import type { OpportunityInput } from "@/lib/repos/opportunities";
 import { syncContactDerivedNames } from "@/lib/contactName";
 import { parseOpportunityFundingStatus, parseOpportunityStatus } from "@/lib/opportunityFormParsing";
 import { OPPORTUNITY_LEAD_TYPES } from "@/lib/lookups";
+import { isClosedOpportunityStatus } from "@/lib/openOpportunityStatus";
 import type {
   Company,
   CompanyRole,
@@ -234,6 +235,9 @@ export function applyOpportunityPatch(
     }
     case "status":
       input.status = parseOpportunityStatus(String(value ?? "new"));
+      if (!isClosedOpportunityStatus(input.status)) {
+        input.lost_reason = null;
+      }
       break;
     case "lead_type": {
       const lead = String(value ?? "").trim();
@@ -266,9 +270,14 @@ export function applyOpportunityPatch(
     case "lease_term":
     case "expected_close_date":
     case "relationship_owner":
-    case "lost_reason":
     case "target_yield":
       input[field] = value ? String(value).trim() || null : null;
+      break;
+    case "lost_reason":
+      if (!isClosedOpportunityStatus(input.status ?? opportunity.status)) {
+        return { error: "Won/Lost reason applies only to closed opportunities" };
+      }
+      input.lost_reason = value ? String(value).trim() || null : null;
       break;
     case "property_type":
     case "workspace_type": {

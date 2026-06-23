@@ -18,10 +18,14 @@ import {
   OPPORTUNITY_STATUSES,
   OPPORTUNITY_STATUS_LABELS,
 } from "@/lib/lookups";
+import {
+  closedOutcomeReasonLabel,
+  isClosedOpportunityStatus,
+} from "@/lib/openOpportunityStatus";
 import { partiesSummaryRows } from "@/lib/opportunityPartiesDisplay";
 import { OPPORTUNITY_SALES_ROLE_LABELS, type OpportunitySalesRole } from "@/lib/opportunityValues";
 import type { ContactOption } from "@/lib/repos/contacts";
-import type { Opportunity, OpportunityParty } from "@/lib/types/entities";
+import type { Opportunity, OpportunityParty, OpportunityStatus } from "@/lib/types/entities";
 import { TextAreaField } from "@/components/admin/AdminFormFields";
 
 type CompanyOption = { id: number; company_name: string };
@@ -43,6 +47,7 @@ export function OpportunityOverviewFields({
   const summary = partiesSummaryRows(parties);
   const [companyId, setCompanyId] = useState(opportunity.company_id?.toString() ?? "");
   const [salesRole, setSalesRole] = useState<OpportunitySalesRole>(opportunity.sales_role ?? "to_lease");
+  const [status, setStatus] = useState<OpportunityStatus>(opportunity.status);
 
   return (
     <div className="flex w-full min-w-0 flex-col gap-4">
@@ -86,7 +91,12 @@ export function OpportunityOverviewFields({
             </label>
             <label className="block min-w-0 text-sm">
               <span className={labelClass}>Status</span>
-              <select name="status" defaultValue={opportunity.status} className={selectClass}>
+              <select
+                name="status"
+                value={status}
+                onChange={(e) => setStatus(e.target.value as OpportunityStatus)}
+                className={selectClass}
+              >
                 {OPPORTUNITY_STATUSES.map((s) => (
                   <option key={s} value={s}>
                     {OPPORTUNITY_STATUS_LABELS[s]}
@@ -95,6 +105,13 @@ export function OpportunityOverviewFields({
               </select>
             </label>
             <OpportunitySalesRoleSelect value={salesRole} onChange={setSalesRole} />
+            {isClosedOpportunityStatus(status) ? (
+              <FormField
+                label={closedOutcomeReasonLabel(status)}
+                name="lost_reason"
+                defaultValue={opportunity.lost_reason ?? ""}
+              />
+            ) : null}
           </>
         ) : (
           <>
@@ -110,6 +127,12 @@ export function OpportunityOverviewFields({
               value={salesRole}
               readOnlyLabel={OPPORTUNITY_SALES_ROLE_LABELS[opportunity.sales_role ?? "to_lease"]}
             />
+            {isClosedOpportunityStatus(opportunity.status) ? (
+              <CompactField
+                label={closedOutcomeReasonLabel(opportunity.status)}
+                value={opportunity.lost_reason ?? ""}
+              />
+            ) : null}
           </>
         )}
       </DrawerOverviewCard>

@@ -17,6 +17,10 @@ import {
   OPPORTUNITY_STATUSES,
   OPPORTUNITY_STATUS_LABELS,
 } from "@/lib/lookups";
+import {
+  closedOutcomeReasonLabel,
+  isClosedOpportunityStatus,
+} from "@/lib/openOpportunityStatus";
 import { partiesSummaryRows } from "@/lib/opportunityPartiesDisplay";
 import {
   OPPORTUNITY_SALES_ROLES,
@@ -98,6 +102,13 @@ export function OpportunityInlineOverview({ data }: { data: OpportunityDetailDat
           }))}
           onSave={save("status")}
         />
+        {isClosedOpportunityStatus(opportunity.status) ? (
+          <InlineTextField
+            label={closedOutcomeReasonLabel(opportunity.status)}
+            value={opportunity.lost_reason}
+            onSave={save("lost_reason")}
+          />
+        ) : null}
         <InlineSelectField
           label="Sales role"
           value={(opportunity.sales_role ?? "to_lease") as OpportunitySalesRole}

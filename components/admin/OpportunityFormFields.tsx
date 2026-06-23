@@ -18,11 +18,15 @@ import {
   OPPORTUNITY_STATUS_LABELS,
 } from "@/lib/lookups";
 import {
+  closedOutcomeReasonLabel,
+  isClosedOpportunityStatus,
+} from "@/lib/openOpportunityStatus";
+import {
   type OpportunitySalesRole,
 } from "@/lib/opportunityValues";
 import { toLegacyCompanySelectOptions, toLegacyContactSelectOptions } from "@/lib/crmSelectOptions";
 import type { ContactOption } from "@/lib/repos/contacts";
-import type { Opportunity } from "@/lib/types/entities";
+import type { Opportunity, OpportunityStatus } from "@/lib/types/entities";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 
 type CompanyOption = { id: number; company_name: string; v1_company_id?: string | null };
@@ -40,6 +44,7 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
   const [companyId, setCompanyId] = useState(defaults?.company_id?.toString() ?? "");
   const [primaryContactId, setPrimaryContactId] = useState(defaults?.primary_contact_id?.toString() ?? "");
   const [salesRole, setSalesRole] = useState<OpportunitySalesRole>(defaults?.sales_role ?? "to_lease");
+  const [status, setStatus] = useState<OpportunityStatus>(defaults?.status ?? "new");
 
   const companyOptions = useMemo(() => toLegacyCompanySelectOptions(companies), [companies]);
   const contactOptions = useMemo(() => toLegacyContactSelectOptions(contacts), [contacts]);
@@ -73,7 +78,7 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
     target_yield: defaults?.target_yield ?? null,
     funding_status: defaults?.funding_status ?? null,
     move_in_date: defaults?.move_in_date ?? null,
-    status: defaults?.status ?? "new",
+    status,
     requirement_summary: defaults?.requirement_summary ?? null,
     remarks: defaults?.remarks ?? null,
     created_at: defaults?.created_at ?? "",
@@ -122,7 +127,6 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
             name="relationship_owner"
             defaultValue={defaults?.relationship_owner ?? ""}
           />
-          <FormField label="Lost reason" name="lost_reason" defaultValue={defaults?.lost_reason ?? ""} />
         </div>
       </div>
 
@@ -186,7 +190,8 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
             <span className={labelClass}>Status</span>
             <select
               name="status"
-              defaultValue={defaults?.status ?? "new"}
+              value={status}
+              onChange={(e) => setStatus(e.target.value as OpportunityStatus)}
               disabled={!editing}
               className={editing ? selectClass : selectReadOnlyClass}
             >
@@ -198,6 +203,13 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
             </select>
           </label>
           <OpportunitySalesRoleSelect value={salesRole} onChange={setSalesRole} />
+          {isClosedOpportunityStatus(status) ? (
+            <FormField
+              label={closedOutcomeReasonLabel(status)}
+              name="lost_reason"
+              defaultValue={defaults?.lost_reason ?? ""}
+            />
+          ) : null}
         </dl>
       </div>
 

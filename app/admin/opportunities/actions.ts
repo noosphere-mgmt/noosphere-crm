@@ -18,6 +18,7 @@ import {
 } from "@/lib/repos/opportunities";
 import { applyOpportunityPatch } from "@/lib/inlineRecordMerge";
 import { OPPORTUNITY_LEAD_TYPES } from "@/lib/lookups";
+import { isClosedOpportunityStatus } from "@/lib/openOpportunityStatus";
 import type { OpportunityLeadType } from "@/lib/types/entities";
 
 function parseOptionalDecimal(v: FormDataEntryValue | null): number | null {
@@ -72,6 +73,7 @@ async function opportunityInputFromForm(formData: FormData) {
 
   const salesRole = parseOpportunitySalesRole(formData.get("sales_role"));
   const propertyType = parseOptionalString(formData.get("property_type"));
+  const status = parseOpportunityStatus(String(formData.get("status") ?? "new"));
 
   return {
     client_name: clientName || "Unknown",
@@ -85,7 +87,9 @@ async function opportunityInputFromForm(formData: FormData) {
     lease_term: salesRole === "to_lease" ? parseOptionalString(formData.get("lease_term")) : null,
     expected_close_date:
       salesRole === "to_lease" ? parseOptionalString(formData.get("expected_close_date")) : null,
-    lost_reason: parseOptionalString(formData.get("lost_reason")),
+    lost_reason: isClosedOpportunityStatus(status)
+      ? parseOptionalString(formData.get("lost_reason"))
+      : null,
     relationship_owner: parseOptionalString(formData.get("relationship_owner")),
     budget_min: null,
     budget_max: parseOptionalDecimal(formData.get("budget_max") ?? formData.get("budget")),
@@ -99,7 +103,7 @@ async function opportunityInputFromForm(formData: FormData) {
     funding_status:
       salesRole === "to_buy" ? parseOpportunityFundingStatus(formData.get("funding_status")) : null,
     move_in_date: salesRole === "to_lease" ? parseOptionalString(formData.get("move_in_date")) : null,
-    status: parseOpportunityStatus(String(formData.get("status") ?? "new")),
+    status,
     requirement_summary: parseOptionalString(formData.get("requirement_summary")),
     remarks: parseOptionalString(formData.get("remarks")),
   };
