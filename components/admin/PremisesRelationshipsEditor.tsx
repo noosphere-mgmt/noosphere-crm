@@ -3,7 +3,11 @@
 import { useState } from "react";
 import type { CompanyV1SelectOption } from "@/lib/companyV1Display";
 import type { ContactV1Option } from "@/lib/repos/contactsV1";
-import { emptyRelationshipLine, initialPremisesRelationshipLines } from "@/lib/premisesRelationships";
+import {
+  coerceRelationshipLinesForSelect,
+  emptyRelationshipLine,
+  initialPremisesRelationshipLines,
+} from "@/lib/premisesRelationships";
 import type { PremisesV1 } from "@/lib/repos/premisesV1";
 import {
   OPPORTUNITY_PARTNERSHIP_MODES,
@@ -15,9 +19,17 @@ const selectClass =
   "mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900";
 const inputClass = selectClass;
 
-function contactsForCompany(contacts: ContactV1Option[], companyId: string | null) {
-  if (!companyId) return contacts;
-  return contacts.filter((c) => c.company_id === companyId);
+function contactsForCompany(
+  contacts: ContactV1Option[],
+  companySelectValue: string | null,
+  companyOptions: CompanyV1SelectOption[],
+) {
+  if (!companySelectValue) return contacts;
+  const opt = companyOptions.find((o) => o.value === companySelectValue);
+  const v1CompanyId = opt?.v1Id ?? companySelectValue;
+  return contacts.filter(
+    (c) => c.company_id === v1CompanyId || c.company_id === companySelectValue,
+  );
 }
 
 export function PremisesRelationshipsEditor({
@@ -30,7 +42,7 @@ export function PremisesRelationshipsEditor({
   contacts: ContactV1Option[];
 }) {
   const [lines, setLines] = useState<PremisesRelationshipLine[]>(() =>
-    initialPremisesRelationshipLines(premises),
+    coerceRelationshipLinesForSelect(initialPremisesRelationshipLines(premises), companyOptions),
   );
 
   function updateLine(index: number, patch: Partial<PremisesRelationshipLine>) {
@@ -95,7 +107,7 @@ export function PremisesRelationshipsEditor({
                 onChange={(e) => updateLine(index, { contact_id: e.target.value || null })}
               >
                 <option value="">— Select contact —</option>
-                {contactsForCompany(contacts, line.company_id).map((c) => (
+                {contactsForCompany(contacts, line.company_id, companyOptions).map((c) => (
                   <option key={c.contact_id} value={c.contact_id}>
                     {c.display_name}
                   </option>

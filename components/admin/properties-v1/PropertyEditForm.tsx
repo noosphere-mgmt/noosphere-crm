@@ -5,7 +5,7 @@ import { composeAddressChinese, composeAddressEnglish, hasAddressParts } from "@
 import { BUILDING_GRADES, BUILDING_TITLES } from "@/lib/lookups";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
 import type { PropertyV1 } from "@/lib/repos/propertiesV1";
-import { toCompanyV1SelectOptions } from "@/lib/companyV1Display";
+import { toCompanyV1SelectOptions, coerceCompanyIdToSelectValue } from "@/lib/companyV1Display";
 import { CompanyConnectionFields } from "@/components/admin/CompanyConnectionFields";
 import { FormField, SelectField, TextAreaField } from "@/components/admin/AdminFormFields";
 import { FormEditingContext } from "@/components/admin/ModuleActionBar";
@@ -185,7 +185,7 @@ export function PropertyEditForm({
               <SelectField
                 label="Management company"
                 name="management_company_id"
-                defaultValue={property.management_company_id ?? ""}
+                defaultValue={coerceCompanyIdToSelectValue(property.management_company_id, companyOptions)}
                 placeholder="— Select company —"
                 options={companyOptions}
               />

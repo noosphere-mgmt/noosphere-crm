@@ -4,6 +4,7 @@ import { query, withTransaction } from "@/lib/db";
 export type CompanyV1Option = {
   company_id: string;
   company_name_en: string | null;
+  legacy_company_id: number | null;
 };
 
 async function syncLegacyCompaniesToV1(): Promise<void> {
@@ -51,14 +52,14 @@ async function syncLegacyCompaniesToV1(): Promise<void> {
 
 export const listCompanyV1Options = cache(async function listCompanyV1Options(): Promise<CompanyV1Option[]> {
   let rows = await query<CompanyV1Option>(
-    `SELECT company_id, company_name_en
+    `SELECT company_id, company_name_en, legacy_company_id::int AS legacy_company_id
      FROM companies_v1
      ORDER BY company_name_en ASC NULLS LAST, company_id ASC`,
   );
   if (rows.length === 0) {
     await syncLegacyCompaniesToV1();
     rows = await query<CompanyV1Option>(
-      `SELECT company_id, company_name_en
+      `SELECT company_id, company_name_en, legacy_company_id::int AS legacy_company_id
        FROM companies_v1
        ORDER BY company_name_en ASC NULLS LAST, company_id ASC`,
     );
@@ -70,7 +71,7 @@ export async function getCompanyV1NamesByIds(ids: string[]): Promise<CompanyV1Op
   const unique = [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
   if (unique.length === 0) return [];
   return query<CompanyV1Option>(
-    `SELECT company_id, company_name_en
+    `SELECT company_id, company_name_en, legacy_company_id::int AS legacy_company_id
      FROM companies_v1
      WHERE company_id = ANY($1::text[])
      ORDER BY company_name_en ASC NULLS LAST`,

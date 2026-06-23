@@ -3,7 +3,7 @@
 import { useCallback, useMemo } from "react";
 import { patchPropertyFieldAction } from "@/app/admin/properties/actions";
 import { composeAddressChinese, composeAddressEnglish, hasAddressParts } from "@/lib/composeAddress";
-import { toCompanyV1SelectOptions } from "@/lib/companyV1Display";
+import { toCompanyV1SelectOptions, coerceCompanyIdToSelectValue } from "@/lib/companyV1Display";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
 import type { PropertyV1 } from "@/lib/repos/propertiesV1";
 
@@ -47,5 +47,5 @@ export function usePropertyInlineOverview(property: PropertyV1, companies: Compa
     return parts.length > 0 ? parts.join(" · ") : addressEn || "—";
   }, [property.country, property.city_en, property.district_en, addressEn]);
 
-  return { companyOptions, save, addressEn, addressZh, locationSummary };
+  return { companyOptions, coerceCompanyId: (id: string | null) => coerceCompanyIdToSelectValue(id, companyOptions), save, addressEn, addressZh, locationSummary };
 }

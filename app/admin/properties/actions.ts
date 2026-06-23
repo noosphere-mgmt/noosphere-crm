@@ -2,15 +2,19 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { parseRelationshipLines, syncRelationshipColumns, normalizeRelationshipLines } from "@/lib/premisesRelationships";
-import { loadCompanyLookupMaps } from "@/lib/companyV1Resolve";
-import { resolveToV1CompanyId } from "@/lib/companyIdResolve";
-import { normalizeOptionalV1CompanyId } from "@/lib/crmRefResolve";
+import {
+  parseRelationshipLines,
+  syncRelationshipColumns,
+  normalizeRelationshipLinesForSave,
+} from "@/lib/premisesRelationships";
 import { isPackageOperatingModel } from "@/lib/premisesCommercial";
 import { applyPremisesFieldPatch } from "@/lib/premisesFieldPatch";
 import { composePropertyFullAddresses } from "@/lib/composeAddress";
 import { createPropertyV1, deletePropertiesV1, getPropertyV1, updatePropertyV1, type PropertyV1Patch } from "@/lib/repos/propertiesV1";
 import { applyPropertyFieldPatch, PROPERTY_COMPANY_FIELDS, PROPERTY_LOCATION_FIELDS } from "@/lib/propertyFieldPatch";
+import {
+  normalizePropertyV1CompanyIdForDb,
+} from "@/lib/propertyCompanyFields";
 import { createPremisesV1, duplicatePremisesV1, getPremisesV1, updatePremisesV1, type PremisesV1Patch } from "@/lib/repos/premisesV1";
 
 function s(v: FormDataEntryValue | null): string | null {
@@ -30,13 +34,6 @@ function nDec(v: FormDataEntryValue | null): number | null {
   if (!out) return null;
   const n = Number.parseFloat(out);
   return Number.isFinite(n) ? n : null;
-}
-
-async function normalizeV1CompanyField(raw: FormDataEntryValue | null): Promise<string | null> {
-  const v = s(raw);
-  if (!v) return null;
-  const maps = await loadCompanyLookupMaps();
-  return (resolveToV1CompanyId(v, maps) ?? (await normalizeOptionalV1CompanyId(v))) || null;
 }
 
 async function parsePropertyV1Form(formData: FormData): Promise<PropertyV1Patch> {
@@ -69,10 +66,10 @@ async function parsePropertyV1Form(formData: FormData): Promise<PropertyV1Patch>
     site_area_sqm: nDec(formData.get("site_area_sqm")),
     lot_number: s(formData.get("lot_number")),
     grade: s(formData.get("grade")),
-    management_company_id: await normalizeV1CompanyField(formData.get("management_company_id")),
-    operator_company_id: await normalizeV1CompanyField(formData.get("operator_company_id")),
-    owner_company_id: await normalizeV1CompanyField(formData.get("owner_company_id")),
-    current_tenant_company_id: await normalizeV1CompanyField(formData.get("current_tenant_company_id")),
+    management_company_id: await normalizePropertyV1CompanyIdForDb(formData.get("management_company_id")),
+    operator_company_id: await normalizePropertyV1CompanyIdForDb(formData.get("operator_company_id")),
+    owner_company_id: await normalizePropertyV1CompanyIdForDb(formData.get("owner_company_id")),
+    current_tenant_company_id: await normalizePropertyV1CompanyIdForDb(formData.get("current_tenant_company_id")),
     title: s(formData.get("title")),
     mtr_station: s(formData.get("mtr_station")),
     walking_minutes: nInt(formData.get("walking_minutes")),
@@ -85,38 +82,44 @@ async function parsePropertyV1Form(formData: FormData): Promise<PropertyV1Patch>
 }
 
 export async function createPropertyV1Action(formData: FormData) {
-  const patch = await parsePropertyV1Form(formData);
-  const propertyId = await createPropertyV1(patch);
+  try {
+    const patch = await parsePropertyV1Form(formData);
+    const propertyId = await createPropertyV1(patch);
 
-  revalidatePath("/admin/properties");
-  revalidatePath("/admin/properties/buildings");
+    revalidatePath("/admin/properties");
+    revalidatePath("/admin/properties/buildings");
 
-  const returnTo = s(formData.get("return_to"));
-  if (returnTo?.startsWith("/admin/properties")) {
-    redirect(returnTo);
+    const returnTo = s(formData.get("return_to"));
+    if (returnTo?.startsWith("/admin/properties")) {
+      redirect(returnTo);
+    }
+    redirect(`/admin/properties/buildings?property=${encodeURIComponent(propertyId)}&mode=view`);
+  } catch (err) {
+    throw new Error(err instanceof Error ? err.message : "Failed to create building");
   }
-  redirect(`/admin/properties/buildings?property=${encodeURIComponent(propertyId)}&mode=view`);
 }
 
 export async function updatePropertyV1Action(propertyId: string, formData: FormData) {
-  await updatePropertyV1(propertyId, await parsePropertyV1Form(formData));
+  try {
+    await updatePropertyV1(propertyId, await parsePropertyV1Form(formData));
 
-  revalidatePath("/admin/properties");
-  revalidatePath("/admin/properties/buildings");
-  revalidatePath(`/admin/properties/${propertyId}`);
+    revalidatePath("/admin/properties");
+    revalidatePath("/admin/properties/buildings");
+    revalidatePath(`/admin/properties/${propertyId}`);
 
-  const returnTo = s(formData.get("return_to"));
-  if (returnTo?.startsWith("/admin/properties")) {
-    redirect(returnTo);
+    const returnTo = s(formData.get("return_to"));
+    if (returnTo?.startsWith("/admin/properties")) {
+      redirect(returnTo);
+    }
+    redirect(`/admin/properties/${propertyId}`);
+  } catch (err) {
+    throw new Error(err instanceof Error ? err.message : "Failed to save building");
   }
-  redirect(`/admin/properties/${propertyId}`);
 }
 
 async function parsePremisesV1Form(formData: FormData): Promise<PremisesV1Patch> {
-  const maps = await loadCompanyLookupMaps();
-  const relationshipLines = normalizeRelationshipLines(
+  const relationshipLines = await normalizeRelationshipLinesForSave(
     parseRelationshipLines(s(formData.get("relationship_lines"))),
-    maps,
   );
   const synced = syncRelationshipColumns(relationshipLines);
 
@@ -176,38 +179,46 @@ export async function createPremisesV1Action(propertyId: string, formData: FormD
   const id = propertyId.trim();
   if (!id) throw new Error("Select a building for this premise.");
 
-  const premisesId = await createPremisesV1(id, await parsePremisesV1Form(formData));
+  try {
+    const premisesId = await createPremisesV1(id, await parsePremisesV1Form(formData));
 
-  revalidatePath("/admin/properties");
-  revalidatePath(`/admin/properties/${id}`);
+    revalidatePath("/admin/properties");
+    revalidatePath(`/admin/properties/${id}`);
 
-  const returnTo = s(formData.get("return_to"));
-  if (returnTo?.startsWith("/admin/properties")) {
-    redirect(returnTo);
+    const returnTo = s(formData.get("return_to"));
+    if (returnTo?.startsWith("/admin/properties")) {
+      redirect(returnTo);
+    }
+    redirect(`/admin/properties?premises=${encodeURIComponent(premisesId)}&mode=view`);
+  } catch (err) {
+    throw new Error(err instanceof Error ? err.message : "Failed to create premises");
   }
-  redirect(`/admin/properties?premises=${encodeURIComponent(premisesId)}&mode=view`);
 }
 
 export async function updatePremisesV1Action(premisesId: string, propertyId: string, formData: FormData) {
-  const patch = await parsePremisesV1Form(formData);
-  const nextPropertyId = s(formData.get("property_id")) ?? propertyId;
-  if (nextPropertyId !== propertyId) {
-    patch.property_id = nextPropertyId;
-  }
+  try {
+    const patch = await parsePremisesV1Form(formData);
+    const nextPropertyId = s(formData.get("property_id")) ?? propertyId;
+    if (nextPropertyId !== propertyId) {
+      patch.property_id = nextPropertyId;
+    }
 
-  await updatePremisesV1(premisesId, patch);
+    await updatePremisesV1(premisesId, patch);
 
-  revalidatePath("/admin/properties");
-  revalidatePath(`/admin/properties/${propertyId}`);
-  if (nextPropertyId !== propertyId) {
-    revalidatePath(`/admin/properties/${nextPropertyId}`);
-  }
+    revalidatePath("/admin/properties");
+    revalidatePath(`/admin/properties/${propertyId}`);
+    if (nextPropertyId !== propertyId) {
+      revalidatePath(`/admin/properties/${nextPropertyId}`);
+    }
 
-  const returnTo = s(formData.get("return_to"));
-  if (returnTo?.startsWith("/admin/properties")) {
-    redirect(returnTo);
+    const returnTo = s(formData.get("return_to"));
+    if (returnTo?.startsWith("/admin/properties")) {
+      redirect(returnTo);
+    }
+    redirect(`/admin/properties/${nextPropertyId}?premises=${encodeURIComponent(premisesId)}&mode=view`);
+  } catch (err) {
+    throw new Error(err instanceof Error ? err.message : "Failed to save premises");
   }
-  redirect(`/admin/properties/${nextPropertyId}?premises=${encodeURIComponent(premisesId)}&mode=view`);
 }
 
 export type PropertyPatchResult = { ok: true } | { ok: false; error: string };
@@ -234,12 +245,8 @@ export async function patchPropertyFieldAction(
     const patch: PropertyV1Patch = { ...fieldPatch };
 
     if (PROPERTY_COMPANY_FIELDS.has(field)) {
-      const maps = await loadCompanyLookupMaps();
       const raw = patch[field as keyof PropertyV1Patch];
-      const resolved =
-        typeof raw === "string" && raw
-          ? (resolveToV1CompanyId(raw, maps) ?? (await normalizeOptionalV1CompanyId(raw)))
-          : null;
+      const resolved = await normalizePropertyV1CompanyIdForDb(raw);
       if (field === "management_company_id") patch.management_company_id = resolved;
       else if (field === "operator_company_id") patch.operator_company_id = resolved;
       else if (field === "owner_company_id") patch.owner_company_id = resolved;

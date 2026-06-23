@@ -2,6 +2,14 @@ import type { PremisesRelationshipLine } from "@/lib/v1ListValues";
 import type { PremisesV1 } from "@/lib/repos/premisesV1";
 import type { CompanyLookupMaps } from "@/lib/companyIdResolve";
 import { resolveToV1CompanyId } from "@/lib/companyIdResolve";
+import {
+  coerceCompanyIdToSelectValue,
+  type CompanyV1SelectOption,
+} from "@/lib/companyV1Display";
+import {
+  normalizePremisesV1ContactIdForDb,
+  normalizePropertyV1CompanyIdForDb,
+} from "@/lib/propertyCompanyFields";
 
 export function parseRelationshipLines(raw: string | null | undefined): PremisesRelationshipLine[] {
   if (!raw?.trim()) return [];
@@ -13,6 +21,35 @@ export function parseRelationshipLines(raw: string | null | undefined): Premises
   }
 }
 
+export function coerceRelationshipLinesForSelect(
+  lines: PremisesRelationshipLine[],
+  companyOptions: CompanyV1SelectOption[],
+): PremisesRelationshipLine[] {
+  return lines.map((line) => ({
+    ...line,
+    company_id: line.company_id
+      ? coerceCompanyIdToSelectValue(line.company_id, companyOptions) || null
+      : null,
+  }));
+}
+
+export async function normalizeRelationshipLinesForSave(
+  lines: PremisesRelationshipLine[],
+): Promise<PremisesRelationshipLine[]> {
+  const normalized: PremisesRelationshipLine[] = [];
+  for (const line of lines) {
+    const company_id = line.company_id?.trim()
+      ? await normalizePropertyV1CompanyIdForDb(line.company_id)
+      : null;
+    const contact_id = line.contact_id?.trim()
+      ? await normalizePremisesV1ContactIdForDb(line.contact_id)
+      : null;
+    normalized.push({ ...line, company_id, contact_id });
+  }
+  return normalized;
+}
+
+/** Sync normalize using preloaded maps (audit scripts). */
 export function normalizeRelationshipLines(
   lines: PremisesRelationshipLine[],
   maps: CompanyLookupMaps,
