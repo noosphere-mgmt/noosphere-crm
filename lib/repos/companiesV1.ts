@@ -122,12 +122,14 @@ export async function syncLegacyCompanyToV1(
   }
 
   await query(
-    `UPDATE companies_v1 SET
-       company_name_en = $2,
-       company_name_zh = $3,
-       company_status = $4,
-       legacy_company_id = $5
-     WHERE company_id = $1`,
+    `INSERT INTO companies_v1 (
+       company_id, company_name_en, company_name_zh, company_status, legacy_company_id
+     ) VALUES ($1, $2, $3, $4, $5)
+     ON CONFLICT (company_id) DO UPDATE SET
+       company_name_en = EXCLUDED.company_name_en,
+       company_name_zh = EXCLUDED.company_name_zh,
+       company_status = EXCLUDED.company_status,
+       legacy_company_id = EXCLUDED.legacy_company_id`,
     [companyId, companyName, companyNameZh, isActive ? "Active" : "Inactive", legacyId],
   );
 }

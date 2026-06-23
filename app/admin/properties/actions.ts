@@ -11,10 +11,7 @@ import { isPackageOperatingModel } from "@/lib/premisesCommercial";
 import { applyPremisesFieldPatch } from "@/lib/premisesFieldPatch";
 import { composePropertyFullAddresses } from "@/lib/composeAddress";
 import { createPropertyV1, deletePropertiesV1, getPropertyV1, updatePropertyV1, type PropertyV1Patch } from "@/lib/repos/propertiesV1";
-import { applyPropertyFieldPatch, PROPERTY_COMPANY_FIELDS, PROPERTY_LOCATION_FIELDS } from "@/lib/propertyFieldPatch";
-import {
-  normalizePropertyV1CompanyIdForDb,
-} from "@/lib/propertyCompanyFields";
+import { applyPropertyFieldPatch, PROPERTY_LOCATION_FIELDS } from "@/lib/propertyFieldPatch";
 import { createPremisesV1, duplicatePremisesV1, getPremisesV1, updatePremisesV1, type PremisesV1Patch } from "@/lib/repos/premisesV1";
 
 function s(v: FormDataEntryValue | null): string | null {
@@ -66,10 +63,10 @@ async function parsePropertyV1Form(formData: FormData): Promise<PropertyV1Patch>
     site_area_sqm: nDec(formData.get("site_area_sqm")),
     lot_number: s(formData.get("lot_number")),
     grade: s(formData.get("grade")),
-    management_company_id: await normalizePropertyV1CompanyIdForDb(formData.get("management_company_id")),
-    operator_company_id: await normalizePropertyV1CompanyIdForDb(formData.get("operator_company_id")),
-    owner_company_id: await normalizePropertyV1CompanyIdForDb(formData.get("owner_company_id")),
-    current_tenant_company_id: await normalizePropertyV1CompanyIdForDb(formData.get("current_tenant_company_id")),
+    management_company_id: s(formData.get("management_company_id")),
+    operator_company_id: s(formData.get("operator_company_id")),
+    owner_company_id: s(formData.get("owner_company_id")),
+    current_tenant_company_id: s(formData.get("current_tenant_company_id")),
     title: s(formData.get("title")),
     mtr_station: s(formData.get("mtr_station")),
     walking_minutes: nInt(formData.get("walking_minutes")),
@@ -243,15 +240,6 @@ export async function patchPropertyFieldAction(
     if ("error" in fieldPatch) return { ok: false, error: fieldPatch.error };
 
     const patch: PropertyV1Patch = { ...fieldPatch };
-
-    if (PROPERTY_COMPANY_FIELDS.has(field)) {
-      const raw = patch[field as keyof PropertyV1Patch];
-      const resolved = await normalizePropertyV1CompanyIdForDb(raw);
-      if (field === "management_company_id") patch.management_company_id = resolved;
-      else if (field === "operator_company_id") patch.operator_company_id = resolved;
-      else if (field === "owner_company_id") patch.owner_company_id = resolved;
-      else if (field === "current_tenant_company_id") patch.current_tenant_company_id = resolved;
-    }
 
     if (PROPERTY_LOCATION_FIELDS.has(field)) {
       const merged = { ...property, ...patch };

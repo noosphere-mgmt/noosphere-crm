@@ -1,5 +1,6 @@
 import { query } from "@/lib/db";
 import { sqlJoinV1Company } from "@/lib/import/lookupSql";
+import { coercePropertyV1PatchForDb } from "@/lib/propertyV1DbCoerce";
 
 export type PropertyV1 = {
   property_id: string;
@@ -132,7 +133,8 @@ export type PropertyV1Patch = Partial<
 >;
 
 export async function updatePropertyV1(propertyId: string, patch: PropertyV1Patch): Promise<void> {
-  const entries = Object.entries(patch).filter(([, v]) => v !== undefined);
+  const coerced = await coercePropertyV1PatchForDb(patch);
+  const entries = Object.entries(coerced).filter(([, v]) => v !== undefined);
   if (entries.length === 0) return;
 
   const sets: string[] = [];
@@ -222,7 +224,8 @@ export function emptyPropertyV1(): PropertyV1 {
 
 export async function createPropertyV1(patch: PropertyV1Patch): Promise<string> {
   const propertyId = await allocatePropertyV1Id();
-  const entries = Object.entries(patch).filter(([, v]) => v !== undefined);
+  const coerced = await coercePropertyV1PatchForDb(patch);
+  const entries = Object.entries(coerced).filter(([, v]) => v !== undefined);
   const columns = ["property_id", ...entries.map(([k]) => k)];
   const placeholders = columns.map((_, i) => `$${i + 1}`);
   const params: unknown[] = [propertyId, ...entries.map(([, v]) => v)];

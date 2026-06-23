@@ -13,6 +13,19 @@ const companySelect = `
   created_at::text, updated_at::text
 `;
 
+/** Qualified select for JOINs (e.g. id_map_v1 also has created_at). */
+const companySelectQualified = `
+  companies.id, companies.company_name, companies.company_name_zh, companies.company_name_cn, companies.roles,
+  companies.coverage, companies.country, companies.city, companies.district,
+  companies.website, companies.phone, companies.email,
+  companies.industry, companies.source, companies.relationship_owner,
+  companies.last_contact_date::text AS last_contact_date,
+  companies.last_meeting_date::text AS last_meeting_date,
+  companies.next_follow_up_date::text AS next_follow_up_date,
+  companies.relationship_strength, companies.notes, companies.is_active,
+  companies.created_at::text AS created_at, companies.updated_at::text AS updated_at
+`;
+
 export type CompanyInput = {
   company_name: string;
   company_name_zh?: string | null;
@@ -122,7 +135,7 @@ export async function listCompanyOptionsByRole(
 
 export async function getCompany(id: number): Promise<Company | null> {
   const rows = await query<Company>(
-    `SELECT ${companySelect.replace(/\bid\b/g, "companies.id")}, m.new_id AS v1_company_id
+    `SELECT ${companySelectQualified}, m.new_id AS v1_company_id
      FROM companies
      LEFT JOIN id_map_v1 m ON m.entity_type = 'company' AND m.legacy_id = companies.id
      WHERE companies.id = $1`,

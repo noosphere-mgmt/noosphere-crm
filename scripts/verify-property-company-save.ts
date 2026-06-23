@@ -5,6 +5,12 @@
 import "./ensure-env";
 import { query } from "../lib/db";
 import {
+  coercePremisesV1PatchForDb,
+  coercePropertyV1PatchForDb,
+  describePropertyV1UpdateParams,
+  getPropertyV1FkColumnTypes,
+} from "../lib/propertyV1DbCoerce";
+import {
   createPropertyV1,
   deletePropertiesV1,
   getPropertyV1,
@@ -16,7 +22,7 @@ import {
   getPremisesV1,
   updatePremisesV1,
 } from "../lib/repos/premisesV1";
-import { normalizePropertyV1CompanyIdForDb } from "../lib/propertyCompanyFields";
+import { getCompany } from "../lib/repos/companies";
 import { normalizeRelationshipLinesForSave } from "../lib/premisesRelationshipsServer";
 import { syncRelationshipColumns } from "../lib/premisesRelationships";
 
@@ -29,8 +35,57 @@ async function sampleCompany(): Promise<{ legacyId: number; v1Id: string }> {
   return { legacyId: row[0].legacy_company_id, v1Id: row[0].company_id };
 }
 
+function assertNoCompOnBigint(
+  table: "properties_v1" | "premises_v1",
+  column: string,
+  value: unknown,
+  types: Map<string, "bigint" | "text">,
+): void {
+  const storage = types.get(`${table}.${column}`);
+  if (storage !== "bigint") return;
+  if (typeof value === "string" && /^COMP-/i.test(value)) {
+    throw new Error(`${table}.${column} is bigint but coerced value is ${value}`);
+  }
+}
+
+async function logSchemaAndParam31(v1Id: string): Promise<void> {
+  const types = await getPropertyV1FkColumnTypes();
+  console.log("FK column storage:");
+  for (const [key, storage] of [...types.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+    console.log(`  ${key}: ${storage}`);
+  }
+
+  const actionPatch = {
+    bldg_name_en: "Param probe",
+    operator_company_id: v1Id,
+  };
+  const coerced = await coercePropertyV1PatchForDb(actionPatch);
+  const params = describePropertyV1UpdateParams("BLDG-TEST", coerced);
+  const p31 = params.find((p) => p.index === 31);
+  console.log(
+    `Parameter $31 probe: ${p31 ? `${p31.column}=${JSON.stringify(p31.value)}` : "(patch has < 31 params — operator is earlier)"}`,
+  );
+  for (const p of params) {
+    if (p.column.endsWith("_company_id")) {
+      assertNoCompOnBigint("properties_v1", p.column, p.value, types);
+    }
+  }
+}
+
+async function expectedOperatorValue(
+  v1Id: string,
+  legacyId: number,
+  types: Map<string, "bigint" | "text">,
+): Promise<string | number> {
+  const storage = types.get("properties_v1.operator_company_id") ?? "text";
+  return storage === "bigint" ? legacyId : v1Id;
+}
+
 async function assertBuildingSaves(): Promise<void> {
   const { legacyId, v1Id } = await sampleCompany();
+  const types = await getPropertyV1FkColumnTypes();
+  await logSchemaAndParam31(v1Id);
+
   const propertyId = await createPropertyV1({
     bldg_name_en: `Verify Co Save ${Date.now()}`,
   });
@@ -39,26 +94,26 @@ async function assertBuildingSaves(): Promise<void> {
     const none = await getPropertyV1(propertyId);
     if (none?.operator_company_id != null) throw new Error("expected null operator on create");
 
-    const fromLegacy = await normalizePropertyV1CompanyIdForDb(String(legacyId));
-    if (fromLegacy !== v1Id) {
-      throw new Error(`legacy ${legacyId} => ${fromLegacy}, expected ${v1Id}`);
-    }
+    const expected = await expectedOperatorValue(v1Id, legacyId, types);
 
-    await updatePropertyV1(propertyId, { operator_company_id: fromLegacy });
+    await updatePropertyV1(propertyId, {
+      operator_company_id: String(legacyId),
+    });
     const withOp = await getPropertyV1(propertyId);
-    if (withOp?.operator_company_id !== v1Id) {
-      throw new Error(`operator not saved as v1 ref: ${withOp?.operator_company_id}`);
+    if (String(withOp?.operator_company_id) !== String(expected)) {
+      throw new Error(`operator expected ${expected}, got ${withOp?.operator_company_id}`);
     }
 
     await updatePropertyV1(propertyId, { operator_company_id: null });
     const cleared = await getPropertyV1(propertyId);
     if (cleared?.operator_company_id != null) throw new Error("operator not cleared");
 
-    const fromV1 = await normalizePropertyV1CompanyIdForDb(v1Id);
-    await updatePropertyV1(propertyId, { operator_company_id: fromV1 });
+    await updatePropertyV1(propertyId, {
+      operator_company_id: v1Id,
+    });
     const fromV1Row = await getPropertyV1(propertyId);
-    if (fromV1Row?.operator_company_id !== v1Id) {
-      throw new Error("COMP ref save failed");
+    if (String(fromV1Row?.operator_company_id) !== String(expected)) {
+      throw new Error(`COMP ref save failed: expected ${expected}, got ${fromV1Row?.operator_company_id}`);
     }
 
     console.log("OK  building company save (none / legacy / clear / v1)");
@@ -69,6 +124,10 @@ async function assertBuildingSaves(): Promise<void> {
 
 async function assertPremisesSaves(): Promise<void> {
   const { legacyId, v1Id } = await sampleCompany();
+  const types = await getPropertyV1FkColumnTypes();
+  const expected =
+    (types.get("premises_v1.operator_company_id") ?? "text") === "bigint" ? legacyId : v1Id;
+
   const propertyId = await createPropertyV1({ bldg_name_en: `Verify Prem Co ${Date.now()}` });
 
   try {
@@ -88,14 +147,17 @@ async function assertPremisesSaves(): Promise<void> {
         },
       ]);
       const synced = syncRelationshipColumns(lines);
-      await updatePremisesV1(premisesId, {
+      const coerced = await coercePremisesV1PatchForDb({
         operator_company_id: synced.operator_company_id,
         relationship_lines: lines,
       });
+      assertNoCompOnBigint("premises_v1", "operator_company_id", coerced.operator_company_id, types);
+
+      await updatePremisesV1(premisesId, coerced);
 
       const row = await getPremisesV1(premisesId);
-      if (row?.operator_company_id !== v1Id) {
-        throw new Error(`premises operator expected ${v1Id}, got ${row?.operator_company_id}`);
+      if (String(row?.operator_company_id) !== String(expected)) {
+        throw new Error(`premises operator expected ${expected}, got ${row?.operator_company_id}`);
       }
 
       await updatePremisesV1(premisesId, {
@@ -114,7 +176,17 @@ async function assertPremisesSaves(): Promise<void> {
   }
 }
 
+async function assertGetCompanyWithIdMap(): Promise<void> {
+  const row = await query<{ id: number }>(`SELECT id::int AS id FROM companies ORDER BY id LIMIT 1`);
+  const id = row[0]?.id;
+  if (id == null) throw new Error("No companies to test getCompany");
+  const company = await getCompany(id);
+  if (!company?.company_name) throw new Error("getCompany failed with id_map join");
+  console.log("OK  getCompany with id_map_v1 join");
+}
+
 async function main(): Promise<void> {
+  await assertGetCompanyWithIdMap();
   await assertBuildingSaves();
   await assertPremisesSaves();
   console.log("\nProperty company save verified.");

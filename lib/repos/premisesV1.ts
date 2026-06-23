@@ -1,5 +1,6 @@
 import { query } from "@/lib/db";
 import { sqlJoinV1Company } from "@/lib/import/lookupSql";
+import { coercePremisesV1PatchForDb } from "@/lib/propertyV1DbCoerce";
 
 export type PremisesV1 = {
   premises_id: string;
@@ -144,7 +145,8 @@ export type PremisesV1Patch = Partial<
 >;
 
 export async function updatePremisesV1(premisesId: string, patch: PremisesV1Patch): Promise<void> {
-  const entries = Object.entries(patch).filter(([, v]) => v !== undefined);
+  const coerced = await coercePremisesV1PatchForDb(patch);
+  const entries = Object.entries(coerced).filter(([, v]) => v !== undefined);
   if (entries.length === 0) return;
   const sets: string[] = [];
   const params: unknown[] = [premisesId];
@@ -240,7 +242,8 @@ export function emptyPremisesV1(propertyId: string): PremisesV1 {
 
 export async function createPremisesV1(propertyId: string, patch: PremisesV1Patch): Promise<string> {
   const premisesId = await allocatePremisesV1Id();
-  const entries = Object.entries(patch).filter(
+  const coerced = await coercePremisesV1PatchForDb(patch);
+  const entries = Object.entries(coerced).filter(
     ([k, v]) =>
       v !== undefined &&
       v !== "" &&

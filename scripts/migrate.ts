@@ -166,6 +166,10 @@ async function main(): Promise<void> {
   await query(migratePhase32);
   console.log("Phase 32 import/export schema alignment applied.");
 
+  const migratePhase33 = await readSql("schema-migrate-phase33-property-v1-company-fk-text.sql");
+  await query(migratePhase33);
+  console.log("Phase 33 property v1 company FK text alignment applied.");
+
   await verifyBuildingsPageSchema();
   console.log("Post-migrate Buildings page schema verification passed.");
 
