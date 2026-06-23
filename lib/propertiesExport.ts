@@ -1,4 +1,5 @@
 import type { PropertyListRow } from "@/components/admin/properties-v1/PropertiesFlatListClient";
+import { formatPropertyV1AddressEn } from "@/lib/composeAddress";
 import { buildCsvContent, downloadCsvInBrowser } from "@/lib/csvEncoding";
 
 export function exportPropertiesV1Csv(rows: PropertyListRow[]): void {
@@ -8,7 +9,7 @@ export function exportPropertiesV1Csv(rows: PropertyListRow[]): void {
     r.bldg_name_en ?? "",
     r.district_en ?? "",
     r.title ?? "",
-    r.full_address_en ?? "",
+    formatPropertyV1AddressEn(r),
     String(r.inventory_count ?? 0),
     r.updated_at?.slice(0, 10) ?? "",
   ]);

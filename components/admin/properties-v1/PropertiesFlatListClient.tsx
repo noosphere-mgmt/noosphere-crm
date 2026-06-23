@@ -11,6 +11,7 @@ import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
 import { RecordNameWithId } from "@/components/admin/RecordBusinessId";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import { usePropertiesListSelection } from "@/components/admin/properties-v1/PropertiesListSelectionContext";
+import { formatPropertyV1AddressEn } from "@/lib/composeAddress";
 import type { PropertyV1, PropertyV1SelectOption } from "@/lib/repos/propertiesV1";
 import type { PremisesV1 } from "@/lib/repos/premisesV1";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
@@ -22,6 +23,9 @@ export type PropertyListRow = Pick<
   | "bldg_name_en"
   | "district_en"
   | "title"
+  | "street_no"
+  | "street_name_en"
+  | "city_en"
   | "full_address_en"
   | "inventory_count"
   | "updated_at"
@@ -169,7 +173,7 @@ export function PropertiesFlatListClient({
                   </td>
                   <td className="px-3 py-1.5 text-slate-700">{row.district_en ?? "—"}</td>
                   <td className="px-3 py-1.5 text-slate-700">{row.title ?? "—"}</td>
-                  <td className="px-3 py-1.5 text-slate-700">{row.full_address_en || "—"}</td>
+                  <td className="px-3 py-1.5 text-slate-700">{formatPropertyV1AddressEn(row) || "—"}</td>
                   <td className="px-3 py-1.5 text-slate-700">{row.inventory_count ?? 0}</td>
                   <td className="px-3 py-1.5 text-slate-700">{row.updated_at?.slice(0, 10) ?? "—"}</td>
                   <td className="px-3 py-1.5">

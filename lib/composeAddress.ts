@@ -10,11 +10,11 @@ function trim(s: string | null | undefined): string {
 }
 
 function formatEnglishStreetLine(streetNo: string, streetName: string): string {
-  if (streetNo && streetName) return `${streetNo}, ${streetName}`;
+  if (streetNo && streetName) return `${streetNo} ${streetName}`;
   return streetNo || streetName;
 }
 
-/** English: Street no., Street, District, City (e.g. 418, Kwun Tong Road, Kwun Tong, Kowloon) */
+/** English: Street no. Street, District, City (e.g. 8 Finance Street, Central, Hong Kong) */
 export function composeAddressEnglish(parts: AddressParts): string {
   const streetNo = trim(parts.streetNo);
   const streetName = trim(parts.streetName);
@@ -27,6 +27,24 @@ export function composeAddressEnglish(parts: AddressParts): string {
 
 export function hasAddressParts(parts: AddressParts): boolean {
   return [parts.streetNo, parts.streetName, parts.district, parts.city].some((p) => trim(p));
+}
+
+/** Prefer composed English address from parts; fall back to stored full_address_en. */
+export function formatPropertyV1AddressEn(property: {
+  street_no?: string | null;
+  street_name_en?: string | null;
+  district_en?: string | null;
+  city_en?: string | null;
+  full_address_en?: string | null;
+}): string {
+  const parts: AddressParts = {
+    streetNo: property.street_no,
+    streetName: property.street_name_en,
+    district: property.district_en,
+    city: property.city_en,
+  };
+  if (hasAddressParts(parts)) return composeAddressEnglish(parts);
+  return property.full_address_en?.trim() || "";
 }
 
 export function composePropertyFullAddresses(parts: {
