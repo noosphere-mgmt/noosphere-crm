@@ -5,9 +5,24 @@ import {
   describeV1UpdateParams,
   formatSqlParamDebug,
 } from "@/lib/propertyV1DbCoerce";
+import { allocateNextBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
+import { normalizePremisesRelationshipLines } from "@/lib/premisesRelationships";
+import type { PremisesRelationshipLine } from "@/lib/v1ListValues";
+
+function normalizePremisesV1Row<T extends { relationship_lines?: unknown }>(row: T): T {
+  return {
+    ...row,
+    relationship_lines: normalizePremisesRelationshipLines(row.relationship_lines),
+  };
+}
+
+function relationshipLinesJsonbParam(value: unknown): string {
+  return JSON.stringify(normalizePremisesRelationshipLines(value));
+}
 
 export type PremisesV1 = {
   premises_id: string;
+  business_id: string | null;
   property_id: string;
   property_name_en: string | null;
   property_name_zh: string | null;
@@ -56,7 +71,7 @@ export type PremisesV1 = {
   source_url: string | null;
   operating_model: string | null;
   fit_out_condition: string | null;
-  relationship_lines: import("@/lib/v1ListValues").PremisesRelationshipLine[] | null;
+  relationship_lines: PremisesRelationshipLine[] | null;
   last_verified_date: string | null;
   listing_remarks: string | null;
   updated_at: string;
@@ -64,6 +79,7 @@ export type PremisesV1 = {
 
 const select = `
   premises_id,
+  business_id,
   property_id,
   property_name_en, property_name_zh,
   property_type, centre_type,
@@ -105,15 +121,28 @@ const select = `
 `;
 
 export async function listPremisesForPropertyV1(propertyId: string): Promise<PremisesV1[]> {
-  return query<PremisesV1>(
+  const rows = await query<PremisesV1>(
     `SELECT ${select} FROM premises_v1 WHERE property_id = $1 ORDER BY last_verified_date DESC NULLS LAST, floor ASC NULLS LAST, unit ASC NULLS LAST, premises_id ASC`,
     [propertyId],
   );
+  return rows.map((row) => normalizePremisesV1Row(row));
 }
 
 export async function getPremisesV1(premisesId: string): Promise<PremisesV1 | null> {
   const rows = await query<PremisesV1>(`SELECT ${select} FROM premises_v1 WHERE premises_id = $1 LIMIT 1`, [premisesId]);
-  return rows[0] ?? null;
+  const row = rows[0];
+  return row ? normalizePremisesV1Row(row) : null;
+}
+
+/** Resolve premises_id from premises_id or permanent business_id (P100001). */
+export async function resolvePremisesV1Id(raw: string): Promise<string | null> {
+  const id = raw.trim();
+  if (!id) return null;
+  const rows = await query<{ premises_id: string }>(
+    `SELECT premises_id FROM premises_v1 WHERE premises_id = $1 OR business_id = $1 LIMIT 1`,
+    [id],
+  );
+  return rows[0]?.premises_id ?? null;
 }
 
 export type PremisesV1Patch = Partial<
@@ -144,7 +173,7 @@ export type PremisesV1Patch = Partial<
     negotiable_sale_price?: number | null;
     negotiable_sale_price_psf?: number | null;
     commission_rate?: string | null;
-    relationship_lines?: import("@/lib/v1ListValues").PremisesRelationshipLine[] | null;
+    relationship_lines?: PremisesRelationshipLine[] | null;
   }
 >;
 
@@ -157,7 +186,7 @@ export async function updatePremisesV1(premisesId: string, patch: PremisesV1Patc
   let i = 2;
   for (const [k, v] of entries) {
     sets.push(`${k} = $${i}`);
-    params.push(k === "relationship_lines" ? JSON.stringify(v) : v);
+    params.push(k === "relationship_lines" ? relationshipLinesJsonbParam(v) : v);
     i++;
   }
   try {
@@ -195,6 +224,7 @@ export async function allocatePremisesV1Id(): Promise<string> {
 export function emptyPremisesV1(propertyId: string): PremisesV1 {
   return {
     premises_id: "",
+    business_id: null,
     property_id: propertyId,
     property_name_en: null,
     property_name_zh: null,
@@ -252,7 +282,8 @@ export function emptyPremisesV1(propertyId: string): PremisesV1 {
 
 export async function createPremisesV1(propertyId: string, patch: PremisesV1Patch): Promise<string> {
   const premisesId = await allocatePremisesV1Id();
-  const coerced = await coercePremisesV1PatchForDb(patch);
+  const businessId = await allocateNextBusinessId("premise");
+  const coerced = await coercePremisesV1PatchForDb({ ...patch, business_id: businessId });
   const entries = Object.entries(coerced).filter(
     ([k, v]) =>
       v !== undefined &&
@@ -265,12 +296,18 @@ export async function createPremisesV1(propertyId: string, patch: PremisesV1Patc
   const params: unknown[] = [
     premisesId,
     propertyId,
-    ...entries.map(([k, v]) => (k === "relationship_lines" ? JSON.stringify(v) : v)),
+    ...entries.map(([k, v]) => (k === "relationship_lines" ? relationshipLinesJsonbParam(v) : v)),
   ];
   await query(
     `INSERT INTO premises_v1 (${columns.join(", ")}) VALUES (${placeholders.join(", ")})`,
     params,
   );
+  await registerBusinessId({
+    entityType: "premise",
+    businessId,
+    primaryRef: premisesId,
+    deprecatedRef: premisesId,
+  });
   return premisesId;
 }
 
@@ -361,6 +398,11 @@ export type PremisesListItem = PremisesV1 & {
 const flatJoin = `
   FROM premises_v1 p
   JOIN properties_v1 pr ON pr.property_id = p.property_id
+  LEFT JOIN companies_v1 c ON ${sqlJoinV1Company("c", "p.operator_company_id")}`;
+
+const flatJoinOptionalBuilding = `
+  FROM premises_v1 p
+  LEFT JOIN properties_v1 pr ON pr.property_id = p.property_id
   LEFT JOIN companies_v1 c ON ${sqlJoinV1Company("c", "p.operator_company_id")}`;
 
 function premisesFlatWhere(filters: PremisesFlatFilters): { where: string; params: unknown[] } {
@@ -460,12 +502,15 @@ export async function listPremisesFlat(filters: PremisesFlatFilters = {}): Promi
   );
 }
 
+const listItemSelect = `       p.premises_id,
+       p.business_id,
+       p.property_id`;
+
 export async function listPremisesFullFiltered(filters: PremisesFlatFilters = {}): Promise<PremisesListItem[]> {
   const { where, params } = premisesFlatWhere(filters);
-  return query<PremisesListItem>(
+  const rows = await query<PremisesListItem>(
     `SELECT
-       p.premises_id,
-       p.property_id,
+       ${listItemSelect},
        p.property_name_en, p.property_name_zh,
        p.property_type, p.centre_type,
        p.inventory_status, p.ownership_type,
@@ -511,6 +556,63 @@ export async function listPremisesFullFiltered(filters: PremisesFlatFilters = {}
      ORDER BY p.last_verified_date DESC NULLS LAST, pr.bldg_name_en ASC NULLS LAST, p.floor ASC NULLS LAST, p.unit ASC NULLS LAST`,
     params,
   );
+  return rows.map((row) => normalizePremisesV1Row(row));
+}
+
+/** Load one premises list row by premises_id or business_id (includes orphan / missing building). */
+export async function getPremisesListItemByRef(raw: string): Promise<PremisesListItem | null> {
+  const id = raw.trim();
+  if (!id) return null;
+  const rows = await query<PremisesListItem>(
+    `SELECT
+       ${listItemSelect},
+       p.property_name_en, p.property_name_zh,
+       p.property_type, p.centre_type,
+       p.inventory_status, p.ownership_type,
+       p.floor, p.unit, p.workstation_count,
+       p.office_name, p.office_type,
+       p.gross_area_sqft::text AS gross_area_sqft,
+       p.net_area_sqft::text AS net_area_sqft,
+       p.view_type, p.windows,
+       p.management_fee::text AS management_fee,
+       p.government_rates::text AS government_rates,
+       p.remarks,
+       p.owner_company_id, p.landlord_company_id, p.current_tenant_company_id, p.operator_company_id,
+       p.source_company_id, p.source_contact_id, p.source_contact_role,
+       p.offer_type, p.offer_status,
+       p.capacity_pax,
+       p.monthly_rent::text AS monthly_rent,
+       p.rent_psf::text AS rent_psf,
+       p.deposit_months,
+       p.rent_free_period,
+       p.contract_term_months,
+       p.available_date::text AS available_date,
+       p.commission_rate::text AS commission_rate,
+       COALESCE(p.currency, 'HKD') AS currency,
+       p.asking_sale_price::text AS asking_sale_price,
+       p.sale_price_psf::text AS sale_price_psf,
+       p.negotiable_sale_price::text AS negotiable_sale_price,
+       p.negotiable_sale_price_psf::text AS negotiable_sale_price_psf,
+       p.expected_commission,
+       p.payout_commission,
+       p.commission_remarks,
+       p.source_file, p.source_url,
+       p.operating_model,
+       p.fit_out_condition,
+       p.relationship_lines,
+       p.last_verified_date::text AS last_verified_date,
+       p.listing_remarks,
+       p.updated_at::text AS updated_at,
+       pr.bldg_name_en AS building_name_en,
+       pr.district_en,
+       c.company_name_en AS operator_name
+     ${flatJoinOptionalBuilding}
+     WHERE p.premises_id = $1 OR p.business_id = $1
+     LIMIT 1`,
+    [id],
+  );
+  const row = rows[0];
+  return row ? normalizePremisesV1Row(row) : null;
 }
 
 export async function listPremisesFilterOptions(): Promise<{

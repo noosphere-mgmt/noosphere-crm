@@ -59,7 +59,7 @@ export function ConnectionsContactsListMobile({
                   className={`w-full cursor-pointer px-3 py-3 text-left active:bg-slate-50 ${connectionsGlassClasses.link}`}
                 >
                   <MobileCardTitle>{label}</MobileCardTitle>
-                  <RecordBusinessId id={row.v1_contact_id} className="mt-0.5 block" />
+                  <RecordBusinessId id={row.business_id ?? row.v1_contact_id} className="mt-0.5 block" />
                   <MobileCardMeta>
                     {row.company_name ?? "No company"} · {row.open_opportunities ?? 0} open opps
                   </MobileCardMeta>

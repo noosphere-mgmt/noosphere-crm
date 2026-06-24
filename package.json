@@ -24,15 +24,21 @@
     "verify:crm-ref-resolve": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-crm-ref-resolve.ts",
     "verify:property-company-save": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-property-company-save.ts",
     "diagnose:property-v1-fk-params": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/diagnose-property-v1-fk-params.ts",
+    "verify:new-building-route": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-new-building-route.ts",
     "verify:contacts-import-pipe": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-contacts-import-pipe.ts",
     "verify:import-lookup-fields": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-import-lookup-fields.ts",
     "verify:premises-import-commit": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-premises-import-commit.ts",
     "verify:compose-address": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-compose-address.ts",
+    "verify:building-create-fields": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-building-create-fields.ts",
+    "verify:business-ids": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-business-ids.ts",
+    "db:populate-business-ids": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/populate-business-ids.ts",
     "db:migrate:v1": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/migrate-v1.ts",
     "db:backfill:v1": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/backfill-v1.ts",
     "db:verify:v1": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-v1.ts",
     "db:audit:company-refs": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/audit-company-references.ts",
-    "db:audit:company-refs:fix": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/audit-company-references.ts --fix"
+    "db:audit:company-refs:fix": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/audit-company-references.ts --fix",
+    "db:fix-relationship-lines": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/fix-premises-relationship-lines.ts",
+    "verify:premises-relationship-lines": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-premises-relationship-lines.ts"
   },
   "dependencies": {
     "dotenv": "^17.4.2",

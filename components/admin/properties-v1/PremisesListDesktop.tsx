@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { updatePremisesV1Action } from "@/app/admin/properties/actions";
 import { PremisesDrawer } from "@/components/admin/properties-v1/PremisesDrawer";
 import { ListingRecordCount } from "@/components/admin/ListingRecordCount";
@@ -236,16 +235,17 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                       />
                     </td>
                     <td className="px-3 py-1.5">
-                      <Link
-                        href={premisesDrawerHref(searchParams, row.premises_id, "overview", "view")}
+                      <button
+                        type="button"
+                        onClick={() => openView(row.premises_id)}
                         className={`text-left text-sm font-medium underline-offset-2 hover:underline ${theme.link}`}
                       >
                         {formatPremisesListLabel(row.building_name_en, row.floor, row.unit)}
-                      </Link>
-                      <RecordBusinessId id={row.premises_id} className="mt-0.5 block" />
+                      </button>
+                      <RecordBusinessId id={row.business_id ?? row.premises_id} className="mt-0.5 block" />
                     </td>
                     <td className="px-3 py-1.5 text-slate-700">{row.district_en ?? "—"}</td>
-                    <td className="px-3 py-1.5 text-slate-700">{row.operator_name ?? "—"}</td>
+                    <td className="px-3 py-1.5 text-slate-700">{row.operator_name ?? "Not assigned"}</td>
                     <td className="px-3 py-1.5 text-slate-700">{row.workstation_count ?? "—"}</td>
                     <td className="px-3 py-1.5 text-slate-700">{formatAreaSqft(row.gross_area_sqft)}</td>
                     <td className="px-3 py-1.5 text-slate-700">{prices.price}</td>

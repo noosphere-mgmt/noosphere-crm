@@ -2,6 +2,7 @@ import type { PremisesRelationshipLine } from "@/lib/v1ListValues";
 import type { PremisesV1 } from "@/lib/repos/premisesV1";
 import type { CompanyLookupMaps } from "@/lib/companyIdResolve";
 import { resolveToV1CompanyId } from "@/lib/companyIdResolve";
+import { asArray } from "@/lib/asArray";
 import {
   coerceCompanyIdToSelectValue,
   type CompanyV1SelectOption,
@@ -20,21 +21,31 @@ export function relationshipLineHasContent(line: PremisesRelationshipLine): bool
   );
 }
 
-export function parseRelationshipLines(raw: string | null | undefined): PremisesRelationshipLine[] {
-  if (!raw?.trim()) return [];
-  try {
-    const parsed = JSON.parse(raw) as PremisesRelationshipLine[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+export function parseRelationshipLines(raw: unknown): PremisesRelationshipLine[] {
+  return asArray<PremisesRelationshipLine>(raw);
+}
+
+/** Coerce stored relationship_lines (JSONB / legacy string) to a safe array. */
+export function normalizePremisesRelationshipLines(
+  raw: unknown,
+): PremisesRelationshipLine[] {
+  return parseRelationshipLines(raw).map((line) => ({
+    relationship_type: line.relationship_type ?? "",
+    company_id: line.company_id ?? null,
+    contact_id: line.contact_id ?? null,
+    contact_role: line.contact_role ?? null,
+    partnership_mode: line.partnership_mode ?? null,
+    source_url: line.source_url ?? null,
+    source_file: line.source_file ?? null,
+    remarks: line.remarks ?? null,
+  }));
 }
 
 export function coerceRelationshipLinesForSelect(
-  lines: PremisesRelationshipLine[],
+  lines: unknown,
   companyOptions: CompanyV1SelectOption[],
 ): PremisesRelationshipLine[] {
-  return lines.map((line) => ({
+  return asArray<PremisesRelationshipLine>(lines).map((line) => ({
     ...line,
     company_id: line.company_id
       ? coerceCompanyIdToSelectValue(line.company_id, companyOptions) || null
@@ -44,10 +55,10 @@ export function coerceRelationshipLinesForSelect(
 
 /** Sync normalize using preloaded maps (audit scripts). */
 export function normalizeRelationshipLines(
-  lines: PremisesRelationshipLine[],
+  lines: unknown,
   maps: CompanyLookupMaps,
 ): PremisesRelationshipLine[] {
-  return lines.map((line) => {
+  return asArray<PremisesRelationshipLine>(lines).map((line) => {
     if (!line.company_id?.trim()) return line;
     const resolved = resolveToV1CompanyId(line.company_id, maps);
     return resolved ? { ...line, company_id: resolved } : line;
@@ -55,7 +66,8 @@ export function normalizeRelationshipLines(
 }
 
 export function initialPremisesRelationshipLines(premises: PremisesV1): PremisesRelationshipLine[] {
-  if (premises.relationship_lines?.length) return premises.relationship_lines;
+  const stored = normalizePremisesRelationshipLines(premises.relationship_lines);
+  if (stored.length > 0) return stored;
 
   const lines: PremisesRelationshipLine[] = [];
   const push = (
@@ -122,9 +134,14 @@ export function emptyRelationshipLine(): PremisesRelationshipLine {
   };
 }
 
-export function syncRelationshipColumns(lines: PremisesRelationshipLine[]) {
+function relationshipTypeKey(value: string | null | undefined): string {
+  return (value ?? "").trim().toLowerCase();
+}
+
+export function syncRelationshipColumns(lines: unknown) {
+  const normalized = normalizePremisesRelationshipLines(lines);
   const find = (type: string) =>
-    lines.find((l) => l.relationship_type.trim().toLowerCase() === type.toLowerCase()) ?? null;
+    normalized.find((l) => relationshipTypeKey(l.relationship_type) === type.toLowerCase()) ?? null;
 
   const operator = find("Operator");
   const owner = find("Owner");

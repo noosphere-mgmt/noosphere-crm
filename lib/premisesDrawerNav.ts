@@ -28,3 +28,17 @@ export function premisesDrawerHref(
   const qs = params.toString();
   return qs ? `${basePath}?${qs}` : basePath;
 }
+
+/** Building detail page with premises drawer context (explicit full-page navigation). */
+export function premisesFullPageHref(
+  propertyId: string,
+  premisesId: string,
+  tab: PremisesDetailTabId = "overview",
+): string {
+  const params = new URLSearchParams();
+  params.set("premises", premisesId);
+  if (tab !== "overview") params.set("tab", tab);
+  params.set("mode", "view");
+  const qs = params.toString();
+  return `/admin/properties/${encodeURIComponent(propertyId)}?${qs}`;
+}

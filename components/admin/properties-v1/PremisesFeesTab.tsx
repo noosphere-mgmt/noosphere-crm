@@ -2,23 +2,27 @@
 
 import { PremisesDrawerTableLink } from "@/components/admin/properties-v1/PremisesDrawerHeader";
 import { PremisesMetric, PremisesSectionCard } from "@/components/admin/properties-v1/premisesDrawerUi";
+import { asArray } from "@/lib/asArray";
 import { formatMoney } from "@/lib/formatCurrency";
-import type { PremisesFeeSummary } from "@/lib/repos/opportunityProposedPremises";
+import { normalizePremisesFeeSummary } from "@/lib/premisesClientData";
+import type { PremisesFeeLineRow, PremisesFeeSummary } from "@/lib/repos/opportunityProposedPremises";
 
 function formatFeeStatus(status: string | null | undefined): string {
   if (!status) return "—";
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
-export function PremisesFeesTab({ fees }: { fees: PremisesFeeSummary }) {
+export function PremisesFeesTab({ fees }: { fees: PremisesFeeSummary | null | undefined }) {
+  const safeFees = normalizePremisesFeeSummary(fees);
+  const feeLines = asArray<PremisesFeeLineRow>(safeFees.lines);
   return (
     <div className="space-y-4">
       <PremisesSectionCard title="Fee summary">
         <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <PremisesMetric label="Expected collect" value={formatMoney(fees.expected_collect, "HKD")} />
-          <PremisesMetric label="Confirmed collect" value={formatMoney(fees.confirmed_collect, "HKD")} />
-          <PremisesMetric label="Paid out" value={formatMoney(fees.paid_out, "HKD")} />
-          <PremisesMetric label="Net fee" value={formatMoney(fees.net_fee, "HKD")} />
+          <PremisesMetric label="Expected collect" value={formatMoney(safeFees.expected_collect, "HKD")} />
+          <PremisesMetric label="Confirmed collect" value={formatMoney(safeFees.confirmed_collect, "HKD")} />
+          <PremisesMetric label="Paid out" value={formatMoney(safeFees.paid_out, "HKD")} />
+          <PremisesMetric label="Net fee" value={formatMoney(safeFees.net_fee, "HKD")} />
         </dl>
       </PremisesSectionCard>
 
@@ -37,14 +41,14 @@ export function PremisesFeesTab({ fees }: { fees: PremisesFeeSummary }) {
               </tr>
             </thead>
             <tbody>
-              {fees.lines.length === 0 ? (
+              {feeLines.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
                     No fee records linked to this premises yet.
                   </td>
                 </tr>
               ) : (
-                fees.lines.map((line) => (
+                feeLines.map((line) => (
                   <tr key={line.id} className="border-t border-slate-100 align-top">
                     <td className="px-3 py-2 font-medium text-slate-900">
                       <PremisesDrawerTableLink href={`/admin/opportunities/${line.opportunity_id}?tab=fees`}>

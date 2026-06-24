@@ -264,15 +264,27 @@ export function applyOpportunityPatch(
       input.required_area_sqft = parseOptionalNumber(value);
       break;
     case "district_preference":
-    case "move_in_date":
     case "requirement_summary":
     case "remarks":
     case "lease_term":
-    case "expected_close_date":
     case "relationship_owner":
     case "target_yield":
       input[field] = value ? String(value).trim() || null : null;
       break;
+    case "expected_close_date": {
+      const date = value ? String(value).trim() || null : null;
+      input.expected_close_date = date;
+      if (input.sales_role !== "to_buy") {
+        input.move_in_date = date;
+      }
+      break;
+    }
+    case "move_in_date": {
+      const date = value ? String(value).trim() || null : null;
+      input.move_in_date = date;
+      input.expected_close_date = date;
+      break;
+    }
     case "lost_reason":
       if (!isClosedOpportunityStatus(input.status ?? opportunity.status)) {
         return { error: "Won/Lost reason applies only to closed opportunities" };

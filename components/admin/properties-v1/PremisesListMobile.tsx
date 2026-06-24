@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updatePremisesV1Action } from "@/app/admin/properties/actions";
@@ -38,6 +37,7 @@ export function PremisesListMobile(props: PremisesListComponentProps) {
     activeTab,
     openPremises,
     displayedRows,
+    openView,
     closeDrawer,
     setMode,
     getPremisesRowPriceDisplay,
@@ -105,13 +105,14 @@ export function PremisesListMobile(props: PremisesListComponentProps) {
                   <div className="px-3 py-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <Link
-                          href={premisesDrawerHref(searchParams, row.premises_id, "overview", "view")}
-                          className="block truncate text-sm font-semibold text-blue-800 underline-offset-2 hover:underline"
+                        <button
+                          type="button"
+                          onClick={() => openView(row.premises_id)}
+                          className="block w-full truncate text-left text-sm font-semibold text-blue-800 underline-offset-2 hover:underline"
                         >
                           {listLabel !== "—" ? listLabel : "Unnamed premise"}
-                        </Link>
-                        <RecordBusinessId id={row.premises_id} className="mt-0.5 block" />
+                        </button>
+                        <RecordBusinessId id={row.business_id ?? row.premises_id} className="mt-0.5 block" />
                         {metaParts.length > 0 ? (
                           <MobileCardMeta>{metaParts.join(" · ")}</MobileCardMeta>
                         ) : null}

@@ -1,24 +1,30 @@
+import { asArray } from "@/lib/asArray";
 import type { ContactV1Option } from "@/lib/repos/contactsV1";
-import { isLegacyNumericRef, isV1ContactRef } from "@/lib/entityRefGuards";
+import { isPermanentBusinessId } from "@/lib/businessIds";
 
 export type ContactV1SelectOption = {
   value: string;
   label: string;
+  businessId: string;
   v1Id: string;
   legacyId: number | null;
 };
 
-/** Premises source_contact_id uses v1 CONT-* in DB — option value is v1 id. */
-export function toContactV1SelectOptions(contacts: ContactV1Option[]): ContactV1SelectOption[] {
-  return contacts.map((c) => {
-    const name = c.display_name?.trim() || c.contact_id;
-    return {
-      value: c.contact_id,
-      label: `${name} (${c.contact_id})`,
-      v1Id: c.contact_id,
-      legacyId: c.legacy_contact_id,
-    };
-  });
+/** Contact dropdown: value = permanent business ID (D100001). */
+export function toContactV1SelectOptions(contacts: ContactV1Option[] | null | undefined): ContactV1SelectOption[] {
+  return asArray<ContactV1Option>(contacts)
+    .filter((c) => c.business_id)
+    .map((c) => {
+      const businessId = c.business_id!;
+      const name = c.display_name?.trim() || businessId;
+      return {
+        value: businessId,
+        label: `${name} (${businessId})`,
+        businessId,
+        v1Id: c.contact_id,
+        legacyId: c.legacy_contact_id,
+      };
+    });
 }
 
 export function coerceContactIdToSelectValue(
@@ -28,10 +34,12 @@ export function coerceContactIdToSelectValue(
   const id = stored?.trim();
   if (!id) return "";
   if (options.some((o) => o.value === id)) return id;
-  if (isLegacyNumericRef(id)) {
-    const byLegacy = options.find((o) => o.legacyId != null && String(o.legacyId) === id);
-    if (byLegacy) return byLegacy.value;
-  }
-  if (isV1ContactRef(id)) return id;
+  const byBusiness = options.find((o) => o.businessId === id);
+  if (byBusiness) return byBusiness.value;
+  const byV1 = options.find((o) => o.v1Id === id);
+  if (byV1) return byV1.value;
+  const byLegacy = options.find((o) => o.legacyId != null && String(o.legacyId) === id);
+  if (byLegacy) return byLegacy.value;
+  if (isPermanentBusinessId("contact", id)) return id;
   return "";
 }

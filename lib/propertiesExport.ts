@@ -1,6 +1,7 @@
 import type { PropertyListRow } from "@/components/admin/properties-v1/PropertiesFlatListClient";
 import { formatPropertyV1AddressEn } from "@/lib/composeAddress";
 import { buildCsvContent, downloadCsvInBrowser } from "@/lib/csvEncoding";
+import { buildExportFilename } from "@/lib/import/exportFilename";
 
 export function exportPropertiesV1Csv(rows: PropertyListRow[]): void {
   const headers = ["ID", "Building", "District", "Title", "Address", "Premises", "Updated"];
@@ -13,5 +14,5 @@ export function exportPropertiesV1Csv(rows: PropertyListRow[]): void {
     String(r.inventory_count ?? 0),
     r.updated_at?.slice(0, 10) ?? "",
   ]);
-  downloadCsvInBrowser("properties-buildings.csv", buildCsvContent(headers, data));
+  downloadCsvInBrowser(buildExportFilename("buildings"), buildCsvContent(headers, data));
 }

@@ -4,13 +4,13 @@ import type { ContactV1Option } from "@/lib/repos/contactsV1";
 export type LegacyCompanySelectOption = {
   value: string;
   label: string;
-  v1Id: string | null;
+  businessId: string | null;
 };
 
 export type LegacyContactSelectOption = {
   value: string;
   label: string;
-  v1Id: string | null;
+  businessId: string | null;
 };
 
 export function formatLabelWithBusinessId(name: string, businessId?: string | null): string {
@@ -35,42 +35,59 @@ function v1ContactByLegacy(contacts: ContactV1Option[]): Map<number, ContactV1Op
   return map;
 }
 
-/** Legacy CRM company dropdown: value = companies.id, label = Name (COMP-*). */
+/** Company dropdown: value = permanent business ID (C100001). */
 export function toLegacyCompanySelectOptions(
-  companies: { id: number; company_name: string; v1_company_id?: string | null }[],
+  companies: { id: number; company_name: string; business_id?: string | null; v1_company_id?: string | null }[],
   v1Companies: CompanyV1Option[] = [],
 ): LegacyCompanySelectOption[] {
   const v1ByLegacy = v1CompanyByLegacy(v1Companies);
-  return companies.map((c) => {
-    const v1Id = c.v1_company_id ?? v1ByLegacy.get(c.id)?.company_id ?? null;
-    return {
-      value: String(c.id),
-      label: formatLabelWithBusinessId(c.company_name, v1Id),
-      v1Id,
-    };
-  });
+  return companies
+    .map((c) => {
+      const businessId =
+        c.business_id?.trim() ||
+        v1ByLegacy.get(c.id)?.business_id?.trim() ||
+        null;
+      if (!businessId) return null;
+      const option: LegacyCompanySelectOption = {
+        value: businessId,
+        label: formatLabelWithBusinessId(c.company_name, businessId),
+        businessId,
+      };
+      return option;
+    })
+    .filter((o): o is LegacyCompanySelectOption => o != null);
 }
 
-/** Legacy CRM contact dropdown: value = contacts.id, label = Name (CONT-*). */
+/** Contact dropdown: value = permanent business ID (D100001). */
 export function toLegacyContactSelectOptions(
-  contacts: { id: number; contact_name: string; company_id?: number | null; v1_contact_id?: string | null }[],
+  contacts: {
+    id: number;
+    contact_name: string;
+    business_id?: string | null;
+    company_id?: number | null;
+    v1_contact_id?: string | null;
+  }[],
   v1Contacts: ContactV1Option[] = [],
 ): LegacyContactSelectOption[] {
   const v1ByLegacy = v1ContactByLegacy(v1Contacts);
-  return contacts.map((c) => {
-    const v1Id = c.v1_contact_id ?? v1ByLegacy.get(c.id)?.contact_id ?? null;
-    return {
-      value: String(c.id),
-      label: formatLabelWithBusinessId(c.contact_name, v1Id),
-      v1Id,
-    };
-  });
+  return contacts
+    .map((c) => {
+      const businessId = c.business_id?.trim() || v1ByLegacy.get(c.id)?.business_id?.trim() || null;
+      if (!businessId) return null;
+      const option: LegacyContactSelectOption = {
+        value: businessId,
+        label: formatLabelWithBusinessId(c.contact_name, businessId),
+        businessId,
+      };
+      return option;
+    })
+    .filter((o): o is LegacyContactSelectOption => o != null);
 }
 
 export function formatLegacyCompanyOptionLabel(
   companyName: string,
   _legacyId: number,
-  v1Id?: string | null,
+  businessId?: string | null,
 ): string {
-  return formatLabelWithBusinessId(companyName, v1Id);
+  return formatLabelWithBusinessId(companyName, businessId);
 }

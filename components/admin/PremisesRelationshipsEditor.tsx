@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { asArray } from "@/lib/asArray";
+import { asContactV1Options } from "@/lib/premisesClientData";
 import type { CompanyV1SelectOption } from "@/lib/companyV1Display";
 import { toContactV1SelectOptions } from "@/lib/contactV1Display";
 import {
@@ -21,14 +23,15 @@ const selectClass =
 const inputClass = selectClass;
 
 function contactsForCompany(
-  contacts: ContactV1Option[],
+  contacts: ContactV1Option[] | null | undefined,
   companySelectValue: string | null,
   companyOptions: CompanyV1SelectOption[],
 ) {
-  if (!companySelectValue) return contacts;
+  const safeContacts = asContactV1Options(contacts);
+  if (!companySelectValue) return safeContacts;
   const opt = companyOptions.find((o) => o.value === companySelectValue);
   const v1CompanyId = opt?.v1Id ?? companySelectValue;
-  return contacts.filter(
+  return safeContacts.filter(
     (c) => c.company_id === v1CompanyId || c.company_id === companySelectValue,
   );
 }
@@ -46,24 +49,26 @@ export function PremisesRelationshipsEditor({
     coerceRelationshipLinesForSelect(initialPremisesRelationshipLines(premises), companyOptions),
   );
 
-  const contactSelectOptions = useMemo(() => toContactV1SelectOptions(contacts), [contacts]);
+  const safeContacts = asContactV1Options(contacts);
+  const contactSelectOptions = useMemo(() => toContactV1SelectOptions(safeContacts), [safeContacts]);
+  const safeLines = asArray<PremisesRelationshipLine>(lines);
 
   function updateLine(index: number, patch: Partial<PremisesRelationshipLine>) {
-    setLines((prev) => prev.map((line, i) => (i === index ? { ...line, ...patch } : line)));
+    setLines((prev) => asArray<PremisesRelationshipLine>(prev).map((line, i) => (i === index ? { ...line, ...patch } : line)));
   }
 
   return (
     <div className="space-y-4">
-      <input type="hidden" name="relationship_lines" value={JSON.stringify(lines)} />
-      {lines.map((line, index) => (
+      <input type="hidden" name="relationship_lines" value={JSON.stringify(safeLines)} />
+      {safeLines.map((line, index) => (
         <div key={index} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
           <div className="mb-3 flex items-center justify-between gap-2">
             <p className="text-sm font-semibold text-slate-800">Line {index + 1}</p>
-            {lines.length > 1 ? (
+            {safeLines.length > 1 ? (
               <button
                 type="button"
                 className="text-xs font-semibold text-red-600 hover:text-red-800"
-                onClick={() => setLines((prev) => prev.filter((_, i) => i !== index))}
+                onClick={() => setLines((prev) => asArray<PremisesRelationshipLine>(prev).filter((_, i) => i !== index))}
               >
                 Remove
               </button>
@@ -110,7 +115,7 @@ export function PremisesRelationshipsEditor({
                 onChange={(e) => updateLine(index, { contact_id: e.target.value || null })}
               >
                 <option value="">— Select contact —</option>
-                {contactsForCompany(contacts, line.company_id, companyOptions).map((c) => {
+                {contactsForCompany(safeContacts, line.company_id, companyOptions).map((c) => {
                   const opt = contactSelectOptions.find((o) => o.value === c.contact_id);
                   return (
                     <option key={c.contact_id} value={c.contact_id}>

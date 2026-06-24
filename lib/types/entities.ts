@@ -213,6 +213,7 @@ export type Company = {
   primary_contact_name?: string | null;
   open_opportunities?: number;
   v1_company_id?: string | null;
+  business_id?: string | null;
 };
 
 export type Contact = {
@@ -243,6 +244,7 @@ export type Contact = {
   company_country?: string | null;
   company_city?: string | null;
   open_opportunities?: number;
+  business_id?: string | null;
   v1_contact_id?: string | null;
 };
 

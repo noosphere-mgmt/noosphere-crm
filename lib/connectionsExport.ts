@@ -1,6 +1,7 @@
 import { formatCompanyRoles, formatCoverage, type ConnectionCompanyListRow } from "@/lib/connectionsDisplay";
 import { companyBusinessExportId, contactBusinessExportId } from "@/lib/exportBusinessIds";
 import { buildCsvContent, downloadCsvInBrowser } from "@/lib/csvEncoding";
+import { buildExportFilename } from "@/lib/import/exportFilename";
 import { getContactLabel } from "@/lib/contactName";
 import type { Contact } from "@/lib/types/entities";
 
@@ -33,7 +34,7 @@ export function exportCompaniesCsv(companies: ConnectionCompanyListRow[]): void 
     c.last_contact_date?.slice(0, 10) ?? "",
     c.notes ?? "",
   ]);
-  downloadCsvInBrowser(`companies-${new Date().toISOString().slice(0, 10)}.csv`, buildCsvContent(headers, rows));
+  downloadCsvInBrowser(buildExportFilename("companies"), buildCsvContent(headers, rows));
 }
 
 export function exportContactsCsv(contacts: Contact[]): void {
@@ -63,5 +64,5 @@ export function exportContactsCsv(contacts: Contact[]): void {
     c.last_contact_date?.slice(0, 10) ?? "",
     c.notes ?? "",
   ]);
-  downloadCsvInBrowser(`contacts-${new Date().toISOString().slice(0, 10)}.csv`, buildCsvContent(headers, rows));
+  downloadCsvInBrowser(buildExportFilename("contacts"), buildCsvContent(headers, rows));
 }

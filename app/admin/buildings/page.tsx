@@ -1,16 +1,30 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { listBuildings } from "@/lib/repos/buildings";
+import { rethrowNextNavigation } from "@/lib/nextNavigation";
 
 export const dynamic = "force-dynamic";
 
 export default async function BuildingsListPage() {
   let rows: Awaited<ReturnType<typeof listBuildings>> = [];
+  let loadError: string | null = null;
+
   try {
     rows = await listBuildings();
-  } catch {
-    redirect("/admin");
+  } catch (err) {
+    rethrowNextNavigation(err);
+    loadError = err instanceof Error ? err.message : "Could not load buildings";
+  }
+
+  if (loadError) {
+    return (
+      <AdminShell title="Buildings">
+        <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-6 text-sm text-red-900">
+          <p className="font-semibold">Could not load buildings</p>
+          <p className="mt-2 text-red-800">{loadError}</p>
+        </div>
+      </AdminShell>
+    );
   }
 
   return (

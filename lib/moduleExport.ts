@@ -25,7 +25,7 @@ export async function downloadModuleExport(
   const blob = await res.blob();
   const disposition = res.headers.get("Content-Disposition");
   const filename =
-    disposition?.match(/filename="([^"]+)"/)?.[1] ?? buildExportFilename(objectType, scope);
+    disposition?.match(/filename="([^"]+)"/)?.[1] ?? buildExportFilename(objectType);
 
   // Re-wrap with explicit UTF-8 BOM type so Excel opens Chinese correctly even if proxy strips headers.
   const text = csvResponseBody(await blob.text());

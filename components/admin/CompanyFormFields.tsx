@@ -27,9 +27,9 @@ export function CompanyFormFields({ defaults }: Props) {
 
   return (
     <>
-      {defaults?.v1_company_id ? (
+      {defaults?.business_id ?? defaults?.v1_company_id ? (
         <div className="mb-2">
-          <RecordBusinessId id={defaults.v1_company_id} />
+          <RecordBusinessId id={defaults.business_id ?? defaults.v1_company_id} />
         </div>
       ) : null}
       <div className="grid gap-4 sm:grid-cols-2">

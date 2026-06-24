@@ -28,7 +28,15 @@ import { PremisesDetailTabs } from "@/components/admin/properties-v1/PremisesDet
 import { PremisesDrawerHeader } from "@/components/admin/properties-v1/PremisesDrawerHeader";
 import type { PremisesDrawerData } from "@/lib/repos/premisesDrawer";
 import { formatPremisesName } from "@/lib/premisesDisplay";
+import { formatPremisesBuildingLabel } from "@/lib/premisesDetailDisplay";
+import { premisesFullPageHref } from "@/lib/premisesDrawerNav";
 import { countPremisesRelationships } from "@/lib/premisesRelationships";
+import {
+  asCompanyV1Options,
+  asContactV1Options,
+  normalizePremisesDrawerData,
+  normalizePremisesV1Client,
+} from "@/lib/premisesClientData";
 import {
   isPackageOperatingModel,
   monthlyRentFieldLabel,
@@ -362,11 +370,21 @@ export function PremisesDrawer({
   const isOpen = premises != null;
   const isMobile = useIsMobile();
   const searchParams = useSearchParams();
-  const companyOptions = useMemo(() => toCompanyV1SelectOptions(companies), [companies]);
-  const companyLabels = useMemo(() => buildCompanyV1LabelMap(companies), [companies]);
+  const companyOptions = useMemo(() => toCompanyV1SelectOptions(asCompanyV1Options(companies)), [companies]);
+  const companyLabels = useMemo(() => buildCompanyV1LabelMap(asCompanyV1Options(companies)), [companies]);
+  const safeContacts = useMemo(() => asContactV1Options(contacts), [contacts]);
   const contactLabels = useMemo(
-    () => new Map(contacts.map((c) => [c.contact_id, c.display_name])),
-    [contacts],
+    () =>
+      new Map(
+        safeContacts.flatMap((c) => {
+          const name = c.display_name?.trim() || c.contact_id;
+          const entries: [string, string][] = [[c.contact_id, name]];
+          if (c.business_id?.trim()) entries.push([c.business_id.trim(), name]);
+          if (c.legacy_contact_id != null) entries.push([String(c.legacy_contact_id), name]);
+          return entries;
+        }),
+      ),
+    [safeContacts],
   );
 
   const title = useMemo(() => {
@@ -385,19 +403,21 @@ export function PremisesDrawer({
 
   if (!isOpen || !premises) return null;
 
+  const safePremises = normalizePremisesV1Client(premises);
+
   const isView = isMobile || mode === "view";
-  const formId = `premises-form-${premises.premises_id}`;
-  const emptyDrawerData: PremisesDrawerData = {
-    proposed: [],
-    fees: { expected_collect: 0, confirmed_collect: 0, paid_out: 0, net_fee: 0, lines: [] },
-    activities: [],
-    lastActivityDate: null,
-  };
-  const data = drawerData ?? emptyDrawerData;
-  const buildingSubtitle =
-    propertyOptions.find((p) => p.property_id === premises.property_id)?.label ?? buildingName ?? premises.property_id;
+  const formId = `premises-form-${safePremises.premises_id}`;
+  const data = normalizePremisesDrawerData(drawerData);
+  const buildingSubtitle = formatPremisesBuildingLabel(
+    buildingName,
+    safePremises.property_id,
+    propertyOptions,
+  );
+  const fullPageHref = safePremises.property_id?.trim()
+    ? premisesFullPageHref(safePremises.property_id, safePremises.premises_id)
+    : null;
   const tabCounts = {
-    relationships: countPremisesRelationships(premises),
+    relationships: countPremisesRelationships(safePremises),
     opportunities: data.proposed.length,
     fees: data.fees.lines.length,
   };
@@ -415,15 +435,15 @@ export function PremisesDrawer({
         aria-modal="true"
         aria-label={isView ? "View premises" : "Edit premises"}
       >
-        <InlineEditProvider initialEditHighlight={isView} resetKey={premises.premises_id}>
+        <InlineEditProvider initialEditHighlight={isView} resetKey={safePremises.premises_id}>
         {isView ? (
           <PremisesDrawerHeader
             title={title}
             subtitle={buildingSubtitle}
-            businessId={premises.premises_id}
+            businessId={safePremises.business_id ?? safePremises.premises_id}
             onClose={onClose}
             onEdit={() => onModeChange("edit")}
-            onFullEdit={() => onModeChange("edit")}
+            fullPageHref={fullPageHref}
             showEdit
           />
         ) : (
@@ -431,7 +451,9 @@ export function PremisesDrawer({
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Edit premises</p>
               <h2 className="mt-0.5 text-lg font-semibold tracking-tight text-slate-900">{title}</h2>
-              <span className="mt-0.5 block font-mono text-xs text-slate-500">{premises.premises_id}</span>
+              <span className="mt-0.5 block font-mono text-xs text-slate-500">
+                {safePremises.business_id ?? safePremises.premises_id}
+              </span>
               <p className="mt-1 text-sm text-slate-600">{buildingSubtitle}</p>
             </div>
             <ModuleActionBar mode="edit" formId={formId} onCancel={() => onModeChange("view")} module="properties" />
@@ -441,7 +463,7 @@ export function PremisesDrawer({
         {isView ? (
           <div className="shrink-0 bg-white px-4 pt-2 sm:px-5">
             <PremisesDetailTabs
-              premisesId={premises.premises_id}
+              premisesId={safePremises.premises_id}
               counts={tabCounts}
               drawerBasePath={drawerBasePath}
             />
@@ -451,25 +473,25 @@ export function PremisesDrawer({
         <div className={`min-h-0 flex-1 overflow-y-auto ${isView ? "px-4 py-3 sm:px-5" : "px-4 py-4 sm:px-5"}`}>
           {isView ? (
             <PremisesDrawerBody
-              premises={premises}
+              premises={safePremises}
               buildingName={buildingName}
               drawerData={data}
               companyLabels={companyLabels}
               contactLabels={contactLabels}
               propertyOptions={propertyOptions}
-              companies={companies}
-              contacts={contacts}
+              companies={asCompanyV1Options(companies)}
+              contacts={safeContacts}
               onAddRelationship={() => onModeChange("edit")}
               drawerBasePath={drawerBasePath}
             />
           ) : (
             <PremisesEditForm
-              premises={premises}
+              premises={safePremises}
               propertyId={propertyId}
               propertyOptions={propertyOptions}
               action={action}
               companyOptions={companyOptions}
-              contacts={contacts}
+              contacts={safeContacts}
               returnTo={returnTo}
             />
           )}

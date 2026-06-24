@@ -5,9 +5,11 @@ import {
   describePropertyV1UpdateParams,
   formatSqlParamDebug,
 } from "@/lib/propertyV1DbCoerce";
+import { allocateNextBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
 
 export type PropertyV1 = {
   property_id: string;
+  business_id: string | null;
   bldg_name_en: string | null;
   bldg_name_zh: string | null;
   bldg_name_cn: string | null;
@@ -57,6 +59,7 @@ export type PropertyV1 = {
 
 const select = `
   property_id,
+  business_id,
   bldg_name_en, bldg_name_zh, bldg_name_cn,
   tower_block, floor_count,
   bldg_area_sqft::text AS bldg_area_sqft,
@@ -184,6 +187,7 @@ export async function allocatePropertyV1Id(): Promise<string> {
 export function emptyPropertyV1(): PropertyV1 {
   return {
     property_id: "",
+    business_id: null,
     bldg_name_en: null,
     bldg_name_zh: null,
     bldg_name_cn: null,
@@ -234,7 +238,8 @@ export function emptyPropertyV1(): PropertyV1 {
 
 export async function createPropertyV1(patch: PropertyV1Patch): Promise<string> {
   const propertyId = await allocatePropertyV1Id();
-  const coerced = await coercePropertyV1PatchForDb(patch);
+  const businessId = await allocateNextBusinessId("building");
+  const coerced = await coercePropertyV1PatchForDb({ ...patch, business_id: businessId });
   const entries = Object.entries(coerced).filter(([, v]) => v !== undefined);
   const columns = ["property_id", ...entries.map(([k]) => k)];
   const placeholders = columns.map((_, i) => `$${i + 1}`);
@@ -243,6 +248,12 @@ export async function createPropertyV1(patch: PropertyV1Patch): Promise<string> 
     `INSERT INTO properties_v1 (${columns.join(", ")}) VALUES (${placeholders.join(", ")})`,
     params,
   );
+  await registerBusinessId({
+    entityType: "building",
+    businessId,
+    primaryRef: propertyId,
+    deprecatedRef: propertyId,
+  });
   return propertyId;
 }
 

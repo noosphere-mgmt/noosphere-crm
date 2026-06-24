@@ -1,31 +1,34 @@
+import { asArray } from "@/lib/asArray";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
-import { isLegacyNumericRef, isV1CompanyRef } from "@/lib/entityRefGuards";
+import { isPermanentBusinessId } from "@/lib/businessIds";
 
 export type CompanyV1SelectOption = {
-  /** Legacy companies.id as string — form option value */
+  /** Permanent business ID (C100001) — form option value */
   value: string;
   label: string;
+  businessId: string;
   v1Id: string;
-  legacyId: number;
+  legacyId: number | null;
 };
 
-/** Dropdown options: value = legacy numeric id, label = name (COMP-*). */
-export function toCompanyV1SelectOptions(companies: CompanyV1Option[]): CompanyV1SelectOption[] {
-  return companies
-    .filter((c) => c.legacy_company_id != null)
+/** Dropdown options: value = business_id, label = name (C100001). */
+export function toCompanyV1SelectOptions(companies: CompanyV1Option[] | null | undefined): CompanyV1SelectOption[] {
+  return asArray<CompanyV1Option>(companies)
+    .filter((c) => c.business_id)
     .map((c) => {
-      const legacyId = c.legacy_company_id!;
-      const name = c.company_name_en?.trim() || c.company_id;
+      const businessId = c.business_id!;
+      const name = c.company_name_en?.trim() || businessId;
       return {
-        value: String(legacyId),
-        label: `${name} (${c.company_id})`,
+        value: businessId,
+        label: `${name} (${businessId})`,
+        businessId,
         v1Id: c.company_id,
-        legacyId,
+        legacyId: c.legacy_company_id,
       };
     });
 }
 
-/** Map stored DB value (COMP-* or legacy numeric) to select option value. */
+/** Map stored DB value (any known ref) to permanent business ID for selects. */
 export function coerceCompanyIdToSelectValue(
   stored: string | null | undefined,
   options: CompanyV1SelectOption[],
@@ -33,21 +36,23 @@ export function coerceCompanyIdToSelectValue(
   const id = stored?.trim();
   if (!id) return "";
   if (options.some((o) => o.value === id)) return id;
+  const byBusiness = options.find((o) => o.businessId === id);
+  if (byBusiness) return byBusiness.value;
   const byV1 = options.find((o) => o.v1Id === id);
   if (byV1) return byV1.value;
-  if (isLegacyNumericRef(id)) return id;
-  if (isV1CompanyRef(id)) {
-    const match = options.find((o) => o.v1Id === id);
-    if (match) return match.value;
-  }
+  const byLegacy = options.find((o) => o.legacyId != null && String(o.legacyId) === id);
+  if (byLegacy) return byLegacy.value;
+  if (isPermanentBusinessId("company", id)) return id;
   return "";
 }
 
-export function buildCompanyV1LabelMap(companies: CompanyV1Option[]): Map<string, string> {
+export function buildCompanyV1LabelMap(companies: CompanyV1Option[] | null | undefined): Map<string, string> {
   const map = new Map<string, string>();
-  for (const c of companies) {
-    const name = c.company_name_en?.trim() || c.company_id;
-    const label = `${name} (${c.company_id})`;
+  for (const c of asArray<CompanyV1Option>(companies)) {
+    if (!c.business_id) continue;
+    const name = c.company_name_en?.trim() || c.business_id;
+    const label = `${name} (${c.business_id})`;
+    map.set(c.business_id, label);
     map.set(c.company_id, label);
     if (c.legacy_company_id != null) {
       map.set(String(c.legacy_company_id), label);
@@ -66,9 +71,11 @@ export function labelCompanyV1(
   if (!id) return "—";
 
   if (selectOptions?.length) {
+    const byBusiness = selectOptions.find((o) => o.businessId === id || o.value === id);
+    if (byBusiness) return byBusiness.label;
     const byV1 = selectOptions.find((o) => o.v1Id === id);
     if (byV1) return byV1.label;
-    const byLegacy = selectOptions.find((o) => o.value === id);
+    const byLegacy = selectOptions.find((o) => o.legacyId != null && String(o.legacyId) === id);
     if (byLegacy) return byLegacy.label;
   }
 

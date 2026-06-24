@@ -20,6 +20,7 @@ import type { ContactV1Option } from "@/lib/repos/contactsV1";
 export type PropertyListRow = Pick<
   PropertyV1,
   | "property_id"
+  | "business_id"
   | "bldg_name_en"
   | "district_en"
   | "title"
@@ -166,7 +167,7 @@ export function PropertiesFlatListClient({
                     >
                       <RecordNameWithId
                         name={row.bldg_name_en ?? "—"}
-                        id={row.property_id}
+                        id={row.business_id ?? row.property_id}
                         nameClassName={theme.link}
                       />
                     </button>

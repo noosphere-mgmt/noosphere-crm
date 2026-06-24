@@ -30,11 +30,11 @@ export default async function EditPropertyPage({ params, searchParams }: Props) 
   ]);
   if (!property) notFound();
 
-  const premisesId = sp.premises?.trim();
+  const premisesRef = sp.premises?.trim();
   let premisesDrawerData: Awaited<ReturnType<typeof getPremisesDrawerData>> | null = null;
-  if (premisesId) {
+  if (premisesRef) {
     try {
-      premisesDrawerData = await getPremisesDrawerData(premisesId);
+      premisesDrawerData = await getPremisesDrawerData(premisesRef);
     } catch {
       premisesDrawerData = null;
     }

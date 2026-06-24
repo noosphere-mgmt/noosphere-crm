@@ -74,6 +74,8 @@ async function opportunityInputFromForm(formData: FormData) {
   const salesRole = parseOpportunitySalesRole(formData.get("sales_role"));
   const propertyType = parseOptionalString(formData.get("property_type"));
   const status = parseOpportunityStatus(String(formData.get("status") ?? "new"));
+  const expectedCloseDate =
+    salesRole === "to_lease" ? parseOptionalString(formData.get("expected_close_date")) : null;
 
   return {
     client_name: clientName || "Unknown",
@@ -85,8 +87,7 @@ async function opportunityInputFromForm(formData: FormData) {
     referrer_contact_id: referrerContactId,
     sales_role: salesRole,
     lease_term: salesRole === "to_lease" ? parseOptionalString(formData.get("lease_term")) : null,
-    expected_close_date:
-      salesRole === "to_lease" ? parseOptionalString(formData.get("expected_close_date")) : null,
+    expected_close_date: expectedCloseDate,
     lost_reason: isClosedOpportunityStatus(status)
       ? parseOptionalString(formData.get("lost_reason"))
       : null,
@@ -102,7 +103,7 @@ async function opportunityInputFromForm(formData: FormData) {
     target_yield: salesRole === "to_buy" ? parseOptionalString(formData.get("target_yield")) : null,
     funding_status:
       salesRole === "to_buy" ? parseOpportunityFundingStatus(formData.get("funding_status")) : null,
-    move_in_date: salesRole === "to_lease" ? parseOptionalString(formData.get("move_in_date")) : null,
+    move_in_date: salesRole === "to_lease" ? expectedCloseDate : null,
     status,
     requirement_summary: parseOptionalString(formData.get("requirement_summary")),
     remarks: parseOptionalString(formData.get("remarks")),

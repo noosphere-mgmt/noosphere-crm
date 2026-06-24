@@ -125,7 +125,7 @@ export function ConnectionsCompaniesListDesktop({
                     >
                       {row.company_name}
                     </Link>
-                    <RecordBusinessId id={row.v1_company_id} className="mt-0.5 block" />
+                    <RecordBusinessId id={row.business_id ?? row.v1_company_id} className="mt-0.5 block" />
                   </td>
                   <td className="px-3 py-1.5 text-slate-700">{row.primary_contact_name ?? "—"}</td>
                   <td className="px-3 py-1.5 text-slate-700">{formatCompanyRoles(row.roles)}</td>

@@ -55,7 +55,7 @@ export function ConnectionsCompaniesListMobile({
                 <div className="px-3 py-3">
                   <Link href={href} className={`block font-semibold ${connectionsGlassClasses.link}`}>
                     <MobileCardTitle>{row.company_name}</MobileCardTitle>
-                    <RecordBusinessId id={row.v1_company_id} className="mt-0.5 block" />
+                    <RecordBusinessId id={row.business_id ?? row.v1_company_id} className="mt-0.5 block" />
                   </Link>
                   <MobileCardMeta>
                     {formatCompanyRoles(row.roles)} · {row.open_opportunities ?? 0} open opps

@@ -170,6 +170,18 @@ async function main(): Promise<void> {
   await query(migratePhase33);
   console.log("Phase 33 property v1 company FK text alignment applied.");
 
+  const migratePhase34 = await readSql("schema-migrate-phase34-business-ids.sql");
+  await query(migratePhase34);
+  console.log("Phase 34 permanent business IDs applied.");
+
+  const migratePhase35 = await readSql("schema-migrate-phase35-premises-relationship-lines-jsonb.sql");
+  await query(migratePhase35);
+  console.log("Phase 35 premises relationship_lines JSONB cleanup applied.");
+
+  const { runPopulateBusinessIds } = await import("./populate-business-ids");
+  await runPopulateBusinessIds();
+  console.log("Business ID population finished.");
+
   await verifyBuildingsPageSchema();
   console.log("Post-migrate Buildings page schema verification passed.");
 

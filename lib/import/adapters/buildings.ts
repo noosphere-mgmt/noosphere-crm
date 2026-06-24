@@ -44,7 +44,7 @@ const FIELD_KEYS = [
 ] as const;
 
 const SELECT = `
-  p.property_id AS building_id,
+  p.business_id AS building_id,
   p.external_ref,
   p.bldg_name_en AS building_name_en,
   p.bldg_name_zh AS building_name_zh,

@@ -5,7 +5,12 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { patchPremisesFieldAction } from "@/app/admin/properties/actions";
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
 import { PremisesSectionCard } from "@/components/admin/properties-v1/premisesDrawerUi";
-import { labelCompanyV1 } from "@/lib/companyV1Display";
+import {
+  formatPremisesRelationshipCompanyLabel,
+  formatPremisesRelationshipContactLabel,
+} from "@/lib/premisesDetailDisplay";
+import { asArray } from "@/lib/asArray";
+import { asCompanyV1Options, asContactV1Options } from "@/lib/premisesClientData";
 import { toCompanyV1SelectOptions } from "@/lib/companyV1Display";
 import { toContactV1SelectOptions } from "@/lib/contactV1Display";
 import {
@@ -36,14 +41,15 @@ function display(v: string | null | undefined): string {
 }
 
 function contactsForCompany(
-  contacts: ContactV1Option[],
+  contacts: ContactV1Option[] | null | undefined,
   companySelectValue: string | null,
   companyOptions: ReturnType<typeof toCompanyV1SelectOptions>,
 ) {
-  if (!companySelectValue) return contacts;
+  const safeContacts = asContactV1Options(contacts);
+  if (!companySelectValue) return safeContacts;
   const opt = companyOptions.find((o) => o.value === companySelectValue);
   const v1CompanyId = opt?.v1Id ?? companySelectValue;
-  return contacts.filter(
+  return safeContacts.filter(
     (c) => c.company_id === v1CompanyId || c.company_id === companySelectValue,
   );
 }
@@ -165,8 +171,14 @@ function PremisesRelationshipsManager({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const companyOptions = useMemo(() => toCompanyV1SelectOptions(companies), [companies]);
-  const contactSelectOptions = useMemo(() => toContactV1SelectOptions(contacts), [contacts]);
+  const companyOptions = useMemo(
+    () => toCompanyV1SelectOptions(asCompanyV1Options(companies)),
+    [companies],
+  );
+  const contactSelectOptions = useMemo(
+    () => toContactV1SelectOptions(asContactV1Options(contacts)),
+    [contacts],
+  );
 
   const [lines, setLines] = useState<PremisesRelationshipLine[]>(() =>
     coerceRelationshipLinesForSelect(initialPremisesRelationshipLines(premises), companyOptions),
@@ -183,23 +195,24 @@ function PremisesRelationshipsManager({
     setError(null);
   }, [premises.premises_id, premises.updated_at, companyOptions, premises]);
 
-  const visibleRows = lines
+  const visibleRows = asArray<PremisesRelationshipLine>(lines)
     .map((line, index) => ({ line, index }))
     .filter(({ line }) => relationshipLineHasContent(line));
 
-  function persist(nextLines: PremisesRelationshipLine[], onDone?: () => void) {
+  function persist(nextLines: unknown, onDone?: () => void) {
+    const normalized = asArray<PremisesRelationshipLine>(nextLines);
     setError(null);
     startTransition(async () => {
       const result = await patchPremisesFieldAction(
         premises.premises_id,
         "relationship_lines",
-        JSON.stringify(nextLines),
+        JSON.stringify(normalized),
       );
       if (!result.ok) {
         setError(result.error);
         return;
       }
-      setLines(coerceRelationshipLinesForSelect(nextLines, companyOptions));
+      setLines(coerceRelationshipLinesForSelect(normalized, companyOptions));
       onDone?.();
       router.refresh();
     });
@@ -207,7 +220,7 @@ function PremisesRelationshipsManager({
 
   function handleDelete(index: number) {
     if (!window.confirm("Remove this relationship?")) return;
-    const next = lines.filter((_, i) => i !== index);
+    const next = asArray<PremisesRelationshipLine>(lines).filter((_, i) => i !== index);
     persist(next.length > 0 ? next : [emptyRelationshipLine()]);
   }
 
@@ -223,7 +236,7 @@ function PremisesRelationshipsManager({
       setError("Select a relationship type, company, or contact");
       return;
     }
-    const next = lines.map((line, i) => (i === editingIndex ? draft : line));
+    const next = asArray<PremisesRelationshipLine>(lines).map((line, i) => (i === editingIndex ? draft : line));
     persist(next, () => {
       setEditingIndex(null);
       setDraft(null);
@@ -242,7 +255,7 @@ function PremisesRelationshipsManager({
       setError("Select a relationship type, company, or contact");
       return;
     }
-    const base = lines.filter(relationshipLineHasContent);
+    const base = asArray<PremisesRelationshipLine>(lines).filter(relationshipLineHasContent);
     persist([...base, draft], () => {
       setAdding(false);
       setDraft(null);
@@ -308,9 +321,11 @@ function PremisesRelationshipsManager({
                 ) : (
                   <tr key={index} className="border-t border-slate-100 align-top">
                     <td className="px-3 py-2 text-slate-800">{display(line.relationship_type)}</td>
-                    <td className="px-3 py-2 text-slate-800">{labelCompanyV1(companyLabels, line.company_id)}</td>
                     <td className="px-3 py-2 text-slate-800">
-                      {line.contact_id ? (contactLabels.get(line.contact_id) ?? line.contact_id) : "—"}
+                      {formatPremisesRelationshipCompanyLabel(companyLabels, line.company_id, companyOptions)}
+                    </td>
+                    <td className="px-3 py-2 text-slate-800">
+                      {formatPremisesRelationshipContactLabel(contactLabels, line.contact_id)}
                     </td>
                     <td className="px-3 py-2 text-slate-800">{display(line.partnership_mode ?? line.contact_role)}</td>
                     <td className="max-w-[12rem] px-3 py-2 whitespace-pre-wrap text-slate-700">{display(line.remarks)}</td>

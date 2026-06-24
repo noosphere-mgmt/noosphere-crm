@@ -1,3 +1,4 @@
+import { asArray } from "@/lib/asArray";
 import { syncRelationshipColumns } from "@/lib/premisesRelationships";
 import { relationshipLineHasContent } from "@/lib/premisesRelationships";
 import { normalizeRelationshipLinesForSave } from "@/lib/premisesRelationshipsServer";
@@ -6,9 +7,9 @@ import type { PremisesRelationshipLine } from "@/lib/v1ListValues";
 
 /** Normalize relationship lines and sync legacy company/contact columns on premises_v1. */
 export async function buildPremisesRelationshipLinesPatch(
-  lines: PremisesRelationshipLine[],
+  lines: unknown,
 ): Promise<PremisesV1Patch> {
-  const filtered = lines.filter(relationshipLineHasContent);
+  const filtered = asArray<PremisesRelationshipLine>(lines).filter(relationshipLineHasContent);
   const normalized = await normalizeRelationshipLinesForSave(filtered);
   const synced = syncRelationshipColumns(normalized);
   return {

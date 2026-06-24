@@ -223,7 +223,7 @@ export function ContactFormFields({ defaults, companies, fixedCompanyId, layout 
 
   return (
     <div className="space-y-4">
-      {defaults?.v1_contact_id ? <RecordBusinessId id={defaults.v1_contact_id} /> : null}
+      {defaults?.business_id ?? defaults?.v1_contact_id ? <RecordBusinessId id={defaults.business_id ?? defaults.v1_contact_id} /> : null}
       {companyField}
       {nameRow}
       {identityRow}

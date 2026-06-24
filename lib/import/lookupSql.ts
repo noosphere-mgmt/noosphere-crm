@@ -24,9 +24,9 @@ export function sqlActivityLabel(aAlias = "a"): string {
   ))`;
 }
 
-/** Join companies_v1.company_id (TEXT) to a FK column that may be TEXT or legacy BIGINT. */
+/** Join companies_v1 by permanent business ID or deprecated company_id (fallback). */
 export function sqlJoinV1Company(companyV1Alias: string, fkExpr: string): string {
-  return `${companyV1Alias}.company_id = ${fkExpr}::text`;
+  return `(${companyV1Alias}.business_id = ${fkExpr}::text OR ${companyV1Alias}.company_id = ${fkExpr}::text)`;
 }
 
 /** Join contacts_v1.contact_id (TEXT) to a FK column that may be TEXT or legacy BIGINT. */
@@ -54,22 +54,32 @@ export function sqlMatchMixedCompanyFk(fkExpr: string, v1Param: string, legacyPa
   return `(${fkExpr}::text = ${v1Param} OR ${fkExpr}::text = ${legacyParam})`;
 }
 
-/** Export canonical COMP-* id for a legacy companies.id (or pass-through when already v1). */
+/** Export permanent company business ID (C100001). */
 export function sqlExportCompanyId(idExpr: string): string {
   return `COALESCE(
-    (SELECT cv1.company_id FROM companies_v1 cv1 WHERE cv1.company_id = ${idExpr}::text LIMIT 1),
-    (SELECT m.new_id FROM id_map_v1 m WHERE m.entity_type = 'company' AND m.legacy_id::text = ${idExpr}::text LIMIT 1),
-    (SELECT cv1.company_id FROM companies_v1 cv1 WHERE cv1.legacy_company_id::text = ${idExpr}::text LIMIT 1),
+    (SELECT cv1.business_id FROM companies_v1 cv1 WHERE cv1.business_id = ${idExpr}::text LIMIT 1),
+    (SELECT cv1.business_id FROM companies_v1 cv1 WHERE cv1.company_id = ${idExpr}::text LIMIT 1),
+    (SELECT cv1.business_id FROM companies_v1 cv1 WHERE cv1.legacy_company_id::text = ${idExpr}::text LIMIT 1),
+    (SELECT c.business_id FROM companies c WHERE c.id::text = ${idExpr}::text LIMIT 1),
+    (SELECT x.business_id FROM business_id_crosswalk x
+      WHERE x.entity_type = 'company'
+        AND (x.primary_ref = ${idExpr}::text OR x.deprecated_ref = ${idExpr}::text OR x.legacy_numeric::text = ${idExpr}::text)
+      LIMIT 1),
     NULLIF(${idExpr}::text, '')
   )`;
 }
 
-/** Export canonical CONT-* id for a legacy contacts.id (or pass-through when already v1). */
+/** Export permanent contact business ID (D100001). */
 export function sqlExportContactId(idExpr: string): string {
   return `COALESCE(
-    (SELECT cv1.contact_id FROM contacts_v1 cv1 WHERE cv1.contact_id = ${idExpr}::text LIMIT 1),
-    (SELECT m.new_id FROM id_map_v1 m WHERE m.entity_type = 'contact' AND m.legacy_id::text = ${idExpr}::text LIMIT 1),
-    (SELECT cv1.contact_id FROM contacts_v1 cv1 WHERE cv1.legacy_contact_id::text = ${idExpr}::text LIMIT 1),
+    (SELECT ct.business_id FROM contacts ct WHERE ct.business_id = ${idExpr}::text LIMIT 1),
+    (SELECT ct.business_id FROM contacts ct WHERE ct.id::text = ${idExpr}::text LIMIT 1),
+    (SELECT cv1.business_id FROM contacts_v1 cv1 WHERE cv1.contact_id = ${idExpr}::text LIMIT 1),
+    (SELECT cv1.business_id FROM contacts_v1 cv1 WHERE cv1.legacy_contact_id::text = ${idExpr}::text LIMIT 1),
+    (SELECT x.business_id FROM business_id_crosswalk x
+      WHERE x.entity_type = 'contact'
+        AND (x.primary_ref = ${idExpr}::text OR x.deprecated_ref = ${idExpr}::text OR x.legacy_numeric::text = ${idExpr}::text)
+      LIMIT 1),
     NULLIF(${idExpr}::text, '')
   )`;
 }

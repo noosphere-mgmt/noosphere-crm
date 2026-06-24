@@ -62,11 +62,6 @@ function LeaseRequirementInline({
         value={opportunity.expected_close_date}
         onSave={save("expected_close_date")}
       />
-      <InlineDateField
-        label="Move-in date"
-        value={opportunity.move_in_date}
-        onSave={save("move_in_date")}
-      />
       <InlineTextField
         label="Lease term"
         value={opportunity.lease_term}

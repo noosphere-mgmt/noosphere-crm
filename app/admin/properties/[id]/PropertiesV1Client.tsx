@@ -21,6 +21,8 @@ import { getPremisesTab } from "@/lib/premisesDetailTab";
 import { buildPremisesReturnTo, premisesDrawerHref } from "@/lib/premisesDrawerNav";
 import type { PropertyV1SelectOption } from "@/lib/repos/propertiesV1";
 import type { PremisesDrawerData } from "@/lib/repos/premisesDrawer";
+import { asArray } from "@/lib/asArray";
+import { normalizePremisesDrawerData, normalizePremisesV1Client } from "@/lib/premisesClientData";
 import {
   V1_FIT_OUT_CONDITIONS,
   V1_LISTING_INTENTS,
@@ -99,14 +101,19 @@ export function PropertiesV1Client({
   const activeTab = getPremisesTab({ tab: searchParams.get("tab") });
   const returnTo = useMemo(() => buildPremisesReturnTo(searchParams, drawerBasePath), [searchParams, drawerBasePath]);
 
-  const selected = useMemo(
-    () => premises.find((p) => p.premises_id === openId) ?? null,
-    [openId, premises],
+  const normalizedPremises = useMemo(
+    () => asArray<PremisesV1>(premises).map((p) => normalizePremisesV1Client(p)),
+    [premises],
   );
 
+  const selected = useMemo(() => {
+    if (!openId) return null;
+    return normalizedPremises.find((p) => p.premises_id === openId || p.business_id === openId) ?? null;
+  }, [openId, normalizedPremises]);
+
   const filteredPremises = useMemo(
-    () => premises.filter((p) => matchesBuildingPremisesFilters(p, filters)),
-    [premises, filters],
+    () => normalizedPremises.filter((p) => matchesBuildingPremisesFilters(p, filters)),
+    [normalizedPremises, filters],
   );
 
   const hasActiveFilters = Object.values(filters).some(Boolean);
@@ -255,7 +262,7 @@ export function PropertiesV1Client({
             </tr>
           </thead>
           <tbody>
-            {premises.length === 0 ? (
+            {normalizedPremises.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-4 py-10 text-center text-slate-500">
                   No premises lines yet.
@@ -312,7 +319,7 @@ export function PropertiesV1Client({
         companies={companies}
         contacts={contacts}
         propertyOptions={propertyOptions}
-        drawerData={drawerData}
+        drawerData={normalizePremisesDrawerData(drawerData)}
         drawerBasePath={drawerBasePath}
         returnTo={
           selected

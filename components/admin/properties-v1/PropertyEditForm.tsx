@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { composeAddressChinese, composeAddressEnglish, hasAddressParts } from "@/lib/composeAddress";
 import { BUILDING_GRADES, BUILDING_TITLES } from "@/lib/lookups";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
@@ -91,8 +91,9 @@ export function PropertyEditForm({
   const formRef = useRef<HTMLFormElement>(null);
   const isNew = !property.property_id;
   const [addresses, setAddresses] = useState(() => initialAddresses(property));
+  const [, startTransition] = useTransition();
   const formId = formIdProp ?? (isNew ? "property-form-new" : `property-form-${property.property_id}`);
-  const updatePropertyAction = useMemo(
+  const saveAction = useMemo(
     () =>
       isNew ? createPropertyV1Action : updatePropertyV1Action.bind(null, property.property_id),
     [isNew, property.property_id],
@@ -106,10 +107,19 @@ export function PropertyEditForm({
   }, []);
 
   const submitForm = useCallback(() => {
-    if (!formRef.current) return;
-    syncHiddenAddresses(formRef.current);
-    formRef.current.requestSubmit();
+    formRef.current?.requestSubmit();
   }, []);
+
+  const handleSubmit = useCallback(
+    (form: HTMLFormElement) => {
+      syncHiddenAddresses(form);
+      const formData = new FormData(form);
+      startTransition(() => {
+        void saveAction(formData);
+      });
+    },
+    [saveAction],
+  );
 
   useEffect(() => {
     onRegisterSubmit?.(submitForm);
@@ -131,11 +141,11 @@ export function PropertyEditForm({
       <form
         id={formId}
         ref={formRef}
-        action={updatePropertyAction}
         className="w-full"
         onInput={syncAddresses}
-        onSubmit={() => {
-          if (formRef.current) syncHiddenAddresses(formRef.current);
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleSubmit(e.currentTarget);
         }}
       >
         {returnTo ? <input type="hidden" name="return_to" value={returnTo} /> : null}

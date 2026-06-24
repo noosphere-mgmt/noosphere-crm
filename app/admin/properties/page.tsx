@@ -4,8 +4,10 @@ import { listCompanyV1Options } from "@/lib/repos/companiesV1";
 import { listContactV1Options } from "@/lib/repos/contactsV1";
 import {
   countPremisesV1,
+  getPremisesListItemByRef,
   listPremisesFilterOptions,
   listPremisesFullFiltered,
+  resolvePremisesV1Id,
   type PremisesFlatFilters,
 } from "@/lib/repos/premisesV1";
 import { listPropertyV1SelectOptions } from "@/lib/repos/propertiesV1";
@@ -42,19 +44,31 @@ export default async function AllPremisesPage({ searchParams }: Props) {
     listing_status: sp.listing_status?.trim() || undefined,
   };
 
-  const premisesId = sp.premises?.trim();
+  const premisesRef = sp.premises?.trim();
 
-  const [rows, options, companies, contacts, propertyOptions, totalCount, drawerData] = await Promise.all([
+  const [rowsRaw, options, companies, contacts, propertyOptions, totalCount, drawerData] = await Promise.all([
     listPremisesFullFiltered(filters),
     listPremisesFilterOptions(),
     listCompanyV1Options(),
     listContactV1Options(),
     listPropertyV1SelectOptions(),
     countPremisesV1(),
-    premisesId
-      ? getPremisesDrawerData(premisesId).catch(() => null)
+    premisesRef
+      ? getPremisesDrawerData(premisesRef).catch(() => null)
       : Promise.resolve(null as Awaited<ReturnType<typeof getPremisesDrawerData>> | null),
   ]);
+
+  let rows = rowsRaw;
+  if (premisesRef) {
+    const canonicalId = await resolvePremisesV1Id(premisesRef);
+    const inList = rows.some(
+      (r) => r.premises_id === premisesRef || (canonicalId != null && r.premises_id === canonicalId),
+    );
+    if (!inList) {
+      const extra = await getPremisesListItemByRef(premisesRef);
+      if (extra) rows = [extra, ...rows];
+    }
+  }
 
   return (
     <AdminShell title="Properties" module="properties" wide hideHeader>

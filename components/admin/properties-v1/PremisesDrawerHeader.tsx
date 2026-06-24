@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { IconPen, IconX } from "@/components/admin/ModuleActionIcons";
 import { moduleEditButtonClass } from "@/components/admin/ModuleActionBar";
 import { InlineSaveStatus } from "@/components/admin/inline/InlineRecordChrome";
@@ -13,7 +14,7 @@ export function PremisesDrawerHeader({
   businessId,
   onClose,
   onEdit,
-  onFullEdit,
+  fullPageHref,
   showEdit,
 }: {
   title: string;
@@ -21,7 +22,7 @@ export function PremisesDrawerHeader({
   businessId?: string | null;
   onClose: () => void;
   onEdit: () => void;
-  onFullEdit?: () => void;
+  fullPageHref?: string | null;
   showEdit?: boolean;
 }) {
   const theme = moduleAccentClasses("properties");
@@ -51,14 +52,13 @@ export function PremisesDrawerHeader({
               <IconPen />
             </button>
           ) : null}
-          {onFullEdit ? (
-            <button
-              type="button"
-              onClick={onFullEdit}
-              className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold ${theme.secondaryButton}`}
+          {fullPageHref ? (
+            <Link
+              href={fullPageHref}
+              className={`hidden rounded-lg px-2.5 py-1.5 text-xs font-semibold sm:inline-flex ${theme.secondaryButton}`}
             >
-              Full edit
-            </button>
+              Full page
+            </Link>
           ) : showEdit !== false ? (
             <button
               type="button"

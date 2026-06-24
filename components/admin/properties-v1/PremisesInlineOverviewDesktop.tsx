@@ -18,6 +18,7 @@ import { formatMoney, formatPsf } from "@/lib/formatCurrency";
 import { formatPremisesName } from "@/lib/premisesDisplay";
 import { isPackageOperatingModel } from "@/lib/premisesCommercial";
 import { formatListingStatus } from "@/lib/premisesListing";
+import { PREMISES_NO_BUILDING_LABEL } from "@/lib/premisesDetailDisplay";
 import {
   V1_FIT_OUT_CONDITIONS,
   V1_LISTING_INTENTS,
@@ -58,7 +59,7 @@ export function PremisesInlineOverviewDesktop({
           value={premises.property_id}
           options={propertySelectOptions}
           onSave={save("property_id")}
-          placeholder="— Select building —"
+          placeholder={PREMISES_NO_BUILDING_LABEL}
         />
       </PremisesSectionCard>
 

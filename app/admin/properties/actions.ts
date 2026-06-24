@@ -9,6 +9,8 @@ import { buildPremisesRelationshipLinesPatch } from "@/lib/premisesRelationshipP
 import { isPackageOperatingModel } from "@/lib/premisesCommercial";
 import { applyPremisesFieldPatch } from "@/lib/premisesFieldPatch";
 import { composePropertyFullAddresses } from "@/lib/composeAddress";
+import { rethrowNextNavigation } from "@/lib/nextNavigation";
+import { parsePropertyV1Form } from "@/lib/parsePropertyV1Form";
 import { createPropertyV1, deletePropertiesV1, getPropertyV1, updatePropertyV1, type PropertyV1Patch } from "@/lib/repos/propertiesV1";
 import { applyPropertyFieldPatch, PROPERTY_LOCATION_FIELDS } from "@/lib/propertyFieldPatch";
 import { createPremisesV1, duplicatePremisesV1, getPremisesV1, updatePremisesV1, type PremisesV1Patch } from "@/lib/repos/premisesV1";
@@ -32,84 +34,47 @@ function nDec(v: FormDataEntryValue | null): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-async function parsePropertyV1Form(formData: FormData): Promise<PropertyV1Patch> {
-  const patch: PropertyV1Patch = {
-    bldg_name_en: s(formData.get("bldg_name_en")),
-    bldg_name_zh: s(formData.get("bldg_name_zh")),
-    bldg_name_cn: s(formData.get("bldg_name_cn")),
-    floor_count: nInt(formData.get("floor_count")),
-    bldg_area_sqft: nDec(formData.get("bldg_area_sqft")),
-    bldg_area_sqm: nDec(formData.get("bldg_area_sqm")),
-    year_built: nInt(formData.get("year_built")),
-    bldg_desc: s(formData.get("bldg_desc")),
-    building_remarks: s(formData.get("building_remarks")),
-    country: s(formData.get("country")),
-    city_en: s(formData.get("city_en")),
-    city_zh: s(formData.get("city_zh")),
-    city_cn: s(formData.get("city_cn")),
-    district_en: s(formData.get("district_en")),
-    district_zh: s(formData.get("district_zh")),
-    district_cn: s(formData.get("district_cn")),
-    street_no: s(formData.get("street_no")),
-    street_name_en: s(formData.get("street_name_en")),
-    street_name_zh: s(formData.get("street_name_zh")),
-    street_name_cn: s(formData.get("street_name_cn")),
-    land_use: s(formData.get("land_use")),
-    class_of_site: s(formData.get("class_of_site")),
-    land_tenure: s(formData.get("land_tenure")),
-    plot_ratio: nDec(formData.get("plot_ratio")),
-    site_area_sqft: nDec(formData.get("site_area_sqft")),
-    site_area_sqm: nDec(formData.get("site_area_sqm")),
-    lot_number: s(formData.get("lot_number")),
-    grade: s(formData.get("grade")),
-    management_company_id: s(formData.get("management_company_id")),
-    owner_company_id: s(formData.get("owner_company_id")),
-    current_tenant_company_id: s(formData.get("current_tenant_company_id")),
-    title: s(formData.get("title")),
-    mtr_station: s(formData.get("mtr_station")),
-    walking_minutes: nInt(formData.get("walking_minutes")),
-    facilities: s(formData.get("facilities")),
-    green_certification: s(formData.get("green_certification")),
-  };
-
-  Object.assign(patch, composePropertyFullAddresses(patch));
-  return patch;
+function buildingViewUrl(propertyId: string, returnTo: string | null): string {
+  const base = returnTo?.startsWith("/admin/properties")
+    ? returnTo.split("?")[0]!
+    : "/admin/properties/buildings";
+  const params = new URLSearchParams(returnTo?.includes("?") ? returnTo.split("?")[1] : "");
+  params.set("property", propertyId);
+  params.set("mode", "view");
+  return `${base}?${params.toString()}`;
 }
 
 export async function createPropertyV1Action(formData: FormData) {
+  let propertyId: string;
   try {
-    const patch = await parsePropertyV1Form(formData);
-    const propertyId = await createPropertyV1(patch);
-
+    const patch = parsePropertyV1Form(formData);
+    propertyId = await createPropertyV1(patch);
     revalidatePath("/admin/properties");
     revalidatePath("/admin/properties/buildings");
-
-    const returnTo = s(formData.get("return_to"));
-    if (returnTo?.startsWith("/admin/properties")) {
-      redirect(returnTo);
-    }
-    redirect(`/admin/properties/buildings?property=${encodeURIComponent(propertyId)}&mode=view`);
   } catch (err) {
+    rethrowNextNavigation(err);
     throw new Error(err instanceof Error ? err.message : "Failed to create building");
   }
+
+  redirect(buildingViewUrl(propertyId, s(formData.get("return_to"))));
 }
 
 export async function updatePropertyV1Action(propertyId: string, formData: FormData) {
   try {
-    await updatePropertyV1(propertyId, await parsePropertyV1Form(formData));
-
+    await updatePropertyV1(propertyId, parsePropertyV1Form(formData));
     revalidatePath("/admin/properties");
     revalidatePath("/admin/properties/buildings");
     revalidatePath(`/admin/properties/${propertyId}`);
-
-    const returnTo = s(formData.get("return_to"));
-    if (returnTo?.startsWith("/admin/properties")) {
-      redirect(returnTo);
-    }
-    redirect(`/admin/properties/${propertyId}`);
   } catch (err) {
+    rethrowNextNavigation(err);
     throw new Error(err instanceof Error ? err.message : "Failed to save building");
   }
+
+  const returnTo = s(formData.get("return_to"));
+  if (returnTo?.startsWith("/admin/properties")) {
+    redirect(returnTo);
+  }
+  redirect(`/admin/properties/${propertyId}`);
 }
 
 async function parsePremisesV1Form(formData: FormData): Promise<PremisesV1Patch> {
@@ -164,26 +129,28 @@ export async function createPremisesV1Action(propertyId: string, formData: FormD
   const id = propertyId.trim();
   if (!id) throw new Error("Select a building for this premise.");
 
+  let premisesId: string;
   try {
-    const premisesId = await createPremisesV1(id, await parsePremisesV1Form(formData));
-
+    premisesId = await createPremisesV1(id, await parsePremisesV1Form(formData));
     revalidatePath("/admin/properties");
     revalidatePath(`/admin/properties/${id}`);
-
-    const returnTo = s(formData.get("return_to"));
-    if (returnTo?.startsWith("/admin/properties")) {
-      redirect(returnTo);
-    }
-    redirect(`/admin/properties?premises=${encodeURIComponent(premisesId)}&mode=view`);
   } catch (err) {
+    rethrowNextNavigation(err);
     throw new Error(err instanceof Error ? err.message : "Failed to create premises");
   }
+
+  const returnTo = s(formData.get("return_to"));
+  if (returnTo?.startsWith("/admin/properties")) {
+    redirect(returnTo);
+  }
+  redirect(`/admin/properties?premises=${encodeURIComponent(premisesId)}&mode=view`);
 }
 
 export async function updatePremisesV1Action(premisesId: string, propertyId: string, formData: FormData) {
+  let nextPropertyId: string;
   try {
     const patch = await parsePremisesV1Form(formData);
-    const nextPropertyId = s(formData.get("property_id")) ?? propertyId;
+    nextPropertyId = s(formData.get("property_id")) ?? propertyId;
     if (nextPropertyId !== propertyId) {
       patch.property_id = nextPropertyId;
     }
@@ -195,15 +162,16 @@ export async function updatePremisesV1Action(premisesId: string, propertyId: str
     if (nextPropertyId !== propertyId) {
       revalidatePath(`/admin/properties/${nextPropertyId}`);
     }
-
-    const returnTo = s(formData.get("return_to"));
-    if (returnTo?.startsWith("/admin/properties")) {
-      redirect(returnTo);
-    }
-    redirect(`/admin/properties/${nextPropertyId}?premises=${encodeURIComponent(premisesId)}&mode=view`);
   } catch (err) {
+    rethrowNextNavigation(err);
     throw new Error(err instanceof Error ? err.message : "Failed to save premises");
   }
+
+  const returnTo = s(formData.get("return_to"));
+  if (returnTo?.startsWith("/admin/properties")) {
+    redirect(returnTo);
+  }
+  redirect(`/admin/properties/${nextPropertyId}?premises=${encodeURIComponent(premisesId)}&mode=view`);
 }
 
 export type PropertyPatchResult = { ok: true } | { ok: false; error: string };
@@ -242,6 +210,7 @@ export async function patchPropertyFieldAction(
 
     return { ok: true };
   } catch (err) {
+    rethrowNextNavigation(err);
     return { ok: false, error: err instanceof Error ? err.message : "Failed to save" };
   }
 }
@@ -284,6 +253,7 @@ export async function patchPremisesFieldAction(
 
     return { ok: true };
   } catch (err) {
+    rethrowNextNavigation(err);
     return { ok: false, error: err instanceof Error ? err.message : "Failed to save" };
   }
 }
@@ -310,6 +280,7 @@ export async function bulkDuplicatePremisesV1Action(formData: FormData): Promise
 
     return { ok: true, created_count: ids.length };
   } catch (err) {
+    rethrowNextNavigation(err);
     return { ok: false, error: err instanceof Error ? err.message : "Failed to copy premises" };
   }
 }
@@ -338,6 +309,7 @@ export async function deletePremisesV1FromListAction(
     revalidatePath("/admin/properties");
     return { ok: true };
   } catch (err) {
+    rethrowNextNavigation(err);
     return { ok: false, error: err instanceof Error ? err.message : "Delete failed" };
   }
 }

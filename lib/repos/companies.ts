@@ -103,14 +103,17 @@ export async function listCompanies(roleFilter?: CompanyRole): Promise<Company[]
 export type CompanyOption = {
   id: number;
   company_name: string;
+  business_id?: string | null;
   v1_company_id?: string | null;
 };
 
 export const listCompanyOptions = cache(async function listCompanyOptions(): Promise<CompanyOption[]> {
   return query<CompanyOption>(
-    `SELECT c.id, c.company_name, m.new_id AS v1_company_id
+    `SELECT c.id, c.company_name,
+            COALESCE(cv.business_id, c.business_id) AS business_id,
+            cv.company_id AS v1_company_id
      FROM companies c
-     LEFT JOIN id_map_v1 m ON m.entity_type = 'company' AND m.legacy_id = c.id
+     LEFT JOIN companies_v1 cv ON cv.legacy_company_id = c.id
      WHERE c.is_active = TRUE
      ORDER BY c.company_name ASC`,
   );
@@ -121,9 +124,11 @@ export async function listCompanyOptionsByRole(
 ): Promise<CompanyOption[]> {
   if (role) {
     const filtered = await query<CompanyOption>(
-      `SELECT c.id, c.company_name, m.new_id AS v1_company_id
+      `SELECT c.id, c.company_name,
+              COALESCE(cv.business_id, c.business_id) AS business_id,
+              cv.company_id AS v1_company_id
        FROM companies c
-       LEFT JOIN id_map_v1 m ON m.entity_type = 'company' AND m.legacy_id = c.id
+       LEFT JOIN companies_v1 cv ON cv.legacy_company_id = c.id
        WHERE c.is_active = TRUE AND $1 = ANY(c.roles)
        ORDER BY c.company_name ASC`,
       [role],
@@ -135,9 +140,11 @@ export async function listCompanyOptionsByRole(
 
 export async function getCompany(id: number): Promise<Company | null> {
   const rows = await query<Company>(
-    `SELECT ${companySelectQualified}, m.new_id AS v1_company_id
+    `SELECT ${companySelectQualified},
+            COALESCE(cv.business_id, companies.business_id) AS business_id,
+            cv.company_id AS v1_company_id
      FROM companies
-     LEFT JOIN id_map_v1 m ON m.entity_type = 'company' AND m.legacy_id = companies.id
+     LEFT JOIN companies_v1 cv ON cv.legacy_company_id = companies.id
      WHERE companies.id = $1`,
     [id],
   );

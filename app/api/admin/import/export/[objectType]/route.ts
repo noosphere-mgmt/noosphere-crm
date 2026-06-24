@@ -6,8 +6,8 @@ import { IMPORT_OBJECT_TYPES } from "@/lib/import/types";
 
 type Props = { params: Promise<{ objectType: string }> };
 
-function csvResponse(csv: string, objectType: string, scope: ExportScope): Response {
-  const filename = buildExportFilename(objectType, scope);
+function csvResponse(csv: string, objectType: string): Response {
+  const filename = buildExportFilename(objectType);
   return new Response(csvResponseBody(csv), {
     headers: csvAttachmentHeaders(filename),
   });
@@ -29,7 +29,7 @@ export async function GET(_req: Request, { params }: Props) {
   if (!objectType) return new Response("Not found", { status: 404 });
 
   const csv = await exportObjectCsv(objectType);
-  return csvResponse(csv, objectType, "all");
+  return csvResponse(csv, objectType);
 }
 
 /** Export selected or filtered rows from module listings. */
@@ -49,5 +49,5 @@ export async function POST(req: Request, { params }: Props) {
   }
 
   const csv = await exportObjectCsv(objectType, { ids });
-  return csvResponse(csv, objectType, scope);
+  return csvResponse(csv, objectType);
 }

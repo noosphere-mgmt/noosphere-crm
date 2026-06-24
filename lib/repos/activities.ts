@@ -45,19 +45,23 @@ const activitySelect = `
   ct.contact_name,
   o.client_name AS opportunity_name,
   prem_agg.labels AS premises_label,
-  cm.new_id AS v1_company_id,
-  ctm.new_id AS v1_contact_id,
-  om.new_id AS v1_opportunity_id
+  COALESCE(cv.business_id, c.business_id) AS company_business_id,
+  ct.business_id AS contact_business_id,
+  o.business_id AS opportunity_business_id,
+  a.business_id,
+  cv.company_id AS v1_company_id,
+  ctm.contact_id AS v1_contact_id,
+  om.opportunity_id AS v1_opportunity_id
 `;
 
 const activityFrom = `
   FROM activities a
   LEFT JOIN companies c ON ${sqlJoinLegacyCompany("c", "a.company_id")}
+  LEFT JOIN companies_v1 cv ON cv.legacy_company_id = a.company_id
   LEFT JOIN contacts ct ON ${sqlJoinLegacyContact("ct", "a.contact_id")}
   LEFT JOIN opportunities o ON ${sqlJoinLegacyOpportunity("o", "a.opportunity_id")}
-  LEFT JOIN id_map_v1 cm ON cm.entity_type = 'company' AND cm.legacy_id = a.company_id
-  LEFT JOIN id_map_v1 ctm ON ctm.entity_type = 'contact' AND ctm.legacy_id = a.contact_id
-  LEFT JOIN id_map_v1 om ON om.entity_type = 'opportunity' AND om.legacy_id = a.opportunity_id
+  LEFT JOIN contacts_v1 ctm ON ctm.legacy_contact_id = a.contact_id
+  LEFT JOIN opportunities_v1 om ON om.legacy_opportunity_id = a.opportunity_id
   ${premisesLabelLateral}
 `;
 
@@ -81,6 +85,10 @@ export type ActivityListRow = {
   contact_name: string | null;
   opportunity_name: string | null;
   premises_label: string | null;
+  business_id: string | null;
+  company_business_id?: string | null;
+  contact_business_id?: string | null;
+  opportunity_business_id?: string | null;
   v1_company_id?: string | null;
   v1_contact_id?: string | null;
   v1_opportunity_id?: string | null;

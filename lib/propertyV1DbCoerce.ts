@@ -1,12 +1,5 @@
 import { query } from "@/lib/db";
-import {
-  resolveCompanyRefToLegacy,
-  resolveCompanyRefToV1,
-  resolveContactRefToLegacy,
-  resolveContactRefToV1,
-} from "@/lib/crmRefResolve";
-import { isV1CompanyRef } from "@/lib/entityRefGuards";
-import { syncLegacyCompanyToV1 } from "@/lib/repos/companiesV1";
+import { resolveCompanyBusinessId, resolveContactBusinessId } from "@/lib/businessIdResolve";
 import type { PremisesV1Patch } from "@/lib/repos/premisesV1";
 import type { PropertyV1Patch } from "@/lib/repos/propertiesV1";
 
@@ -151,44 +144,6 @@ function isEmptyRef(raw: unknown): boolean {
   return raw == null || String(raw).trim() === "";
 }
 
-/** Never pass COMP-* to a bigint column — last-line guard even if schema probe failed. */
-function guardCompanyValueForStorage(
-  table: V1Table,
-  column: string,
-  storage: FkStorage,
-  value: string | number | null,
-): string | number | null {
-  if (value == null) return null;
-  if (storage === "bigint" && typeof value === "string" && isV1CompanyRef(value)) {
-    throw new Error(
-      `${table}.${column} is bigint in ${DB_SCHEMA} but coerced value is ${value}. ` +
-        `Run schema-migrate-phase33 or fix FK column types.`,
-    );
-  }
-  return value;
-}
-
-/** TEXT FK columns reference companies_v1 — ensure row exists (id_map alone is not enough). */
-async function ensureCompanyV1RowForRef(raw: unknown): Promise<void> {
-  const legacyId = await resolveCompanyRefToLegacy(raw);
-  if (legacyId == null) return;
-
-  const rows = await query<{
-    company_name: string;
-    company_name_zh: string | null;
-    is_active: boolean;
-  }>(`SELECT company_name, company_name_zh, is_active FROM companies WHERE id = $1`, [legacyId]);
-  const company = rows[0];
-  if (!company) return;
-
-  await syncLegacyCompanyToV1(
-    legacyId,
-    company.company_name,
-    company.company_name_zh,
-    company.is_active,
-  );
-}
-
 async function coerceCompanyForColumn(
   table: V1Table,
   column: string,
@@ -198,28 +153,24 @@ async function coerceCompanyForColumn(
   if (isEmptyRef(raw)) return null;
   const storage = await probeFkColumnStorage(table, column, types);
   if (storage === "bigint") {
-    const legacy = await resolveCompanyRefToLegacy(raw);
-    if (legacy == null && !isEmptyRef(raw)) {
-      throw new Error(`Could not resolve company reference for ${table}.${column}`);
-    }
-    return guardCompanyValueForStorage(table, column, storage, legacy);
+    throw new Error(
+      `${table}.${column} is still bigint — run schema-migrate-phase33 and db:populate-business-ids before saving.`,
+    );
   }
 
-  await ensureCompanyV1RowForRef(raw);
-  const v1Id = await resolveCompanyRefToV1(raw);
-  if (v1Id == null && !isEmptyRef(raw)) {
-    throw new Error(`Could not resolve company reference for ${table}.${column}`);
+  const businessId = await resolveCompanyBusinessId(raw);
+  if (businessId == null) {
+    throw new Error(`Could not resolve company business ID for ${table}.${column}`);
   }
-  if (typeof v1Id === "string" && isV1CompanyRef(v1Id)) {
-    const exists = await query<{ company_id: string }>(
-      `SELECT company_id FROM companies_v1 WHERE company_id = $1 LIMIT 1`,
-      [v1Id],
-    );
-    if (!exists[0]) {
-      throw new Error(`Company ${v1Id} is not in companies_v1`);
-    }
+
+  const exists = await query<{ business_id: string }>(
+    `SELECT business_id FROM companies_v1 WHERE business_id = $1 LIMIT 1`,
+    [businessId],
+  );
+  if (!exists[0]) {
+    throw new Error(`Company ${businessId} is not in companies_v1`);
   }
-  return guardCompanyValueForStorage(table, column, storage, v1Id);
+  return businessId;
 }
 
 async function coerceContactForColumn(
@@ -231,9 +182,24 @@ async function coerceContactForColumn(
   if (isEmptyRef(raw)) return null;
   const storage = await probeFkColumnStorage(table, column, types);
   if (storage === "bigint") {
-    return resolveContactRefToLegacy(raw);
+    throw new Error(
+      `${table}.${column} is still bigint — run schema-migrate-phase34 and db:populate-business-ids before saving.`,
+    );
   }
-  return resolveContactRefToV1(raw);
+
+  const businessId = await resolveContactBusinessId(raw);
+  if (businessId == null) {
+    throw new Error(`Could not resolve contact business ID for ${table}.${column}`);
+  }
+
+  const exists = await query<{ business_id: string }>(
+    `SELECT business_id FROM contacts WHERE business_id = $1 LIMIT 1`,
+    [businessId],
+  );
+  if (!exists[0]) {
+    throw new Error(`Contact ${businessId} is not registered`);
+  }
+  return businessId;
 }
 
 /** Coerce company/contact FK values to match live DB column types before INSERT/UPDATE. */

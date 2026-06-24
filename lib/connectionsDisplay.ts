@@ -6,6 +6,8 @@ export type ConnectionCompanyListRow = Company & {
   primary_contact_email: string | null;
   primary_contact_phone: string | null;
   open_opportunities: number;
+  business_id?: string | null;
+  /** @deprecated fallback only — use business_id */
   v1_company_id?: string | null;
 };
 

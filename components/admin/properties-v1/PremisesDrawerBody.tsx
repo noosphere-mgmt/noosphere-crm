@@ -7,6 +7,11 @@ import { PremisesOpportunitiesTab } from "@/components/admin/properties-v1/Premi
 import { PremisesRelationshipsTab } from "@/components/admin/properties-v1/PremisesRelationshipsTab";
 import { EntityActivitiesTab } from "@/components/admin/activities/EntityActivitiesTab";
 import { countPremisesRelationships } from "@/lib/premisesRelationships";
+import {
+  asCompanyV1Options,
+  asContactV1Options,
+  normalizePremisesDrawerData,
+} from "@/lib/premisesClientData";
 import { formatPremisesName } from "@/lib/premisesDisplay";
 import { getPremisesTab } from "@/lib/premisesDetailTab";
 import type { PremisesDrawerData } from "@/lib/repos/premisesDrawer";
@@ -40,10 +45,13 @@ export function PremisesDrawerBody({
 }) {
   const searchParams = useSearchParams();
   const tab = getPremisesTab({ tab: searchParams.get("tab") });
+  const safeDrawerData = normalizePremisesDrawerData(drawerData);
+  const safeCompanies = asCompanyV1Options(companies);
+  const safeContacts = asContactV1Options(contacts);
   const counts = {
     relationships: countPremisesRelationships(premises),
-    opportunities: drawerData.proposed.length,
-    fees: drawerData.fees.lines.length,
+    opportunities: safeDrawerData.proposed.length,
+    fees: safeDrawerData.fees.lines.length,
   };
 
   return (
@@ -53,10 +61,10 @@ export function PremisesDrawerBody({
           premises={premises}
           buildingName={buildingName}
           propertyOptions={propertyOptions}
-          companies={companies}
+          companies={safeCompanies}
           relatedCounts={counts}
           companyLabels={companyLabels}
-          lastActivityDate={drawerData.lastActivityDate}
+          lastActivityDate={safeDrawerData.lastActivityDate}
           drawerBasePath={drawerBasePath}
         />
       ) : tab === "relationships" ? (
@@ -64,17 +72,17 @@ export function PremisesDrawerBody({
           premises={premises}
           companyLabels={companyLabels}
           contactLabels={contactLabels}
-          companies={companies}
-          contacts={contacts}
+          companies={safeCompanies}
+          contacts={safeContacts}
           onAddRelationship={onAddRelationship}
         />
       ) : tab === "opportunities" ? (
-        <PremisesOpportunitiesTab rows={drawerData.proposed} />
+        <PremisesOpportunitiesTab rows={safeDrawerData.proposed} />
       ) : tab === "fees" ? (
-        <PremisesFeesTab fees={drawerData.fees} />
+        <PremisesFeesTab fees={safeDrawerData.fees} />
       ) : tab === "activities" ? (
         <EntityActivitiesTab
-          activities={drawerData.activities}
+          activities={safeDrawerData.activities}
           defaults={{
             premises_id: premises.premises_id,
             premises_label: formatPremisesName(buildingName, premises.floor, premises.unit),

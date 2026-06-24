@@ -3,6 +3,7 @@ import { query } from "@/lib/db";
 
 export type ContactV1Option = {
   contact_id: string;
+  business_id: string | null;
   display_name: string;
   company_id: string | null;
   legacy_contact_id: number | null;
@@ -10,21 +11,23 @@ export type ContactV1Option = {
 
 export const listContactV1Options = cache(async function listContactV1Options(): Promise<ContactV1Option[]> {
   const v1 = await query<ContactV1Option>(
-    `SELECT contact_id, COALESCE(display_name, contact_id) AS display_name, company_id,
+    `SELECT contact_id, business_id, COALESCE(display_name, contact_id) AS display_name, company_id,
             legacy_contact_id::int AS legacy_contact_id
      FROM contacts_v1
+     WHERE business_id IS NOT NULL
      ORDER BY display_name ASC NULLS LAST, contact_id ASC`,
   );
   if (v1.length > 0) return v1;
 
   return query<ContactV1Option>(
-    `SELECT ('legacy:' || c.id::text) AS contact_id,
+    `SELECT COALESCE(c.business_id, 'legacy:' || c.id::text) AS contact_id,
+            c.business_id,
             c.contact_name AS display_name,
-            COALESCE(m.new_id, 'legacy:' || c.company_id::text) AS company_id,
+            COALESCE(cv.business_id, cv.company_id, 'legacy:' || c.company_id::text) AS company_id,
             c.id::int AS legacy_contact_id
      FROM contacts c
-     LEFT JOIN id_map_v1 m ON m.entity_type = 'company' AND m.legacy_id = c.company_id
-     WHERE c.is_active = TRUE
+     LEFT JOIN companies_v1 cv ON cv.legacy_company_id = c.company_id
+     WHERE c.is_active = TRUE AND c.business_id IS NOT NULL
      ORDER BY c.contact_name ASC`,
   );
 });

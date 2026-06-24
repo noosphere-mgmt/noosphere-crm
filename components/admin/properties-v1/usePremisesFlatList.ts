@@ -15,6 +15,7 @@ import {
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
 import type { ContactV1Option } from "@/lib/repos/contactsV1";
 import type { PremisesFlatFilters, PremisesListItem } from "@/lib/repos/premisesV1";
+import { asArray } from "@/lib/asArray";
 import { premisesDrawerHref, buildPremisesReturnTo } from "@/lib/premisesDrawerNav";
 import { getPremisesTab } from "@/lib/premisesDetailTab";
 import type { PropertyV1SelectOption } from "@/lib/repos/propertiesV1";
@@ -127,17 +128,19 @@ export function usePremisesFlatList(
   );
   const activeTab = getPremisesTab({ tab: searchParams.get("tab") });
 
-  const openPremises = useMemo(
-    () => props.rows.find((r) => r.premises_id === openId) ?? null,
-    [openId, props.rows],
-  );
+  const openPremises = useMemo(() => {
+    if (!openId) return null;
+    return (
+      asArray<PremisesListItem>(props.rows).find((r) => r.premises_id === openId || r.business_id === openId) ?? null
+    );
+  }, [openId, props.rows]);
 
   const displayedRows = useMemo(() => {
     const premisesQ = colFilters.premises.trim().toLowerCase();
     const districtQ = colFilters.district.trim().toLowerCase();
     const operatorQ = colFilters.operator.trim().toLowerCase();
 
-    const filtered = props.rows.filter((row) => {
+    const filtered = asArray<PremisesListItem>(props.rows).filter((row) => {
       const listLabel = formatPremisesListLabel(row.building_name_en, row.floor, row.unit).toLowerCase();
       if (!fuzzyMatch(listLabel === "—" ? "" : listLabel, premisesQ)) return false;
       if (!fuzzyMatch(row.district_en, districtQ)) return false;

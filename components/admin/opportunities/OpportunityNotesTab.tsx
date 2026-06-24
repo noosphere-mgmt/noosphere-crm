@@ -46,7 +46,6 @@ export function OpportunityNotesTab({ data }: { data: OpportunityDetailData }) {
           {hiddenField("lease_term", opportunity.lease_term)}
           {hiddenField("expected_close_date", opportunity.expected_close_date?.slice(0, 10))}
           {hiddenField("required_capacity_pax", opportunity.required_capacity_pax)}
-          {hiddenField("move_in_date", opportunity.move_in_date?.slice(0, 10))}
         </>
       )}
       <TextAreaField

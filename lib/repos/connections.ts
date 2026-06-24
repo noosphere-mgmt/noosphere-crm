@@ -21,9 +21,10 @@ export async function listConnectionCompanies(): Promise<ConnectionCompanyListRo
        pc.contact_email AS primary_contact_email,
        pc.contact_phone AS primary_contact_phone,
        COALESCE(opp.open_opportunities, 0)::int AS open_opportunities,
-       cm.new_id AS v1_company_id
+       COALESCE(cv.business_id, c.business_id) AS business_id,
+       cv.company_id AS v1_company_id
      FROM companies c
-     LEFT JOIN id_map_v1 cm ON cm.entity_type = 'company' AND cm.legacy_id = c.id
+     LEFT JOIN companies_v1 cv ON cv.legacy_company_id = c.id
      LEFT JOIN LATERAL (
        SELECT
          ${sqlContactDisplayName()} AS contact_name,

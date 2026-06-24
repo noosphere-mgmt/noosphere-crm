@@ -17,7 +17,7 @@ import { MobileCard, MobileCardList, MobileCardMeta, MobileCardTitle } from "@/c
 
 export type BuildingLookupRow = Pick<
   PropertyV1,
-  "property_id" | "bldg_name_en" | "district_en" | "inventory_count"
+  "property_id" | "business_id" | "bldg_name_en" | "district_en" | "inventory_count"
 > & {
   city_en?: string | null;
   grade?: string | null;
@@ -51,7 +51,7 @@ function BuildingRow({
   return (
     <MobileCard onClick={() => onOpen(row.property_id)}>
       <MobileCardTitle>{name}</MobileCardTitle>
-      <RecordBusinessId id={row.property_id} className="mt-0.5 block" />
+      <RecordBusinessId id={row.business_id ?? row.property_id} className="mt-0.5 block" />
       <MobileCardMeta>{metaParts.join(" · ")}</MobileCardMeta>
     </MobileCard>
   );

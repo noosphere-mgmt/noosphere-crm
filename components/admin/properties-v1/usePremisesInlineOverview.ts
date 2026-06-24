@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { patchPremisesFieldAction } from "@/app/admin/properties/actions";
 import { controllingParty } from "@/components/admin/properties-v1/premisesInlineOverviewShared";
 import { toCompanyV1SelectOptions, coerceCompanyIdToSelectValue } from "@/lib/companyV1Display";
+import { asArray } from "@/lib/asArray";
+import { asCompanyV1Options } from "@/lib/premisesClientData";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
 import {
   isPackageOperatingModel,
@@ -36,10 +38,10 @@ export function usePremisesInlineOverview(
   const forLease = isListingIntentForLease(premises.inventory_status);
   const forSale = isListingIntentForSale(premises.inventory_status);
   const controller = controllingParty(premises, companyLabels);
-  const companyOptions = useMemo(() => toCompanyV1SelectOptions(companies), [companies]);
+  const companyOptions = useMemo(() => toCompanyV1SelectOptions(asCompanyV1Options(companies)), [companies]);
 
   const propertySelectOptions = useMemo(
-    () => propertyOptions.map((p) => ({ value: p.property_id, label: p.label })),
+    () => asArray<PropertyV1SelectOption>(propertyOptions).map((p) => ({ value: p.property_id, label: p.label })),
     [propertyOptions],
   );
 

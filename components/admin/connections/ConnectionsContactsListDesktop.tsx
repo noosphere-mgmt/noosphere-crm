@@ -126,7 +126,7 @@ export function ConnectionsContactsListDesktop({
                     >
                       {getContactLabel(row)}
                     </button>
-                    <RecordBusinessId id={row.v1_contact_id} className="mt-0.5 block" />
+                    <RecordBusinessId id={row.business_id ?? row.v1_contact_id} className="mt-0.5 block" />
                   </td>
                   <td className="px-3 py-1.5 text-slate-700">
                     <button

@@ -2,6 +2,7 @@ import type { Opportunity } from "@/lib/types/entities";
 import { OPPORTUNITY_LEAD_TYPE_LABELS, OPPORTUNITY_STATUS_LABELS } from "@/lib/lookups";
 import { formatOpportunityAreaCapacity, formatOpportunityBudget } from "@/lib/opportunitiesList";
 import { buildCsvContent, downloadCsvInBrowser } from "@/lib/csvEncoding";
+import { buildExportFilename } from "@/lib/import/exportFilename";
 
 export function exportOpportunitiesCsv(opps: Opportunity[]): void {
   const headers = [
@@ -31,5 +32,5 @@ export function exportOpportunitiesCsv(opps: Opportunity[]): void {
     o.updated_at?.slice(0, 10) ?? "",
   ]);
 
-  downloadCsvInBrowser(`opportunities-${new Date().toISOString().slice(0, 10)}.csv`, buildCsvContent(headers, rows));
+  downloadCsvInBrowser(buildExportFilename("opportunities"), buildCsvContent(headers, rows));
 }

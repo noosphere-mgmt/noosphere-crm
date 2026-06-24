@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { labelCompanyV1 } from "@/lib/companyV1Display";
+import { PREMISES_NOT_ASSIGNED_LABEL } from "@/lib/premisesDetailDisplay";
 import type { PremisesDetailTabId } from "@/lib/premisesDetailTab";
 import type { PropertyV1SelectOption } from "@/lib/repos/propertiesV1";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
@@ -22,11 +23,22 @@ export function controllingParty(
   premises: PremisesV1,
   companyLabels: Map<string, string>,
 ): string {
-  const operator = labelCompanyV1(companyLabels, premises.operator_company_id);
-  if (operator !== "—") return operator;
-  const owner = labelCompanyV1(companyLabels, premises.owner_company_id);
-  if (owner !== "—") return owner;
-  return labelCompanyV1(companyLabels, premises.landlord_company_id);
+  const operatorId = premises.operator_company_id?.trim();
+  if (operatorId) {
+    const operator = labelCompanyV1(companyLabels, operatorId);
+    if (operator !== "—" && operator !== operatorId) return operator;
+  }
+  const ownerId = premises.owner_company_id?.trim();
+  if (ownerId) {
+    const owner = labelCompanyV1(companyLabels, ownerId);
+    if (owner !== "—" && owner !== ownerId) return owner;
+  }
+  const landlordId = premises.landlord_company_id?.trim();
+  if (landlordId) {
+    const landlord = labelCompanyV1(companyLabels, landlordId);
+    if (landlord !== "—" && landlord !== landlordId) return landlord;
+  }
+  return PREMISES_NOT_ASSIGNED_LABEL;
 }
 
 export function RelatedLink({

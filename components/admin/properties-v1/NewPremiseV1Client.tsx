@@ -19,6 +19,7 @@ const selectClass =
 function emptyPremisesV1(propertyId: string): PremisesV1 {
   return {
     premises_id: "",
+    business_id: null,
     property_id: propertyId,
     property_name_en: null,
     property_name_zh: null,

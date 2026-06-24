@@ -10,6 +10,7 @@ import {
 import { MobileQuickActivityBar } from "@/components/admin/activities/MobileQuickActivityBar";
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
+import { asArray } from "@/lib/asArray";
 import {
   formatActivityDate,
   formatActivityNotesPreview,
@@ -55,7 +56,10 @@ export function EntityActivitiesTab({
   );
 
   const visibleActivities = useMemo(
-    () => (limit != null && limit > 0 ? activities.slice(0, limit) : activities),
+    () => {
+      const safeActivities = asArray<ActivityListRow>(activities);
+      return limit != null && limit > 0 ? safeActivities.slice(0, limit) : safeActivities;
+    },
     [activities, limit],
   );
 

@@ -2,6 +2,7 @@
 
 import { PremisesDrawerTableLink } from "@/components/admin/properties-v1/PremisesDrawerHeader";
 import { PremisesSectionCard } from "@/components/admin/properties-v1/premisesDrawerUi";
+import { asArray } from "@/lib/asArray";
 import {
   formatProposedPremisesProposedPrice,
   formatProposedPremisesTourDate,
@@ -19,7 +20,8 @@ function formatOpportunityLabel(row: PremisesProposedOpportunityRow): string {
   return district ? `${base} – ${district}` : base;
 }
 
-export function PremisesOpportunitiesTab({ rows }: { rows: PremisesProposedOpportunityRow[] }) {
+export function PremisesOpportunitiesTab({ rows }: { rows: PremisesProposedOpportunityRow[] | null | undefined }) {
+  const safeRows = asArray<PremisesProposedOpportunityRow>(rows);
   return (
     <PremisesSectionCard title="Proposed on opportunities">
       <div className="overflow-x-auto rounded-lg border border-white/80 bg-white/70">
@@ -37,14 +39,14 @@ export function PremisesOpportunitiesTab({ rows }: { rows: PremisesProposedOppor
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? (
+            {safeRows.length === 0 ? (
               <tr>
                 <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
                   This premises has not been proposed on any opportunity yet.
                 </td>
               </tr>
             ) : (
-              rows.map((row) => (
+              safeRows.map((row) => (
                 <tr key={row.id} className="border-t border-slate-100 align-top">
                   <td className="px-3 py-2 font-medium text-slate-900">
                     <PremisesDrawerTableLink href={`/admin/opportunities/${row.opportunity_id}`}>
