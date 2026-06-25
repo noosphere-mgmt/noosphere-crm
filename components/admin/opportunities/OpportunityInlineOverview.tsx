@@ -21,6 +21,7 @@ import {
   closedOutcomeReasonLabel,
   isClosedOpportunityStatus,
 } from "@/lib/openOpportunityStatus";
+import { contactsForCompany } from "@/lib/contactCompanyFilter";
 import { partiesSummaryRows } from "@/lib/opportunityPartiesDisplay";
 import {
   OPPORTUNITY_SALES_ROLES,
@@ -28,7 +29,7 @@ import {
   type OpportunitySalesRole,
 } from "@/lib/opportunityValues";
 import type { OpportunityDetailData } from "@/lib/repos/opportunityDetail";
-import { toLegacyContactSelectOptions } from "@/lib/crmSelectOptions";
+import { toLegacyContactSelectOptions, resolveCompanySelectValue, resolveContactSelectValue } from "@/lib/crmSelectOptions";
 import type { CompanyOption } from "@/lib/repos/companies";
 
 export function OpportunityInlineOverview({ data }: { data: OpportunityDetailData }) {
@@ -36,10 +37,11 @@ export function OpportunityInlineOverview({ data }: { data: OpportunityDetailDat
   const summary = partiesSummaryRows(parties);
 
   const companyContacts = useMemo(() => {
-    if (!opportunity.company_id) return contacts;
-    const filtered = contacts.filter((c) => c.company_id === opportunity.company_id);
+    const companyValue = resolveCompanySelectValue(companies as CompanyOption[], opportunity.company_id);
+    if (!companyValue) return contacts;
+    const filtered = contactsForCompany(contacts, companyValue, companies as CompanyOption[]);
     return filtered.length > 0 ? filtered : contacts;
-  }, [contacts, opportunity.company_id]);
+  }, [contacts, companies, opportunity.company_id]);
 
   const contactOptions = useMemo(
     () => [
@@ -73,16 +75,13 @@ export function OpportunityInlineOverview({ data }: { data: OpportunityDetailDat
           companyId={opportunity.company_id ?? 0}
           companyName={opportunity.linked_company_name ?? opportunity.company_name}
           companies={companies as CompanyOption[]}
-          onSave={async (id) => save("company_id")(Number(id) > 0 ? Number(id) : null)}
+          onSave={(businessId) => save("company_id")(businessId)}
         />
         <InlineSelectField
           label="Contact"
-          value={opportunity.primary_contact_id ? String(opportunity.primary_contact_id) : ""}
+          value={resolveContactSelectValue(contacts, opportunity.primary_contact_id)}
           options={contactOptions}
-          onSave={async (value) => {
-            const id = value ? Number.parseInt(String(value), 10) : null;
-            return save("primary_contact_id")(Number.isFinite(id) ? id : null);
-          }}
+          onSave={(value) => save("primary_contact_id")(value || null)}
         />
         <InlineSelectField
           label="Lead type"

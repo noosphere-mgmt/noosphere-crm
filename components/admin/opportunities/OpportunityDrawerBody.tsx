@@ -11,6 +11,7 @@ import { OpportunityProposedPremisesTab } from "@/components/admin/opportunities
 import { getOpportunityTab } from "@/lib/opportunityDetailTab";
 import { opportunityDetailHref } from "@/lib/opportunityDetailNav";
 import type { OpportunityDrawerData } from "@/lib/repos/opportunitiesDrawer";
+import { resolveCompanySelectValue, resolveContactSelectValue } from "@/lib/crmSelectOptions";
 
 export function OpportunityDrawerBody({ data }: { data: OpportunityDrawerData }) {
   const searchParams = useSearchParams();
@@ -38,11 +39,11 @@ export function OpportunityDrawerBody({ data }: { data: OpportunityDrawerData })
       <EntityActivitiesTab
         activities={data.activities}
         defaults={{
-          opportunity_id: opportunity.id,
+          opportunity_business_id: opportunity.business_id ?? null,
           opportunity_name: opportunity.client_name,
-          company_id: opportunity.company_id,
+          company_business_id: resolveCompanySelectValue(data.companies, opportunity.company_id) || null,
           company_name: opportunity.linked_company_name,
-          contact_id: opportunity.primary_contact_id,
+          contact_business_id: resolveContactSelectValue(data.contacts, opportunity.primary_contact_id) || null,
           contact_name: opportunity.primary_contact_name,
         }}
       />

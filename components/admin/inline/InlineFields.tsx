@@ -738,44 +738,52 @@ export function InlineCompanyPickerField({
   label: string;
   companyId: number;
   companyName: string | null;
-  companies: { id: number; company_name: string; v1_company_id?: string | null }[];
+  companies: { id: number; company_name: string; business_id?: string | null }[];
   onSave: SaveFn;
 }) {
   const { editHighlight, runSave, editing, setEditing, beginEdit } = useGatedInlineEdit();
   const [query, setQuery] = useState("");
-  const [draftId, setDraftId] = useState(companyId);
+  const currentBusinessId =
+    companies.find((c) => c.id === companyId)?.business_id?.trim() ?? "";
+  const [draftBusinessId, setDraftBusinessId] = useState(currentBusinessId);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const filtered = companies.filter((c) =>
-    c.company_name.toLowerCase().includes(query.trim().toLowerCase()),
+  const filtered = companies.filter(
+    (c) =>
+      c.business_id &&
+      c.company_name.toLowerCase().includes(query.trim().toLowerCase()),
   );
-  const companyLabel = (c: { company_name: string; v1_company_id?: string | null }) =>
-    formatLabelWithBusinessId(c.company_name, c.v1_company_id);
+  const companyLabel = (c: { company_name: string; business_id?: string | null }) =>
+    formatLabelWithBusinessId(c.company_name, c.business_id);
 
   useEffect(() => {
     if (!editing) {
-      setDraftId(companyId);
+      setDraftBusinessId(currentBusinessId);
       setQuery("");
     }
-  }, [companyId, editing]);
+  }, [companyId, currentBusinessId, editing]);
 
   useEffect(() => {
     if (!editing) return;
     function onDocClick(e: MouseEvent) {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        void commit(draftId);
+        void commit(draftBusinessId);
       }
     }
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
   });
 
-  async function commit(id: number) {
-    if (id === companyId) {
+  async function commit(businessId: string) {
+    if (businessId === currentBusinessId) {
       setEditing(false);
       return;
     }
-    const ok = await runSave(() => onSave(id));
+    if (!businessId) {
+      setEditing(false);
+      return;
+    }
+    const ok = await runSave(() => onSave(businessId));
     if (ok) setEditing(false);
   }
 
@@ -796,15 +804,15 @@ export function InlineCompanyPickerField({
             <li className="px-2 py-2 text-slate-500">No matches</li>
           ) : (
             filtered.map((c) => (
-              <li key={c.id}>
+              <li key={c.business_id!}>
                 <button
                   type="button"
                   className={`block w-full px-2 py-1.5 text-left hover:bg-slate-50 ${
-                    c.id === draftId ? "bg-violet-50 font-medium text-violet-900" : ""
+                    c.business_id === draftBusinessId ? "bg-violet-50 font-medium text-violet-900" : ""
                   }`}
                   onClick={() => {
-                    setDraftId(c.id);
-                    void commit(c.id);
+                    setDraftBusinessId(c.business_id!);
+                    void commit(c.business_id!);
                   }}
                 >
                   {companyLabel(c)}
@@ -817,13 +825,23 @@ export function InlineCompanyPickerField({
     );
   }
 
+  const matched = currentBusinessId
+    ? companies.find((c) => c.business_id === currentBusinessId)
+    : null;
+  const displayLabel =
+    matched != null
+      ? companyLabel(matched)
+      : companyName && currentBusinessId
+        ? formatLabelWithBusinessId(companyName, currentBusinessId)
+        : companyName;
+
   return (
     <div
       className={inlineFieldShellClass(editHighlight, false)}
       {...editableFieldProps(editHighlight, beginEdit)}
     >
       <FieldLabel>{label}</FieldLabel>
-      <FieldValue>{displayOrDash(companyName)}</FieldValue>
+      <FieldValue>{displayOrDash(displayLabel)}</FieldValue>
     </div>
   );
 }

@@ -23,12 +23,12 @@ import {
   isClosedOpportunityStatus,
 } from "@/lib/openOpportunityStatus";
 import { partiesSummaryRows } from "@/lib/opportunityPartiesDisplay";
+import { toLegacyCompanySelectOptions, toLegacyContactSelectOptions, resolveCompanySelectValue, resolveContactSelectValue } from "@/lib/crmSelectOptions";
 import { OPPORTUNITY_SALES_ROLE_LABELS, type OpportunitySalesRole } from "@/lib/opportunityValues";
+import type { CompanyOption } from "@/lib/repos/companies";
 import type { ContactOption } from "@/lib/repos/contacts";
 import type { Opportunity, OpportunityParty, OpportunityStatus } from "@/lib/types/entities";
 import { TextAreaField } from "@/components/admin/AdminFormFields";
-
-type CompanyOption = { id: number; company_name: string };
 
 export function OpportunityOverviewFields({
   opportunity,
@@ -45,7 +45,9 @@ export function OpportunityOverviewFields({
 }) {
   const editing = useFormEditing();
   const summary = partiesSummaryRows(parties);
-  const [companyId, setCompanyId] = useState(opportunity.company_id?.toString() ?? "");
+  const companyOptions = toLegacyCompanySelectOptions(companies);
+  const contactOptions = toLegacyContactSelectOptions(contacts);
+  const [companyId, setCompanyId] = useState(resolveCompanySelectValue(companies, opportunity.company_id));
   const [salesRole, setSalesRole] = useState<OpportunitySalesRole>(opportunity.sales_role ?? "to_lease");
   const [status, setStatus] = useState<OpportunityStatus>(opportunity.status);
 
@@ -64,9 +66,9 @@ export function OpportunityOverviewFields({
                 className={selectClass}
               >
                 <option value="">—</option>
-                {companies.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.company_name}
+                {companyOptions.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
                   </option>
                 ))}
               </select>
@@ -75,7 +77,9 @@ export function OpportunityOverviewFields({
               instanceKey={`overview-${opportunity.id}-${companyId}`}
               companyId={companyId}
               contacts={contacts}
-              defaultContactId={opportunity.primary_contact_id?.toString()}
+              companies={companies}
+              contactOptions={contactOptions}
+              defaultContactId={resolveContactSelectValue(contacts, opportunity.primary_contact_id)}
               fieldName="primary_contact_id"
               onNewContact={() => {}}
             />

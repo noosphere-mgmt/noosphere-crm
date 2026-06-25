@@ -83,9 +83,9 @@ function ContactDrawerBody({ data }: { data: ContactDrawerData }) {
       <EntityActivitiesTab
         activities={activities}
         defaults={{
-          contact_id: contact.id,
+          contact_business_id: contact.business_id ?? null,
           contact_name: contact.contact_name,
-          company_id: contact.company_id,
+          company_business_id: company?.business_id ?? null,
           company_name: contact.company_name ?? company?.company_name ?? null,
         }}
       />

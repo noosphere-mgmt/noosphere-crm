@@ -13,6 +13,7 @@ import {
   isV1CompanyRef,
   isV1ContactRef,
 } from "@/lib/entityRefGuards";
+import { isPermanentBusinessId } from "@/lib/businessIds";
 import {
   companyExists,
   contactExists,
@@ -108,10 +109,54 @@ async function v1ContactIdFromLegacy(legacyId: number): Promise<string | null> {
   return fromMap[0]?.new_id ?? null;
 }
 
+async function legacyCompanyIdFromBusinessId(businessId: string): Promise<number | null> {
+  const rows = await query<{ legacy_id: number }>(
+    `SELECT legacy_company_id::int AS legacy_id FROM companies_v1 WHERE business_id = $1
+     UNION ALL
+     SELECT id::int AS legacy_id FROM companies WHERE business_id = $1
+     LIMIT 1`,
+    [businessId],
+  );
+  return rows[0]?.legacy_id ?? null;
+}
+
+async function legacyContactIdFromBusinessId(businessId: string): Promise<number | null> {
+  const rows = await query<{ legacy_id: number }>(
+    `SELECT id::int AS legacy_id FROM contacts WHERE business_id = $1 LIMIT 1`,
+    [businessId],
+  );
+  return rows[0]?.legacy_id ?? null;
+}
+
+async function legacyOpportunityIdFromBusinessId(businessId: string): Promise<number | null> {
+  const rows = await query<{ legacy_id: number }>(
+    `SELECT id::int AS legacy_id FROM opportunities WHERE business_id = $1 LIMIT 1`,
+    [businessId],
+  );
+  return rows[0]?.legacy_id ?? null;
+}
+
+async function premisesIdFromBusinessId(businessId: string): Promise<string | null> {
+  const rows = await query<{ premises_id: string }>(
+    `SELECT premises_id FROM premises_v1 WHERE business_id = $1 LIMIT 1`,
+    [businessId],
+  );
+  return rows[0]?.premises_id ?? null;
+}
+
 /** Resolve any company reference to legacy + v1 ids. */
 export async function resolveCompanyRef(raw: unknown): Promise<ResolvedCompanyRef> {
   const s = trimRef(raw);
   if (!s) return { legacyId: null, v1Id: null };
+
+  if (isPermanentBusinessId("company", s)) {
+    const legacyId = await legacyCompanyIdFromBusinessId(s);
+    if (legacyId == null) {
+      return { legacyId: null, v1Id: null, warning: `Company ${s} not found` };
+    }
+    const v1Id = await v1CompanyIdFromLegacy(legacyId);
+    return { legacyId, v1Id };
+  }
 
   if (isV1ContactRef(s)) {
     return { legacyId: null, v1Id: null, warning: `Expected company ref, got contact ref ${s}` };
@@ -149,6 +194,15 @@ export async function resolveContactRef(raw: unknown): Promise<ResolvedContactRe
   const s = trimRef(raw);
   if (!s) return { legacyId: null, v1Id: null };
 
+  if (isPermanentBusinessId("contact", s)) {
+    const legacyId = await legacyContactIdFromBusinessId(s);
+    if (legacyId == null) {
+      return { legacyId: null, v1Id: null, warning: `Contact ${s} not found` };
+    }
+    const v1Id = await v1ContactIdFromLegacy(legacyId);
+    return { legacyId, v1Id };
+  }
+
   if (isV1CompanyRef(s)) {
     return { legacyId: null, v1Id: null, warning: `Expected contact ref, got company ref ${s}` };
   }
@@ -184,6 +238,14 @@ export async function resolveOpportunityRef(raw: unknown): Promise<ResolvedOppor
   const s = trimRef(raw);
   if (!s) return { legacyId: null };
 
+  if (isPermanentBusinessId("opportunity", s)) {
+    const legacyId = await legacyOpportunityIdFromBusinessId(s);
+    if (legacyId == null) {
+      return { legacyId: null, warning: `Opportunity ${s} not found` };
+    }
+    return { legacyId };
+  }
+
   if (isLegacyNumericRef(s)) {
     const id = Number.parseInt(s, 10);
     if (await opportunityExists(id)) return { legacyId: id };
@@ -204,6 +266,12 @@ export async function resolveOpportunityRef(raw: unknown): Promise<ResolvedOppor
 export async function resolvePremisesRef(raw: unknown): Promise<ResolvedPremisesRef> {
   const s = trimRef(raw);
   if (!s) return { premisesId: null };
+
+  if (isPermanentBusinessId("premise", s)) {
+    const premisesId = (await premisesIdFromBusinessId(s)) ?? s;
+    if (await premisesExists(premisesId)) return { premisesId };
+    return { premisesId: null, warning: `Premise ${s} not found` };
+  }
 
   if (await premisesExists(s)) return { premisesId: s };
 
@@ -286,4 +354,16 @@ export async function normalizeOptionalV1ContactId(raw: unknown): Promise<string
   const s = trimRef(raw);
   if (!s) return null;
   return resolveContactRefToV1(s);
+}
+
+export async function normalizeOptionalLegacyOpportunityId(raw: unknown): Promise<number | null> {
+  const s = trimRef(raw);
+  if (!s) return null;
+  return resolveOpportunityRefToLegacy(s);
+}
+
+export async function normalizeOptionalPremisesId(raw: unknown): Promise<string | null> {
+  const s = trimRef(raw);
+  if (!s) return null;
+  return resolvePremisesRefToId(s);
 }

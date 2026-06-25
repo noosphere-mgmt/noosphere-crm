@@ -1,5 +1,6 @@
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
 import type { ContactV1Option } from "@/lib/repos/contactsV1";
+import { isPermanentBusinessId } from "@/lib/businessIds";
 
 export type LegacyCompanySelectOption = {
   value: string;
@@ -90,4 +91,34 @@ export function formatLegacyCompanyOptionLabel(
   businessId?: string | null,
 ): string {
   return formatLabelWithBusinessId(companyName, businessId);
+}
+
+/** Map legacy numeric / business ref to canonical company select value (C######). */
+export function resolveCompanySelectValue(
+  companies: { id: number; business_id?: string | null }[],
+  ref: number | string | null | undefined,
+): string {
+  if (ref == null || ref === "") return "";
+  const s = String(ref).trim();
+  if (isPermanentBusinessId("company", s)) return s;
+  const legacyId = Number.parseInt(s, 10);
+  if (Number.isFinite(legacyId) && legacyId > 0) {
+    return companies.find((c) => c.id === legacyId)?.business_id?.trim() ?? "";
+  }
+  return "";
+}
+
+/** Map legacy numeric / business ref to canonical contact select value (D######). */
+export function resolveContactSelectValue(
+  contacts: { id: number; business_id?: string | null }[],
+  ref: number | string | null | undefined,
+): string {
+  if (ref == null || ref === "") return "";
+  const s = String(ref).trim();
+  if (isPermanentBusinessId("contact", s)) return s;
+  const legacyId = Number.parseInt(s, 10);
+  if (Number.isFinite(legacyId) && legacyId > 0) {
+    return contacts.find((c) => c.id === legacyId)?.business_id?.trim() ?? "";
+  }
+  return "";
 }

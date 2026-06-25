@@ -6,11 +6,10 @@ import { useFormEditing } from "@/components/admin/ModuleActionBar";
 import { COVERAGE_OPTIONS } from "@/lib/connectionsValues";
 import { suggestDisplayName } from "@/lib/contactName";
 import { COMPANY_ROLE_LABELS, COMPANY_ROLES, PREFERRED_LANGUAGES } from "@/lib/lookups";
-import { toLegacyCompanySelectOptions } from "@/lib/crmSelectOptions";
+import { toLegacyCompanySelectOptions, resolveCompanySelectValue } from "@/lib/crmSelectOptions";
+import type { CompanyOption } from "@/lib/repos/companies";
 import type { CompanyRole, Contact } from "@/lib/types/entities";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
-
-type CompanyOption = { id: number; company_name: string; v1_company_id?: string | null };
 
 type Props = {
   defaults?: Contact;
@@ -110,7 +109,11 @@ function StatusFields({ defaults }: { defaults?: Contact }) {
 
 export function ContactFormFields({ defaults, companies, fixedCompanyId, layout = "default" }: Props) {
   const editing = useFormEditing();
-  const companyId = fixedCompanyId ?? defaults?.company_id;
+  const companyOptions = toLegacyCompanySelectOptions(companies);
+  const selectedCompanyValue =
+    fixedCompanyId != null
+      ? resolveCompanySelectValue(companies, fixedCompanyId)
+      : resolveCompanySelectValue(companies, defaults?.company_id);
   const [firstName, setFirstName] = useState(defaults?.first_name ?? "");
   const [lastName, setLastName] = useState(defaults?.last_name ?? "");
   const [displayName, setDisplayName] = useState(
@@ -126,15 +129,15 @@ export function ContactFormFields({ defaults, companies, fixedCompanyId, layout 
 
   const companyField =
     fixedCompanyId != null ? (
-      <input type="hidden" name="company_id" value={fixedCompanyId} />
+      <input type="hidden" name="company_id" value={resolveCompanySelectValue(companies, fixedCompanyId)} />
     ) : (
       <SelectField
         label="Company"
         name="company_id"
-        defaultValue={companyId?.toString() ?? ""}
+        defaultValue={selectedCompanyValue}
         placeholder="— Select company —"
         required
-        options={toLegacyCompanySelectOptions(companies).map((c) => ({
+        options={companyOptions.map((c) => ({
           value: c.value,
           label: c.label,
         }))}

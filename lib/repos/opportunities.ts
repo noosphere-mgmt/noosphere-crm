@@ -24,6 +24,7 @@ const opportunitySelect = `
   pc.contact_name AS primary_contact_name,
   rc.company_name AS referrer_company_name,
   rfc.contact_name AS referrer_contact_name,
+  o.business_id,
   om.new_id AS v1_opportunity_id
 `;
 

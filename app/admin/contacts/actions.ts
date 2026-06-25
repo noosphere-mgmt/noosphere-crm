@@ -16,6 +16,10 @@ import {
 } from "@/lib/repos/contactRelationships";
 
 import { resolveContactName } from "@/lib/contactName";
+import {
+  normalizeOptionalLegacyCompanyId,
+  normalizeOptionalLegacyContactId,
+} from "@/lib/crmRefResolve";
 import { applyContactPatch } from "@/lib/inlineRecordMerge";
 import { COMPANY_ROLES } from "@/lib/lookups";
 import type { CompanyRole } from "@/lib/types/entities";
@@ -33,8 +37,8 @@ function parseOptionalId(v: FormDataEntryValue | null): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-function contactInputFromForm(formData: FormData) {
-  const companyId = parseOptionalId(formData.get("company_id"));
+async function contactInputFromForm(formData: FormData) {
+  const companyId = await normalizeOptionalLegacyCompanyId(formData.get("company_id"));
   if (!companyId) throw new Error("Company is required");
   const contactRole = formData
     .getAll("contact_role")
@@ -72,7 +76,7 @@ function revalidateContactPaths(companyId: number) {
 }
 
 export async function createContactAction(formData: FormData) {
-  const input = contactInputFromForm(formData);
+  const input = await contactInputFromForm(formData);
   const id = await createContact(input);
   revalidateContactPaths(input.company_id);
   const returnTo = parseOptionalString(formData.get("return_to"));
@@ -80,7 +84,7 @@ export async function createContactAction(formData: FormData) {
 }
 
 export async function updateContactAction(id: number, formData: FormData) {
-  const input = contactInputFromForm(formData);
+  const input = await contactInputFromForm(formData);
   await updateContact(id, input);
   revalidateContactPaths(input.company_id);
   redirect(`/admin/contacts/${id}`);
@@ -118,6 +122,12 @@ export async function patchContactFieldAction(
       value = JSON.parse(valueJson);
     } catch {
       return { ok: false, error: "Invalid value" };
+    }
+
+    if (field === "company_id") {
+      const legacyId = await normalizeOptionalLegacyCompanyId(value);
+      if (!legacyId) return { ok: false, error: "Company is required" };
+      value = legacyId;
     }
 
     const merged = applyContactPatch(contact, field, value);

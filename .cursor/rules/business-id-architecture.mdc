@@ -1,0 +1,42 @@
+---
+description: Frozen canonical business ID architecture for Noosphere CRM
+alwaysApply: true
+---
+
+# Business ID Architecture (Frozen)
+
+Do **not** redesign, replace, rename, remap, or introduce alternative ID systems without explicit approval.
+
+## Canonical IDs
+
+| Entity      | Format    |
+|-------------|-----------|
+| Company     | `C100001` |
+| Contact     | `D100001` |
+| Building    | `B100001` |
+| Premise     | `P100001` |
+| Opportunity | `M100001` |
+| Activity    | `A100001` |
+
+Source of truth: `lib/businessIds.ts`, stored in `business_id` columns and `business_id_crosswalk`.
+
+## Rules
+
+1. **One entity, one business ID** — never expose multiple user-facing IDs for the same record.
+2. **Use business IDs everywhere user-facing**: UI, drawers, detail pages, search, dropdowns, relationships, imports, exports, API responses.
+3. **Numeric DB primary keys are internal only** — never display, export, import, or reference in business logic.
+4. **Legacy IDs are deprecated** (`COMP-2026-*`, `INV-2026-*`, `OPP-2026-*`, `BLDG-2026-*`). May exist for migration only; no new code may depend on them.
+5. **No new ID formats, resolver chains, or mapping layers.** Use existing `business_id` and `sqlExport*Id` / `resolveBusinessId` helpers.
+6. **Before changing ID-related code**, verify it preserves "one entity, one business ID". If not, stop and request approval.
+
+## Implementation pointers
+
+- Export SQL: `lib/import/lookupSql.ts` (`sqlExportCompanyId`, `sqlExportContactId`, etc.)
+- Population/migration: `scripts/populate-business-ids.ts`, `business_id_crosswalk`
+- Verification: `npm run verify:company-export-ids`
+
+## Out of scope unless approved
+
+New suffix schemes, parallel ID tables, UI fallbacks to numeric/legacy IDs, export fallthrough to raw PKs.
+
+Future work should focus on business functions, data quality, usability, performance, and UX — not entity identity redesign.

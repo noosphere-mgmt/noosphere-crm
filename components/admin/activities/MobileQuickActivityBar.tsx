@@ -21,10 +21,10 @@ export function MobileQuickActivityBar({
     fd.set("activity_date", new Date().toISOString().slice(0, 10));
     fd.set("activity_type", type);
     fd.set("notes", notes);
-    if (defaults?.company_id) fd.set("company_id", String(defaults.company_id));
-    if (defaults?.contact_id) fd.set("contact_id", String(defaults.contact_id));
-    if (defaults?.opportunity_id) fd.set("opportunity_id", String(defaults.opportunity_id));
-    if (defaults?.premises_id) fd.set("premises_id", defaults.premises_id);
+    if (defaults?.company_business_id) fd.set("company_id", defaults.company_business_id);
+    if (defaults?.contact_business_id) fd.set("contact_id", defaults.contact_business_id);
+    if (defaults?.opportunity_business_id) fd.set("opportunity_id", defaults.opportunity_business_id);
+    if (defaults?.premises_business_id) fd.set("premises_id", defaults.premises_business_id);
 
     startTransition(async () => {
       const result = await createActivityAction(fd);

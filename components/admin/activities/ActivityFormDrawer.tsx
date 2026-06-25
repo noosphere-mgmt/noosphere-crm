@@ -14,13 +14,13 @@ export type ActivityFormDefaults = {
   activity_time?: string | null;
   activity_type?: string;
   notes?: string | null;
-  company_id?: number | null;
+  company_business_id?: string | null;
   company_name?: string | null;
-  contact_id?: number | null;
+  contact_business_id?: string | null;
   contact_name?: string | null;
-  opportunity_id?: number | null;
+  opportunity_business_id?: string | null;
   opportunity_name?: string | null;
-  premises_id?: string | null;
+  premises_business_id?: string | null;
   premises_label?: string | null;
 };
 
@@ -78,21 +78,29 @@ export function ActivityFormDrawer({
     setActivityType(d?.activity_type ?? defaults?.activity_type ?? "Call");
     setNotes(d?.notes ?? "");
     setCompany(
-      hitFromDefaults("company", activity?.company_id ?? defaults?.company_id, activity?.company_name ?? defaults?.company_name),
+      hitFromDefaults(
+        "company",
+        activity?.company_business_id ?? defaults?.company_business_id,
+        activity?.company_name ?? defaults?.company_name,
+      ),
     );
     setContact(
-      hitFromDefaults("contact", activity?.contact_id ?? defaults?.contact_id, activity?.contact_name ?? defaults?.contact_name),
+      hitFromDefaults(
+        "contact",
+        activity?.contact_business_id ?? defaults?.contact_business_id,
+        activity?.contact_name ?? defaults?.contact_name,
+      ),
     );
     setOpportunity(
       hitFromDefaults(
         "opportunity",
-        activity?.opportunity_id ?? defaults?.opportunity_id,
+        activity?.opportunity_business_id ?? defaults?.opportunity_business_id,
         activity?.opportunity_name ?? defaults?.opportunity_name,
       ),
     );
     const primaryPremises = hitFromDefaults(
       "premises",
-      activity?.premises_id ?? defaults?.premises_id,
+      activity?.premises_business_id ?? defaults?.premises_business_id,
       activity?.premises_label ?? defaults?.premises_label,
     );
     setPremises(primaryPremises);

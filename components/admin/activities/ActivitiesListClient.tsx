@@ -76,7 +76,7 @@ export function ActivitiesListClient({
     const map = new Map<string, string>();
     for (const row of rows) {
       if (row.company_id && row.company_name) {
-        map.set(String(row.company_id), formatLabelWithBusinessId(row.company_name, row.company_business_id ?? row.v1_company_id));
+        map.set(String(row.company_id), formatLabelWithBusinessId(row.company_name, row.company_business_id));
       }
     }
     return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
@@ -86,7 +86,7 @@ export function ActivitiesListClient({
     const map = new Map<string, string>();
     for (const row of rows) {
       if (row.contact_id && row.contact_name) {
-        map.set(String(row.contact_id), formatLabelWithBusinessId(row.contact_name, row.contact_business_id ?? row.v1_contact_id));
+        map.set(String(row.contact_id), formatLabelWithBusinessId(row.contact_name, row.contact_business_id));
       }
     }
     return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
@@ -98,7 +98,7 @@ export function ActivitiesListClient({
       if (row.opportunity_id && row.opportunity_name) {
         map.set(
           String(row.opportunity_id),
-          formatLabelWithBusinessId(row.opportunity_name, row.opportunity_business_id ?? row.v1_opportunity_id),
+          formatLabelWithBusinessId(row.opportunity_name, row.opportunity_business_id),
         );
       }
     }

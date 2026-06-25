@@ -91,7 +91,7 @@ function CompanyDrawerBody({
       <EntityActivitiesTab
         activities={timeline}
         defaults={{
-          company_id: companyId,
+          company_business_id: company.business_id ?? null,
           company_name: company.company_name,
         }}
       />

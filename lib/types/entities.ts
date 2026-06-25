@@ -288,10 +288,11 @@ export type Opportunity = {
   updated_at: string;
   linked_company_name?: string | null;
   primary_contact_name?: string | null;
+  business_id?: string | null;
+  v1_opportunity_id?: string | null;
   referrer_company_name?: string | null;
   referrer_contact_name?: string | null;
   has_viewing_premises?: boolean;
-  v1_opportunity_id?: string | null;
 };
 
 export type ProposedPremisesStatus =

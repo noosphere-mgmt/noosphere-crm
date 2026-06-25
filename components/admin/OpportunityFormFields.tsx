@@ -24,14 +24,11 @@ import {
 import {
   type OpportunitySalesRole,
 } from "@/lib/opportunityValues";
-import { toLegacyCompanySelectOptions, toLegacyContactSelectOptions } from "@/lib/crmSelectOptions";
+import { toLegacyCompanySelectOptions, toLegacyContactSelectOptions, resolveCompanySelectValue, resolveContactSelectValue } from "@/lib/crmSelectOptions";
 import type { ContactOption } from "@/lib/repos/contacts";
+import type { CompanyOption } from "@/lib/repos/companies";
 import type { Opportunity, OpportunityStatus } from "@/lib/types/entities";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
-
-type CompanyOption = { id: number; company_name: string; v1_company_id?: string | null };
-
-const selectReadOnlyClass = "mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800";
 
 type Props = {
   defaults?: Opportunity;
@@ -39,19 +36,24 @@ type Props = {
   contacts: ContactOption[];
 };
 
+const selectReadOnlyClass = "mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800";
+
 export function OpportunityFormFields({ defaults, companies, contacts }: Props) {
   const editing = useFormEditing();
-  const [companyId, setCompanyId] = useState(defaults?.company_id?.toString() ?? "");
-  const [primaryContactId, setPrimaryContactId] = useState(defaults?.primary_contact_id?.toString() ?? "");
+  const companyOptions = useMemo(() => toLegacyCompanySelectOptions(companies), [companies]);
+  const contactOptions = useMemo(() => toLegacyContactSelectOptions(contacts), [contacts]);
+  const [companyId, setCompanyId] = useState(
+    resolveCompanySelectValue(companies, defaults?.company_id),
+  );
+  const [primaryContactId, setPrimaryContactId] = useState(
+    resolveContactSelectValue(contacts, defaults?.primary_contact_id),
+  );
   const [salesRole, setSalesRole] = useState<OpportunitySalesRole>(defaults?.sales_role ?? "to_lease");
   const [status, setStatus] = useState<OpportunityStatus>(defaults?.status ?? "new");
 
-  const companyOptions = useMemo(() => toLegacyCompanySelectOptions(companies), [companies]);
-  const contactOptions = useMemo(() => toLegacyContactSelectOptions(contacts), [contacts]);
-
   const contactsForCompanyList = useMemo(
-    () => contactsForCompany(contacts, companyId),
-    [companyId, contacts],
+    () => contactsForCompany(contacts, companyId, companies),
+    [companyId, contacts, companies],
   );
 
   const opportunityDefaults: Opportunity = {
@@ -87,9 +89,8 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
 
   function onCompanyChange(next: string) {
     setCompanyId(next);
-    const cid = Number.parseInt(next, 10);
-    const stillValid = contacts.some(
-      (c) => c.id.toString() === primaryContactId && Number(c.company_id) === cid,
+    const stillValid = contactsForCompanyList.some(
+      (c) => resolveContactSelectValue(contacts, c.id) === primaryContactId,
     );
     if (!stillValid) {
       setPrimaryContactId("");
@@ -98,9 +99,9 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
 
   return (
     <>
-      {defaults?.v1_opportunity_id ? (
+      {defaults?.business_id ? (
         <div className="mb-2">
-          <RecordBusinessId id={defaults.v1_opportunity_id} />
+          <RecordBusinessId id={defaults.business_id} />
         </div>
       ) : null}
       <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
@@ -110,7 +111,7 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
             Referrer company
             <select
               name="referrer_company_id"
-              defaultValue={defaults?.referrer_company_id?.toString() ?? ""}
+              defaultValue={resolveCompanySelectValue(companies, defaults?.referrer_company_id)}
               disabled={!editing}
               className={editing ? selectClass : selectReadOnlyClass}
             >
@@ -162,9 +163,10 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
             >
               <option value="">— Select contact —</option>
               {contactsForCompanyList.map((c) => {
-                const opt = contactOptions.find((o) => o.value === String(c.id));
+                const value = resolveContactSelectValue(contacts, c.id);
+                const opt = contactOptions.find((o) => o.value === value);
                 return (
-                  <option key={c.id} value={c.id}>
+                  <option key={c.id} value={value}>
                     {opt?.label ?? c.contact_name}
                   </option>
                 );

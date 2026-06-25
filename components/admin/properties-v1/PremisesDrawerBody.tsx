@@ -84,7 +84,7 @@ export function PremisesDrawerBody({
         <EntityActivitiesTab
           activities={safeDrawerData.activities}
           defaults={{
-            premises_id: premises.premises_id,
+            premises_business_id: premises.business_id ?? null,
             premises_label: formatPremisesName(buildingName, premises.floor, premises.unit),
           }}
         />

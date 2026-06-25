@@ -17,6 +17,12 @@ import {
   updateActivity,
   type ActivityInput,
 } from "@/lib/repos/activities";
+import {
+  normalizeOptionalLegacyCompanyId,
+  normalizeOptionalLegacyContactId,
+  normalizeOptionalLegacyOpportunityId,
+  normalizeOptionalPremisesId,
+} from "@/lib/crmRefResolve";
 
 function parseOptionalString(v: FormDataEntryValue | null): string | null {
   const s = String(v ?? "").trim();
@@ -40,7 +46,7 @@ function parseCheckpointMode(formData: FormData): SiteTourCheckpointMode {
   return formData.get("checkpoint_mode") === "combined" ? "combined" : "split";
 }
 
-function activityInputFromForm(formData: FormData): ActivityInput {
+async function activityInputFromForm(formData: FormData): Promise<ActivityInput> {
   const activityType = String(formData.get("activity_type") ?? "").trim();
   if (!isActivityType(activityType)) {
     throw new Error("Invalid activity type");
@@ -51,10 +57,10 @@ function activityInputFromForm(formData: FormData): ActivityInput {
     activity_type: activityType,
     subject: null,
     notes: parseOptionalString(formData.get("notes")),
-    company_id: parseOptionalId(formData.get("company_id")),
-    contact_id: parseOptionalId(formData.get("contact_id")),
-    opportunity_id: parseOptionalId(formData.get("opportunity_id")),
-    premises_id: parseOptionalString(formData.get("premises_id")),
+    company_id: await normalizeOptionalLegacyCompanyId(formData.get("company_id")),
+    contact_id: await normalizeOptionalLegacyContactId(formData.get("contact_id")),
+    opportunity_id: await normalizeOptionalLegacyOpportunityId(formData.get("opportunity_id")),
+    premises_id: await normalizeOptionalPremisesId(formData.get("premises_id")),
     owner: parseOptionalString(formData.get("owner")),
   };
 }
@@ -76,7 +82,7 @@ export type ActivityActionResult =
 
 export async function createActivityAction(formData: FormData): Promise<ActivityActionResult> {
   try {
-    const input = activityInputFromForm(formData);
+    const input = await activityInputFromForm(formData);
     const premisesIds = parsePremisesIds(formData);
     const isSiteTour = input.activity_type === "Site Tour" || input.activity_type === "Site Inspection";
 
@@ -99,7 +105,7 @@ export async function updateActivityAction(
   formData: FormData,
 ): Promise<ActivityActionResult> {
   try {
-    const input = activityInputFromForm(formData);
+    const input = await activityInputFromForm(formData);
     const premisesIds = parsePremisesIds(formData);
     await updateActivity(activityId, input);
     if (premisesIds.length > 0) {

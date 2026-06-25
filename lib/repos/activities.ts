@@ -49,6 +49,7 @@ const activitySelect = `
   ct.business_id AS contact_business_id,
   o.business_id AS opportunity_business_id,
   a.business_id,
+  pm.business_id AS premises_business_id,
   cv.company_id AS v1_company_id,
   ctm.contact_id AS v1_contact_id,
   om.opportunity_id AS v1_opportunity_id
@@ -60,6 +61,7 @@ const activityFrom = `
   LEFT JOIN companies_v1 cv ON cv.legacy_company_id = a.company_id
   LEFT JOIN contacts ct ON ${sqlJoinLegacyContact("ct", "a.contact_id")}
   LEFT JOIN opportunities o ON ${sqlJoinLegacyOpportunity("o", "a.opportunity_id")}
+  LEFT JOIN premises_v1 pm ON pm.premises_id = a.premises_id
   LEFT JOIN contacts_v1 ctm ON ctm.legacy_contact_id = a.contact_id
   LEFT JOIN opportunities_v1 om ON om.legacy_opportunity_id = a.opportunity_id
   ${premisesLabelLateral}
@@ -89,6 +91,7 @@ export type ActivityListRow = {
   company_business_id?: string | null;
   contact_business_id?: string | null;
   opportunity_business_id?: string | null;
+  premises_business_id?: string | null;
   v1_company_id?: string | null;
   v1_contact_id?: string | null;
   v1_opportunity_id?: string | null;
@@ -425,18 +428,20 @@ export type ActivityLinkSearchHit = {
 
 export async function searchActivityCompanies(q: string, limit = 15): Promise<ActivityLinkSearchHit[]> {
   const term = q.trim();
-  const companyLabelSql = `CASE WHEN cm.new_id IS NOT NULL
-    THEN c.company_name || ' (' || cm.new_id || ')'
-    ELSE c.company_name END`;
-  const companyFrom = `FROM companies c LEFT JOIN id_map_v1 cm ON cm.entity_type = 'company' AND cm.legacy_id = c.id`;
+  const companyLabelSql = `c.company_name || ' (' || COALESCE(cv.business_id, c.business_id) || ')'`;
+  const companyFrom = `
+    FROM companies c
+    LEFT JOIN companies_v1 cv ON cv.legacy_company_id = c.id
+  `;
+  const businessIdFilter = `COALESCE(cv.business_id, c.business_id) IS NOT NULL`;
   if (!term) {
     return query<ActivityLinkSearchHit>(
       `SELECT 'company'::text AS entity_type,
-              c.id::text AS entity_id,
+              COALESCE(cv.business_id, c.business_id) AS entity_id,
               ${companyLabelSql} AS label,
               NULL::text AS subtitle
        ${companyFrom}
-       WHERE c.is_active = TRUE
+       WHERE c.is_active = TRUE AND ${businessIdFilter}
        ORDER BY c.company_name ASC
        LIMIT $1`,
       [limit],
@@ -444,11 +449,11 @@ export async function searchActivityCompanies(q: string, limit = 15): Promise<Ac
   }
   return query<ActivityLinkSearchHit>(
     `SELECT 'company'::text AS entity_type,
-            c.id::text AS entity_id,
+            COALESCE(cv.business_id, c.business_id) AS entity_id,
             ${companyLabelSql} AS label,
             NULL::text AS subtitle
      ${companyFrom}
-     WHERE c.is_active = TRUE AND c.company_name ILIKE $1
+     WHERE c.is_active = TRUE AND ${businessIdFilter} AND c.company_name ILIKE $1
      ORDER BY c.company_name ASC
      LIMIT $2`,
     [`%${term}%`, limit],
@@ -457,35 +462,34 @@ export async function searchActivityCompanies(q: string, limit = 15): Promise<Ac
 
 export async function searchActivityContacts(q: string, limit = 15): Promise<ActivityLinkSearchHit[]> {
   const term = q.trim();
-  const contactLabelSql = `CASE WHEN cm.new_id IS NOT NULL
-    THEN COALESCE(c.display_name, c.contact_name) || ' (' || cm.new_id || ')'
-    ELSE COALESCE(c.display_name, c.contact_name) END`;
+  const contactLabelSql = `COALESCE(ct.display_name, ct.contact_name) || ' (' || ct.business_id || ')'`;
   const contactFrom = `
-    FROM contacts c
-    JOIN companies co ON co.id::text = c.company_id::text
-    LEFT JOIN id_map_v1 cm ON cm.entity_type = 'contact' AND cm.legacy_id = c.id`;
+    FROM contacts ct
+    JOIN companies co ON co.id::text = ct.company_id::text
+  `;
+  const businessIdFilter = `ct.business_id IS NOT NULL`;
   if (!term) {
     return query<ActivityLinkSearchHit>(
       `SELECT 'contact'::text AS entity_type,
-              c.id::text AS entity_id,
+              ct.business_id AS entity_id,
               ${contactLabelSql} AS label,
               co.company_name AS subtitle
        ${contactFrom}
-       WHERE c.is_active = TRUE
-       ORDER BY COALESCE(c.display_name, c.contact_name) ASC
+       WHERE ct.is_active = TRUE AND ${businessIdFilter}
+       ORDER BY COALESCE(ct.display_name, ct.contact_name) ASC
        LIMIT $1`,
       [limit],
     );
   }
   return query<ActivityLinkSearchHit>(
     `SELECT 'contact'::text AS entity_type,
-            c.id::text AS entity_id,
+            ct.business_id AS entity_id,
             ${contactLabelSql} AS label,
             co.company_name AS subtitle
      ${contactFrom}
-     WHERE c.is_active = TRUE
-       AND (COALESCE(c.display_name, c.contact_name) ILIKE $1 OR co.company_name ILIKE $1)
-     ORDER BY COALESCE(c.display_name, c.contact_name) ASC
+     WHERE ct.is_active = TRUE AND ${businessIdFilter}
+       AND (COALESCE(ct.display_name, ct.contact_name) ILIKE $1 OR co.company_name ILIKE $1)
+     ORDER BY COALESCE(ct.display_name, ct.contact_name) ASC
      LIMIT $2`,
     [`%${term}%`, limit],
   );
@@ -493,20 +497,20 @@ export async function searchActivityContacts(q: string, limit = 15): Promise<Act
 
 export async function searchActivityOpportunities(q: string, limit = 15): Promise<ActivityLinkSearchHit[]> {
   const term = q.trim();
-  const opportunityLabelSql = `CASE WHEN om.new_id IS NOT NULL
-    THEN o.client_name || ' (' || om.new_id || ')'
-    ELSE o.client_name END`;
+  const opportunityLabelSql = `o.client_name || ' (' || o.business_id || ')'`;
   const opportunityFrom = `
     FROM opportunities o
     LEFT JOIN companies c ON c.id::text = o.company_id::text
-    LEFT JOIN id_map_v1 om ON om.entity_type = 'opportunity' AND om.legacy_id = o.id`;
+  `;
+  const businessIdFilter = `o.business_id IS NOT NULL`;
   if (!term) {
     return query<ActivityLinkSearchHit>(
       `SELECT 'opportunity'::text AS entity_type,
-              o.id::text AS entity_id,
+              o.business_id AS entity_id,
               ${opportunityLabelSql} AS label,
               c.company_name AS subtitle
        ${opportunityFrom}
+       WHERE ${businessIdFilter}
        ORDER BY o.updated_at DESC NULLS LAST, o.id DESC
        LIMIT $1`,
       [limit],
@@ -514,11 +518,12 @@ export async function searchActivityOpportunities(q: string, limit = 15): Promis
   }
   return query<ActivityLinkSearchHit>(
     `SELECT 'opportunity'::text AS entity_type,
-            o.id::text AS entity_id,
+            o.business_id AS entity_id,
             ${opportunityLabelSql} AS label,
             c.company_name AS subtitle
      ${opportunityFrom}
-     WHERE o.client_name ILIKE $1 OR c.company_name ILIKE $1
+     WHERE ${businessIdFilter}
+       AND (o.client_name ILIKE $1 OR c.company_name ILIKE $1)
      ORDER BY o.updated_at DESC NULLS LAST, o.id DESC
      LIMIT $2`,
     [`%${term}%`, limit],
@@ -551,14 +556,15 @@ export async function searchActivityPremises(q: string, limit = 25): Promise<Act
   if (!term) {
     return query<ActivityLinkSearchHit>(
       `SELECT 'premises'::text AS entity_type,
-              p.premises_id AS entity_id,
+              p.business_id AS entity_id,
               CASE
                 WHEN NULLIF(${premisesLabelSql}, '') IS NOT NULL
-                THEN ${premisesLabelSql} || ' (' || p.premises_id || ')'
-                ELSE p.premises_id
+                THEN ${premisesLabelSql} || ' (' || p.business_id || ')'
+                ELSE p.business_id
               END AS label,
               trim(both ' · ' FROM concat_ws(' · ', pr.district_en, op.company_name_en)) AS subtitle
        ${premisesFrom}
+       WHERE p.business_id IS NOT NULL
        ORDER BY pr.bldg_name_en ASC NULLS LAST, p.floor ASC NULLS LAST, p.unit ASC NULLS LAST
        LIMIT $1`,
       [limit],
@@ -567,22 +573,23 @@ export async function searchActivityPremises(q: string, limit = 25): Promise<Act
 
   return query<ActivityLinkSearchHit>(
     `SELECT 'premises'::text AS entity_type,
-            p.premises_id AS entity_id,
+            p.business_id AS entity_id,
             CASE
               WHEN NULLIF(${premisesLabelSql}, '') IS NOT NULL
-              THEN ${premisesLabelSql} || ' (' || p.premises_id || ')'
-              ELSE p.premises_id
+              THEN ${premisesLabelSql} || ' (' || p.business_id || ')'
+              ELSE p.business_id
             END AS label,
             trim(both ' · ' FROM concat_ws(' · ', pr.district_en, op.company_name_en)) AS subtitle
      ${premisesFrom}
-     WHERE pr.bldg_name_en ILIKE $1
+     WHERE p.business_id IS NOT NULL
+       AND (pr.bldg_name_en ILIKE $1
         OR pr.district_en ILIKE $1
         OR op.company_name_en ILIKE $1
         OR p.floor ILIKE $1
         OR p.unit ILIKE $1
-        OR p.premises_id ILIKE $1
+        OR p.business_id ILIKE $1
         OR p.property_name_en ILIKE $1
-        OR concat_ws(' ', pr.bldg_name_en, pr.district_en, op.company_name_en, p.floor, p.unit) ILIKE $1
+        OR concat_ws(' ', pr.bldg_name_en, pr.district_en, op.company_name_en, p.floor, p.unit) ILIKE $1)
      ORDER BY pr.bldg_name_en ASC NULLS LAST, p.floor ASC NULLS LAST, p.unit ASC NULLS LAST
      LIMIT $2`,
     [`%${term}%`, limit],

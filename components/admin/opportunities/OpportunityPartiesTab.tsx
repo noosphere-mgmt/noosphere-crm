@@ -19,6 +19,8 @@ import {
   OPPORTUNITY_PARTY_ROLES,
 } from "@/lib/opportunityValues";
 import { formatPartyFeeCell, partyRoleLabel } from "@/lib/opportunityPartiesDisplay";
+import { toLegacyCompanySelectOptions, toLegacyContactSelectOptions, resolveCompanySelectValue, resolveContactSelectValue } from "@/lib/crmSelectOptions";
+import type { CompanyOption } from "@/lib/repos/companies";
 import type { OpportunityDetailData } from "@/lib/repos/opportunityDetail";
 import type { OpportunityParty } from "@/lib/types/entities";
 
@@ -41,7 +43,17 @@ export function OpportunityPartiesTab({ data }: { data: OpportunityDetailData })
   const partiesReturnTo = `/admin/opportunities/${opportunity.id}?tab=parties`;
 
   function PartyForm({ party }: { party?: OpportunityParty }) {
-    const [companyId, setCompanyId] = useState(party?.company_id?.toString() ?? "");
+    const companyOptions = useMemo(
+      () => toLegacyCompanySelectOptions(companies as CompanyOption[]),
+      [companies],
+    );
+    const contactOptions = useMemo(
+      () => toLegacyContactSelectOptions(contacts),
+      [contacts],
+    );
+    const [companyId, setCompanyId] = useState(
+      resolveCompanySelectValue(companies as CompanyOption[], party?.company_id),
+    );
     const action =
       party != null
         ? updateOpportunityPartyAction.bind(null, party.id)
@@ -71,8 +83,8 @@ export function OpportunityPartiesTab({ data }: { data: OpportunityDetailData })
               className={selectClass}
             >
               <option value="">— Select —</option>
-              {companies.map((c) => (
-                <option key={c.id} value={c.id}>{c.company_name}</option>
+              {companyOptions.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
               ))}
             </select>
           </label>
@@ -80,11 +92,13 @@ export function OpportunityPartiesTab({ data }: { data: OpportunityDetailData })
             instanceKey={`party-${party?.id ?? "new"}-${companyId}`}
             companyId={companyId}
             contacts={contacts}
-            defaultContactId={party?.contact_id?.toString()}
+            companies={companies as CompanyOption[]}
+            contactOptions={contactOptions}
+            defaultContactId={resolveContactSelectValue(contacts, party?.contact_id)}
             onNewContact={() => {
-              const cid = Number.parseInt(companyId, 10);
-              if (Number.isFinite(cid) && cid > 0) {
-                setContactDrawerCompanyId(cid);
+              const legacyId = (companies as CompanyOption[]).find((c) => c.business_id === companyId)?.id;
+              if (legacyId != null && legacyId > 0) {
+                setContactDrawerCompanyId(legacyId);
                 setContactDrawerOpen(true);
               }
             }}

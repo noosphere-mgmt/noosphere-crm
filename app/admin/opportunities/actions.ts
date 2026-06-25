@@ -17,6 +17,10 @@ import {
   updateOpportunity,
 } from "@/lib/repos/opportunities";
 import { applyOpportunityPatch } from "@/lib/inlineRecordMerge";
+import {
+  normalizeOptionalLegacyCompanyId,
+  normalizeOptionalLegacyContactId,
+} from "@/lib/crmRefResolve";
 import { OPPORTUNITY_LEAD_TYPES } from "@/lib/lookups";
 import { isClosedOpportunityStatus } from "@/lib/openOpportunityStatus";
 import type { OpportunityLeadType } from "@/lib/types/entities";
@@ -53,10 +57,10 @@ function parseLeadType(v: FormDataEntryValue | null): OpportunityLeadType {
 }
 
 async function opportunityInputFromForm(formData: FormData) {
-  const companyId = parseOptionalId(formData.get("company_id"));
-  const primaryContactId = parseOptionalId(formData.get("primary_contact_id"));
-  const referrerCompanyId = parseOptionalId(formData.get("referrer_company_id"));
-  const referrerContactId = parseOptionalId(formData.get("referrer_contact_id"));
+  const companyId = await normalizeOptionalLegacyCompanyId(formData.get("company_id"));
+  const primaryContactId = await normalizeOptionalLegacyContactId(formData.get("primary_contact_id"));
+  const referrerCompanyId = await normalizeOptionalLegacyCompanyId(formData.get("referrer_company_id"));
+  const referrerContactId = await normalizeOptionalLegacyContactId(formData.get("referrer_contact_id"));
 
   let clientName = String(formData.get("client_name") ?? "").trim();
   let companyName: string | null = null;
@@ -149,6 +153,16 @@ export async function patchOpportunityFieldAction(
       value = JSON.parse(valueJson);
     } catch {
       return { ok: false, error: "Invalid value" };
+    }
+
+    if (field === "company_id") {
+      const legacyId = await normalizeOptionalLegacyCompanyId(value);
+      if (!legacyId) return { ok: false, error: "Company is required" };
+      value = legacyId;
+    } else if (field === "primary_contact_id" || field === "referrer_contact_id") {
+      value = await normalizeOptionalLegacyContactId(value);
+    } else if (field === "referrer_company_id") {
+      value = await normalizeOptionalLegacyCompanyId(value);
     }
 
     const merged = applyOpportunityPatch(opportunity, field, value);

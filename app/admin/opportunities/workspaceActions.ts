@@ -24,6 +24,10 @@ import type {
   ProposedPremisesPreference,
   ProposedPremisesStatus,
 } from "@/lib/types/entities";
+import {
+  normalizeOptionalLegacyCompanyId,
+  normalizeOptionalLegacyContactId,
+} from "@/lib/crmRefResolve";
 
 function parseOptionalString(v: FormDataEntryValue | null): string | null {
   const s = String(v ?? "").trim();
@@ -157,12 +161,12 @@ export async function patchProposedPremisesLineInlineAction(
   revalidateOpportunity(opportunityId);
 }
 
-function partyInputFromForm(formData: FormData) {
-  const companyId = parseOptionalId(formData.get("company_id"));
+async function partyInputFromForm(formData: FormData) {
+  const companyId = await normalizeOptionalLegacyCompanyId(formData.get("company_id"));
   if (!companyId) throw new Error("Company is required");
   return {
     company_id: companyId,
-    contact_id: parseOptionalId(formData.get("contact_id")),
+    contact_id: await normalizeOptionalLegacyContactId(formData.get("contact_id")),
     role: parseEnum(formData.get("role"), OPPORTUNITY_PARTY_ROLES, "end_user"),
     partnership_mode: parseOptionalString(formData.get("partnership_mode")),
     collect_fee_amount: parseOptionalDecimal(formData.get("collect_fee_amount")),
@@ -175,7 +179,7 @@ function partyInputFromForm(formData: FormData) {
 }
 
 export async function createOpportunityPartyAction(opportunityId: number, formData: FormData) {
-  await createOpportunityParty(opportunityId, partyInputFromForm(formData));
+  await createOpportunityParty(opportunityId, await partyInputFromForm(formData));
   revalidateOpportunity(opportunityId);
 }
 
@@ -183,7 +187,7 @@ export async function updateOpportunityPartyAction(partyId: number, formData: Fo
   const opportunityId = parseOptionalInt(formData.get("opportunity_id"));
   if (!opportunityId) throw new Error("Missing opportunity_id");
 
-  await updateOpportunityParty(partyId, partyInputFromForm(formData));
+  await updateOpportunityParty(partyId, await partyInputFromForm(formData));
   revalidateOpportunity(opportunityId);
 }
 

@@ -12,6 +12,7 @@ import { OpportunityProposedPremisesTab } from "@/components/admin/opportunities
 import { EntityActivitiesTab } from "@/components/admin/activities/EntityActivitiesTab";
 import { getOpportunityTab } from "@/lib/opportunityDetailTab";
 import { useIsMobile } from "@/lib/useIsMobile";
+import { resolveCompanySelectValue, resolveContactSelectValue } from "@/lib/crmSelectOptions";
 import type { OpportunityDetailData } from "@/lib/repos/opportunityDetail";
 
 export function OpportunityDetailPageClient({ data }: { data: OpportunityDetailData }) {
@@ -42,11 +43,11 @@ export function OpportunityDetailPageClient({ data }: { data: OpportunityDetailD
         <EntityActivitiesTab
           activities={data.activities}
           defaults={{
-            opportunity_id: data.opportunity.id,
+            opportunity_business_id: data.opportunity.business_id ?? null,
             opportunity_name: data.opportunity.client_name,
-            company_id: data.opportunity.company_id,
+            company_business_id: resolveCompanySelectValue(data.companies, data.opportunity.company_id) || null,
             company_name: data.opportunity.linked_company_name,
-            contact_id: data.opportunity.primary_contact_id,
+            contact_business_id: resolveContactSelectValue(data.contacts, data.opportunity.primary_contact_id) || null,
             contact_name: data.opportunity.primary_contact_name,
           }}
         />

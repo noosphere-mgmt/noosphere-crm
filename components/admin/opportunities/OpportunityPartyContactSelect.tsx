@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { contactsForCompany } from "@/lib/contactCompanyFilter";
+import { resolveContactSelectValue, type LegacyContactSelectOption } from "@/lib/crmSelectOptions";
+import type { CompanyOption } from "@/lib/repos/companies";
 import type { ContactOption } from "@/lib/repos/contacts";
 
 const selectClass = "mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm";
@@ -9,6 +11,8 @@ const selectClass = "mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 
 export function OpportunityPartyContactSelect({
   companyId,
   contacts,
+  companies,
+  contactOptions,
   defaultContactId,
   onNewContact,
   instanceKey,
@@ -16,12 +20,17 @@ export function OpportunityPartyContactSelect({
 }: {
   companyId: string;
   contacts: ContactOption[];
+  companies: CompanyOption[];
+  contactOptions: LegacyContactSelectOption[];
   defaultContactId?: string;
   onNewContact: () => void;
   instanceKey: string;
   fieldName?: string;
 }) {
-  const filtered = useMemo(() => contactsForCompany(contacts, companyId), [contacts, companyId]);
+  const filtered = useMemo(
+    () => contactsForCompany(contacts, companyId, companies),
+    [contacts, companyId, companies],
+  );
   const [contactId, setContactId] = useState(defaultContactId ?? "");
 
   useEffect(() => {
@@ -35,10 +44,10 @@ export function OpportunityPartyContactSelect({
     }
     setContactId((current) => {
       if (!current) return "";
-      const ok = filtered.some((c) => String(c.id) === current);
+      const ok = filtered.some((c) => resolveContactSelectValue(contacts, c.id) === current);
       return ok ? current : "";
     });
-  }, [companyId, filtered]);
+  }, [companyId, filtered, contacts]);
 
   return (
     <div>
@@ -61,11 +70,16 @@ export function OpportunityPartyContactSelect({
         className={selectClass}
       >
         <option value="">—</option>
-        {filtered.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.contact_name}
-          </option>
-        ))}
+        {filtered.map((c) => {
+          const value = resolveContactSelectValue(contacts, c.id);
+          if (!value) return null;
+          const label = contactOptions.find((o) => o.value === value)?.label ?? c.contact_name;
+          return (
+            <option key={c.id} value={value}>
+              {label}
+            </option>
+          );
+        })}
       </select>
     </div>
   );

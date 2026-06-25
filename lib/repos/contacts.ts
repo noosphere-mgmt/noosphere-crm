@@ -120,6 +120,7 @@ export type ContactOption = {
   company_id: number;
   contact_name: string;
   is_primary: boolean;
+  business_id?: string | null;
   v1_contact_id?: string | null;
 };
 
