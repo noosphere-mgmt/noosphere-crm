@@ -1,7 +1,7 @@
 import { query } from "@/lib/db";
 import { genericUpdateRecord, rowToRecord } from "../adapterUtils";
 import { parseBigIntParam } from "../fkValidation";
-import { sqlJoinLegacyOpportunity, sqlPremisesLabel } from "../lookupSql";
+import { sqlExportOpportunityId, sqlExportPremiseId, sqlJoinLegacyOpportunity, sqlPremisesLabel } from "../lookupSql";
 import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
 import {
   mergeReferenceResults,
@@ -34,9 +34,9 @@ const FIELD_KEYS = [
 
 const SELECT = `
   opp.id::text AS opportunity_premises_id,
-  opp.opportunity_id::text AS opportunity_id,
+  ${sqlExportOpportunityId("opp.opportunity_id")} AS opportunity_id,
   o.client_name AS opportunity_name,
-  opp.premises_id,
+  ${sqlExportPremiseId("opp.premises_id")} AS premises_id,
   ${sqlPremisesLabel("pm", "b")} AS premises_name,
   b.bldg_name_en AS building_name_en,
   opp.proposed_price::text AS proposed_price,

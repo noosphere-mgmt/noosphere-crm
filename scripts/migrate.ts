@@ -178,9 +178,19 @@ async function main(): Promise<void> {
   await query(migratePhase35);
   console.log("Phase 35 premises relationship_lines JSONB cleanup applied.");
 
-  const { runPopulateBusinessIds } = await import("./populate-business-ids");
-  await runPopulateBusinessIds();
-  console.log("Business ID population finished.");
+  const crosswalkCompanies = await query<{ n: string }>(
+    `SELECT COUNT(*)::text AS n FROM business_id_crosswalk WHERE entity_type = 'company'`,
+  );
+  const companyCrosswalkCount = Number.parseInt(crosswalkCompanies[0]?.n ?? "0", 10);
+  if (companyCrosswalkCount > 0) {
+    console.log(
+      `Business ID crosswalk already populated (${companyCrosswalkCount} companies) — skipping populate step.`,
+    );
+  } else {
+    const { runPopulateBusinessIds } = await import("./populate-business-ids");
+    await runPopulateBusinessIds();
+    console.log("Business ID population finished.");
+  }
 
   await verifyBuildingsPageSchema();
   console.log("Post-migrate Buildings page schema verification passed.");

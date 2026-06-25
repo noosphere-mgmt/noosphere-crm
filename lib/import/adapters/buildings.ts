@@ -1,7 +1,7 @@
 import { query } from "@/lib/db";
 import { allocatePropertyV1Id } from "@/lib/repos/propertiesV1";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
-import { sqlJoinV1Company } from "../lookupSql";
+import { sqlExportCompanyId, sqlJoinV1Company } from "../lookupSql";
 import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
 import {
   mergeReferenceResults,
@@ -54,11 +54,11 @@ const SELECT = `
   p.district_en AS district,
   p.full_address_en AS address,
   p.grade, p.title,
-  p.management_company_id,
+  ${sqlExportCompanyId("p.management_company_id")} AS management_company_id,
   mgmt.company_name_en AS management_company_name_en,
-  p.operator_company_id,
+  ${sqlExportCompanyId("p.operator_company_id")} AS operator_company_id,
   opco.company_name_en AS operator_company_name_en,
-  p.owner_company_id,
+  ${sqlExportCompanyId("p.owner_company_id")} AS owner_company_id,
   own.company_name_en AS owner_company_name_en,
   p.year_built,
   p.floor_count AS no_of_floors,

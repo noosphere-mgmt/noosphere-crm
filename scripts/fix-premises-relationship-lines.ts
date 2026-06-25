@@ -1,8 +1,13 @@
 /**
- * Repair premises_v1.relationship_lines stored as JSON string (e.g. "[]") instead of array.
+ * Repair premises_v1.relationship_lines stored as TEXT or JSON string scalar instead of array.
  * Run: npm run db:fix-relationship-lines
  */
 import { query } from "../lib/db";
+import {
+  SQL_ENSURE_RELATIONSHIP_LINES_JSONB_COLUMN,
+  SQL_NORMALIZE_RELATIONSHIP_LINES_JSONB,
+  SQL_RELATIONSHIP_LINES_AS_JSONB,
+} from "../lib/premisesRelationshipLinesSql";
 
 type BadRow = {
   premises_id: string;
@@ -10,31 +15,25 @@ type BadRow = {
   jsonb_type: string;
 };
 
-const FIX_SQL = `
-UPDATE premises_v1
-SET relationship_lines = CASE
-  WHEN jsonb_typeof(relationship_lines) = 'string' THEN
-    COALESCE((relationship_lines #>> '{}')::jsonb, '[]'::jsonb)
-  WHEN jsonb_typeof(relationship_lines) = 'array' THEN relationship_lines
-  ELSE '[]'::jsonb
-END
-WHERE relationship_lines IS NOT NULL
-  AND jsonb_typeof(relationship_lines) IS DISTINCT FROM 'array'
-`;
+async function ensureJsonbColumn(): Promise<void> {
+  await query(SQL_ENSURE_RELATIONSHIP_LINES_JSONB_COLUMN);
+}
 
 async function listBadRows(): Promise<BadRow[]> {
   return query<BadRow>(
     `SELECT premises_id,
             relationship_lines,
-            jsonb_typeof(relationship_lines) AS jsonb_type
+            jsonb_typeof(${SQL_RELATIONSHIP_LINES_AS_JSONB}) AS jsonb_type
      FROM premises_v1
      WHERE relationship_lines IS NOT NULL
-       AND jsonb_typeof(relationship_lines) IS DISTINCT FROM 'array'
+       AND jsonb_typeof(${SQL_RELATIONSHIP_LINES_AS_JSONB}) IS DISTINCT FROM 'array'
      ORDER BY premises_id`,
   );
 }
 
 async function main() {
+  await ensureJsonbColumn();
+
   const before = await listBadRows();
   if (before.length === 0) {
     console.log("No premises with non-array relationship_lines.");
@@ -46,7 +45,9 @@ async function main() {
     console.log(`  ${row.premises_id} (${row.jsonb_type}): ${JSON.stringify(row.relationship_lines)}`);
   }
 
-  const updated = await query<{ premises_id: string }>(`${FIX_SQL} RETURNING premises_id`);
+  const updated = await query<{ premises_id: string }>(
+    `${SQL_NORMALIZE_RELATIONSHIP_LINES_JSONB} RETURNING premises_id`,
+  );
   console.log(`Updated ${updated.length} row(s).`);
 
   const after = await listBadRows();

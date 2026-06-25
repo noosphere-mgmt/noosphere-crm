@@ -5,6 +5,11 @@ import { sqlContactDisplayName } from "@/lib/contactName";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
 import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
 import {
+  sqlExportActivityId,
+  sqlExportCompanyId,
+  sqlExportContactId,
+  sqlExportOpportunityId,
+  sqlExportPremiseId,
   sqlJoinLegacyCompany,
   sqlJoinLegacyContact,
   sqlJoinLegacyOpportunity,
@@ -38,18 +43,21 @@ const FIELD_KEYS = [
 ] as const;
 
 const SELECT = `
-  a.activity_id,
+  ${sqlExportActivityId("a.id")} AS activity_id,
   a.activity_date::text AS activity_date,
   a.activity_time,
   a.activity_type,
   a.notes,
-  a.company_id::text AS company_id,
+  ${sqlExportCompanyId("a.company_id")} AS company_id,
   c.company_name AS company_name_en,
-  a.contact_id::text AS contact_id,
+  CASE WHEN a.contact_id IS NULL THEN NULL
+       ELSE ${sqlExportContactId("a.contact_id")} END AS contact_id,
   ${sqlContactDisplayName("ct")} AS contact_name,
-  a.opportunity_id::text AS opportunity_id,
+  CASE WHEN a.opportunity_id IS NULL THEN NULL
+       ELSE ${sqlExportOpportunityId("a.opportunity_id")} END AS opportunity_id,
   o.client_name AS opportunity_name,
-  a.premises_id,
+  CASE WHEN a.premises_id IS NULL THEN NULL
+       ELSE ${sqlExportPremiseId("a.premises_id")} END AS premises_id,
   ${sqlPremisesLabel("pm", "b")} AS premises_name,
   b.bldg_name_en AS building_name_en
 `;

@@ -3,7 +3,7 @@ import { sqlContactDisplayName } from "@/lib/contactName";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
 import { parseBigIntParam } from "../fkValidation";
 import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
-import { sqlJoinLegacyCompany, sqlJoinLegacyContact } from "../lookupSql";
+import { sqlExportCompanyId, sqlExportContactId, sqlExportOpportunityId, sqlJoinLegacyCompany, sqlJoinLegacyContact } from "../lookupSql";
 import {
   mergeReferenceResults,
   resolveContactIdOrName,
@@ -41,7 +41,7 @@ const FIELD_KEYS = [
 ] as const;
 
 const SELECT = `
-  o.id::text AS opportunity_id,
+  ${sqlExportOpportunityId("o.id")} AS opportunity_id,
   o.external_ref,
   o.client_name AS opportunity_name,
   o.lead_type,
@@ -49,9 +49,10 @@ const SELECT = `
   o.sales_role,
   o.property_type AS usage_type,
   o.status,
-  o.company_id::text AS company_id,
+  ${sqlExportCompanyId("o.company_id")} AS company_id,
   c.company_name AS company_name_en,
-  o.primary_contact_id::text AS assigned_contact_id,
+  CASE WHEN o.primary_contact_id IS NULL THEN NULL
+       ELSE ${sqlExportContactId("o.primary_contact_id")} END AS assigned_contact_id,
   ${sqlContactDisplayName("ct")} AS assigned_contact_name,
   o.lead_source AS opportunity_source,
   o.district_preference AS district,

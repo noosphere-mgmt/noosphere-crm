@@ -102,11 +102,12 @@ function testProductionCrashCase() {
 async function testDatabaseIfAvailable() {
   try {
     const { query } = await import("../lib/db");
+    const { SQL_RELATIONSHIP_LINES_AS_JSONB } = await import("../lib/premisesRelationshipLinesSql");
     const bad = await query<{ n: string }>(
       `SELECT COUNT(*)::text AS n
        FROM premises_v1
        WHERE relationship_lines IS NOT NULL
-         AND jsonb_typeof(relationship_lines) IS DISTINCT FROM 'array'`,
+         AND jsonb_typeof(${SQL_RELATIONSHIP_LINES_AS_JSONB}) IS DISTINCT FROM 'array'`,
     );
     const count = Number.parseInt(bad[0]?.n ?? "0", 10);
     if (count > 0) {

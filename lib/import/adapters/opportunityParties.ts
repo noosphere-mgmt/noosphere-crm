@@ -2,6 +2,9 @@ import { query } from "@/lib/db";
 import { sqlContactDisplayName } from "@/lib/contactName";
 import { genericUpdateRecord, rowToRecord } from "../adapterUtils";
 import {
+  sqlExportCompanyId,
+  sqlExportContactId,
+  sqlExportOpportunityId,
   sqlJoinLegacyCompany,
   sqlJoinLegacyContact,
   sqlJoinLegacyOpportunity,
@@ -37,11 +40,12 @@ const FIELD_KEYS = [
 
 const SELECT = `
   op.id::text AS opportunity_party_id,
-  op.opportunity_id::text AS opportunity_id,
+  ${sqlExportOpportunityId("op.opportunity_id")} AS opportunity_id,
   o.client_name AS opportunity_name,
-  op.company_id::text AS company_id,
+  ${sqlExportCompanyId("op.company_id")} AS company_id,
   c.company_name AS company_name_en,
-  op.contact_id::text AS contact_id,
+  CASE WHEN op.contact_id IS NULL THEN NULL
+       ELSE ${sqlExportContactId("op.contact_id")} END AS contact_id,
   ${sqlContactDisplayName("ct")} AS contact_name,
   op.role,
   op.partnership_mode,

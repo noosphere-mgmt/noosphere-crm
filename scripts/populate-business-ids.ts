@@ -21,6 +21,17 @@ async function nextSeq(entityType: BusinessEntityType, start: number): Promise<n
   return Number.isFinite(n) ? n + 1 : start;
 }
 
+async function syncLegacyCompanyBusinessIds(): Promise<void> {
+  await query(
+    `UPDATE companies c
+     SET business_id = cv.business_id
+     FROM companies_v1 cv
+     WHERE cv.legacy_company_id = c.id
+       AND cv.business_id IS NOT NULL
+       AND c.business_id IS DISTINCT FROM cv.business_id`,
+  );
+}
+
 async function assignCompanyBusinessIds(): Promise<void> {
   const rows = await query<{
     company_id: string;
@@ -191,6 +202,13 @@ async function rewriteCompanyFkColumns(): Promise<void> {
 }
 
 async function dropOldCompanyFkConstraints(): Promise<void> {
+  const businessFk = await query<{ n: string }>(
+    `SELECT COUNT(*)::text AS n FROM pg_constraint WHERE conname LIKE '%_business_fkey'`,
+  );
+  if (Number.parseInt(businessFk[0]?.n ?? "0", 10) > 0) {
+    return;
+  }
+
   const tables = ["properties_v1", "premises_v1"] as const;
   const cols = [
     "management_company_id",
@@ -209,10 +227,8 @@ async function dropOldCompanyFkConstraints(): Promise<void> {
 
 async function addBusinessIdFkConstraints(): Promise<void> {
   await query(
-    `ALTER TABLE companies_v1 DROP CONSTRAINT IF EXISTS companies_v1_business_id_unique`,
-  );
-  await query(
-    `ALTER TABLE companies_v1 ADD CONSTRAINT companies_v1_business_id_unique UNIQUE (business_id)`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_companies_v1_business_id
+     ON companies_v1 (business_id) WHERE business_id IS NOT NULL`,
   );
 
   const pairs: Array<[string, string]> = [
@@ -222,10 +238,15 @@ async function addBusinessIdFkConstraints(): Promise<void> {
     ["properties_v1", "current_tenant_company_id"],
   ];
   for (const [table, col] of pairs) {
-    await query(`ALTER TABLE ${table} DROP CONSTRAINT IF EXISTS ${table}_${col}_business_fkey`);
+    const constraint = `${table}_${col}_business_fkey`;
+    const exists = await query<{ n: string }>(
+      `SELECT COUNT(*)::text AS n FROM pg_constraint WHERE conname = $1`,
+      [constraint],
+    );
+    if (exists[0]?.n !== "0") continue;
     await query(
       `ALTER TABLE ${table}
-       ADD CONSTRAINT ${table}_${col}_business_fkey
+       ADD CONSTRAINT ${constraint}
        FOREIGN KEY (${col}) REFERENCES companies_v1(business_id)
        ON DELETE SET NULL
        NOT VALID`,
@@ -246,6 +267,7 @@ export async function runPopulateBusinessIds(): Promise<void> {
 
   await withTransaction(async () => {
     await assignCompanyBusinessIds();
+    await syncLegacyCompanyBusinessIds();
     await assignBuildingBusinessIds();
     await assignPremiseBusinessIds();
     await assignContactBusinessIds();

@@ -4,7 +4,7 @@ import { resolveCompanyRefToLegacy, resolveContactRefToLegacy } from "@/lib/crmR
 import { COMPANY_ROLES, COMPANY_ROLE_LABELS } from "@/lib/lookups";
 import type { CompanyRole } from "@/lib/types/entities";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
-import { sqlExportCompanyId, sqlExportContactId, sqlJoinLegacyContact } from "../lookupSql";
+import { sqlExportContactId, sqlJoinLegacyContact } from "../lookupSql";
 import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
 import { mergeReferenceResults, resolveContactIdOrName } from "../referenceResolution";
 import type { ImportObjectDefinition } from "../objectRegistry";
@@ -32,7 +32,7 @@ const FIELD_KEYS = [
 ] as const;
 
 const SELECT = `
-  ${sqlExportCompanyId("co.id")} AS company_id,
+  COALESCE(cv.business_id, co.business_id) AS company_id,
   co.external_ref,
   co.company_name AS company_name_en,
   co.company_name_zh,
@@ -47,7 +47,11 @@ const SELECT = `
   co.notes AS remarks
 `;
 
-const FROM = `companies co LEFT JOIN contacts pc ON ${sqlJoinLegacyContact("pc", "co.primary_contact_id")}`;
+const FROM = `
+  companies co
+  LEFT JOIN companies_v1 cv ON cv.legacy_company_id = co.id
+  LEFT JOIN contacts pc ON ${sqlJoinLegacyContact("pc", "co.primary_contact_id")}
+`;
 
 function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
   const p: Record<string, unknown> = {};

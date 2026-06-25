@@ -1,6 +1,6 @@
 import { query } from "@/lib/db";
 import { createPremisesV1 } from "@/lib/repos/premisesV1";
-import { sqlJoinV1Company } from "../lookupSql";
+import { sqlExportCompanyId, sqlJoinV1Company } from "../lookupSql";
 import { genericUpdateRecord, rowToRecord } from "../adapterUtils";
 import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
 import {
@@ -55,9 +55,9 @@ const SELECT = `
   pm.external_ref,
   b.business_id AS building_id,
   b.bldg_name_en AS building_name_en,
-  pm.operator_company_id,
+  ${sqlExportCompanyId("pm.operator_company_id")} AS operator_company_id,
   opco.company_name_en AS operator_company_name_en,
-  pm.owner_company_id,
+  ${sqlExportCompanyId("pm.owner_company_id")} AS owner_company_id,
   own.company_name_en AS owner_company_name_en,
   pm.office_name AS premises_name,
   pm.floor, pm.unit, pm.property_type, pm.office_type,

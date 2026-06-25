@@ -31,6 +31,7 @@
     "verify:compose-address": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-compose-address.ts",
     "verify:building-create-fields": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-building-create-fields.ts",
     "verify:business-ids": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-business-ids.ts",
+    "verify:company-export-ids": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-company-export-ids.ts",
     "db:populate-business-ids": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/populate-business-ids.ts",
     "db:migrate:v1": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/migrate-v1.ts",
     "db:backfill:v1": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/backfill-v1.ts",

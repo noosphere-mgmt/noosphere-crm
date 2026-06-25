@@ -64,8 +64,7 @@ export function sqlExportCompanyId(idExpr: string): string {
     (SELECT x.business_id FROM business_id_crosswalk x
       WHERE x.entity_type = 'company'
         AND (x.primary_ref = ${idExpr}::text OR x.deprecated_ref = ${idExpr}::text OR x.legacy_numeric::text = ${idExpr}::text)
-      LIMIT 1),
-    NULLIF(${idExpr}::text, '')
+      LIMIT 1)
   )`;
 }
 
@@ -79,8 +78,56 @@ export function sqlExportContactId(idExpr: string): string {
     (SELECT x.business_id FROM business_id_crosswalk x
       WHERE x.entity_type = 'contact'
         AND (x.primary_ref = ${idExpr}::text OR x.deprecated_ref = ${idExpr}::text OR x.legacy_numeric::text = ${idExpr}::text)
-      LIMIT 1),
-    NULLIF(${idExpr}::text, '')
+      LIMIT 1)
+  )`;
+}
+
+/** Export permanent building business ID (B100001). */
+export function sqlExportBuildingId(idExpr: string): string {
+  return `COALESCE(
+    (SELECT p.business_id FROM properties_v1 p WHERE p.business_id = ${idExpr}::text LIMIT 1),
+    (SELECT p.business_id FROM properties_v1 p WHERE p.property_id = ${idExpr}::text LIMIT 1),
+    (SELECT x.business_id FROM business_id_crosswalk x
+      WHERE x.entity_type = 'building'
+        AND (x.primary_ref = ${idExpr}::text OR x.deprecated_ref = ${idExpr}::text OR x.legacy_numeric::text = ${idExpr}::text)
+      LIMIT 1)
+  )`;
+}
+
+/** Export permanent premise business ID (P100001). */
+export function sqlExportPremiseId(idExpr: string): string {
+  return `COALESCE(
+    (SELECT pm.business_id FROM premises_v1 pm WHERE pm.business_id = ${idExpr}::text LIMIT 1),
+    (SELECT pm.business_id FROM premises_v1 pm WHERE pm.premises_id = ${idExpr}::text LIMIT 1),
+    (SELECT x.business_id FROM business_id_crosswalk x
+      WHERE x.entity_type = 'premise'
+        AND (x.primary_ref = ${idExpr}::text OR x.deprecated_ref = ${idExpr}::text OR x.legacy_numeric::text = ${idExpr}::text)
+      LIMIT 1)
+  )`;
+}
+
+/** Export permanent opportunity business ID (M100001). */
+export function sqlExportOpportunityId(idExpr: string): string {
+  return `COALESCE(
+    (SELECT o.business_id FROM opportunities o WHERE o.business_id = ${idExpr}::text LIMIT 1),
+    (SELECT o.business_id FROM opportunities o WHERE o.id::text = ${idExpr}::text LIMIT 1),
+    (SELECT x.business_id FROM business_id_crosswalk x
+      WHERE x.entity_type = 'opportunity'
+        AND (x.primary_ref = ${idExpr}::text OR x.deprecated_ref = ${idExpr}::text OR x.legacy_numeric::text = ${idExpr}::text)
+      LIMIT 1)
+  )`;
+}
+
+/** Export permanent activity business ID (A100001). */
+export function sqlExportActivityId(idExpr: string): string {
+  return `COALESCE(
+    (SELECT a.business_id FROM activities a WHERE a.business_id = ${idExpr}::text LIMIT 1),
+    (SELECT a.business_id FROM activities a WHERE a.activity_id = ${idExpr}::text LIMIT 1),
+    (SELECT a.business_id FROM activities a WHERE a.id::text = ${idExpr}::text LIMIT 1),
+    (SELECT x.business_id FROM business_id_crosswalk x
+      WHERE x.entity_type = 'activity'
+        AND (x.primary_ref = ${idExpr}::text OR x.deprecated_ref = ${idExpr}::text OR x.legacy_numeric::text = ${idExpr}::text)
+      LIMIT 1)
   )`;
 }
 
@@ -89,7 +136,7 @@ export function sqlExportRelationshipEntityId(typeExpr: string, idExpr: string):
   return `CASE ${typeExpr}
     WHEN 'company' THEN ${sqlExportCompanyId(idExpr)}
     WHEN 'contact' THEN ${sqlExportContactId(idExpr)}
-    ELSE NULLIF(${idExpr}::text, '')
+    ELSE NULL
   END`;
 }
 
