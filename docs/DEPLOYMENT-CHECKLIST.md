@@ -24,7 +24,7 @@ Backup time: `________________`  Backup location: `________________`
 - [ ] `NOOSPHERE_DATABASE_URL` points to production PostgreSQL.
 - [ ] `ADMIN_TOKEN` is set and not committed to Git.
 - [ ] Node, npm and PM2 are available.
-- [ ] Port `3001` is available to the application/reverse proxy.
+- [ ] Production internal port `3002` is available to the application/reverse proxy.
 - [ ] The checked-out branch and commit match the frozen release.
 
 ## 4. Deploy

@@ -11,13 +11,18 @@ ALTER TABLE opportunities DROP CONSTRAINT IF EXISTS opportunities_status_check;
 
 -- Map legacy pipeline statuses to business-situation statuses
 UPDATE opportunities SET status = 'new_lead' WHERE status = 'new';
-UPDATE opportunities SET status = 'active_sourcing' WHERE status IN ('sourcing', 'proposal_preparing');
+UPDATE opportunities SET status = 'active_sourcing' WHERE status = 'proposal_preparing';
 UPDATE opportunities SET status = 'awaiting_client_feedback' WHERE status = 'proposal_sent';
 
 ALTER TABLE opportunities
   ADD CONSTRAINT opportunities_status_check CHECK (status IN (
     'new_lead',
     'qualifying',
+    'sourcing',
+    'proposal_reviewing',
+    'proposal_review',
+    'client_reviewing_options',
+    'pending_approval',
     'active_sourcing',
     'awaiting_client_feedback',
     'refining_requirement',

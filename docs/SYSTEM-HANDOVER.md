@@ -10,7 +10,7 @@ Noosphere CRM is a relationship-led real-estate intelligence system for a small 
 
 - Next.js 16, React 19 and TypeScript
 - PostgreSQL accessed through raw parameterised SQL using `pg`
-- Local and production application port: `3001`
+- Local application port: `3001`; production internal port: `3002` behind the reverse proxy
 - Database setting: `NOOSPHERE_DATABASE_URL`
 - Single administrative login remains the current operating model
 - Production process: PM2 process `noosphere-crm`

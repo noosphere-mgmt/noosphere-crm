@@ -6,7 +6,8 @@ Not a Hong Kong-wide property database. See **[docs/product-direction.md](docs/p
 
 - **Stack:** Next.js 16, PostgreSQL, raw SQL via `pg`
 - **Database env:** `NOOSPHERE_DATABASE_URL` (separate from Office Directory)
-- **Port:** 3001 (Office Directory uses 3000)
+- **Local port:** 3001
+- **Production internal port:** 3002 (behind the Hostinger reverse proxy)
 
 ## Local setup
 
@@ -44,4 +45,4 @@ Open http://localhost:3001/admin — dev login token defaults to `dev-admin`.
 bash scripts/deploy-production.sh
 ```
 
-PM2 process name: `noosphere-crm`, port **3001**.
+PM2 process name: `noosphere-crm`, internal port **3002**.

@@ -1,4 +1,6 @@
 -- Phase 71: simplified opportunity lifecycle and standardized source values.
+ALTER TABLE opportunities DROP CONSTRAINT IF EXISTS opportunities_status_check;
+
 UPDATE opportunities
 SET status = CASE
   WHEN status IN ('sourcing', 'active_sourcing') THEN 'sourcing'
@@ -9,6 +11,16 @@ SET status = CASE
   WHEN status IN ('closed_won', 'closed_lost', 'negotiating', 'qualifying') THEN status
   ELSE 'qualifying'
 END;
+
+ALTER TABLE opportunities
+  ADD CONSTRAINT opportunities_status_check CHECK (status IN (
+    'qualifying',
+    'sourcing',
+    'proposal_reviewing',
+    'negotiating',
+    'closed_won',
+    'closed_lost'
+  ));
 
 ALTER TABLE opportunities ALTER COLUMN lead_source SET DEFAULT 'direct';
 

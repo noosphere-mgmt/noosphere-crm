@@ -16,6 +16,8 @@ UPDATE opportunities SET status = 'closed_lost' WHERE status = 'closed_lost';
 ALTER TABLE opportunities
   ADD CONSTRAINT opportunities_status_check CHECK (status IN (
     'qualifying',
+    'sourcing',
+    'proposal_reviewing',
     'proposal_review',
     'client_reviewing_options',
     'negotiating',

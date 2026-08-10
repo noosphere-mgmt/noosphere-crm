@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Production deploy: install → clean build → PM2 on port 3001.
+# Production deploy: install → clean build → PM2 on internal port 3002.
 # Uses `set -e`: build failure leaves the previous PM2 process running.
 #
 # Usage (from repo root on the VPS):
@@ -9,14 +9,14 @@
 # Optional:
 #   SKIP_GIT_PULL=1
 #   PM2_NAME=noosphere-crm
-#   PORT=3001
+#   PORT=3002
 #
 set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 PM2_NAME="${PM2_NAME:-noosphere-crm}"
-PORT="${PORT:-3001}"
+PORT="${PORT:-3002}"
 
 if [[ "${SKIP_GIT_PULL:-0}" != "1" ]]; then
   echo "==> git pull"
