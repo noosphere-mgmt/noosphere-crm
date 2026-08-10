@@ -38,8 +38,9 @@ npm run build
 echo "==> pm2 delete ${PM2_NAME} || true"
 pm2 delete "${PM2_NAME}" 2>/dev/null || true
 
-echo "==> pm2 start npm --name ${PM2_NAME} --cwd ${ROOT} -- start (PORT=${PORT})"
-PORT="${PORT}" pm2 start npm --name "${PM2_NAME}" --cwd "${ROOT}" -- start
+echo "==> pm2 start Next.js --name ${PM2_NAME} --cwd ${ROOT} (port ${PORT})"
+pm2 start /usr/bin/bash --name "${PM2_NAME}" --cwd "${ROOT}" -- \
+  -lc "set -a; [ -f .env ] && source .env; set +a; exec npx next start -p ${PORT}"
 
 echo "==> pm2 save"
 pm2 save
