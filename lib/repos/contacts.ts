@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { query } from "@/lib/db";
+import { allocateNextBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
 import { coerceLegacyContactId } from "@/lib/entityRefGuards";
 import { resolveContactName, sqlContactDisplayName, syncContactDerivedNames } from "@/lib/contactName";
 import type { CompanyRole, Contact } from "@/lib/types/entities";
@@ -7,14 +8,14 @@ import type { CompanyRole, Contact } from "@/lib/types/entities";
 const contactSelect = `
   c.id, c.company_id, c.contact_name, c.first_name, c.last_name, c.chinese_name, c.display_name,
   c.title, c.email, c.phone,
-  c.whatsapp, c.wechat, c.preferred_language, c.contact_role, c.coverage, c.is_primary,
+  c.whatsapp, c.wechat, c.preferred_language, c.contact_role, c.coverage, c.locate_at, c.is_primary,
   c.last_contact_date::text, c.next_follow_up_date::text,
   c.notes, c.is_active, c.created_at::text, c.updated_at::text,
   (SELECT MAX(a.activity_date)::text FROM activities a WHERE a.contact_id = c.id) AS last_activity_date
 `;
 
 export type ContactInput = {
-  company_id: number;
+  company_id?: number | null;
   first_name?: string | null;
   last_name?: string | null;
   chinese_name?: string | null;
@@ -28,6 +29,7 @@ export type ContactInput = {
   preferred_language?: string | null;
   contact_role?: CompanyRole[];
   coverage?: string[];
+  locate_at?: string | null;
   is_primary?: boolean;
   last_contact_date?: string | null;
   next_follow_up_date?: string | null;
@@ -63,6 +65,7 @@ function contactValues(input: ContactInput) {
     synced.preferred_language?.trim() || null,
     parseRoles(synced.contact_role),
     parseCoverage(synced.coverage),
+    synced.locate_at?.trim() || null,
     synced.is_primary ?? false,
     synced.last_contact_date?.trim() || null,
     synced.next_follow_up_date?.trim() || null,
@@ -71,7 +74,8 @@ function contactValues(input: ContactInput) {
   ];
 }
 
-async function clearPrimaryForCompany(companyId: number, exceptId?: number): Promise<void> {
+async function clearPrimaryForCompany(companyId: number | null | undefined, exceptId?: number): Promise<void> {
+  if (companyId == null) return;
   if (exceptId != null) {
     await query(
       `UPDATE contacts SET is_primary = FALSE WHERE company_id = $1 AND id <> $2`,
@@ -117,7 +121,8 @@ export async function listContacts(companyId?: number): Promise<Contact[]> {
 
 export type ContactOption = {
   id: number;
-  company_id: number;
+  company_id: number | null;
+  company_ref?: string | null;
   contact_name: string;
   is_primary: boolean;
   business_id?: string | null;
@@ -128,6 +133,7 @@ export const listContactOptions = cache(async function listContactOptions(): Pro
   return query<ContactOption>(
     `SELECT c.id,
             CASE WHEN c.company_id::text ~ '^\\d+$' THEN c.company_id::text::int ELSE co.id END AS company_id,
+            c.company_id::text AS company_ref,
             ${sqlContactDisplayName("c")} AS contact_name,
             c.is_primary,
             COALESCE(c.business_id, cm.business_id) AS business_id,
@@ -165,13 +171,27 @@ export async function createContact(input: ContactInput): Promise<number> {
     `INSERT INTO contacts (
        company_id, contact_name, first_name, last_name, chinese_name, display_name,
        title, email, phone, whatsapp, wechat,
-       preferred_language, contact_role, coverage, is_primary, last_contact_date, next_follow_up_date,
+       preferred_language, contact_role, coverage, locate_at, is_primary, last_contact_date, next_follow_up_date,
        notes, is_active
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
      RETURNING id::text AS id`,
     contactValues(input),
   );
-  return Number.parseInt(rows[0]!.id, 10);
+  const id = Number.parseInt(rows[0]!.id, 10);
+  await assignContactBusinessId(id);
+  return id;
+}
+
+async function assignContactBusinessId(contactId: number): Promise<string> {
+  const businessId = await allocateNextBusinessId("contact");
+  await query(`UPDATE contacts SET business_id = $1 WHERE id = $2`, [businessId, contactId]);
+  await registerBusinessId({
+    entityType: "contact",
+    businessId,
+    primaryRef: String(contactId),
+    legacyNumeric: contactId,
+  });
+  return businessId;
 }
 
 export async function updateContact(id: number, input: ContactInput): Promise<void> {
@@ -182,8 +202,8 @@ export async function updateContact(id: number, input: ContactInput): Promise<vo
     `UPDATE contacts SET
        company_id = $2, contact_name = $3, first_name = $4, last_name = $5, chinese_name = $6, display_name = $7,
        title = $8, email = $9, phone = $10,
-       whatsapp = $11, wechat = $12, preferred_language = $13, contact_role = $14, coverage = $15, is_primary = $16,
-       last_contact_date = $17, next_follow_up_date = $18, notes = $19, is_active = $20
+       whatsapp = $11, wechat = $12, preferred_language = $13, contact_role = $14, coverage = $15, locate_at = $16,
+       is_primary = $17, last_contact_date = $18, next_follow_up_date = $19, notes = $20, is_active = $21
      WHERE id = $1`,
     [id, ...contactValues(input)],
   );

@@ -60,7 +60,7 @@ export function sqlExportCompanyId(idExpr: string): string {
     (SELECT cv1.business_id FROM companies_v1 cv1 WHERE cv1.business_id = ${idExpr}::text LIMIT 1),
     (SELECT cv1.business_id FROM companies_v1 cv1 WHERE cv1.company_id = ${idExpr}::text LIMIT 1),
     (SELECT cv1.business_id FROM companies_v1 cv1 WHERE cv1.legacy_company_id::text = ${idExpr}::text LIMIT 1),
-    (SELECT c.business_id FROM companies c WHERE c.id::text = ${idExpr}::text LIMIT 1),
+    (SELECT company_lookup.business_id FROM companies company_lookup WHERE company_lookup.id::text = ${idExpr}::text LIMIT 1),
     (SELECT x.business_id FROM business_id_crosswalk x
       WHERE x.entity_type = 'company'
         AND (x.primary_ref = ${idExpr}::text OR x.deprecated_ref = ${idExpr}::text OR x.legacy_numeric::text = ${idExpr}::text)
@@ -71,8 +71,8 @@ export function sqlExportCompanyId(idExpr: string): string {
 /** Export permanent contact business ID (D100001). */
 export function sqlExportContactId(idExpr: string): string {
   return `COALESCE(
-    (SELECT ct.business_id FROM contacts ct WHERE ct.business_id = ${idExpr}::text LIMIT 1),
-    (SELECT ct.business_id FROM contacts ct WHERE ct.id::text = ${idExpr}::text LIMIT 1),
+    (SELECT contact_lookup.business_id FROM contacts contact_lookup WHERE contact_lookup.business_id = ${idExpr}::text LIMIT 1),
+    (SELECT contact_lookup.business_id FROM contacts contact_lookup WHERE contact_lookup.id::text = ${idExpr}::text LIMIT 1),
     (SELECT cv1.business_id FROM contacts_v1 cv1 WHERE cv1.contact_id = ${idExpr}::text LIMIT 1),
     (SELECT cv1.business_id FROM contacts_v1 cv1 WHERE cv1.legacy_contact_id::text = ${idExpr}::text LIMIT 1),
     (SELECT x.business_id FROM business_id_crosswalk x
@@ -85,8 +85,8 @@ export function sqlExportContactId(idExpr: string): string {
 /** Export permanent building business ID (B100001). */
 export function sqlExportBuildingId(idExpr: string): string {
   return `COALESCE(
-    (SELECT p.business_id FROM properties_v1 p WHERE p.business_id = ${idExpr}::text LIMIT 1),
-    (SELECT p.business_id FROM properties_v1 p WHERE p.property_id = ${idExpr}::text LIMIT 1),
+    (SELECT building_lookup.business_id FROM properties_v1 building_lookup WHERE building_lookup.business_id = ${idExpr}::text LIMIT 1),
+    (SELECT building_lookup.business_id FROM properties_v1 building_lookup WHERE building_lookup.property_id = ${idExpr}::text LIMIT 1),
     (SELECT x.business_id FROM business_id_crosswalk x
       WHERE x.entity_type = 'building'
         AND (x.primary_ref = ${idExpr}::text OR x.deprecated_ref = ${idExpr}::text OR x.legacy_numeric::text = ${idExpr}::text)
@@ -97,8 +97,8 @@ export function sqlExportBuildingId(idExpr: string): string {
 /** Export permanent premise business ID (P100001). */
 export function sqlExportPremiseId(idExpr: string): string {
   return `COALESCE(
-    (SELECT pm.business_id FROM premises_v1 pm WHERE pm.business_id = ${idExpr}::text LIMIT 1),
-    (SELECT pm.business_id FROM premises_v1 pm WHERE pm.premises_id = ${idExpr}::text LIMIT 1),
+    (SELECT premise_lookup.business_id FROM premises_v1 premise_lookup WHERE premise_lookup.business_id = ${idExpr}::text LIMIT 1),
+    (SELECT premise_lookup.business_id FROM premises_v1 premise_lookup WHERE premise_lookup.premises_id = ${idExpr}::text LIMIT 1),
     (SELECT x.business_id FROM business_id_crosswalk x
       WHERE x.entity_type = 'premise'
         AND (x.primary_ref = ${idExpr}::text OR x.deprecated_ref = ${idExpr}::text OR x.legacy_numeric::text = ${idExpr}::text)
@@ -109,8 +109,8 @@ export function sqlExportPremiseId(idExpr: string): string {
 /** Export permanent opportunity business ID (M100001). */
 export function sqlExportOpportunityId(idExpr: string): string {
   return `COALESCE(
-    (SELECT o.business_id FROM opportunities o WHERE o.business_id = ${idExpr}::text LIMIT 1),
-    (SELECT o.business_id FROM opportunities o WHERE o.id::text = ${idExpr}::text LIMIT 1),
+    (SELECT opportunity_lookup.business_id FROM opportunities opportunity_lookup WHERE opportunity_lookup.business_id = ${idExpr}::text LIMIT 1),
+    (SELECT opportunity_lookup.business_id FROM opportunities opportunity_lookup WHERE opportunity_lookup.id::text = ${idExpr}::text LIMIT 1),
     (SELECT x.business_id FROM business_id_crosswalk x
       WHERE x.entity_type = 'opportunity'
         AND (x.primary_ref = ${idExpr}::text OR x.deprecated_ref = ${idExpr}::text OR x.legacy_numeric::text = ${idExpr}::text)
@@ -121,9 +121,9 @@ export function sqlExportOpportunityId(idExpr: string): string {
 /** Export permanent activity business ID (A100001). */
 export function sqlExportActivityId(idExpr: string): string {
   return `COALESCE(
-    (SELECT a.business_id FROM activities a WHERE a.business_id = ${idExpr}::text LIMIT 1),
-    (SELECT a.business_id FROM activities a WHERE a.activity_id = ${idExpr}::text LIMIT 1),
-    (SELECT a.business_id FROM activities a WHERE a.id::text = ${idExpr}::text LIMIT 1),
+    (SELECT activity_lookup.business_id FROM activities activity_lookup WHERE activity_lookup.business_id = ${idExpr}::text LIMIT 1),
+    (SELECT activity_lookup.business_id FROM activities activity_lookup WHERE activity_lookup.activity_id = ${idExpr}::text LIMIT 1),
+    (SELECT activity_lookup.business_id FROM activities activity_lookup WHERE activity_lookup.id::text = ${idExpr}::text LIMIT 1),
     (SELECT x.business_id FROM business_id_crosswalk x
       WHERE x.entity_type = 'activity'
         AND (x.primary_ref = ${idExpr}::text OR x.deprecated_ref = ${idExpr}::text OR x.legacy_numeric::text = ${idExpr}::text)

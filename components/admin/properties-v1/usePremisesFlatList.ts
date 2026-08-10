@@ -7,11 +7,7 @@ import { usePremisesListSelection } from "@/components/admin/properties-v1/Premi
 import { useSyncListingExportIds } from "@/components/admin/ModuleListingExportContext";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import { formatPremisesListLabel, formatPremisesName } from "@/lib/premisesDisplay";
-import {
-  formatListingStatus,
-  getPremisesListPriceHeaderLabels,
-  isListingIntentForSale,
-} from "@/lib/premisesListing";
+import { getPremisesListPriceHeaderLabels, isListingIntentForSale } from "@/lib/premisesListing";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
 import type { ContactV1Option } from "@/lib/repos/contactsV1";
 import type { PremisesFlatFilters, PremisesListItem } from "@/lib/repos/premisesV1";
@@ -29,8 +25,6 @@ export type SortKey =
   | "desks"
   | "gross_area"
   | "price"
-  | "psf"
-  | "listing_status"
   | "updated";
 
 export type SortDir = "asc" | "desc";
@@ -83,11 +77,6 @@ function compareNullableNum(a: number | null, b: number | null, dir: SortDir): n
 function rowPriceSortValue(row: PremisesListItem): number | null {
   if (isListingIntentForSale(row.inventory_status)) return parseNum(row.asking_sale_price);
   return parseNum(row.monthly_rent);
-}
-
-function rowPsfSortValue(row: PremisesListItem): number | null {
-  if (isListingIntentForSale(row.inventory_status)) return parseNum(row.sale_price_psf);
-  return parseNum(row.rent_psf);
 }
 
 function compareText(a: string, b: string, dir: SortDir): number {
@@ -165,10 +154,6 @@ export function usePremisesFlatList(
           return compareNullableNum(parseNum(a.gross_area_sqft), parseNum(b.gross_area_sqft), sortDir);
         case "price":
           return compareNullableNum(rowPriceSortValue(a), rowPriceSortValue(b), sortDir);
-        case "psf":
-          return compareNullableNum(rowPsfSortValue(a), rowPsfSortValue(b), sortDir);
-        case "listing_status":
-          return compareText(formatListingStatus(a.offer_status), formatListingStatus(b.offer_status), sortDir);
         case "updated":
           return compareText(a.last_verified_date ?? "", b.last_verified_date ?? "", sortDir);
         default:
@@ -224,7 +209,7 @@ export function usePremisesFlatList(
   }
 
   const theme = moduleAccentClasses("properties");
-  const colSpan = 11;
+  const colSpan = 9;
 
   return {
     ...props,

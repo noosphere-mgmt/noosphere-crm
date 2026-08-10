@@ -2,14 +2,65 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { composeAddressChinese, composeAddressEnglish, hasAddressParts } from "@/lib/composeAddress";
-import { BUILDING_GRADES, BUILDING_TITLES } from "@/lib/lookups";
+import { BUILDING_GRADES, BUILDING_TITLES, PROPERTY_TYPES } from "@/lib/lookups";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
 import type { PropertyV1 } from "@/lib/repos/propertiesV1";
 import { toCompanyV1SelectOptions } from "@/lib/companyV1Display";
-import { CompanyConnectionFields } from "@/components/admin/CompanyConnectionFields";
+import { BuildingRelationshipsEditor } from "@/components/admin/properties-v1/BuildingRelationships";
 import { FormField, SelectField, TextAreaField } from "@/components/admin/AdminFormFields";
 import { FormEditingContext } from "@/components/admin/ModuleActionBar";
 import { createPropertyV1Action, updatePropertyV1Action } from "@/app/admin/properties/actions";
+
+const SQFT_PER_SQM = 10.7639;
+
+function convertArea(value: string, direction: "to_sqm" | "to_sqft"): string {
+  if (!value.trim()) return "";
+  const number = Number.parseFloat(value.replace(/,/g, ""));
+  if (!Number.isFinite(number)) return "";
+  return (direction === "to_sqm" ? number / SQFT_PER_SQM : number * SQFT_PER_SQM).toFixed(2);
+}
+
+function AreaConversionFormFields({
+  label,
+  fieldPrefix,
+  initialSqft,
+  initialSqm,
+}: {
+  label: string;
+  fieldPrefix: "bldg_area" | "site_area";
+  initialSqft: string | null;
+  initialSqm: string | null;
+}) {
+  const [sqft, setSqft] = useState(initialSqft ?? "");
+  const [sqm, setSqm] = useState(initialSqm ?? (initialSqft ? convertArea(initialSqft, "to_sqm") : ""));
+
+  return (
+    <>
+      <FormField
+        label={`${label} (sq.ft.)`}
+        name={`${fieldPrefix}_sqft`}
+        type="number"
+        value={sqft}
+        onChange={(event) => {
+          const next = event.target.value;
+          setSqft(next);
+          setSqm(convertArea(next, "to_sqm"));
+        }}
+      />
+      <FormField
+        label={`${label} (sq.m.)`}
+        name={`${fieldPrefix}_sqm`}
+        type="number"
+        value={sqm}
+        onChange={(event) => {
+          const next = event.target.value;
+          setSqm(next);
+          setSqft(convertArea(next, "to_sqft"));
+        }}
+      />
+    </>
+  );
+}
 
 function readFormAddress(form: HTMLFormElement) {
   const value = (name: string) =>
@@ -130,11 +181,11 @@ export function PropertyEditForm({
   }, [syncAddresses]);
 
   const sectionCardClass =
-    "min-w-0 rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:p-5";
+    "min-w-0 rounded-xl border border-slate-200 bg-white p-3 shadow-sm md:p-4";
   const sectionTitleClass =
-    "mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 md:mb-4 md:text-sm";
-  const fieldGridClass = "grid grid-cols-1 gap-3 md:gap-4";
-  const detailGridClass = "grid grid-cols-2 gap-3 md:grid-cols-1 xl:grid-cols-2 md:gap-4";
+    "mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 md:text-sm";
+  const fieldGridClass = "grid grid-cols-2 gap-x-3 gap-y-2.5";
+  const detailGridClass = "grid grid-cols-1 gap-3 lg:grid-cols-2";
 
   return (
     <FormEditingContext.Provider value={true}>
@@ -152,26 +203,51 @@ export function PropertyEditForm({
         <input type="hidden" name="full_address_en" defaultValue={initialAddresses(property).en} />
         <input type="hidden" name="full_address_zh" defaultValue={initialAddresses(property).zh} />
         <input type="hidden" name="full_address_cn" defaultValue={property.full_address_cn ?? ""} />
+        <input type="hidden" name="bldg_name_zh" defaultValue={property.bldg_name_zh ?? ""} />
+        <input type="hidden" name="bldg_name_cn" defaultValue={property.bldg_name_cn ?? ""} />
+        <input type="hidden" name="bldg_desc_zh" defaultValue={property.bldg_desc_zh ?? ""} />
+        <input type="hidden" name="bldg_desc_cn" defaultValue={property.bldg_desc_cn ?? ""} />
+        <input type="hidden" name="city_zh" defaultValue={property.city_zh ?? ""} />
+        <input type="hidden" name="city_cn" defaultValue={property.city_cn ?? ""} />
+        <input type="hidden" name="district_zh" defaultValue={property.district_zh ?? ""} />
+        <input type="hidden" name="district_cn" defaultValue={property.district_cn ?? ""} />
+        <input type="hidden" name="street_name_zh" defaultValue={property.street_name_zh ?? ""} />
+        <input type="hidden" name="street_name_cn" defaultValue={property.street_name_cn ?? ""} />
+        <input type="hidden" name="location_advantages_zh" defaultValue={property.location_advantages_zh ?? ""} />
+        <input type="hidden" name="location_advantages_cn" defaultValue={property.location_advantages_cn ?? ""} />
+        <input type="hidden" name="proposal_highlights_zh" defaultValue={property.proposal_highlights_zh ?? ""} />
+        <input type="hidden" name="proposal_highlights_cn" defaultValue={property.proposal_highlights_cn ?? ""} />
+        <input type="hidden" name="facilities_zh" defaultValue={property.facilities_zh ?? ""} />
+        <input type="hidden" name="facilities_cn" defaultValue={property.facilities_cn ?? ""} />
+        <input type="hidden" name="building_remarks" defaultValue={property.building_remarks ?? ""} />
+        <input type="hidden" name="mtr_station" defaultValue={property.mtr_station ?? ""} />
+        <input type="hidden" name="walking_minutes" defaultValue={property.walking_minutes?.toString() ?? ""} />
+        <input type="hidden" name="owner_company_id" defaultValue={property.owner_company_id ?? ""} />
+        <input type="hidden" name="management_company_id" defaultValue={property.management_company_id ?? ""} />
+        <input type="hidden" name="operator_company_id" defaultValue={property.operator_company_id ?? ""} />
+        <input type="hidden" name="current_tenant_company_id" defaultValue={property.current_tenant_company_id ?? ""} />
+        <input type="hidden" name="tower_block" defaultValue={property.tower_block ?? ""} />
+        <input type="hidden" name="green_certification" defaultValue={property.green_certification ?? ""} />
 
         <div className={detailGridClass}>
-          <section className={`${sectionCardClass} col-span-2`}>
+          <section className={`${sectionCardClass} lg:col-span-2`}>
             <h2 className={sectionTitleClass}>Building</h2>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 md:gap-4">
+            <div>
               <FormField label="Building name (EN)" name="bldg_name_en" defaultValue={property.bldg_name_en ?? ""} />
-              <FormField label="Building name (ZH)" name="bldg_name_zh" defaultValue={property.bldg_name_zh ?? ""} />
-              <FormField label="Building name (CN)" name="bldg_name_cn" defaultValue={property.bldg_name_cn ?? ""} />
             </div>
           </section>
 
           <section className={sectionCardClass}>
             <h2 className={sectionTitleClass}>Building specification</h2>
             <div className={fieldGridClass}>
-              <FormField label="Year built" name="year_built" type="number" defaultValue={property.year_built?.toString() ?? ""} />
-              <FormField label="No. of floors" name="floor_count" type="number" defaultValue={property.floor_count?.toString() ?? ""} />
-              <FormField label="Building area (sq ft)" name="bldg_area_sqft" type="number" defaultValue={property.bldg_area_sqft ?? ""} />
-              <FormField label="Building area (sqm)" name="bldg_area_sqm" type="number" defaultValue={property.bldg_area_sqm ?? ""} />
+              <SelectField label="Building Type" name="building_type" defaultValue={property.building_type ?? ""} options={PROPERTY_TYPES} />
               <SelectField label="Grade" name="grade" defaultValue={property.grade ?? ""} options={BUILDING_GRADES} />
-              <SelectField label="Title" name="title" defaultValue={property.title ?? ""} options={BUILDING_TITLES} />
+              <FormField label="Year built" name="year_built" type="number" defaultValue={property.year_built?.toString() ?? ""} />
+              <FormField label="Total Floors" name="floor_count" type="number" defaultValue={property.floor_count?.toString() ?? ""} />
+              <AreaConversionFormFields label="Gross Area" fieldPrefix="bldg_area" initialSqft={property.bldg_area_sqft} initialSqm={property.bldg_area_sqm} />
+              <div className="sm:col-span-2">
+                <SelectField label="Title" name="title" defaultValue={property.title ?? ""} options={BUILDING_TITLES} />
+              </div>
             </div>
           </section>
 
@@ -179,68 +255,43 @@ export function PropertyEditForm({
             <h2 className={sectionTitleClass}>Site</h2>
             <div className={fieldGridClass}>
               <FormField label="Lot number" name="lot_number" defaultValue={property.lot_number ?? ""} />
-              <FormField label="Land use" name="land_use" defaultValue={property.land_use ?? ""} />
+              <FormField label="Land Use / Zoning" name="land_use" defaultValue={property.land_use ?? ""} />
               <FormField label="Class of site" name="class_of_site" defaultValue={property.class_of_site ?? ""} />
               <FormField label="Land tenure" name="land_tenure" defaultValue={property.land_tenure ?? ""} />
               <FormField label="Plot ratio" name="plot_ratio" type="number" defaultValue={property.plot_ratio ?? ""} />
-              <FormField label="Site area (sqft)" name="site_area_sqft" type="number" defaultValue={property.site_area_sqft ?? ""} />
-              <FormField label="Site area (sqm)" name="site_area_sqm" type="number" defaultValue={property.site_area_sqm ?? ""} />
+              <AreaConversionFormFields label="Site area" fieldPrefix="site_area" initialSqft={property.site_area_sqft} initialSqm={property.site_area_sqm} />
             </div>
+          </section>
+
+          <section className={`${sectionCardClass} lg:col-span-2`}>
+            <h2 className={sectionTitleClass}>Relationships</h2>
+            <BuildingRelationshipsEditor value={property.building_relationship_lines} companyOptions={companyOptions} />
           </section>
 
           <section className={sectionCardClass}>
-            <h2 className={sectionTitleClass}>Companies</h2>
-            <div className={`${fieldGridClass} [&_.grid]:grid-cols-1 [&_.grid]:sm:grid-cols-1`}>
-              <CompanyConnectionFields defaults={property} companyOptions={companyOptions} />
-            </div>
-          </section>
-
-          <section className={sectionCardClass}>
-            <h2 className={sectionTitleClass}>Building notes</h2>
-            <div className={fieldGridClass}>
-              <TextAreaField label="Building description" name="bldg_desc" defaultValue={property.bldg_desc ?? ""} />
-              <TextAreaField label="Building remarks" name="building_remarks" defaultValue={property.building_remarks ?? ""} />
-            </div>
-          </section>
-
-          <section className={`${sectionCardClass} col-span-2`}>
             <h2 className={sectionTitleClass}>Location</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <FormField label="Country" name="country" defaultValue={property.country ?? ""} />
               <FormField label="City (EN)" name="city_en" defaultValue={property.city_en ?? ""} />
               <FormField label="District (EN)" name="district_en" defaultValue={property.district_en ?? ""} />
-              <FormField label="Street no." name="street_no" defaultValue={property.street_no ?? ""} />
               <FormField label="Street (EN)" name="street_name_en" defaultValue={property.street_name_en ?? ""} />
+              <FormField label="Street no." name="street_no" defaultValue={property.street_no ?? ""} />
             </div>
-            <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-2.5">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Full address (auto)</p>
-              <p className="mt-2 text-sm text-slate-800">{addresses.en || "—"}</p>
+              <p className="mt-2 text-sm text-slate-800">{addresses.en || ""}</p>
               {addresses.zh ? <p className="mt-1 text-sm text-slate-600">{addresses.zh}</p> : null}
             </div>
-            <div className="mt-4 grid gap-4 lg:grid-cols-3">
-              <FormField label="City (ZH)" name="city_zh" defaultValue={property.city_zh ?? ""} />
-              <FormField label="District (ZH)" name="district_zh" defaultValue={property.district_zh ?? ""} />
-              <FormField label="Street (ZH)" name="street_name_zh" defaultValue={property.street_name_zh ?? ""} />
-            </div>
-            <div className="mt-4 grid gap-4 lg:grid-cols-3">
-              <FormField label="City (CN)" name="city_cn" defaultValue={property.city_cn ?? ""} />
-              <FormField label="District (CN)" name="district_cn" defaultValue={property.district_cn ?? ""} />
-              <FormField label="Street (CN)" name="street_name_cn" defaultValue={property.street_name_cn ?? ""} />
-            </div>
           </section>
 
           <section className={sectionCardClass}>
-            <h2 className={sectionTitleClass}>Accessibility</h2>
-            <div className={fieldGridClass}>
-              <FormField label="MTR station" name="mtr_station" defaultValue={property.mtr_station ?? ""} />
-              <FormField label="Walking minutes" name="walking_minutes" type="number" defaultValue={property.walking_minutes?.toString() ?? ""} />
-              <FormField label="Green certification" name="green_certification" defaultValue={property.green_certification ?? ""} />
+            <h2 className={sectionTitleClass}>Proposal content</h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <TextAreaField label="Building Introduction" name="bldg_desc" defaultValue={property.bldg_desc ?? ""} />
+              <TextAreaField label="Location Highlights" name="location_advantages_en" defaultValue={property.location_advantages_en ?? ""} />
+              <TextAreaField label="Accessibility &amp; Transport" name="proposal_highlights_en" defaultValue={property.proposal_highlights_en ?? ""} />
+              <TextAreaField label="Facilities &amp; Amenities" name="facilities" defaultValue={property.facilities ?? ""} />
             </div>
-          </section>
-
-          <section className={sectionCardClass}>
-            <h2 className={sectionTitleClass}>Facilities</h2>
-            <TextAreaField label="Facilities" name="facilities" defaultValue={property.facilities ?? ""} />
           </section>
         </div>
       </form>

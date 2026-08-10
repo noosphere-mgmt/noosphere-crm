@@ -21,14 +21,15 @@ export default async function EditPropertyPage({ params, searchParams }: Props) 
   const propertyId = idRaw.trim();
   if (!propertyId) notFound();
 
-  const [property, premises, companies, contacts, propertyOptions] = await Promise.all([
-    getPropertyV1(propertyId),
-    listPremisesForPropertyV1(propertyId),
+  const property = await getPropertyV1(propertyId);
+  if (!property) notFound();
+
+  const [premises, companies, contacts, propertyOptions] = await Promise.all([
+    listPremisesForPropertyV1(property.property_id),
     listCompanyV1Options(),
     listContactV1Options(),
     listPropertyV1SelectOptions(),
   ]);
-  if (!property) notFound();
 
   const premisesRef = sp.premises?.trim();
   let premisesDrawerData: Awaited<ReturnType<typeof getPremisesDrawerData>> | null = null;

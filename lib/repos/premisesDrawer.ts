@@ -1,8 +1,4 @@
-import {
-  getLastActivityDateForPremises,
-  listActivitiesForPremises,
-  type ActivityListRow,
-} from "@/lib/repos/activities";
+import { listActivitiesForPremises, type ActivityListRow } from "@/lib/repos/activities";
 import {
   listProposedPremisesForPremises,
   summarizePremisesFees,
@@ -26,16 +22,21 @@ const emptyDrawerData = (): PremisesDrawerData => ({
   lastActivityDate: null,
 });
 
-export async function getPremisesDrawerData(premisesRef: string): Promise<PremisesDrawerData> {
-  const premisesId = (await resolvePremisesV1Id(premisesRef)) ?? premisesRef.trim();
+export async function getPremisesDrawerData(premisesRef: string, alreadyResolved = false): Promise<PremisesDrawerData> {
+  const premisesId = alreadyResolved
+    ? premisesRef.trim()
+    : (await resolvePremisesV1Id(premisesRef)) ?? premisesRef.trim();
   if (!premisesId) return emptyDrawerData();
 
-  const [proposed, fees, activities, lastActivityDate] = await Promise.all([
+  const [proposed, fees, activities] = await Promise.all([
     listProposedPremisesForPremises(premisesId).catch(() => [] as PremisesProposedOpportunityRow[]),
     summarizePremisesFees(premisesId).catch(() => emptyDrawerData().fees),
     listActivitiesForPremises(premisesId).catch(() => [] as ActivityListRow[]),
-    getLastActivityDateForPremises(premisesId).catch(() => null),
   ]);
+  const lastActivityDate = activities.reduce<string | null>((latest, row) => {
+    const value = row.activity_date?.trim();
+    return value && (!latest || value > latest) ? value : latest;
+  }, null);
   return normalizePremisesDrawerData({
     proposed,
     fees,

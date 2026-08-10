@@ -12,10 +12,6 @@ import {
 } from "@/lib/premisesRelationships";
 import type { PremisesV1 } from "@/lib/repos/premisesV1";
 import type { ContactV1Option } from "@/lib/repos/contactsV1";
-import {
-  OPPORTUNITY_PARTNERSHIP_MODES,
-  OPPORTUNITY_PARTNERSHIP_MODE_LABELS,
-} from "@/lib/opportunityValues";
 import { PREMISES_RELATIONSHIP_TYPES, type PremisesRelationshipLine } from "@/lib/v1ListValues";
 
 const selectClass =
@@ -63,7 +59,9 @@ export function PremisesRelationshipsEditor({
       {safeLines.map((line, index) => (
         <div key={index} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
           <div className="mb-3 flex items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-slate-800">Line {index + 1}</p>
+            <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              {index === 0 ? "Relationships" : `Relationship ${index + 1}`}
+            </p>
             {safeLines.length > 1 ? (
               <button
                 type="button"
@@ -124,45 +122,6 @@ export function PremisesRelationshipsEditor({
                   );
                 })}
               </select>
-            </label>
-            <label className="block text-sm font-medium text-slate-700">
-              Partnership mode
-              <select
-                className={selectClass}
-                value={line.partnership_mode ?? ""}
-                onChange={(e) => updateLine(index, { partnership_mode: e.target.value || null })}
-              >
-                <option value="">— Select —</option>
-                {OPPORTUNITY_PARTNERSHIP_MODES.map((m) => (
-                  <option key={m} value={m}>
-                    {OPPORTUNITY_PARTNERSHIP_MODE_LABELS[m]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block text-sm font-medium text-slate-700">
-              Contact role
-              <input
-                className={inputClass}
-                value={line.contact_role ?? ""}
-                onChange={(e) => updateLine(index, { contact_role: e.target.value || null })}
-              />
-            </label>
-            <label className="block text-sm font-medium text-slate-700">
-              Source URL
-              <input
-                className={inputClass}
-                value={line.source_url ?? ""}
-                onChange={(e) => updateLine(index, { source_url: e.target.value || null })}
-              />
-            </label>
-            <label className="block text-sm font-medium text-slate-700">
-              Source file
-              <input
-                className={inputClass}
-                value={line.source_file ?? ""}
-                onChange={(e) => updateLine(index, { source_file: e.target.value || null })}
-              />
             </label>
             <label className="block text-sm font-medium text-slate-700 sm:col-span-2">
               Remarks

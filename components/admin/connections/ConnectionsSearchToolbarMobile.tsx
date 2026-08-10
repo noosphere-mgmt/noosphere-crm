@@ -1,7 +1,7 @@
 "use client";
 
 import { ConnectionsRelationshipTypeFilters } from "@/components/admin/connections/ConnectionsRelationshipTypeFilters";
-import { COVERAGE_OPTIONS } from "@/lib/connectionsValues";
+import { CoverageMultiSelect } from "@/components/admin/connections/CoverageMultiSelect";
 import { connectionsGlassClasses } from "@/lib/connectionsGlassTheme";
 import type { ConnectionsQuickFilters } from "@/lib/connectionsList";
 
@@ -38,19 +38,11 @@ export function ConnectionsSearchToolbarMobile({
         />
         <div className="flex items-center gap-1.5 overflow-x-auto">
           <ConnectionsRelationshipTypeFilters compact />
-          <select
-            aria-label="Filter by coverage"
+          <CoverageMultiSelect
+            compact
             value={quickFilters.coverage}
-            onChange={(e) => onQuickFiltersChange({ ...quickFilters, coverage: e.target.value })}
-            className={mobileSelectClass}
-          >
-            <option value="">Coverage</option>
-            {COVERAGE_OPTIONS.map((v) => (
-              <option key={v} value={v}>
-                {v}
-              </option>
-            ))}
-          </select>
+            onChange={(coverage) => onQuickFiltersChange({ ...quickFilters, coverage })}
+          />
         </div>
       </div>
     );

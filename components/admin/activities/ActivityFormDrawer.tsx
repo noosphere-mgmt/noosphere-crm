@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { createActivityAction, getActivityPremisesIdsAction, updateActivityAction } from "@/app/admin/activities/actions";
 import { ActivityLinkTypeahead } from "@/components/admin/activities/ActivityLinkTypeahead";
 import { ActivityPremisesMultiPicker } from "@/components/admin/activities/ActivityPremisesMultiPicker";
+import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { IconX } from "@/components/admin/ModuleActionIcons";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import { ACTIVITY_FORM_TYPES, isActivityFormType, isSiteTourActivityType, type SiteTourCheckpointMode } from "@/lib/activityValues";
@@ -47,12 +48,16 @@ export function ActivityFormDrawer({
   activity,
   defaults,
   onSaved,
+  presentation = "drawer",
+  persistent = false,
 }: {
   open: boolean;
   onClose: () => void;
   activity?: ActivityListRow | null;
   defaults?: ActivityFormDefaults;
   onSaved?: () => void;
+  presentation?: "drawer" | "inline";
+  persistent?: boolean;
 }) {
   const theme = moduleAccentClasses("activities");
   const [pending, startTransition] = useTransition();
@@ -164,46 +169,50 @@ export function ActivityFormDrawer({
         setError(result.error);
         return;
       }
+      if (persistent && !activity) {
+        setActivityDate(today);
+        setActivityTime("");
+        setActivityType(defaults?.activity_type ?? "Call");
+        setNotes("");
+        setPremises(null);
+        setPremisesCheckpoints([]);
+        setError(null);
+      }
       onSaved?.();
       onClose();
     });
   }
 
-  return (
-    <>
-      <button type="button" className={overlayClass} aria-label="Close" onClick={onClose} />
-      <aside className={panelClass} role="dialog" aria-modal="true" aria-label={activity ? "Edit activity" : "New activity"}>
-        <div className="sticky top-0 z-10 flex shrink-0 items-start justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3">
+  const inline = presentation === "inline";
+
+  const formContent = (
+      <div
+        className={inline ? "mt-4 overflow-hidden rounded-lg border border-amber-200 bg-white" : panelClass}
+        role={inline ? "region" : "dialog"}
+        aria-modal={inline ? undefined : "true"}
+        aria-label={activity ? "Edit activity" : "New activity"}
+      >
+        <div className={`${inline ? "" : "sticky top-0 z-10 "}flex shrink-0 items-start justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3`}>
           <div className="min-w-0">
             <p className="text-xs font-medium text-amber-800/80">Activities</p>
             <h2 className="text-base font-semibold text-slate-900">
               {activity ? "Edit activity" : "New activity"}
             </h2>
+            {activity?.business_id ? (
+              <RecordBusinessId id={activity.business_id} className="mt-0.5 block" />
+            ) : null}
             {activityType ? <p className="mt-0.5 text-sm text-slate-600">{activityType}</p> : null}
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100"
-            >
-              Cancel
-            </button>
+            {!persistent ? <button type="button" onClick={onClose} className="rounded-lg px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100">Cancel</button> : null}
             <button type="button" disabled={pending} onClick={submit} className={theme.primaryButton}>
               {pending ? "Saving…" : "Save"}
             </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-              aria-label="Close"
-            >
-              <IconX />
-            </button>
+            {!inline ? <button type="button" onClick={onClose} className="inline-flex rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Close"><IconX /></button> : null}
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto bg-white p-4">
+        <div className={`${inline ? "" : "min-h-0 flex-1 overflow-y-auto "}space-y-4 bg-white p-4`}>
           <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <label className="block text-sm">
               <span className={labelClass}>Activity date</span>
@@ -311,7 +320,13 @@ export function ActivityFormDrawer({
 
           {error ? <p className="text-sm text-red-700">{error}</p> : null}
         </div>
-      </aside>
+      </div>
+  );
+
+  return inline ? formContent : (
+    <>
+      <button type="button" className={overlayClass} aria-label="Close" onClick={onClose} />
+      {formContent}
     </>
   );
 }

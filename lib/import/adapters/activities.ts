@@ -1,8 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { query } from "@/lib/db";
 import { ACTIVITY_TYPES } from "@/lib/activityValues";
+import { allocateNextBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
+import { isPermanentBusinessId } from "@/lib/businessIds";
 import { sqlContactDisplayName } from "@/lib/contactName";
-import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
+import { resolveCompanyRefToLegacy } from "@/lib/crmRefResolve";
+import { applySessionMetadata, genericUpdateRecord, rowToRecord, withExportMatchIds } from "../adapterUtils";
 import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
 import {
   sqlExportActivityId,
@@ -30,6 +33,10 @@ const FIELD_KEYS = [
   "activity_date",
   "activity_time",
   "activity_type",
+  "subject",
+  "owner",
+  "external_ref",
+  "activity_group_id",
   "notes",
   "company_id",
   "company_name_en",
@@ -43,10 +50,15 @@ const FIELD_KEYS = [
 ] as const;
 
 const SELECT = `
+  a.activity_id AS activity_pk,
   ${sqlExportActivityId("a.id")} AS activity_id,
   a.activity_date::text AS activity_date,
   a.activity_time,
   a.activity_type,
+  a.subject,
+  a.owner,
+  a.external_ref,
+  a.activity_group_id,
   a.notes,
   ${sqlExportCompanyId("a.company_id")} AS company_id,
   c.company_name AS company_name_en,
@@ -87,6 +99,10 @@ export const activitiesImportDefinition: ImportObjectDefinition = {
     { key: "activity_date", label: "activity_date", type: "date", requiredOnCreate: true },
     { key: "activity_time", label: "activity_time", type: "string" },
     { key: "activity_type", label: "activity_type", type: "enum", enumValues: [...ACTIVITY_TYPES], requiredOnCreate: true },
+    { key: "subject", label: "subject", type: "string" },
+    { key: "owner", label: "owner", type: "string" },
+    { key: "external_ref", label: "external_ref", type: "string" },
+    { key: "activity_group_id", label: "activity_group_id", type: "string" },
     { key: "notes", label: "notes", type: "string" },
     { key: "company_id", label: "company_id", type: "string" },
     { key: "company_name_en", label: "company_name_en", type: "string", lookupOnly: true, aliases: ["company_name"] },
@@ -100,12 +116,15 @@ export const activitiesImportDefinition: ImportObjectDefinition = {
   ],
 
   async findById(id) {
-    const rows = await load("a.activity_id = $1", [String(id)]);
-    return rows[0] ?? null;
+    const raw = String(id).trim();
+    const byBusinessId = await load("a.business_id = $1", [raw]);
+    if (byBusinessId[0]) return byBusinessId[0];
+    const byActivityId = await load("a.activity_id = $1", [raw]);
+    return byActivityId[0] ?? null;
   },
 
-  async findByExternalRef() {
-    return [];
+  async findByExternalRef(externalRef) {
+    return load("a.external_ref = $1", [externalRef.trim()]);
   },
 
   buildNaturalKey(values) {
@@ -124,11 +143,17 @@ export const activitiesImportDefinition: ImportObjectDefinition = {
     const parts = splitNaturalKeyParts(key, 4);
     if (!parts) return [];
     const [date, type, companyId, notesPrefix] = parts;
+    let companyKey = companyId ?? "";
+    if (companyKey.trim()) {
+      const legacy = await resolveCompanyRefToLegacy(companyKey);
+      if (legacy == null) return [];
+      companyKey = String(legacy);
+    }
     return load(
       `a.activity_date::text = $1 AND a.activity_type = $2
        AND coalesce(a.company_id::text, '') = $3
        AND left(coalesce(a.notes, ''), 80) = $4`,
-      [date, type, companyId ?? "", notesPrefix ?? ""],
+      [date, type, companyKey, notesPrefix ?? ""],
     );
   },
 
@@ -207,16 +232,24 @@ export const activitiesImportDefinition: ImportObjectDefinition = {
 
   async createRecord(values, ctx) {
     const v = applySessionMetadata(values, ctx);
+    const suppliedActivityId = String(v.activity_id ?? values.activity_id ?? "").trim();
+    const preserveBusinessId = isPermanentBusinessId("activity", suppliedActivityId);
     const activityId =
-      String(v.activity_id ?? "").trim() ||
-      `act_${randomUUID().replace(/-/g, "")}`;
-    await query(
+      suppliedActivityId && !preserveBusinessId
+        ? suppliedActivityId
+        : `act_${randomUUID().replace(/-/g, "")}`;
+    const businessId = preserveBusinessId
+      ? suppliedActivityId
+      : await allocateNextBusinessId("activity");
+    const rows = await query<{ id: string }>(
       `INSERT INTO activities (
-         activity_id, activity_date, activity_time, activity_type, notes,
+         activity_id, business_id, activity_date, activity_time, activity_type, notes,
          company_id, contact_id, opportunity_id, premises_id, subject
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+       RETURNING id::text`,
       [
         activityId,
+        businessId,
         v.activity_date,
         v.activity_time ?? null,
         v.activity_type,
@@ -225,9 +258,19 @@ export const activitiesImportDefinition: ImportObjectDefinition = {
         v.contact_id ?? null,
         v.opportunity_id ?? null,
         v.premises_id ?? null,
-        null,
+        v.subject ?? null,
       ],
     );
+    const legacyId = Number.parseInt(rows[0]!.id, 10);
+    await registerBusinessId({
+      entityType: "activity",
+      businessId,
+      primaryRef: activityId,
+      deprecatedRef: activityId,
+      legacyNumeric: Number.isFinite(legacyId) ? legacyId : null,
+    });
+    const extra = Object.fromEntries(Object.entries(v).filter(([key]) => ["owner", "external_ref", "activity_group_id"].includes(key)));
+    if (Object.keys(extra).length) await genericUpdateRecord("activities", "activity_id", activityId, extra, ctx);
     return activityId;
   },
 
@@ -244,6 +287,12 @@ export const activitiesImportDefinition: ImportObjectDefinition = {
 
   async exportRows() {
     const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM ${FROM} ORDER BY a.activity_date DESC`);
-    return rows.map((r) => rowToRecord(r, String(r.activity_id), FIELD_KEYS).values);
+    return rows.map((r) =>
+      withExportMatchIds(
+        rowToRecord(r, String(r.activity_id ?? r.activity_pk), FIELD_KEYS).values,
+        r.activity_id,
+        r.activity_pk,
+      ),
+    );
   },
 };

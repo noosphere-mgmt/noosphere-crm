@@ -20,7 +20,9 @@ npm run dev
 
 Open http://localhost:3001/admin — dev login token defaults to `dev-admin`.
 
-**Docs:** [Product direction](docs/product-direction.md) · [Company model](docs/company-model.md) · [Property classification](docs/property-classification.md) · [Glossary](docs/brokerage-model.md)
+**Release docs:** [System handover](docs/SYSTEM-HANDOVER.md) · [Deployment checklist](docs/DEPLOYMENT-CHECKLIST.md) · [Data dictionary](docs/DATA-DICTIONARY.md) · [Changelog](docs/CHANGELOG.md) · [Migration guide](docs/import/production-to-upgraded-crm-migration.md)
+
+**Reference docs:** [Product direction](docs/product-direction.md) · [Company model](docs/company-model.md) · [Property classification](docs/property-classification.md) · [Glossary](docs/brokerage-model.md)
 
 ## Scripts
 
@@ -42,4 +44,4 @@ Open http://localhost:3001/admin — dev login token defaults to `dev-admin`.
 bash scripts/deploy-production.sh
 ```
 
-PM2 process name: `noosphere-realestate`, port **3001**.
+PM2 process name: `noosphere-crm`, port **3001**.

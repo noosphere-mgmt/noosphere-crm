@@ -22,20 +22,19 @@ export function offerTypeToOperatingModel(offerType: string): string {
 }
 
 export function offerTypeToSpaceForm(offerType: string, spaceType?: string | null): string {
-  if (offerType === "Floor") return "Whole Floor";
-  if (offerType === "Enbloc") return "Building";
-  if (offerType === "Serviced Office" || offerType === "Shared Office") return "Room";
+  if (offerType === "Floor") return "Floor (s)";
+  if (offerType === "Enbloc") return "Enbloc";
+  if (offerType === "Land") return "Land";
+  if (offerType === "Serviced Office" || offerType === "Shared Office") return "Unit (s)";
   switch (spaceType) {
     case "Floor":
-      return "Whole Floor";
-    case "Suite":
-      return "Suite";
-    case "Room":
-      return "Room";
+      return "Floor (s)";
     case "Enbloc":
-      return "Building";
+      return "Enbloc";
+    case "Land":
+      return "Land";
     default:
-      return "Unit";
+      return "Unit (s)";
   }
 }
 

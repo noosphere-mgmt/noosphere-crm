@@ -9,6 +9,8 @@ import {
   getContact,
   updateContact,
 } from "@/lib/repos/contacts";
+import { syncContactPrimaryAffiliation } from "@/lib/repos/contactCompanyAffiliations";
+import { contactFullPageHref } from "@/lib/crmDetailNav";
 import {
   addContactRelationship,
   isContactRelationshipType,
@@ -39,7 +41,6 @@ function parseOptionalId(v: FormDataEntryValue | null): number | null {
 
 async function contactInputFromForm(formData: FormData) {
   const companyId = await normalizeOptionalLegacyCompanyId(formData.get("company_id"));
-  if (!companyId) throw new Error("Company is required");
   const contactRole = formData
     .getAll("contact_role")
     .map(String)
@@ -58,6 +59,7 @@ async function contactInputFromForm(formData: FormData) {
     preferred_language: parseOptionalString(formData.get("preferred_language")),
     contact_role: contactRole,
     coverage: formData.getAll("coverage").map(String).filter(Boolean),
+    locate_at: parseOptionalString(formData.get("locate_at")),
     is_primary: formData.get("is_primary") === "on",
     last_contact_date: parseOptionalString(formData.get("last_contact_date")),
     next_follow_up_date: parseOptionalString(formData.get("next_follow_up_date")),
@@ -68,26 +70,46 @@ async function contactInputFromForm(formData: FormData) {
   return input;
 }
 
-function revalidateContactPaths(companyId: number) {
+function revalidateContactPaths(companyId: number | null | undefined) {
   revalidatePath("/admin/contacts");
   revalidatePath("/admin/companies");
-  revalidatePath(`/admin/companies/${companyId}`);
+  if (companyId != null) revalidatePath(`/admin/companies/${companyId}`);
   revalidatePath("/admin/opportunities");
 }
 
 export async function createContactAction(formData: FormData) {
   const input = await contactInputFromForm(formData);
   const id = await createContact(input);
+  if (input.company_id != null) {
+    await syncContactPrimaryAffiliation(id, {
+      company_id: input.company_id,
+      job_title: input.title,
+      is_primary: true,
+    });
+  }
   revalidateContactPaths(input.company_id);
+  const contact = await getContact(id);
   const returnTo = parseOptionalString(formData.get("return_to"));
-  redirect(returnTo ?? `/admin/contacts/${id}`);
+  redirect(
+    returnTo ??
+      contactFullPageHref(contact?.business_id) ??
+      `/admin/contacts/${id}`,
+  );
 }
 
 export async function updateContactAction(id: number, formData: FormData) {
   const input = await contactInputFromForm(formData);
   await updateContact(id, input);
+  if (input.company_id != null) {
+    await syncContactPrimaryAffiliation(id, {
+      company_id: input.company_id,
+      job_title: input.title,
+      is_primary: true,
+    });
+  }
   revalidateContactPaths(input.company_id);
-  redirect(`/admin/contacts/${id}`);
+  const contact = await getContact(id);
+  redirect(contactFullPageHref(contact?.business_id) ?? `/admin/contacts/${id}`);
 }
 
 export async function deleteContactAction(id: number) {

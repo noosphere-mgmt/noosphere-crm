@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { connectionsTabClass } from "@/lib/connectionsGlassTheme";
 import type { ContactDetailTabId } from "@/lib/contactDetailTab";
 import { contactDrawerHref } from "@/lib/connectionsDrawerNav";
+import { contactFullPageHref } from "@/lib/crmDetailNav";
 
 const tabs: { id: ContactDetailTabId; label: string }[] = [
   { id: "overview", label: "Overview" },
@@ -13,19 +14,21 @@ const tabs: { id: ContactDetailTabId; label: string }[] = [
   { id: "activities", label: "Activities" },
   { id: "premises", label: "Properties" },
   { id: "opportunities", label: "Opportunities" },
-  { id: "notes", label: "Notes" },
 ];
 
 export function ContactDetailTabs({
   embedded = false,
   contactId,
+  businessId,
 }: {
   embedded?: boolean;
   contactId: number;
+  businessId?: string | null;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const active = (searchParams.get("tab") as ContactDetailTabId) || "overview";
+  const onFullPage = Boolean(businessId) || pathname.startsWith("/admin/contacts/");
 
   return (
     <nav
@@ -37,7 +40,18 @@ export function ContactDetailTabs({
       }
     >
       {tabs.map((tab) => {
-        const href = contactDrawerHref(pathname, searchParams, contactId, tab.id);
+        const href =
+          onFullPage && businessId
+            ? contactFullPageHref(businessId, { tab: tab.id }) ??
+              contactDrawerHref("/admin/contacts", searchParams, contactId, tab.id)
+            : onFullPage
+              ? withDetailQs(pathname, tab.id)
+              : contactDrawerHref(
+                  pathname.startsWith("/admin/contacts") ? "/admin/contacts" : pathname,
+                  searchParams,
+                  contactId,
+                  tab.id,
+                );
         return (
           <Link key={tab.id} href={href} className={connectionsTabClass(active === tab.id)}>
             {tab.label}
@@ -46,4 +60,11 @@ export function ContactDetailTabs({
       })}
     </nav>
   );
+}
+
+function withDetailQs(pathname: string, tab: ContactDetailTabId): string {
+  const params = new URLSearchParams();
+  if (tab !== "overview") params.set("tab", tab);
+  const qs = params.toString();
+  return qs ? `${pathname}?${qs}` : pathname;
 }

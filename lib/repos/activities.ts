@@ -1,5 +1,7 @@
 import { query } from "@/lib/db";
+import { allocateNextBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
 import { isActivityType } from "@/lib/activityValues";
+import { normalizePremisesIds, resolvePremisesRefToId } from "@/lib/crmRefResolve";
 import {
   sqlJoinLegacyCompany,
   sqlJoinLegacyContact,
@@ -114,6 +116,14 @@ export type ActivityInput = {
 
 export type SiteTourCheckpointMode = "split" | "combined";
 
+async function resolveOptionalPremisesIdForDb(raw: string | null | undefined): Promise<string | null> {
+  const trimmed = raw?.trim();
+  if (!trimmed) return null;
+  const premisesId = await resolvePremisesRefToId(trimmed);
+  if (!premisesId) throw new Error(`Unresolved premises ref: ${trimmed}`);
+  return premisesId;
+}
+
 function parseActivityInput(input: ActivityInput, options?: { allowMissingPremises?: boolean }) {
   const activityType = input.activity_type.trim();
   if (!isActivityType(activityType)) {
@@ -159,7 +169,7 @@ export async function getActivity(activityId: string): Promise<ActivityListRow |
   const rows = await query<ActivityListRow>(
     `SELECT ${activitySelect}
      ${activityFrom}
-     WHERE a.activity_id = $1`,
+     WHERE a.activity_id = $1 OR a.business_id = $1`,
     [activityId],
   );
   return rows[0] ?? null;
@@ -232,7 +242,7 @@ export async function listActivityPremisesIds(activityId: string): Promise<strin
 }
 
 export async function syncActivityPremises(activityId: string, premisesIds: string[]): Promise<void> {
-  const unique = [...new Set(premisesIds.map((id) => id.trim()).filter(Boolean))];
+  const unique = await normalizePremisesIds(premisesIds);
   await query(`DELETE FROM activity_premises WHERE activity_id = $1`, [activityId]);
   if (unique.length === 0) return;
   await query(
@@ -244,8 +254,9 @@ export async function syncActivityPremises(activityId: string, premisesIds: stri
 }
 
 export async function createActivity(input: ActivityInput): Promise<string> {
-  const v = parseActivityInput(input);
-  const rows = await query<{ activity_id: string }>(
+  const premisesId = await resolveOptionalPremisesIdForDb(input.premises_id);
+  const v = parseActivityInput({ ...input, premises_id: premisesId });
+  const rows = await query<{ activity_id: string; id: string }>(
     `INSERT INTO activities (
        activity_id, activity_date, activity_time, activity_type, subject, notes,
        company_id, contact_id, premises_id, opportunity_id, owner, activity_group_id
@@ -253,7 +264,7 @@ export async function createActivity(input: ActivityInput): Promise<string> {
        'act_' || replace(gen_random_uuid()::text, '-', ''),
        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
      )
-     RETURNING activity_id`,
+     RETURNING activity_id, id::text AS id`,
     [
       v.activityDate,
       v.activityTime,
@@ -268,7 +279,18 @@ export async function createActivity(input: ActivityInput): Promise<string> {
       input.activity_group_id?.trim() || null,
     ],
   );
-  return rows[0]!.activity_id;
+  const activityId = rows[0]!.activity_id;
+  const legacyId = Number.parseInt(rows[0]!.id, 10);
+  const businessId = await allocateNextBusinessId("activity");
+  await query(`UPDATE activities SET business_id = $1 WHERE activity_id = $2`, [businessId, activityId]);
+  await registerBusinessId({
+    entityType: "activity",
+    businessId,
+    primaryRef: activityId,
+    deprecatedRef: activityId,
+    legacyNumeric: Number.isFinite(legacyId) ? legacyId : null,
+  });
+  return activityId;
 }
 
 export async function createSiteTourActivities(
@@ -276,7 +298,7 @@ export async function createSiteTourActivities(
   premisesIds: string[],
   mode: SiteTourCheckpointMode,
 ): Promise<string[]> {
-  const uniquePremises = [...new Set(premisesIds.map((id) => id.trim()).filter(Boolean))];
+  const uniquePremises = await normalizePremisesIds(premisesIds);
   if (uniquePremises.length === 0) {
     throw new Error("Select at least one premises for the site tour");
   }
@@ -337,7 +359,8 @@ export async function duplicateActivity(activityId: string): Promise<string> {
 }
 
 export async function updateActivity(activityId: string, input: ActivityInput): Promise<void> {
-  const v = parseActivityInput(input);
+  const premisesId = await resolveOptionalPremisesIdForDb(input.premises_id);
+  const v = parseActivityInput({ ...input, premises_id: premisesId });
   await query(
     `UPDATE activities SET
        activity_date = $2,

@@ -9,6 +9,7 @@ import {
 } from "@/components/admin/activities/ActivityFormDrawer";
 import { MobileQuickActivityBar } from "@/components/admin/activities/MobileQuickActivityBar";
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
+import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import { asArray } from "@/lib/asArray";
 import {
@@ -25,17 +26,25 @@ export function EntityActivitiesTab({
   newActivityHref,
   embedded = false,
   limit,
+  showList = true,
+  createLabel = "New",
+  formPresentation = "drawer",
+  alwaysShowForm = false,
 }: {
   activities: ActivityListRow[];
   defaults?: ActivityFormDefaults;
   newActivityHref?: string;
   embedded?: boolean;
   limit?: number;
+  showList?: boolean;
+  createLabel?: string;
+  formPresentation?: "drawer" | "inline";
+  alwaysShowForm?: boolean;
 }) {
   const theme = moduleAccentClasses("activities");
   const router = useRouter();
   const isMobile = useIsMobile();
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(alwaysShowForm);
   const [editing, setEditing] = useState<ActivityListRow | null>(null);
   const [viewing, setViewing] = useState<ActivityListRow | null>(null);
   const [createType, setCreateType] = useState<string | undefined>();
@@ -65,20 +74,20 @@ export function EntityActivitiesTab({
 
   return (
     <div className={embedded ? "space-y-2" : "space-y-4"}>
-      <div className="flex flex-wrap items-center gap-2">
+      {!alwaysShowForm ? <div className="flex flex-wrap items-center gap-2">
         <button type="button" onClick={() => openCreate()} className={theme.primaryButton}>
-          New
+          {createLabel}
         </button>
         {newActivityHref ? (
           <Link href={newActivityHref} className={`text-sm ${theme.link}`}>
             Open in Activities
           </Link>
         ) : null}
-      </div>
+      </div> : null}
 
-      {isMobile ? <MobileQuickActivityBar onSelectType={(t) => openCreate(t)} defaults={defaults} /> : null}
+      {isMobile && !alwaysShowForm ? <MobileQuickActivityBar onSelectType={(t) => openCreate(t)} defaults={defaults} /> : null}
 
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+      {showList ? <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
         <table className="min-w-full text-sm">
           <thead className="bg-slate-50 text-left text-slate-600">
             <tr>
@@ -128,7 +137,7 @@ export function EntityActivitiesTab({
             )}
           </tbody>
         </table>
-      </div>
+      </div> : null}
 
       {viewing ? (
         <>
@@ -138,6 +147,7 @@ export function EntityActivitiesTab({
               <div>
                 <p className="text-xs text-slate-500">{viewing.activity_type}</p>
                 <h3 className="text-lg font-semibold text-slate-900">{formatActivityDate(viewing)}</h3>
+                <RecordBusinessId id={viewing.business_id} className="mt-0.5 block" />
               </div>
               <button type="button" onClick={() => setViewing(null)} className="text-slate-400 hover:text-slate-700">
                 ×
@@ -193,14 +203,16 @@ export function EntityActivitiesTab({
       <ActivityFormDrawer
         open={drawerOpen}
         onClose={() => {
-          setDrawerOpen(false);
+          if (!alwaysShowForm) setDrawerOpen(false);
           setEditing(null);
           setCreateType(undefined);
         }}
         activity={editing}
         defaults={drawerDefaults}
+        presentation={formPresentation}
+        persistent={alwaysShowForm}
         onSaved={() => {
-          setDrawerOpen(false);
+          if (!alwaysShowForm) setDrawerOpen(false);
           setEditing(null);
           router.refresh();
         }}

@@ -3,16 +3,17 @@
 import { useSearchParams } from "next/navigation";
 import { PremisesFeesTab } from "@/components/admin/properties-v1/PremisesFeesTab";
 import { PremisesInlineNotes, PremisesInlineOverview } from "@/components/admin/properties-v1/PremisesInlineOverview";
+import { PremisesAvailabilityTab } from "@/components/admin/properties-v1/PremisesAvailabilityTab";
+import { PremisesCommercialTermsTab } from "@/components/admin/properties-v1/PremisesCommercialTermsTab";
 import { PremisesOpportunitiesTab } from "@/components/admin/properties-v1/PremisesOpportunitiesTab";
 import { PremisesRelationshipsTab } from "@/components/admin/properties-v1/PremisesRelationshipsTab";
-import { EntityActivitiesTab } from "@/components/admin/activities/EntityActivitiesTab";
+import { PremisesTimelineTab } from "@/components/admin/properties-v1/PremisesTimelineTab";
 import { countPremisesRelationships } from "@/lib/premisesRelationships";
 import {
   asCompanyV1Options,
   asContactV1Options,
   normalizePremisesDrawerData,
 } from "@/lib/premisesClientData";
-import { formatPremisesName } from "@/lib/premisesDisplay";
 import { getPremisesTab } from "@/lib/premisesDetailTab";
 import type { PremisesDrawerData } from "@/lib/repos/premisesDrawer";
 import type { PropertyV1SelectOption } from "@/lib/repos/propertiesV1";
@@ -57,16 +58,20 @@ export function PremisesDrawerBody({
   return (
     <div className="space-y-4">
       {tab === "overview" ? (
-        <PremisesInlineOverview
-          premises={premises}
-          buildingName={buildingName}
-          propertyOptions={propertyOptions}
-          companies={safeCompanies}
-          relatedCounts={counts}
-          companyLabels={companyLabels}
-          lastActivityDate={safeDrawerData.lastActivityDate}
-          drawerBasePath={drawerBasePath}
-        />
+        <div className="grid items-start gap-3 xl:grid-cols-2">
+          <PremisesInlineOverview
+            premises={premises}
+            buildingName={buildingName}
+            propertyOptions={propertyOptions}
+            companies={safeCompanies}
+            relatedCounts={counts}
+            companyLabels={companyLabels}
+            lastActivityDate={safeDrawerData.lastActivityDate}
+            drawerBasePath={drawerBasePath}
+          />
+          <PremisesAvailabilityTab premises={premises} />
+          <PremisesCommercialTermsTab premises={premises} />
+        </div>
       ) : tab === "relationships" ? (
         <PremisesRelationshipsTab
           premises={premises}
@@ -81,13 +86,7 @@ export function PremisesDrawerBody({
       ) : tab === "fees" ? (
         <PremisesFeesTab fees={safeDrawerData.fees} />
       ) : tab === "activities" ? (
-        <EntityActivitiesTab
-          activities={safeDrawerData.activities}
-          defaults={{
-            premises_business_id: premises.business_id ?? null,
-            premises_label: formatPremisesName(buildingName, premises.floor, premises.unit),
-          }}
-        />
+        <PremisesTimelineTab premises={premises} buildingName={buildingName} drawerData={safeDrawerData} />
       ) : tab === "notes" ? (
         <PremisesInlineNotes premises={premises} />
       ) : null}

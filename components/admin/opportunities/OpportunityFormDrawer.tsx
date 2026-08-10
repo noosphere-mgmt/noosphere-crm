@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { SubmitButton } from "@/components/admin/AdminFormFields";
 import { OpportunityFormFields } from "@/components/admin/OpportunityFormFields";
+import { OpportunityCreationIntake } from "@/components/admin/opportunities/OpportunityCreationIntake";
 import { FormEditingContext } from "@/components/admin/ModuleActionBar";
 import { createOpportunityAction } from "@/app/admin/opportunities/actions";
 import type { ContactOption } from "@/lib/repos/contacts";
@@ -21,6 +22,7 @@ export function OpportunityFormDrawer({
   contacts,
   fixedCompanyId,
   returnTo,
+  startWithCapture = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -28,8 +30,10 @@ export function OpportunityFormDrawer({
   contacts: ContactOption[];
   fixedCompanyId?: number;
   returnTo?: string;
+  startWithCapture?: boolean;
 }) {
   const [formKey, setFormKey] = useState(0);
+  const [intakeDefaults, setIntakeDefaults] = useState<Partial<Opportunity>>({});
 
   useEffect(() => {
     if (!open) return;
@@ -40,14 +44,12 @@ export function OpportunityFormDrawer({
     return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  useEffect(() => {
-    if (open) setFormKey((k) => k + 1);
-  }, [open, fixedCompanyId]);
-
   if (!open) return null;
 
-  const defaults: Partial<Opportunity> | undefined =
-    fixedCompanyId && fixedCompanyId > 0 ? { company_id: fixedCompanyId } : undefined;
+  const defaults: Partial<Opportunity> = {
+    ...(fixedCompanyId && fixedCompanyId > 0 ? { company_id: fixedCompanyId } : {}),
+    ...intakeDefaults,
+  };
 
   return (
     <>
@@ -66,11 +68,18 @@ export function OpportunityFormDrawer({
           </button>
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-5">
+          <OpportunityCreationIntake
+            initiallyOpen={startWithCapture}
+            onApply={(next) => {
+              setIntakeDefaults((current) => ({ ...current, ...next }));
+              setFormKey((key) => key + 1);
+            }}
+          />
           <FormEditingContext.Provider value={true}>
             <form key={formKey} action={createOpportunityAction} className="space-y-5">
               {returnTo ? <input type="hidden" name="return_to" value={returnTo} /> : null}
               <OpportunityFormFields
-                defaults={defaults as Opportunity | undefined}
+                defaults={defaults as Opportunity}
                 companies={companies}
                 contacts={contacts}
               />

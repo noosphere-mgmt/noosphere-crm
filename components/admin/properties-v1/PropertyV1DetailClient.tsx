@@ -1,9 +1,10 @@
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PropertiesV1Client } from "@/app/admin/properties/[id]/PropertiesV1Client";
-import { InlineEditProvider, useInlineEdit } from "@/components/admin/inline/InlineEditProvider";
+import { InlineEditProvider } from "@/components/admin/inline/InlineEditProvider";
 import { InlineSaveStatus } from "@/components/admin/inline/InlineRecordChrome";
 import { AdminLoadWarningBanner } from "@/components/admin/AdminLoadWarningBanner";
 import { ModuleActionBar, moduleEditButtonClass } from "@/components/admin/ModuleActionBar";
@@ -52,7 +53,6 @@ function PropertyPageHeader({
   onCancelFullEdit: () => void;
   onSaveFullEdit: () => void;
 }) {
-  const { editHighlight, setEditHighlight } = useInlineEdit();
   const theme = moduleAccentClasses("properties");
   const address = propertyAddressLine(property);
   const formId = propertyFormId(property);
@@ -60,14 +60,22 @@ function PropertyPageHeader({
   return (
     <header className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3 shadow-sm">
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Properties</p>
-        <h1 className="text-xl font-semibold tracking-tight text-slate-900">{propertyTitle(property)}</h1>
-        <RecordBusinessId id={property.business_id ?? property.property_id} className="mt-0.5 block" />
+        <Link
+          href="/admin/properties"
+          className={`inline-flex items-center rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold ${theme.link}`}
+        >
+          ← Back to All Premises
+        </Link>
+        <h1 className="mt-1 text-xl font-semibold tracking-tight text-slate-900">{propertyTitle(property)}</h1>
+        <RecordBusinessId id={property.business_id} className="mt-0.5 block" />
         {address ? (
           <p className="mt-1 text-sm leading-snug text-slate-600">{address}</p>
         ) : (
           <p className="mt-1 text-sm text-slate-400">Address will appear when location fields are filled.</p>
         )}
+        {!fullEditMode ? (
+          <p className="mt-1 text-xs text-slate-500">Click a field to edit · pen opens full edit</p>
+        ) : null}
       </div>
       {tab === "property" ? (
         fullEditMode ? (
@@ -77,19 +85,12 @@ function PropertyPageHeader({
             <InlineSaveStatus />
             <button
               type="button"
-              className={`${moduleEditButtonClass("properties")} ${editHighlight ? "ring-2 ring-[#FDE68A]" : ""}`}
-              onClick={() => setEditHighlight(!editHighlight)}
-              aria-label={editHighlight ? "Hide editable fields" : "Inline edit"}
-              title={editHighlight ? "Hide editable fields" : "Inline edit"}
+              className={moduleEditButtonClass("properties")}
+              onClick={onFullEdit}
+              aria-label="Full page edit"
+              title="Full page edit"
             >
               <IconPen />
-            </button>
-            <button
-              type="button"
-              onClick={onFullEdit}
-              className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold ${theme.secondaryButton}`}
-            >
-              Full edit
             </button>
           </div>
         )

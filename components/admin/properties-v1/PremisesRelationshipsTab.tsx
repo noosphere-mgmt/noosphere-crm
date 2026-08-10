@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { patchPremisesFieldAction } from "@/app/admin/properties/actions";
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
 import { PremisesSectionCard } from "@/components/admin/properties-v1/premisesDrawerUi";
+import { InlineTextAreaField } from "@/components/admin/inline/InlineFields";
 import {
   formatPremisesRelationshipCompanyLabel,
   formatPremisesRelationshipContactLabel,
@@ -22,10 +23,6 @@ import {
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
 import type { ContactV1Option } from "@/lib/repos/contactsV1";
 import type { PremisesV1 } from "@/lib/repos/premisesV1";
-import {
-  OPPORTUNITY_PARTNERSHIP_MODES,
-  OPPORTUNITY_PARTNERSHIP_MODE_LABELS,
-} from "@/lib/opportunityValues";
 import {
   PREMISES_RELATIONSHIP_TYPES,
   type PremisesRelationshipLine,
@@ -118,29 +115,6 @@ function RelationshipLineFields({
             );
           })}
         </select>
-      </label>
-      <label className="block text-sm font-medium text-slate-700">
-        Partnership mode
-        <select
-          className={selectClass}
-          value={line.partnership_mode ?? ""}
-          onChange={(e) => onChange({ partnership_mode: e.target.value || null })}
-        >
-          <option value="">— Select —</option>
-          {OPPORTUNITY_PARTNERSHIP_MODES.map((m) => (
-            <option key={m} value={m}>
-              {OPPORTUNITY_PARTNERSHIP_MODE_LABELS[m]}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="block text-sm font-medium text-slate-700">
-        Contact role
-        <input
-          className={inputClass}
-          value={line.contact_role ?? ""}
-          onChange={(e) => onChange({ contact_role: e.target.value || null })}
-        />
       </label>
       <label className="block text-sm font-medium text-slate-700 sm:col-span-2">
         Remarks
@@ -271,7 +245,6 @@ function PremisesRelationshipsManager({
               <th className="px-3 py-2 font-medium">Role</th>
               <th className="px-3 py-2 font-medium">Company</th>
               <th className="px-3 py-2 font-medium">Contact</th>
-              <th className="px-3 py-2 font-medium">Partnership</th>
               <th className="px-3 py-2 font-medium">Remarks</th>
               <th className="w-24 px-3 py-2 font-medium">Actions</th>
             </tr>
@@ -279,7 +252,7 @@ function PremisesRelationshipsManager({
           <tbody>
             {visibleRows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
                   No relationships recorded.
                 </td>
               </tr>
@@ -287,7 +260,7 @@ function PremisesRelationshipsManager({
               visibleRows.map(({ line, index }) =>
                 editingIndex === index && draft ? (
                   <tr key={index} className="border-t border-slate-100 bg-blue-50/40">
-                    <td colSpan={6} className="px-3 py-3">
+                    <td colSpan={5} className="px-3 py-3">
                       <RelationshipLineFields
                         line={draft}
                         index={index}
@@ -327,7 +300,6 @@ function PremisesRelationshipsManager({
                     <td className="px-3 py-2 text-slate-800">
                       {formatPremisesRelationshipContactLabel(contactLabels, line.contact_id)}
                     </td>
-                    <td className="px-3 py-2 text-slate-800">{display(line.partnership_mode ?? line.contact_role)}</td>
                     <td className="max-w-[12rem] px-3 py-2 whitespace-pre-wrap text-slate-700">{display(line.remarks)}</td>
                     <td className="px-3 py-2">
                       <ModuleRowActions
@@ -407,8 +379,16 @@ export function PremisesRelationshipsTab({
   contacts: ContactV1Option[];
   onAddRelationship: () => void;
 }) {
+  const save = (field: string) => async (value: unknown) => {
+    const result = await patchPremisesFieldAction(premises.premises_id, field, JSON.stringify(value));
+    return { ok: result.ok, error: result.ok ? undefined : result.error };
+  };
   return (
     <PremisesSectionCard title="Parties">
+      <section className="mb-4 border-b border-slate-200 pb-4">
+        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Commission</h3>
+        <InlineTextAreaField label="Terms" value={premises.commission_remarks} compact onSave={save("commission_remarks")} />
+      </section>
       <p className="mb-3 text-sm text-slate-600">Companies and contacts linked to this premises.</p>
       <PremisesRelationshipsManager
         premises={premises}

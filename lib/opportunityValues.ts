@@ -1,30 +1,31 @@
 /** Opportunity workspace list values */
 
 export const PROPOSED_PREMISES_STATUSES = [
-  "proposed",
-  "presented",
   "shortlisted",
   "viewing",
   "negotiation",
-  "rejected",
   "selected",
-  "won",
-  "lost",
+  "rejected",
 ] as const;
 
 export type ProposedPremisesStatus = (typeof PROPOSED_PREMISES_STATUSES)[number];
 
 export const PROPOSED_PREMISES_STATUS_LABELS: Record<ProposedPremisesStatus, string> = {
-  proposed: "Proposed",
-  presented: "Presented",
-  shortlisted: "Shortlisted",
-  viewing: "Viewing",
-  negotiation: "Negotiation",
-  rejected: "Rejected",
+  shortlisted: "Reviewing",
+  viewing: "Inspected",
+  negotiation: "Negotiating",
   selected: "Selected",
-  won: "Won",
-  lost: "Lost",
+  rejected: "Rejected",
 };
+
+/** Converts historic line stages into the simplified operator workflow. */
+export function normalizeProposedPremisesStatus(value: string): ProposedPremisesStatus {
+  if (value === "proposed" || value === "presented" || value === "shortlisted") return "shortlisted";
+  if (value === "viewing") return "viewing";
+  if (value === "negotiation") return "negotiation";
+  if (value === "selected" || value === "won") return "selected";
+  return "rejected";
+}
 
 export const PROPOSED_PREMISES_PREFERENCES = ["high", "medium", "low"] as const;
 export type ProposedPremisesPreference = (typeof PROPOSED_PREMISES_PREFERENCES)[number];
@@ -37,13 +38,10 @@ export const PROPOSED_PREMISES_PREFERENCE_LABELS: Record<ProposedPremisesPrefere
 
 /** Primary party roles for opportunity workspace */
 export const OPPORTUNITY_PARTY_ROLES = [
-  "end_user",
   "agent",
-  "referrer",
   "operator",
   "landlord",
   "building_management",
-  "investor",
 ] as const;
 
 export type OpportunityPartyRole = (typeof OPPORTUNITY_PARTY_ROLES)[number];
@@ -51,7 +49,7 @@ export type OpportunityPartyRole = (typeof OPPORTUNITY_PARTY_ROLES)[number];
 export const OPPORTUNITY_PARTY_ROLE_LABELS: Record<string, string> = {
   end_user: "End User",
   agent: "Agent",
-  referring_agent: "Agent",
+  referring_agent: "Referring Agent",
   co_broker: "Agent",
   referrer: "Referrer",
   operator: "Operator",
@@ -63,14 +61,13 @@ export const OPPORTUNITY_PARTY_ROLE_LABELS: Record<string, string> = {
 
 /** Roles shown in overview parties summary */
 export const OPPORTUNITY_PARTY_SUMMARY_SLOTS: { role: string; label: string; aliases?: string[] }[] = [
-  { role: "end_user", label: "End User" },
-  { role: "agent", label: "Agent", aliases: ["referring_agent", "co_broker"] },
-  { role: "referrer", label: "Referrer" },
+  { role: "agent", label: "Agent", aliases: ["co_broker"] },
+  { role: "operator", label: "Operator" },
+  { role: "landlord", label: "Landlord" },
 ];
 
 export const OPPORTUNITY_PARTNERSHIP_MODES = [
   "direct",
-  "referral",
   "co_broker",
   "operator_direct",
   "landlord_direct",
@@ -81,12 +78,11 @@ export const OPPORTUNITY_PARTNERSHIP_MODES = [
 export type OpportunityPartnershipMode = (typeof OPPORTUNITY_PARTNERSHIP_MODES)[number];
 
 export const OPPORTUNITY_PARTNERSHIP_MODE_LABELS: Record<OpportunityPartnershipMode, string> = {
-  direct: "Direct",
-  referral: "Referral",
+  direct: "Direct relationship",
   co_broker: "Co-broker",
-  operator_direct: "Operator Direct",
-  landlord_direct: "Landlord Direct",
-  no_fee: "No Fee",
+  operator_direct: "Direct operator relationship",
+  landlord_direct: "Direct landlord relationship",
+  no_fee: "Participant — no referral fee",
   other: "Other",
 };
 
@@ -110,13 +106,21 @@ export const FEE_STATUS_LABELS: Record<FeeStatus, string> = {
   not_applicable: "Not Applicable",
 };
 
-export const OPPORTUNITY_SALES_ROLES = ["to_lease", "to_buy"] as const;
+export const OPPORTUNITY_SALES_ROLES = ["to_lease", "to_buy", "to_sell", "prof_service"] as const;
 export type OpportunitySalesRole = (typeof OPPORTUNITY_SALES_ROLES)[number];
 
 export const OPPORTUNITY_SALES_ROLE_LABELS: Record<OpportunitySalesRole, string> = {
-  to_lease: "To Lease",
-  to_buy: "To Buy",
+  to_lease: "Lease",
+  to_buy: "Buy / Acquisition",
+  to_sell: "Sell / Disposal",
+  prof_service: "Corporate Service",
 };
+
+export function isProfServiceSalesRole(
+  role: OpportunitySalesRole | string | null | undefined,
+): boolean {
+  return role === "prof_service";
+}
 
 export const OPPORTUNITY_FUNDING_STATUSES = [
   "cash",

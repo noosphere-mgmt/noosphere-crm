@@ -1,0 +1,3 @@
+ALTER TABLE properties_v1
+  ADD COLUMN IF NOT EXISTS facilities_zh TEXT NULL,
+  ADD COLUMN IF NOT EXISTS facilities_cn TEXT NULL;

@@ -34,6 +34,7 @@ export const PROPERTY_V1_FULL_FORM_UPDATE_PARAMS = [
   "bldg_name_en",
   "bldg_name_zh",
   "bldg_name_cn",
+  "building_type",
   "floor_count",
   "bldg_area_sqft",
   "bldg_area_sqm",

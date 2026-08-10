@@ -1,6 +1,5 @@
 import {
   classifyCompanyQueryParam,
-  isV1CompanyRef,
 } from "@/lib/entityRefGuards";
 import {
   resolveCompanyRefToLegacy,
@@ -13,7 +12,7 @@ export type CompanyQueryResolveResult =
 
 export { isV1CompanyRef as isV1CompanyId } from "@/lib/entityRefGuards";
 
-/** Resolve ?company= query param to legacy companies.id (bigint PK). */
+/** Resolve ?company= query param (or full-page path id) to legacy companies.id. */
 export async function resolveLegacyCompanyIdFromQuery(
   raw: string | undefined,
 ): Promise<number | null> {
@@ -25,11 +24,8 @@ export async function resolveLegacyCompanyIdFromQuery(
     return classified.legacyCompanyId;
   }
 
-  if (isV1CompanyRef(trimmed) || /^\d+$/.test(trimmed)) {
-    return resolveCompanyRefToLegacy(trimmed);
-  }
-
-  return null;
+  // Permanent business ID (C100001), COMP-*, numeric, or other known refs.
+  return resolveCompanyRefToLegacy(trimmed);
 }
 
 /** Resolve ?company= with cross-entity redirect support. */

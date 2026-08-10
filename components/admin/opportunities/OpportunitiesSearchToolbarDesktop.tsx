@@ -1,19 +1,25 @@
 "use client";
 
-import { OPPORTUNITY_LEAD_TYPES, OPPORTUNITY_LEAD_TYPE_LABELS, OPPORTUNITY_STATUSES, OPPORTUNITY_STATUS_LABELS } from "@/lib/lookups";
-import type { OpportunitiesQuickFilters } from "@/lib/opportunitiesList";
+import { OpportunitiesStatusFilterPills } from "@/components/admin/opportunities/OpportunitiesStatusFilterPills";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
+import type { OpportunitiesListStatusFilter } from "@/lib/opportunitiesList";
 
 export function OpportunitiesSearchToolbarDesktop({
   searchQuery,
   onSearchChange,
-  quickFilters,
-  onQuickFiltersChange,
+  listStatusFilter,
+  onListStatusFilterChange,
+  statusFilterCounts,
+  usingLegacyStatusFilter,
+  dashboardStage,
 }: {
   searchQuery: string;
   onSearchChange: (value: string) => void;
-  quickFilters: OpportunitiesQuickFilters;
-  onQuickFiltersChange: (next: OpportunitiesQuickFilters) => void;
+  listStatusFilter: OpportunitiesListStatusFilter;
+  onListStatusFilterChange: (filter: OpportunitiesListStatusFilter) => void;
+  statusFilterCounts: Record<OpportunitiesListStatusFilter, number>;
+  usingLegacyStatusFilter?: boolean;
+  dashboardStage?: string;
 }) {
   const theme = moduleAccentClasses("opportunities");
 
@@ -29,38 +35,20 @@ export function OpportunitiesSearchToolbarDesktop({
       />
 
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            type="button"
-            onClick={() => onQuickFiltersChange({ ...quickFilters, lead_type: "" })}
-            className={quickFilters.lead_type ? theme.filterPillInactive : theme.filterPillActive}
-          >
-            All
-          </button>
-          {OPPORTUNITY_LEAD_TYPES.map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => onQuickFiltersChange({ ...quickFilters, lead_type: t })}
-              className={quickFilters.lead_type === t ? theme.filterPillActive : theme.filterPillInactive}
-            >
-              {OPPORTUNITY_LEAD_TYPE_LABELS[t]}
-            </button>
-          ))}
-        </div>
-        <select
-          aria-label="Filter by status"
-          value={quickFilters.status}
-          onChange={(e) => onQuickFiltersChange({ ...quickFilters, status: e.target.value })}
-          className={theme.searchSelect}
-        >
-          <option value="">Status</option>
-          {OPPORTUNITY_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {OPPORTUNITY_STATUS_LABELS[s]}
-            </option>
-          ))}
-        </select>
+        <span className="text-xs font-medium text-slate-500">Status</span>
+        <OpportunitiesStatusFilterPills
+          listStatusFilter={listStatusFilter}
+          onListStatusFilterChange={onListStatusFilterChange}
+          counts={statusFilterCounts}
+          usingLegacyStatusFilter={usingLegacyStatusFilter}
+        />
+        {usingLegacyStatusFilter ? (
+          <span className="text-xs text-slate-500">Pipeline filter from dashboard link</span>
+        ) : dashboardStage ? (
+          <span className="text-xs text-slate-500">
+            Pipeline: {dashboardStage === "won_month" ? "Won this month" : dashboardStage === "no_footprint" ? "Without footprint" : "Viewing"}
+          </span>
+        ) : null}
       </div>
     </div>
   );

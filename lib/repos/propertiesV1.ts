@@ -6,19 +6,29 @@ import {
   formatSqlParamDebug,
 } from "@/lib/propertyV1DbCoerce";
 import { allocateNextBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
+import { normalizeBuildingRelationships, type BuildingRelationshipLine } from "@/lib/buildingRelationships";
 
 export type PropertyV1 = {
   property_id: string;
-  business_id: string | null;
+  business_id?: string | null;
   bldg_name_en: string | null;
   bldg_name_zh: string | null;
   bldg_name_cn: string | null;
+  building_type: string | null;
   tower_block: string | null;
   floor_count: number | null;
   bldg_area_sqft: string | null;
   bldg_area_sqm: string | null;
   year_built: number | null;
   bldg_desc: string | null;
+  bldg_desc_zh: string | null;
+  bldg_desc_cn: string | null;
+  location_advantages_en: string | null;
+  location_advantages_zh: string | null;
+  location_advantages_cn: string | null;
+  proposal_highlights_en: string | null;
+  proposal_highlights_zh: string | null;
+  proposal_highlights_cn: string | null;
   building_remarks: string | null;
   land_use: string | null;
   class_of_site: string | null;
@@ -43,6 +53,8 @@ export type PropertyV1 = {
   mtr_station: string | null;
   walking_minutes: number | null;
   facilities: string | null;
+  facilities_zh: string | null;
+  facilities_cn: string | null;
   green_certification: string | null;
   lot_number: string | null;
   grade: string | null;
@@ -54,18 +66,22 @@ export type PropertyV1 = {
   inventory_count: number | null;
   inventory_count_sales: number | null;
   inventory_count_lease: number | null;
+  building_relationship_lines: BuildingRelationshipLine[];
   updated_at: string;
 };
 
 const select = `
   property_id,
   business_id,
-  bldg_name_en, bldg_name_zh, bldg_name_cn,
+  bldg_name_en, bldg_name_zh, bldg_name_cn, building_type,
   tower_block, floor_count,
   bldg_area_sqft::text AS bldg_area_sqft,
   bldg_area_sqm::text AS bldg_area_sqm,
   year_built,
   bldg_desc,
+  bldg_desc_zh, bldg_desc_cn,
+  location_advantages_en, location_advantages_zh, location_advantages_cn,
+  proposal_highlights_en, proposal_highlights_zh, proposal_highlights_cn,
   building_remarks,
   land_use, class_of_site, land_tenure,
   plot_ratio::text AS plot_ratio,
@@ -75,14 +91,18 @@ const select = `
   district_en, district_zh, district_cn,
   street_no, street_name_en, street_name_zh, street_name_cn,
   full_address_en, full_address_zh, full_address_cn,
-  mtr_station, walking_minutes, facilities, green_certification, lot_number,
+  mtr_station, walking_minutes, facilities, facilities_zh, facilities_cn, green_certification, lot_number,
   grade, management_company_id, operator_company_id, current_tenant_company_id, owner_company_id, title,
   inventory_count, inventory_count_sales, inventory_count_lease,
+  building_relationship_lines,
   updated_at::text AS updated_at
 `;
 
 export type PropertiesListFilters = {
   q?: string;
+  category?: string;
+  title?: string;
+  related_company?: string;
 };
 
 export async function listPropertiesV1(filters: PropertiesListFilters = {}): Promise<PropertyV1[]> {
@@ -90,33 +110,55 @@ export async function listPropertiesV1(filters: PropertiesListFilters = {}): Pro
   const params: unknown[] = [];
 
   if (filters.q) {
+    const qParam = `$${params.length + 1}`;
     clauses.push(`(
-      bldg_name_en ILIKE $1
-      OR bldg_name_zh ILIKE $1
-      OR bldg_name_cn ILIKE $1
-      OR full_address_en ILIKE $1
-      OR full_address_zh ILIKE $1
-      OR full_address_cn ILIKE $1
-      OR district_en ILIKE $1
-      OR district_zh ILIKE $1
-      OR district_cn ILIKE $1
-      OR city_en ILIKE $1
-      OR city_zh ILIKE $1
-      OR city_cn ILIKE $1
+      bldg_name_en ILIKE ${qParam}
+      OR bldg_name_zh ILIKE ${qParam}
+      OR bldg_name_cn ILIKE ${qParam}
+      OR full_address_en ILIKE ${qParam}
+      OR full_address_zh ILIKE ${qParam}
+      OR full_address_cn ILIKE ${qParam}
+      OR district_en ILIKE ${qParam}
+      OR district_zh ILIKE ${qParam}
+      OR district_cn ILIKE ${qParam}
+      OR city_en ILIKE ${qParam}
+      OR city_zh ILIKE ${qParam}
+      OR city_cn ILIKE ${qParam}
       OR EXISTS (
         SELECT 1 FROM companies_v1 co
         WHERE ${sqlJoinV1Company("co", "properties_v1.operator_company_id")}
-          AND co.company_name_en ILIKE $1
+          AND co.company_name_en ILIKE ${qParam}
       )
     )`);
     params.push(`%${filters.q}%`);
   }
+  if (filters.category) {
+    clauses.push(`building_type = $${params.length + 1}`);
+    params.push(filters.category);
+  }
+  if (filters.title) {
+    clauses.push(`title = $${params.length + 1}`);
+    params.push(filters.title);
+  }
+  if (filters.related_company) {
+    const companyParam = `$${params.length + 1}`;
+    clauses.push(`EXISTS (
+      SELECT 1
+      FROM jsonb_array_elements(COALESCE(building_relationship_lines, '[]'::jsonb)) AS rel(line)
+      JOIN companies_v1 related_company
+        ON ${sqlJoinV1Company("related_company", "rel.line->>'company_id'")}
+      WHERE related_company.company_name_en ILIKE ${companyParam}
+         OR related_company.business_id ILIKE ${companyParam}
+    )`);
+    params.push(`%${filters.related_company}%`);
+  }
 
   const where = clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "";
-  return query<PropertyV1>(
+  const rows = await query<PropertyV1>(
     `SELECT ${select} FROM properties_v1 ${where} ORDER BY bldg_name_en ASC NULLS LAST, property_id ASC`,
     params,
   );
+  return rows.map((row) => ({ ...row, building_relationship_lines: normalizeBuildingRelationships(row.building_relationship_lines) }));
 }
 
 export async function countPropertiesV1(): Promise<number> {
@@ -125,8 +167,28 @@ export async function countPropertiesV1(): Promise<number> {
 }
 
 export async function getPropertyV1(propertyId: string): Promise<PropertyV1 | null> {
-  const rows = await query<PropertyV1>(`SELECT ${select} FROM properties_v1 WHERE property_id = $1 LIMIT 1`, [propertyId]);
-  return rows[0] ?? null;
+  const ref = propertyId.trim();
+  if (!ref) return null;
+  const rows = await query<PropertyV1>(
+    `SELECT ${select} FROM properties_v1 WHERE property_id = $1 OR business_id = $1 LIMIT 1`,
+    [ref],
+  );
+  if (rows[0]) return { ...rows[0], building_relationship_lines: normalizeBuildingRelationships(rows[0].building_relationship_lines) };
+
+  // Crosswalk fallback: B100001 → properties_v1.property_id
+  const crosswalk = await query<{ primary_ref: string }>(
+    `SELECT primary_ref FROM business_id_crosswalk
+     WHERE entity_type = 'building' AND business_id = $1
+     LIMIT 1`,
+    [ref],
+  );
+  const primaryRef = crosswalk[0]?.primary_ref?.trim();
+  if (!primaryRef) return null;
+  const byPrimary = await query<PropertyV1>(
+    `SELECT ${select} FROM properties_v1 WHERE property_id = $1 LIMIT 1`,
+    [primaryRef],
+  );
+  return byPrimary[0] ? { ...byPrimary[0], building_relationship_lines: normalizeBuildingRelationships(byPrimary[0].building_relationship_lines) } : null;
 }
 
 export type PropertyV1Patch = Partial<
@@ -149,7 +211,7 @@ export async function updatePropertyV1(propertyId: string, patch: PropertyV1Patc
   let i = 2;
   for (const [k, v] of entries) {
     sets.push(`${k} = $${i}`);
-    params.push(v);
+    params.push(k === "building_relationship_lines" ? JSON.stringify(normalizeBuildingRelationships(v)) : v);
     i++;
   }
   try {
@@ -191,12 +253,21 @@ export function emptyPropertyV1(): PropertyV1 {
     bldg_name_en: null,
     bldg_name_zh: null,
     bldg_name_cn: null,
+    building_type: null,
     tower_block: null,
     floor_count: null,
     bldg_area_sqft: null,
     bldg_area_sqm: null,
     year_built: null,
     bldg_desc: null,
+    bldg_desc_zh: null,
+    bldg_desc_cn: null,
+    location_advantages_en: null,
+    location_advantages_zh: null,
+    location_advantages_cn: null,
+    proposal_highlights_en: null,
+    proposal_highlights_zh: null,
+    proposal_highlights_cn: null,
     building_remarks: null,
     land_use: null,
     class_of_site: null,
@@ -221,6 +292,8 @@ export function emptyPropertyV1(): PropertyV1 {
     mtr_station: null,
     walking_minutes: null,
     facilities: null,
+    facilities_zh: null,
+    facilities_cn: null,
     green_certification: null,
     lot_number: null,
     grade: null,
@@ -232,6 +305,7 @@ export function emptyPropertyV1(): PropertyV1 {
     inventory_count: null,
     inventory_count_sales: null,
     inventory_count_lease: null,
+    building_relationship_lines: [],
     updated_at: "",
   };
 }
@@ -243,7 +317,7 @@ export async function createPropertyV1(patch: PropertyV1Patch): Promise<string> 
   const entries = Object.entries(coerced).filter(([, v]) => v !== undefined);
   const columns = ["property_id", ...entries.map(([k]) => k)];
   const placeholders = columns.map((_, i) => `$${i + 1}`);
-  const params: unknown[] = [propertyId, ...entries.map(([, v]) => v)];
+  const params: unknown[] = [propertyId, ...entries.map(([k, v]) => k === "building_relationship_lines" ? JSON.stringify(normalizeBuildingRelationships(v)) : v)];
   await query(
     `INSERT INTO properties_v1 (${columns.join(", ")}) VALUES (${placeholders.join(", ")})`,
     params,
@@ -264,16 +338,23 @@ export async function deletePropertiesV1(propertyIds: string[]): Promise<void> {
 
 export type PropertyV1SelectOption = {
   property_id: string;
+  business_id?: string | null;
   label: string;
+  country: string | null;
+  city: string | null;
+  district: string | null;
 };
 
 export async function listPropertyV1SelectOptions(): Promise<PropertyV1SelectOption[]> {
   const rows = await query<{
     property_id: string;
+    business_id: string | null;
     bldg_name_en: string | null;
     district_en: string | null;
+    country: string | null;
+    city_en: string | null;
   }>(
-    `SELECT property_id, bldg_name_en, district_en
+    `SELECT property_id, business_id, bldg_name_en, district_en, country, city_en
      FROM properties_v1
      ORDER BY bldg_name_en ASC NULLS LAST, property_id ASC`,
   );
@@ -282,8 +363,11 @@ export async function listPropertyV1SelectOptions(): Promise<PropertyV1SelectOpt
     const district = row.district_en?.trim();
     return {
       property_id: row.property_id,
+      business_id: row.business_id?.trim() || null,
       label: district ? `${name} · ${district}` : name,
+      country: row.country?.trim() || null,
+      city: row.city_en?.trim() || null,
+      district: district || null,
     };
   });
 }
-

@@ -18,7 +18,7 @@ function buildReturnTo(searchParams: URLSearchParams): string {
   return qs ? `/admin/properties?${qs}` : "/admin/properties";
 }
 
-export function PremisesListHeaderDesktop() {
+export function PremisesListHeaderDesktop({ showCreate = true }: { showCreate?: boolean } = {}) {
   const router = useRouter();
   const theme = moduleAccentClasses("properties");
   const searchParams = useSearchParams();
@@ -68,9 +68,11 @@ export function PremisesListHeaderDesktop() {
             onCopy={onBulkCopy}
             copyTitle="Copy selected"
           />
-          <Link href="/admin/properties/premises/new" className={theme.primaryButton}>
-            New
-          </Link>
+          {showCreate ? (
+            <Link href="/admin/properties/premises/new" className={theme.primaryButton}>
+              New
+            </Link>
+          ) : null}
         </>
       }
     />

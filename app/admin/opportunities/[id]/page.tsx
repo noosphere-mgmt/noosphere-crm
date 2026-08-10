@@ -1,6 +1,10 @@
-import { redirect } from "next/navigation";
-import { getOpportunityTab } from "@/lib/opportunityDetailTab";
+import { Suspense } from "react";
+import { notFound } from "next/navigation";
+import { AdminShell } from "@/components/admin/AdminShell";
+import { OpportunityWorkspacePageClient } from "@/components/admin/opportunities/OpportunityWorkspacePageClient";
+import { isProposalsEnabled } from "@/lib/proposals/proposalEngine";
 import { resolveOpportunityQueryParam } from "@/lib/opportunityDrawerResolve";
+import { getOpportunityDetailData } from "@/lib/repos/opportunityDetail";
 
 export const dynamic = "force-dynamic";
 
@@ -9,17 +13,19 @@ type Props = {
   searchParams: Promise<{ tab?: string; mode?: string }>;
 };
 
-export default async function OpportunityDetailRedirectPage({ params, searchParams }: Props) {
+export default async function OpportunityDetailPage({ params }: Props) {
   const { id: idRaw } = await params;
-  const sp = await searchParams;
   const legacyId = await resolveOpportunityQueryParam(idRaw);
-  if (!legacyId) redirect("/admin/opportunities");
+  if (!legacyId) notFound();
 
-  const tab = getOpportunityTab(sp);
-  const qs = new URLSearchParams();
-  qs.set("opportunity", String(legacyId));
-  if (tab !== "overview") qs.set("tab", tab);
-  if (sp.mode === "edit") qs.set("mode", "edit");
+  const data = await getOpportunityDetailData(legacyId);
+  if (!data) notFound();
 
-  redirect(`/admin/opportunities?${qs.toString()}`);
+  return (
+    <AdminShell title="" wide module="opportunities" hideHeader>
+      <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-slate-100" />}>
+        <OpportunityWorkspacePageClient data={data} proposalsEnabled={isProposalsEnabled()} />
+      </Suspense>
+    </AdminShell>
+  );
 }

@@ -4,15 +4,14 @@ import Link from "next/link";
 import { IconPen, IconX } from "@/components/admin/ModuleActionIcons";
 import { moduleEditButtonClass } from "@/components/admin/ModuleActionBar";
 import { InlineSaveStatus } from "@/components/admin/inline/InlineRecordChrome";
-import { useInlineEdit } from "@/components/admin/inline/InlineEditProvider";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
+import { contactFullPageHref } from "@/lib/crmDetailNav";
 
 export function ConnectionsDrawerHeader({
   title,
   subtitle,
   businessId,
   onClose,
-  onEditToggle,
 }: {
   title: string;
   subtitle?: string | null;
@@ -20,38 +19,38 @@ export function ConnectionsDrawerHeader({
   onClose: () => void;
   onEditToggle?: (enabled: boolean) => void;
 }) {
-  const { editHighlight, setEditHighlight } = useInlineEdit();
-
-  function toggleEdit() {
-    const next = !editHighlight;
-    setEditHighlight(next);
-    onEditToggle?.(next);
-  }
+  const fullPage = contactFullPageHref(businessId);
+  const fullEdit = contactFullPageHref(businessId, { mode: "edit" });
 
   return (
     <div className="sticky top-0 z-10 shrink-0 border-b border-slate-200 bg-white px-5 py-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs text-slate-500">
-            {editHighlight ? "Click a field to edit" : "Review — click pen to edit"}
-          </p>
+          <p className="text-xs text-slate-500">Review — click a field to edit</p>
           <h2 className="mt-0.5 text-lg font-semibold tracking-tight text-slate-900">{title}</h2>
           <RecordBusinessId id={businessId} className="mt-0.5 block" />
           {subtitle ? <p className="mt-1 text-sm text-slate-600">{subtitle}</p> : null}
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <InlineSaveStatus />
-          <button
-            type="button"
-            className={`${moduleEditButtonClass("connections")} ${
-              editHighlight ? "ring-2 ring-[#DDD6FE]" : ""
-            }`}
-            onClick={toggleEdit}
-            aria-label={editHighlight ? "Exit inline edit" : "Inline edit"}
-            title={editHighlight ? "Exit inline edit" : "Inline edit"}
-          >
-            <IconPen />
-          </button>
+          {fullEdit ? (
+            <Link
+              href={fullEdit}
+              className={moduleEditButtonClass("connections")}
+              aria-label="Edit on full page"
+              title="Edit on full page"
+            >
+              <IconPen />
+            </Link>
+          ) : null}
+          {fullPage ? (
+            <Link
+              href={fullPage}
+              className="hidden rounded-lg border border-[#DDD6FE] bg-[#F5F3FF] px-2.5 py-1.5 text-sm font-medium text-[#5B21B6] hover:bg-[#EDE9FE] sm:inline-flex"
+            >
+              Full page
+            </Link>
+          ) : null}
           <button
             type="button"
             onClick={onClose}

@@ -20,6 +20,7 @@ import {
   PROPOSED_PREMISES_PREFERENCE_LABELS,
   PROPOSED_PREMISES_STATUSES,
   PROPOSED_PREMISES_STATUS_LABELS,
+  normalizeProposedPremisesStatus,
 } from "@/lib/opportunityValues";
 import type { OpportunityProposedPremises } from "@/lib/types/entities";
 
@@ -48,6 +49,7 @@ export function ProposedPremisesListRow({
   const listingPrice = proposedPremisesListingPrice(row);
   const tourSource = proposedPremisesTourDateSource(row);
   const meta = formatProposedPremisesListMeta(row);
+  const workflowStatus = normalizeProposedPremisesStatus(row.status);
 
   useEffect(() => {
     setPrice(proposedPremisesEffectivePrice(row));
@@ -136,7 +138,7 @@ export function ProposedPremisesListRow({
       <td className="px-3 py-1.5">
         <select
           className={cellSelect}
-          defaultValue={row.status}
+          value={workflowStatus}
           onChange={(e) => save({ status: e.target.value })}
         >
           {PROPOSED_PREMISES_STATUSES.map((s) => (

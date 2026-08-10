@@ -5,26 +5,33 @@ import { OpportunitiesKpiStrip } from "@/components/admin/opportunities/Opportun
 import { OpportunitiesListDesktop } from "@/components/admin/opportunities/OpportunitiesListDesktop";
 import { OpportunitiesListHeaderDesktop } from "@/components/admin/opportunities/OpportunitiesListHeaderDesktop";
 import { OpportunitiesSearchToolbarDesktop } from "@/components/admin/opportunities/OpportunitiesSearchToolbarDesktop";
+import { OpportunitiesSalesCopilot } from "@/components/admin/opportunities/OpportunitiesSalesCopilot";
 import type { OpportunitiesListState } from "@/components/admin/opportunities/useOpportunitiesList";
 
 export function OpportunitiesDesktop({
   state,
-  onQuickView,
+  onOpenWorkspace,
   onNewOpportunity,
+  onCaptureRequirement,
 }: {
   state: OpportunitiesListState;
-  onQuickView: (id: number) => void;
+  onOpenWorkspace: (row: import("@/lib/types/entities").Opportunity) => void;
   onNewOpportunity: () => void;
+  onCaptureRequirement: () => void;
 }) {
   return (
     <>
-      <OpportunitiesListHeaderDesktop onNewOpportunity={onNewOpportunity} />
+      <OpportunitiesListHeaderDesktop onNewOpportunity={onNewOpportunity} onCaptureRequirement={onCaptureRequirement} />
       <OpportunitiesKpiStrip rows={state.rows} />
+      <OpportunitiesSalesCopilot rows={state.rows} />
       <OpportunitiesSearchToolbarDesktop
         searchQuery={state.searchQuery}
         onSearchChange={state.setSearchQuery}
-        quickFilters={state.quickFilters}
-        onQuickFiltersChange={state.setQuickFilters}
+        listStatusFilter={state.listStatusFilter}
+        onListStatusFilterChange={state.setListStatusFilter}
+        statusFilterCounts={state.statusFilterCounts}
+        usingLegacyStatusFilter={state.usingLegacyStatusFilter}
+        dashboardStage={state.dashboardStage}
       />
       <ListingRecordCount
         filteredCount={state.displayedRows.length}
@@ -32,7 +39,7 @@ export function OpportunitiesDesktop({
         label="Opportunities"
         selectedCount={state.selectedCount}
       />
-      <OpportunitiesListDesktop state={state} onQuickView={onQuickView} />
+      <OpportunitiesListDesktop state={state} onOpenWorkspace={onOpenWorkspace} />
     </>
   );
 }

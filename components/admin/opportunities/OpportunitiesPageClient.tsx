@@ -1,22 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { OpportunitiesListClient } from "@/components/admin/opportunities/OpportunitiesListClient";
-import { OpportunityDrawer } from "@/components/admin/opportunities/OpportunityDrawer";
 import { OpportunityFormDrawer } from "@/components/admin/opportunities/OpportunityFormDrawer";
 import { OpportunitiesListSelectionProvider } from "@/components/admin/opportunities/OpportunitiesListSelectionContext";
 import { ModuleListingExportProvider } from "@/components/admin/ModuleListingExportContext";
-import { DrawerLoadError } from "@/components/admin/connections/DrawerLoadError";
 import {
   buildOpportunitiesReturnTo,
   opportunityCreateHref,
-  opportunityDrawerHref,
 } from "@/lib/opportunitiesDrawerNav";
-import type { OpportunityDrawerData } from "@/lib/repos/opportunitiesDrawer";
+import { opportunityWorkspaceHref } from "@/lib/opportunityWorkspaceNav";
+import type { OpportunitiesDashboardStage, OpportunitiesListStatusFilter } from "@/lib/opportunitiesList";
 import type { ContactOption } from "@/lib/repos/contacts";
-import type { Opportunity } from "@/lib/types/entities";
-import type { OpportunitiesDashboardStage } from "@/lib/opportunitiesList";
+import type { Opportunity, OpportunityStatus } from "@/lib/types/entities";
 
 type CompanyOption = { id: number; company_name: string };
 
@@ -24,54 +21,35 @@ export function OpportunitiesPageClient({
   rows,
   companies,
   contacts,
-  selectedOpportunity,
-  drawerError,
-  initialStatus,
-  initialStage,
+  initialListStatusFilter,
+  initialLegacyStatuses,
+  initialDashboardStage,
 }: {
   rows: Opportunity[];
   companies: CompanyOption[];
   contacts: ContactOption[];
-  selectedOpportunity: OpportunityDrawerData | null;
-  drawerError?: string | null;
-  initialStatus?: string;
-  initialStage?: OpportunitiesDashboardStage;
+  initialListStatusFilter?: OpportunitiesListStatusFilter;
+  initialLegacyStatuses?: OpportunityStatus[];
+  initialDashboardStage?: OpportunitiesDashboardStage;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const openId = searchParams.get("opportunity")?.trim() ?? null;
   const createOpen = searchParams.get("new") === "1";
-  const returnTo = useMemo(() => buildOpportunitiesReturnTo(searchParams), [searchParams]);
+  const returnTo = buildOpportunitiesReturnTo(searchParams);
 
-  const drawerData = useMemo(() => {
-    if (!openId || !selectedOpportunity) return null;
-    const legacyId = String(selectedOpportunity.opportunity.id);
-    if (legacyId === openId) return selectedOpportunity;
-    if (selectedOpportunity.v1OpportunityId === openId) return selectedOpportunity;
-    return null;
-  }, [openId, selectedOpportunity]);
-
-  const closeDrawer = useCallback(() => {
-    router.replace(returnTo);
-  }, [router, returnTo]);
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape" && openId) closeDrawer();
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [closeDrawer, openId]);
-
-  const openQuickView = useCallback(
-    (id: number) => {
-      router.push(opportunityDrawerHref(searchParams, id, "overview"));
+  const openWorkspace = useCallback(
+    (row: Opportunity) => {
+      router.push(opportunityWorkspaceHref(row, "overview"));
     },
-    [router, searchParams],
+    [router],
   );
 
   const openCreateDrawer = useCallback(() => {
     router.push(opportunityCreateHref(searchParams));
+  }, [router, searchParams]);
+
+  const openCaptureDrawer = useCallback(() => {
+    router.push(opportunityCreateHref(searchParams, undefined, true));
   }, [router, searchParams]);
 
   const closeCreateDrawer = useCallback(() => {
@@ -86,23 +64,24 @@ export function OpportunitiesPageClient({
       <ModuleListingExportProvider>
         <OpportunitiesListClient
           rows={rows}
-          onQuickView={openQuickView}
+          onOpenWorkspace={openWorkspace}
           onNewOpportunity={openCreateDrawer}
-          initialStatus={initialStatus}
-          initialStage={initialStage}
+          onCaptureRequirement={openCaptureDrawer}
+          initialListStatusFilter={initialListStatusFilter}
+          initialLegacyStatuses={initialLegacyStatuses}
+          initialDashboardStage={initialDashboardStage}
         />
-        {drawerError && openId ? (
-          <DrawerLoadError label="opportunity" message={drawerError} onClose={closeDrawer} />
+        {createOpen ? (
+          <OpportunityFormDrawer
+            open
+            onClose={closeCreateDrawer}
+            companies={companies}
+            contacts={contacts}
+            fixedCompanyId={Number.isFinite(fixedCompanyId) ? fixedCompanyId : undefined}
+            returnTo={returnTo}
+            startWithCapture={searchParams.get("capture") === "1"}
+          />
         ) : null}
-        <OpportunityDrawer data={drawerData} onClose={closeDrawer} />
-        <OpportunityFormDrawer
-          open={createOpen}
-          onClose={closeCreateDrawer}
-          companies={companies}
-          contacts={contacts}
-          fixedCompanyId={Number.isFinite(fixedCompanyId) ? fixedCompanyId : undefined}
-          returnTo={returnTo}
-        />
       </ModuleListingExportProvider>
     </OpportunitiesListSelectionProvider>
   );

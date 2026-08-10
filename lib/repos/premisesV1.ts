@@ -6,6 +6,7 @@ import {
   formatSqlParamDebug,
 } from "@/lib/propertyV1DbCoerce";
 import { allocateNextBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
+import { isPermanentBusinessId } from "@/lib/businessIds";
 import { normalizePremisesRelationshipLines } from "@/lib/premisesRelationships";
 import type { PremisesRelationshipLine } from "@/lib/v1ListValues";
 
@@ -25,21 +26,44 @@ export type PremisesV1 = {
   business_id: string | null;
   property_id: string;
   property_name_en: string | null;
+  property_name_en_is_custom?: boolean;
   property_name_zh: string | null;
+  property_name_zh_is_custom?: boolean;
+  property_name_cn?: string | null;
+  property_name_cn_is_custom?: boolean;
   property_type: string | null;
   centre_type: string | null;
+  property_category: string | null;
+  asset_class?: string | null;
+  asset_scope?: string | null;
+  product_subtype?: string | null;
+  whole_asset_type?: string | null;
+  market_mode?: string | null;
+  occupancy_status?: string | null;
+  availability_status?: string | null;
+  discovery_status?: string | null;
+  access_status?: string | null;
+  source_type?: string | null;
+  address_confidence?: string | null;
+  last_verified_at?: string | null;
+  space_form: string | null;
+  listing_intent: string | null;
   inventory_status: string | null;
   ownership_type: string | null;
   floor: string | null;
   unit: string | null;
   workstation_count: string | null;
+  no_of_rooms?: string | null;
   office_name: string | null;
   office_type: string | null;
   gross_area_sqft: string | null;
   net_area_sqft: string | null;
+  gross_area_sqm?: string | null;
+  net_area_sqm?: string | null;
   view_type: string | null;
   windows: string | null;
   management_fee: string | null;
+  management_fee_psf: string | null;
   government_rates: string | null;
   remarks: string | null;
   owner_company_id: string | null;
@@ -81,15 +105,24 @@ const select = `
   premises_id,
   business_id,
   property_id,
-  property_name_en, property_name_zh,
+  property_name_en, property_name_en_is_custom,
+  property_name_zh, property_name_zh_is_custom,
+  property_name_cn, property_name_cn_is_custom,
   property_type, centre_type,
+  property_category, asset_class, asset_scope, product_subtype, whole_asset_type,
+  market_mode, occupancy_status, availability_status, discovery_status, access_status,
+  source_type, address_confidence, last_verified_at::text AS last_verified_at,
+  space_form, listing_intent,
   inventory_status, ownership_type,
-  floor, unit, workstation_count,
+  floor, unit, workstation_count, no_of_rooms,
   office_name, office_type,
   gross_area_sqft::text AS gross_area_sqft,
   net_area_sqft::text AS net_area_sqft,
+  gross_area_sqm::text AS gross_area_sqm,
+  net_area_sqm::text AS net_area_sqm,
   view_type, windows,
   management_fee::text AS management_fee,
+  management_fee_psf::text AS management_fee_psf,
   government_rates::text AS government_rates,
   remarks,
   owner_company_id, landlord_company_id, current_tenant_company_id, operator_company_id,
@@ -142,7 +175,21 @@ export async function resolvePremisesV1Id(raw: string): Promise<string | null> {
     `SELECT premises_id FROM premises_v1 WHERE premises_id = $1 OR business_id = $1 LIMIT 1`,
     [id],
   );
-  return rows[0]?.premises_id ?? null;
+  if (rows[0]?.premises_id) return rows[0].premises_id;
+
+  const crosswalk = await query<{ primary_ref: string }>(
+    `SELECT primary_ref FROM business_id_crosswalk
+     WHERE entity_type = 'premise' AND business_id = $1
+     LIMIT 1`,
+    [id],
+  );
+  const primaryRef = crosswalk[0]?.primary_ref?.trim();
+  if (!primaryRef) return null;
+  const byPrimary = await query<{ premises_id: string }>(
+    `SELECT premises_id FROM premises_v1 WHERE premises_id = $1 LIMIT 1`,
+    [primaryRef],
+  );
+  return byPrimary[0]?.premises_id ?? null;
 }
 
 export type PremisesV1Patch = Partial<
@@ -152,7 +199,10 @@ export type PremisesV1Patch = Partial<
     | "updated_at"
     | "gross_area_sqft"
     | "net_area_sqft"
+    | "gross_area_sqm"
+    | "net_area_sqm"
     | "management_fee"
+    | "management_fee_psf"
     | "government_rates"
     | "monthly_rent"
     | "rent_psf"
@@ -164,7 +214,10 @@ export type PremisesV1Patch = Partial<
   > & {
     gross_area_sqft?: number | null;
     net_area_sqft?: number | null;
+    gross_area_sqm?: number | null;
+    net_area_sqm?: number | null;
     management_fee?: number | null;
+    management_fee_psf?: number | null;
     government_rates?: number | null;
     monthly_rent?: number | null;
     rent_psf?: number | null;
@@ -222,26 +275,50 @@ export async function allocatePremisesV1Id(): Promise<string> {
 }
 
 export function emptyPremisesV1(propertyId: string): PremisesV1 {
+  const now = new Date();
+  const today = new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
   return {
     premises_id: "",
     business_id: null,
     property_id: propertyId,
     property_name_en: null,
+    property_name_en_is_custom: false,
     property_name_zh: null,
+    property_name_zh_is_custom: false,
+    property_name_cn_is_custom: false,
     property_type: null,
     centre_type: null,
+    property_category: null,
+    asset_class: "commercial",
+    asset_scope: "unit",
+    product_subtype: "conventional_office",
+    whole_asset_type: null,
+    market_mode: "lease",
+    occupancy_status: "unknown",
+    availability_status: "available",
+    discovery_status: "identified",
+    access_status: "no_contact",
+    source_type: "direct",
+    address_confidence: "building_confirmed",
+    last_verified_at: null,
+    space_form: null,
+    listing_intent: null,
     inventory_status: null,
     ownership_type: null,
     floor: null,
     unit: null,
     workstation_count: null,
+    no_of_rooms: null,
     office_name: null,
     office_type: null,
     gross_area_sqft: null,
     net_area_sqft: null,
+    gross_area_sqm: null,
+    net_area_sqm: null,
     view_type: null,
     windows: null,
     management_fee: null,
+    management_fee_psf: null,
     government_rates: null,
     remarks: null,
     owner_company_id: null,
@@ -259,7 +336,7 @@ export function emptyPremisesV1(propertyId: string): PremisesV1 {
     deposit_months: null,
     rent_free_period: null,
     contract_term_months: null,
-    available_date: null,
+    available_date: today,
     commission_rate: null,
     currency: "HKD",
     asking_sale_price: null,
@@ -274,7 +351,7 @@ export function emptyPremisesV1(propertyId: string): PremisesV1 {
     operating_model: null,
     fit_out_condition: null,
     relationship_lines: null,
-    last_verified_date: null,
+    last_verified_date: today,
     listing_remarks: null,
     updated_at: "",
   };
@@ -282,7 +359,14 @@ export function emptyPremisesV1(propertyId: string): PremisesV1 {
 
 export async function createPremisesV1(propertyId: string, patch: PremisesV1Patch): Promise<string> {
   const premisesId = await allocatePremisesV1Id();
-  const businessId = await allocateNextBusinessId("premise");
+  const suppliedBusinessId =
+    typeof patch.business_id === "string" && patch.business_id.trim()
+      ? patch.business_id.trim()
+      : null;
+  const businessId =
+    suppliedBusinessId && isPermanentBusinessId("premise", suppliedBusinessId)
+      ? suppliedBusinessId
+      : await allocateNextBusinessId("premise");
   const coerced = await coercePremisesV1PatchForDb({ ...patch, business_id: businessId });
   const entries = Object.entries(coerced).filter(
     ([k, v]) =>
@@ -320,7 +404,10 @@ export async function duplicatePremisesV1(premisesId: string): Promise<string> {
     updated_at: _updated,
     gross_area_sqft,
     net_area_sqft,
+    gross_area_sqm,
+    net_area_sqm,
     management_fee,
+    management_fee_psf,
     government_rates,
     monthly_rent,
     rent_psf,
@@ -336,7 +423,10 @@ export async function duplicatePremisesV1(premisesId: string): Promise<string> {
     ...rest,
     gross_area_sqft: gross_area_sqft != null ? Number.parseFloat(gross_area_sqft) : null,
     net_area_sqft: net_area_sqft != null ? Number.parseFloat(net_area_sqft) : null,
+    gross_area_sqm: gross_area_sqm != null ? Number.parseFloat(gross_area_sqm) : null,
+    net_area_sqm: net_area_sqm != null ? Number.parseFloat(net_area_sqm) : null,
     management_fee: management_fee != null ? Number.parseFloat(management_fee) : null,
+    management_fee_psf: management_fee_psf != null ? Number.parseFloat(management_fee_psf) : null,
     government_rates: government_rates != null ? Number.parseFloat(government_rates) : null,
     monthly_rent: monthly_rent != null ? Number.parseFloat(monthly_rent) : null,
     rent_psf: rent_psf != null ? Number.parseFloat(rent_psf) : null,
@@ -355,9 +445,15 @@ export type PremisesFlatFilters = {
   q?: string;
   city?: string;
   district?: string;
+  title?: string;
+  building_type?: string;
+  asset_class?: string;
+  product_subtype?: string;
+  property_category?: string;
   property_type?: string;
   operating_model?: string;
   fit_out_condition?: string;
+  view_type?: string;
   listing_intent?: string;
   listing_status?: string;
 };
@@ -418,6 +514,26 @@ function premisesFlatWhere(filters: PremisesFlatFilters): { where: string; param
     clauses.push(`pr.district_en = $${i++}`);
     params.push(filters.district);
   }
+  if (filters.title) {
+    clauses.push(`pr.title = $${i++}`);
+    params.push(filters.title);
+  }
+  if (filters.building_type) {
+    clauses.push(`pr.building_type = $${i++}`);
+    params.push(filters.building_type);
+  }
+  if (filters.asset_class) {
+    clauses.push(`p.asset_class = $${i++}`);
+    params.push(filters.asset_class);
+  }
+  if (filters.product_subtype) {
+    clauses.push(`p.product_subtype = $${i++}`);
+    params.push(filters.product_subtype);
+  }
+  if (filters.property_category) {
+    clauses.push(`p.property_category = $${i++}`);
+    params.push(filters.property_category);
+  }
   if (filters.property_type) {
     clauses.push(`p.property_type = $${i++}`);
     params.push(filters.property_type);
@@ -429,6 +545,14 @@ function premisesFlatWhere(filters: PremisesFlatFilters): { where: string; param
   if (filters.fit_out_condition) {
     clauses.push(`p.fit_out_condition = $${i++}`);
     params.push(filters.fit_out_condition);
+  }
+  if (filters.view_type) {
+    if (filters.view_type === "Sea View") {
+      clauses.push(`(p.view_type ILIKE '%seaview%' OR p.view_type ILIKE '%sea view%')`);
+    } else {
+      clauses.push(`p.view_type ILIKE $${i++}`);
+      params.push(`%${filters.view_type}%`);
+    }
   }
   if (filters.listing_intent === "For Lease") {
     clauses.push(`(p.inventory_status = $${i} OR p.inventory_status ILIKE '%rent%')`);
@@ -511,15 +635,25 @@ export async function listPremisesFullFiltered(filters: PremisesFlatFilters = {}
   const rows = await query<PremisesListItem>(
     `SELECT
        ${listItemSelect},
-       p.property_name_en, p.property_name_zh,
+       p.property_name_en, p.property_name_en_is_custom,
+       p.property_name_zh, p.property_name_zh_is_custom,
+       p.property_name_cn, p.property_name_cn_is_custom,
        p.property_type, p.centre_type,
+       p.property_category, p.asset_class, p.asset_scope, p.product_subtype, p.whole_asset_type,
+       p.market_mode, p.occupancy_status, p.availability_status,
+       p.discovery_status, p.access_status, p.source_type, p.address_confidence,
+       p.last_verified_at::text AS last_verified_at,
+       p.space_form, p.listing_intent,
        p.inventory_status, p.ownership_type,
-       p.floor, p.unit, p.workstation_count,
+       p.floor, p.unit, p.workstation_count, p.no_of_rooms,
        p.office_name, p.office_type,
        p.gross_area_sqft::text AS gross_area_sqft,
        p.net_area_sqft::text AS net_area_sqft,
+       p.gross_area_sqm::text AS gross_area_sqm,
+       p.net_area_sqm::text AS net_area_sqm,
        p.view_type, p.windows,
        p.management_fee::text AS management_fee,
+       p.management_fee_psf::text AS management_fee_psf,
        p.government_rates::text AS government_rates,
        p.remarks,
        p.owner_company_id, p.landlord_company_id, p.current_tenant_company_id, p.operator_company_id,
@@ -566,15 +700,25 @@ export async function getPremisesListItemByRef(raw: string): Promise<PremisesLis
   const rows = await query<PremisesListItem>(
     `SELECT
        ${listItemSelect},
-       p.property_name_en, p.property_name_zh,
+       p.property_name_en, p.property_name_en_is_custom,
+       p.property_name_zh, p.property_name_zh_is_custom,
+       p.property_name_cn, p.property_name_cn_is_custom,
        p.property_type, p.centre_type,
+       p.property_category, p.asset_class, p.asset_scope, p.product_subtype, p.whole_asset_type,
+       p.market_mode, p.occupancy_status, p.availability_status,
+       p.discovery_status, p.access_status, p.source_type, p.address_confidence,
+       p.last_verified_at::text AS last_verified_at,
+       p.space_form, p.listing_intent,
        p.inventory_status, p.ownership_type,
-       p.floor, p.unit, p.workstation_count,
+       p.floor, p.unit, p.workstation_count, p.no_of_rooms,
        p.office_name, p.office_type,
        p.gross_area_sqft::text AS gross_area_sqft,
        p.net_area_sqft::text AS net_area_sqft,
+       p.gross_area_sqm::text AS gross_area_sqm,
+       p.net_area_sqm::text AS net_area_sqm,
        p.view_type, p.windows,
        p.management_fee::text AS management_fee,
+       p.management_fee_psf::text AS management_fee_psf,
        p.government_rates::text AS government_rates,
        p.remarks,
        p.owner_company_id, p.landlord_company_id, p.current_tenant_company_id, p.operator_company_id,
@@ -643,4 +787,3 @@ export async function countPremisesV1(): Promise<number> {
   const rows = await query<{ n: string }>(`SELECT COUNT(*)::text AS n FROM premises_v1`);
   return Number.parseInt(rows[0]?.n ?? "0", 10);
 }
-

@@ -1,4 +1,7 @@
-import { OPPORTUNITY_STATUSES } from "@/lib/lookups";
+import {
+  normalizeOpportunityStatus,
+  OPPORTUNITY_STATUSES,
+} from "@/lib/opportunityStatusModel";
 import { formatAreaSqft } from "@/lib/formatCurrency";
 import { OPPORTUNITY_FUNDING_STATUSES, OPPORTUNITY_SALES_ROLES } from "@/lib/opportunityValues";
 import type {
@@ -9,7 +12,7 @@ import type {
 } from "@/lib/types/entities";
 
 export function parseOpportunityStatus(v: string): OpportunityStatus {
-  return (OPPORTUNITY_STATUSES as readonly string[]).includes(v) ? (v as OpportunityStatus) : "new";
+  return normalizeOpportunityStatus(v);
 }
 
 export function parseOpportunitySalesRole(v: FormDataEntryValue | null): OpportunitySalesRole {
@@ -46,3 +49,5 @@ export function formatOpportunityBudget(
   if (formatted === "—") return formatted;
   return `HKD ${formatted}`;
 }
+
+export { OPPORTUNITY_STATUSES };

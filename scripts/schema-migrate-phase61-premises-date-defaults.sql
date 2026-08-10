@@ -1,0 +1,4 @@
+ALTER TABLE premises_v1
+  ALTER COLUMN available_date SET DEFAULT CURRENT_DATE,
+  ALTER COLUMN last_verified_date SET DEFAULT CURRENT_DATE;
+

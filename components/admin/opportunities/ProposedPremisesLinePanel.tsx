@@ -30,6 +30,7 @@ import {
   PROPOSED_PREMISES_PREFERENCE_LABELS,
   PROPOSED_PREMISES_STATUSES,
   PROPOSED_PREMISES_STATUS_LABELS,
+  normalizeProposedPremisesStatus,
 } from "@/lib/opportunityValues";
 import type { OpportunityProposedPremises } from "@/lib/types/entities";
 
@@ -81,7 +82,7 @@ export function ProposedPremisesLinePanel({
               <p className="text-sm text-slate-600">{space}</p>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 <PremisesSnapshotChip>
-                  {PROPOSED_PREMISES_STATUS_LABELS[line.status] ?? line.status}
+                  {PROPOSED_PREMISES_STATUS_LABELS[normalizeProposedPremisesStatus(line.status)]}
                 </PremisesSnapshotChip>
                 {line.preference ? (
                   <PremisesSnapshotChip>
@@ -163,7 +164,7 @@ export function ProposedPremisesLinePanel({
                   </label>
                   <label className="block min-w-0 text-sm">
                     <span className="text-xs text-slate-500">Status</span>
-                    <select name="status" defaultValue={line.status} className={selectClass}>
+                    <select name="status" defaultValue={normalizeProposedPremisesStatus(line.status)} className={selectClass}>
                       {PROPOSED_PREMISES_STATUSES.map((s) => (
                         <option key={s} value={s}>
                           {PROPOSED_PREMISES_STATUS_LABELS[s]}

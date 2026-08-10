@@ -1,9 +1,11 @@
 import { query } from "@/lib/db";
+import { allocateNextBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
+import { isPermanentBusinessId } from "@/lib/businessIds";
 import { resolveContactName, sqlContactDisplayName, syncContactDerivedNames } from "@/lib/contactName";
 import { resolveCompanyRefToLegacy, resolveContactRefToLegacy } from "@/lib/crmRefResolve";
 import { COMPANY_ROLES, COMPANY_ROLE_LABELS } from "@/lib/lookups";
 import type { CompanyRole } from "@/lib/types/entities";
-import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
+import { applySessionMetadata, genericUpdateRecord, rowToRecord, withExportMatchIds } from "../adapterUtils";
 import { sqlExportCompanyId, sqlExportContactId, sqlJoinLegacyCompany } from "../lookupSql";
 import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
 import { resolveLegacyCompanyIdOrName } from "../referenceResolution";
@@ -22,6 +24,7 @@ const FIELD_KEYS = [
   "title",
   "contact_role",
   "coverage",
+  "locate_at",
   "preferred_language",
   "mobile",
   "whatsapp",
@@ -29,10 +32,15 @@ const FIELD_KEYS = [
   "email",
   "country",
   "city",
+  "is_primary",
+  "last_contact_date",
+  "next_follow_up_date",
+  "is_active",
   "remarks",
 ] as const;
 
 const SELECT = `
+  ct.id::text AS contact_pk,
   ${sqlExportContactId("ct.id")} AS contact_id,
   ct.external_ref,
   ${sqlExportCompanyId("ct.company_id")} AS company_id,
@@ -42,11 +50,16 @@ const SELECT = `
   ct.title,
   array_to_string(ct.contact_role, '; ') AS contact_role,
   array_to_string(ct.coverage, '; ') AS coverage,
+  ct.locate_at,
   ct.preferred_language,
   ct.phone AS mobile,
   ct.whatsapp, ct.wechat, ct.email,
   NULL::text AS country,
   NULL::text AS city,
+  ct.is_primary,
+  ct.last_contact_date::text AS last_contact_date,
+  ct.next_follow_up_date::text AS next_follow_up_date,
+  ct.is_active,
   ct.notes AS remarks
 `;
 
@@ -82,10 +95,15 @@ function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
     "chinese_name",
     "display_name",
     "title",
+    "locate_at",
     "preferred_language",
     "whatsapp",
     "wechat",
     "email",
+    "is_primary",
+    "last_contact_date",
+    "next_follow_up_date",
+    "is_active",
   ] as const) {
     if (k in values) {
       p[k] = values[k];
@@ -114,12 +132,18 @@ function contactFieldDef(key: (typeof FIELD_KEYS)[number]): ImportFieldDef {
   if (key === "coverage") {
     return { ...base, type: "string_array" };
   }
+  if (key === "locate_at") {
+    return { ...base, type: "string", label: "Locate at", aliases: ["locate at", "location"] };
+  }
   if (key === "mobile") {
     return { ...base, type: "string", aliases: ["phone"] };
   }
   if (key === "chinese_name") {
     return { ...base, type: "string", aliases: ["chinese name", "中文名", "chinese"] };
   }
+  if (key === "country" || key === "city") return { ...base, type: "string", exportHidden: true };
+  if (key === "is_primary" || key === "is_active") return { ...base, type: "boolean" };
+  if (key.includes("date")) return { ...base, type: "date" };
   return { ...base, type: "string" };
 }
 
@@ -231,8 +255,8 @@ export const contactsImportDefinition: ImportObjectDefinition = {
       `INSERT INTO contacts (
          company_id, first_name, last_name, chinese_name, display_name, contact_name,
          title, phone, whatsapp, wechat, email, preferred_language,
-         contact_role, coverage, notes, external_ref, import_run_id
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+         contact_role, coverage, locate_at, notes, external_ref, import_run_id
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
        RETURNING id::text`,
       [
         companyId,
@@ -249,12 +273,28 @@ export const contactsImportDefinition: ImportObjectDefinition = {
         v.preferred_language ?? null,
         v.contact_role ?? [],
         v.coverage ?? [],
+        v.locate_at ?? null,
         v.notes ?? null,
         v.external_ref ?? null,
         v.import_run_id ?? null,
       ],
     );
-    return Number.parseInt(rows[0]!.id, 10);
+    const id = Number.parseInt(rows[0]!.id, 10);
+    const suppliedContactId = String(values.contact_id ?? "").trim();
+    const businessId = isPermanentBusinessId("contact", suppliedContactId)
+      ? suppliedContactId
+      : await allocateNextBusinessId("contact");
+    await query(`UPDATE contacts SET business_id = $1 WHERE id = $2`, [businessId, id]);
+    await registerBusinessId({
+      entityType: "contact",
+      businessId,
+      primaryRef: String(id),
+      legacyNumeric: id,
+    });
+    const extra = dbPatch(values);
+    const extraPatch = Object.fromEntries(Object.entries(extra).filter(([key]) => ["is_primary", "last_contact_date", "next_follow_up_date", "is_active"].includes(key)));
+    if (Object.keys(extraPatch).length) await genericUpdateRecord("contacts", "id", id, extraPatch, ctx);
+    return id;
   },
 
   async updateRecord(id, patch, ctx) {
@@ -267,6 +307,12 @@ export const contactsImportDefinition: ImportObjectDefinition = {
     const rows = await query<Record<string, unknown>>(
       `SELECT ${SELECT} FROM ${FROM} ORDER BY ct.display_name ASC NULLS LAST`,
     );
-    return rows.map((r) => rowToRecord(r, String(r.contact_id), FIELD_KEYS).values);
+    return rows.map((r) =>
+      withExportMatchIds(
+        rowToRecord(r, String(r.contact_id ?? r.contact_pk), FIELD_KEYS).values,
+        r.contact_id,
+        r.contact_pk,
+      ),
+    );
   },
 };

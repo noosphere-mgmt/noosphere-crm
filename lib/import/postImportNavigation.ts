@@ -6,6 +6,7 @@ export type ImportRunModuleLink = {
 };
 
 const IMPORT_RUN_MODULE_LINKS: Record<ImportObjectType, ImportRunModuleLink> = {
+  leads: { href: "/admin/leads", label: "View leads" },
   buildings: { href: "/admin/properties/buildings", label: "View buildings" },
   premises: { href: "/admin/properties", label: "View premises" },
   companies: { href: "/admin/companies", label: "View companies" },

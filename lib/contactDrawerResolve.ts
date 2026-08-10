@@ -1,6 +1,5 @@
 import {
   classifyContactQueryParam,
-  isV1ContactRef,
 } from "@/lib/entityRefGuards";
 import {
   resolveCompanyRefToLegacy,
@@ -14,7 +13,7 @@ export type ContactQueryResolveResult =
 
 export { isV1ContactRef as isV1ContactId } from "@/lib/entityRefGuards";
 
-/** Resolve ?contact= query param to legacy contacts.id (bigint PK). */
+/** Resolve ?contact= query param (or full-page path id) to legacy contacts.id. */
 export async function resolveContactQueryParam(
   raw: string | undefined,
 ): Promise<ContactQueryResolveResult | null> {
@@ -29,11 +28,10 @@ export async function resolveContactQueryParam(
     return classified;
   }
 
-  if (isV1ContactRef(trimmed) || /^\d+$/.test(trimmed)) {
-    const legacyContactId = await resolveContactRefToLegacy(trimmed);
-    if (legacyContactId != null) {
-      return { kind: "contact", legacyContactId };
-    }
+  // Permanent business ID (D100001), CONT-*, numeric, or other known refs.
+  const legacyContactId = await resolveContactRefToLegacy(trimmed);
+  if (legacyContactId != null) {
+    return { kind: "contact", legacyContactId };
   }
 
   return null;

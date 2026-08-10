@@ -59,7 +59,7 @@ export function toLegacyCompanySelectOptions(
     .filter((o): o is LegacyCompanySelectOption => o != null);
 }
 
-/** Contact dropdown: value = permanent business ID (D100001). */
+/** Contact dropdown: value = permanent business ID (D100001), legacy numeric id as fallback. */
 export function toLegacyContactSelectOptions(
   contacts: {
     id: number;
@@ -71,18 +71,15 @@ export function toLegacyContactSelectOptions(
   v1Contacts: ContactV1Option[] = [],
 ): LegacyContactSelectOption[] {
   const v1ByLegacy = v1ContactByLegacy(v1Contacts);
-  return contacts
-    .map((c) => {
-      const businessId = c.business_id?.trim() || v1ByLegacy.get(c.id)?.business_id?.trim() || null;
-      if (!businessId) return null;
-      const option: LegacyContactSelectOption = {
-        value: businessId,
-        label: formatLabelWithBusinessId(c.contact_name, businessId),
-        businessId,
-      };
-      return option;
-    })
-    .filter((o): o is LegacyContactSelectOption => o != null);
+  return contacts.map((c) => {
+    const businessId = c.business_id?.trim() || v1ByLegacy.get(c.id)?.business_id?.trim() || null;
+    const value = businessId ?? String(c.id);
+    return {
+      value,
+      label: formatLabelWithBusinessId(c.contact_name, businessId),
+      businessId,
+    };
+  });
 }
 
 export function formatLegacyCompanyOptionLabel(
@@ -103,7 +100,7 @@ export function resolveCompanySelectValue(
   if (isPermanentBusinessId("company", s)) return s;
   const legacyId = Number.parseInt(s, 10);
   if (Number.isFinite(legacyId) && legacyId > 0) {
-    return companies.find((c) => c.id === legacyId)?.business_id?.trim() ?? "";
+    return companies.find((c) => String(c.id) === String(legacyId))?.business_id?.trim() ?? "";
   }
   return "";
 }
@@ -118,7 +115,8 @@ export function resolveContactSelectValue(
   if (isPermanentBusinessId("contact", s)) return s;
   const legacyId = Number.parseInt(s, 10);
   if (Number.isFinite(legacyId) && legacyId > 0) {
-    return contacts.find((c) => c.id === legacyId)?.business_id?.trim() ?? "";
+    const contact = contacts.find((c) => String(c.id) === String(legacyId));
+    return contact?.business_id?.trim() || String(legacyId);
   }
   return "";
 }

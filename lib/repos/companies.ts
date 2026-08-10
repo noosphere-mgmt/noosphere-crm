@@ -1,6 +1,8 @@
 import { cache } from "react";
 import { query } from "@/lib/db";
+import { allocateNextBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
 import { CONNECTION_COMPANY_ROLES } from "@/lib/connectionsValues";
+import { syncLegacyCompanyToV1 } from "@/lib/repos/companiesV1";
 import type { Company, CompanyRole, RelationshipStrength } from "@/lib/types/entities";
 
 const companySelect = `
@@ -163,7 +165,22 @@ export async function createCompany(input: CompanyInput): Promise<number> {
      RETURNING id::text AS id`,
     companyValues(input),
   );
-  return Number.parseInt(rows[0]!.id, 10);
+  const id = Number.parseInt(rows[0]!.id, 10);
+  const businessId = await allocateNextBusinessId("company");
+  await query(`UPDATE companies SET business_id = $1 WHERE id = $2`, [businessId, id]);
+  await registerBusinessId({
+    entityType: "company",
+    businessId,
+    primaryRef: String(id),
+    legacyNumeric: id,
+  });
+  await syncLegacyCompanyToV1(
+    id,
+    input.company_name,
+    input.company_name_zh ?? null,
+    input.is_active !== false,
+  );
+  return id;
 }
 
 export async function updateCompany(id: number, input: CompanyInput): Promise<void> {

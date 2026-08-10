@@ -16,6 +16,9 @@ export function AllBuildingsWorkspace({
   rows,
   totalCount,
   initialQuery,
+  initialCategory,
+  initialTitle,
+  initialRelatedCompany,
   selectedProperty,
   selectedPremises,
   propertyOptions,
@@ -25,6 +28,9 @@ export function AllBuildingsWorkspace({
   rows: PropertyListRow[];
   totalCount: number;
   initialQuery?: string;
+  initialCategory?: string;
+  initialTitle?: string;
+  initialRelatedCompany?: string;
   selectedProperty: PropertyV1 | null;
   selectedPremises: PremisesV1[];
   propertyOptions: PropertyV1SelectOption[];
@@ -35,6 +41,9 @@ export function AllBuildingsWorkspace({
     rows,
     totalCount,
     initialQuery,
+    initialCategory,
+    initialTitle,
+    initialRelatedCompany,
     selectedProperty,
     selectedPremises,
     propertyOptions,

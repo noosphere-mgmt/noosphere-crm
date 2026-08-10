@@ -26,11 +26,11 @@ export function BuildingsMobile(props: BuildingsViewProps) {
           />
         }
       />
-      <PropertiesMobileSearchBar initialQuery={props.initialQuery} />
+      <PropertiesMobileSearchBar initialQuery={props.initialQuery} initialCategory={props.initialCategory} initialTitle={props.initialTitle} initialRelatedCompany={props.initialRelatedCompany} />
       <BuildingsLookupList
         rows={props.rows}
         totalCount={props.totalCount}
-        hasSearch={Boolean(props.initialQuery)}
+        hasSearch={Boolean(props.initialQuery || props.initialCategory || props.initialTitle || props.initialRelatedCompany)}
         selectedProperty={props.selectedProperty}
         selectedPremises={props.selectedPremises}
         propertyOptions={props.propertyOptions}

@@ -22,6 +22,23 @@ export function rowToRecord(
   return { id, values };
 }
 
+/** Attach listing/internal IDs so selected/filtered export can match UI row keys. */
+export function withExportMatchIds(
+  values: Record<string, unknown>,
+  ...ids: unknown[]
+): Record<string, unknown> {
+  const matchIds = [
+    ...new Set(
+      ids
+        .map((id) => String(id ?? "").trim())
+        .filter((id) => id.length > 0 && id !== "null" && id !== "undefined"),
+    ),
+  ];
+  return { ...values, __export_match_ids: matchIds };
+}
+
+export const EXPORT_MATCH_IDS_KEY = "__export_match_ids";
+
 export async function loadRecords(
   def: ImportObjectDefinition,
   where: string,
@@ -119,12 +136,22 @@ export function fieldsToCsvRow(
       out[f.key] = "";
       continue;
     }
+    // Relationship fields are arrays of structured objects. They must remain
+    // valid JSON in CSV so an exported file can be edited and re-imported.
+    if (f.type === "json") {
+      out[f.key] = typeof v === "string" ? v : JSON.stringify(v);
+      continue;
+    }
     if (Array.isArray(v)) {
       out[f.key] = v.join("; ");
       continue;
     }
     if (typeof v === "boolean") {
       out[f.key] = v ? "true" : "false";
+      continue;
+    }
+    if (typeof v === "object") {
+      out[f.key] = JSON.stringify(v);
       continue;
     }
     out[f.key] = String(v);

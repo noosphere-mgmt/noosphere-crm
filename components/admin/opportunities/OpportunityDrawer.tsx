@@ -27,11 +27,11 @@ export function OpportunityDrawer({
       <button
         type="button"
         className={overlayClass}
-        aria-label="Close opportunity panel"
+        aria-label="Close deal panel"
         onClick={onClose}
       />
       <aside
-        className="fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-slate-200 bg-slate-50 shadow-xl max-lg:!w-full"
+        className="fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-slate-200 bg-slate-50 shadow-xl max-md:bottom-[calc(3.5rem+env(safe-area-inset-bottom))] max-lg:!w-full"
         style={{ width: `min(100%, ${widthVw}vw)` }}
         role="dialog"
         aria-modal="true"
@@ -47,11 +47,15 @@ export function OpportunityDrawer({
         <InlineEditProvider initialEditHighlight={false} resetKey={opportunity.id}>
           <OpportunityDrawerHeader
             opportunity={opportunity}
-            businessId={data.v1OpportunityId ?? opportunity.v1_opportunity_id}
             onClose={onClose}
           />
           <div className="shrink-0 bg-white px-4 pt-2">
-            <OpportunityDetailTabs opportunityId={opportunity.id} variant="drawer" />
+            <OpportunityDetailTabs
+              opportunityId={opportunity.id}
+              businessId={opportunity.business_id}
+              salesRole={opportunity.sales_role}
+              variant="drawer"
+            />
           </div>
           <div className="flex-1 overflow-y-auto px-4 py-3">
             <OpportunityDrawerBody data={data} />

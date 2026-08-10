@@ -1,23 +1,43 @@
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { OpportunitiesListError } from "@/components/admin/opportunities/OpportunitiesListError";
 import { OpportunitiesPageClient } from "@/components/admin/opportunities/OpportunitiesPageClient";
 import { AdminListLoadingFallback } from "@/components/admin/layout/AdminListLoadingFallback";
+import { opportunityFullPageHref } from "@/lib/crmDetailNav";
+import { normalizeOpportunityTab } from "@/lib/opportunityDetailTab";
 import { resolveOpportunityQueryParam } from "@/lib/opportunityDrawerResolve";
+import { getOpportunity } from "@/lib/repos/opportunities";
 import { listCompanyOptions } from "@/lib/repos/companies";
 import { listContactOptions } from "@/lib/repos/contacts";
 import { listOpportunities } from "@/lib/repos/opportunities";
-import { getOpportunityDrawerData } from "@/lib/repos/opportunitiesDrawer";
+import { parseOpportunitiesListParams } from "@/lib/opportunitiesList";
 
 export const dynamic = "force-dynamic";
 
 type Props = {
-  searchParams: Promise<{ opportunity?: string; status?: string; stage?: string; new?: string }>;
+  searchParams: Promise<{ opportunity?: string; status?: string; stage?: string; new?: string; tab?: string }>;
 };
 
 export default async function OpportunitiesListPage({ searchParams }: Props) {
   const sp = await searchParams;
   const needFormOptions = sp.new === "1";
+
+  const opportunityIdRaw = sp.opportunity?.trim();
+  if (opportunityIdRaw && sp.new !== "1") {
+    const legacyId = await resolveOpportunityQueryParam(opportunityIdRaw);
+    if (legacyId) {
+      const opportunity = await getOpportunity(legacyId);
+      if (opportunity) {
+        const href =
+          opportunityFullPageHref(opportunity.business_id ?? opportunity.v1_opportunity_id, {
+            tab: normalizeOpportunityTab(sp.tab),
+          }) ?? `/admin/opportunities/${legacyId}`;
+        redirect(href);
+      }
+    }
+  }
+
   let rows: Awaited<ReturnType<typeof listOpportunities>> = [];
   let companies: Awaited<ReturnType<typeof listCompanyOptions>> = [];
   let contacts: Awaited<ReturnType<typeof listContactOptions>> = [];
@@ -33,24 +53,7 @@ export default async function OpportunitiesListPage({ searchParams }: Props) {
     loadError = err instanceof Error ? err.message : "Database query failed";
   }
 
-  const opportunityIdRaw = sp.opportunity?.trim();
-  let selectedOpportunity: Awaited<ReturnType<typeof getOpportunityDrawerData>> = null;
-  let drawerError: string | null = null;
-
-  if (!loadError && opportunityIdRaw) {
-    const legacyId = await resolveOpportunityQueryParam(opportunityIdRaw);
-    if (legacyId) {
-      try {
-        selectedOpportunity = await getOpportunityDrawerData(legacyId);
-        if (!selectedOpportunity) drawerError = `Opportunity "${opportunityIdRaw}" was not found.`;
-      } catch (err) {
-        drawerError = err instanceof Error ? err.message : "Failed to load opportunity.";
-        selectedOpportunity = null;
-      }
-    } else {
-      drawerError = `Opportunity "${opportunityIdRaw}" was not found.`;
-    }
-  }
+  const listParams = parseOpportunitiesListParams(sp.status, sp.stage);
 
   return (
     <AdminShell title="Opportunities" module="opportunities" wide hideHeader>
@@ -62,14 +65,9 @@ export default async function OpportunitiesListPage({ searchParams }: Props) {
             rows={rows}
             companies={companies}
             contacts={contacts}
-            selectedOpportunity={selectedOpportunity}
-            drawerError={drawerError}
-            initialStatus={sp.status?.trim() || undefined}
-            initialStage={
-              sp.stage === "open" || sp.stage === "viewing" || sp.stage === "won_month"
-                ? sp.stage
-                : undefined
-            }
+            initialListStatusFilter={listParams.listStatusFilter}
+            initialLegacyStatuses={listParams.legacyStatuses}
+            initialDashboardStage={listParams.dashboardStage}
           />
         </Suspense>
       )}

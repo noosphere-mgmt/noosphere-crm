@@ -7,7 +7,7 @@ import { listActivities } from "@/lib/repos/activities";
 
 export const dynamic = "force-dynamic";
 
-type Props = { searchParams: Promise<{ activity?: string }> };
+type Props = { searchParams: Promise<{ activity?: string; new?: string }> };
 
 export default async function ActivitiesPage({ searchParams }: Props) {
   const sp = await searchParams;
@@ -19,7 +19,7 @@ export default async function ActivitiesPage({ searchParams }: Props) {
       <ActivitiesListSelectionProvider>
         <ModuleListingExportProvider>
           <Suspense fallback={<div className="h-48 animate-pulse rounded-xl bg-slate-100" />}>
-            <ActivitiesListClient rows={rows} initialActivityId={initialActivityId} />
+            <ActivitiesListClient rows={rows} initialActivityId={initialActivityId} initialCreate={sp.new === "1"} />
           </Suspense>
         </ModuleListingExportProvider>
       </ActivitiesListSelectionProvider>

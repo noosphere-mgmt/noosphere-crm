@@ -9,14 +9,16 @@ import type { PropertyV1 } from "@/lib/repos/propertiesV1";
 export function PropertyInlineOverview({
   property,
   companies,
+  showMultilingualNames = false,
 }: {
   property: PropertyV1;
   companies: CompanyV1Option[];
+  showMultilingualNames?: boolean;
 }) {
   return (
     <AdminViewportSwitch
-      mobile={<PropertyInlineOverviewMobile property={property} companies={companies} />}
-      desktop={<PropertyInlineOverviewDesktop property={property} companies={companies} />}
+      mobile={<PropertyInlineOverviewMobile property={property} companies={companies} showMultilingualNames={showMultilingualNames} />}
+      desktop={<PropertyInlineOverviewDesktop property={property} companies={companies} showMultilingualNames={showMultilingualNames} />}
     />
   );
 }

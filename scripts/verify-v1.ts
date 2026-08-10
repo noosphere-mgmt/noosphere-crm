@@ -67,6 +67,23 @@ async function main(): Promise<void> {
   );
   console.log(`\nOrphan premises (no header): ${orphanPremises[0]?.n ?? "0"}`);
 
+  const classification = await query<Record<string, string>>(
+    `SELECT 'premises_v1.property_category' AS field,
+            COUNT(*) FILTER (WHERE property_category IS NULL OR btrim(property_category) = '')::text AS missing
+     FROM premises_v1
+     UNION ALL
+     SELECT 'premises_v1.listing_intent' AS field,
+            COUNT(*) FILTER (WHERE listing_intent IS NULL)::text AS missing
+     FROM premises_v1
+     UNION ALL
+     SELECT 'premises_v1.space_form' AS field,
+            COUNT(*) FILTER (WHERE space_form IS NULL OR btrim(space_form) = '')::text AS missing
+     FROM premises_v1`,
+  );
+
+  console.log("\nClassification field gaps (premises_v1):");
+  for (const r of classification) console.log(`- ${r.field}: ${r.missing} missing`);
+
   const sample = await query<Record<string, unknown>>(
     `SELECT
         h.property_id,

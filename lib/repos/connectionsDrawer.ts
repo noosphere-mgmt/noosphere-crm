@@ -18,6 +18,7 @@ import { getContactCrmSummary, type ContactCrmSummary } from "@/lib/repos/contac
 import { lookupV1CompanyId } from "@/lib/companyDrawerResolve";
 import { lookupV1ContactId, resolveLegacyCompanyIdFromContactRef } from "@/lib/contactDrawerResolve";
 import { coerceLegacyContactId } from "@/lib/entityRefGuards";
+import { listContactCompanyAffiliations, type ContactCompanyAffiliation } from "@/lib/repos/contactCompanyAffiliations";
 import { listEntityRelationships } from "@/lib/repos/relationships";
 import type { EntityRelationshipRow } from "@/lib/entityRelationships";
 import type { Asset, Company, Contact } from "@/lib/types/entities";
@@ -48,6 +49,7 @@ export type ContactDrawerData = {
   spaces: Asset[];
   crmSummary: ContactCrmSummary;
   lastActivityDate: string | null;
+  affiliations: ContactCompanyAffiliation[];
 };
 
 export async function getCompanyDrawerData(id: number): Promise<CompanyDrawerData | null> {
@@ -79,7 +81,7 @@ export async function getContactDrawerData(id: number | string): Promise<Contact
 
   const legacyCompanyId = await resolveLegacyCompanyIdFromContactRef(contact.company_id);
 
-  const [company, companies, opportunities, relationships, activities, spaces, crmSummary, companyCrmSummary, lastActivityDate, v1ContactId] =
+  const [company, companies, opportunities, relationships, activities, spaces, crmSummary, companyCrmSummary, lastActivityDate, v1ContactId, affiliations] =
     await Promise.all([
       legacyCompanyId ? getCompany(legacyCompanyId) : Promise.resolve(null),
       listCompanyOptions(),
@@ -91,6 +93,7 @@ export async function getContactDrawerData(id: number | string): Promise<Contact
       legacyCompanyId ? getCompanyCrmSummary(legacyCompanyId) : Promise.resolve(null),
       getLastActivityDateForContact(legacyId).catch(() => null),
       lookupV1ContactId(legacyId),
+      listContactCompanyAffiliations(legacyId).catch(() => [] as ContactCompanyAffiliation[]),
     ]);
 
   return {
@@ -105,5 +108,6 @@ export async function getContactDrawerData(id: number | string): Promise<Contact
     spaces,
     crmSummary,
     lastActivityDate,
+    affiliations,
   };
 }

@@ -19,6 +19,7 @@ import {
   contactExists,
   opportunityExists,
   premisesExists,
+  activityExists,
 } from "@/lib/import/fkValidation";
 
 export type ResolvedCompanyRef = {
@@ -40,6 +41,11 @@ export type ResolvedOpportunityRef = {
 
 export type ResolvedPremisesRef = {
   premisesId: string | null;
+  warning?: string;
+};
+
+export type ResolvedActivityRef = {
+  activityId: string | null;
   warning?: string;
 };
 
@@ -111,9 +117,19 @@ async function v1ContactIdFromLegacy(legacyId: number): Promise<string | null> {
 
 async function legacyCompanyIdFromBusinessId(businessId: string): Promise<number | null> {
   const rows = await query<{ legacy_id: number }>(
-    `SELECT legacy_company_id::int AS legacy_id FROM companies_v1 WHERE business_id = $1
-     UNION ALL
-     SELECT id::int AS legacy_id FROM companies WHERE business_id = $1
+    `SELECT legacy_id FROM (
+       SELECT id::int AS legacy_id, 1 AS ord FROM companies WHERE business_id = $1
+       UNION ALL
+       SELECT legacy_company_id::int AS legacy_id, 2 AS ord
+         FROM companies_v1
+        WHERE business_id = $1 AND legacy_company_id IS NOT NULL
+       UNION ALL
+       SELECT legacy_numeric::int AS legacy_id, 3 AS ord
+         FROM business_id_crosswalk
+        WHERE entity_type = 'company' AND business_id = $1 AND legacy_numeric IS NOT NULL
+     ) x
+     WHERE legacy_id IS NOT NULL
+     ORDER BY ord
      LIMIT 1`,
     [businessId],
   );
@@ -122,7 +138,16 @@ async function legacyCompanyIdFromBusinessId(businessId: string): Promise<number
 
 async function legacyContactIdFromBusinessId(businessId: string): Promise<number | null> {
   const rows = await query<{ legacy_id: number }>(
-    `SELECT id::int AS legacy_id FROM contacts WHERE business_id = $1 LIMIT 1`,
+    `SELECT legacy_id FROM (
+       SELECT id::int AS legacy_id, 1 AS ord FROM contacts WHERE business_id = $1
+       UNION ALL
+       SELECT legacy_numeric::int AS legacy_id, 2 AS ord
+         FROM business_id_crosswalk
+        WHERE entity_type = 'contact' AND business_id = $1 AND legacy_numeric IS NOT NULL
+     ) x
+     WHERE legacy_id IS NOT NULL
+     ORDER BY ord
+     LIMIT 1`,
     [businessId],
   );
   return rows[0]?.legacy_id ?? null;
@@ -130,7 +155,16 @@ async function legacyContactIdFromBusinessId(businessId: string): Promise<number
 
 async function legacyOpportunityIdFromBusinessId(businessId: string): Promise<number | null> {
   const rows = await query<{ legacy_id: number }>(
-    `SELECT id::int AS legacy_id FROM opportunities WHERE business_id = $1 LIMIT 1`,
+    `SELECT legacy_id FROM (
+       SELECT id::int AS legacy_id, 1 AS ord FROM opportunities WHERE business_id = $1
+       UNION ALL
+       SELECT legacy_numeric::int AS legacy_id, 2 AS ord
+         FROM business_id_crosswalk
+        WHERE entity_type = 'opportunity' AND business_id = $1 AND legacy_numeric IS NOT NULL
+     ) x
+     WHERE legacy_id IS NOT NULL
+     ORDER BY ord
+     LIMIT 1`,
     [businessId],
   );
   return rows[0]?.legacy_id ?? null;
@@ -141,7 +175,17 @@ async function premisesIdFromBusinessId(businessId: string): Promise<string | nu
     `SELECT premises_id FROM premises_v1 WHERE business_id = $1 LIMIT 1`,
     [businessId],
   );
-  return rows[0]?.premises_id ?? null;
+  if (rows[0]?.premises_id) return rows[0].premises_id;
+
+  const crosswalk = await query<{ primary_ref: string }>(
+    `SELECT primary_ref FROM business_id_crosswalk
+     WHERE entity_type = 'premise' AND business_id = $1
+     LIMIT 1`,
+    [businessId],
+  );
+  const primaryRef = crosswalk[0]?.primary_ref?.trim();
+  if (primaryRef && (await premisesExists(primaryRef))) return primaryRef;
+  return null;
 }
 
 /** Resolve any company reference to legacy + v1 ids. */
@@ -268,8 +312,8 @@ export async function resolvePremisesRef(raw: unknown): Promise<ResolvedPremises
   if (!s) return { premisesId: null };
 
   if (isPermanentBusinessId("premise", s)) {
-    const premisesId = (await premisesIdFromBusinessId(s)) ?? s;
-    if (await premisesExists(premisesId)) return { premisesId };
+    const premisesId = await premisesIdFromBusinessId(s);
+    if (premisesId) return { premisesId };
     return { premisesId: null, warning: `Premise ${s} not found` };
   }
 
@@ -293,6 +337,45 @@ export async function resolvePremisesRef(raw: unknown): Promise<ResolvedPremises
   return { premisesId: null, warning: `Unresolved premises ref: ${s}` };
 }
 
+async function activityIdFromBusinessId(businessId: string): Promise<string | null> {
+  const rows = await query<{ activity_id: string }>(
+    `SELECT activity_id FROM activities WHERE business_id = $1 LIMIT 1`,
+    [businessId],
+  );
+  if (rows[0]?.activity_id) return rows[0].activity_id;
+
+  const crosswalk = await query<{ primary_ref: string }>(
+    `SELECT primary_ref FROM business_id_crosswalk
+     WHERE entity_type = 'activity' AND business_id = $1
+     LIMIT 1`,
+    [businessId],
+  );
+  const primaryRef = crosswalk[0]?.primary_ref?.trim();
+  if (primaryRef && (await activityExists(primaryRef))) return primaryRef;
+  return null;
+}
+
+export async function resolveActivityRef(raw: unknown): Promise<ResolvedActivityRef> {
+  const s = trimRef(raw);
+  if (!s) return { activityId: null };
+
+  if (isPermanentBusinessId("activity", s)) {
+    const activityId = await activityIdFromBusinessId(s);
+    if (activityId) return { activityId };
+    return { activityId: null, warning: `Activity ${s} not found` };
+  }
+
+  if (await activityExists(s)) return { activityId: s };
+
+  const byExternalRef = await query<{ activity_id: string }>(
+    `SELECT activity_id FROM activities WHERE external_ref = $1 LIMIT 1`,
+    [s],
+  );
+  if (byExternalRef[0]?.activity_id) return { activityId: byExternalRef[0].activity_id };
+
+  return { activityId: null, warning: `Unresolved activity ref: ${s}` };
+}
+
 /** Legacy companies.id for bigint FK columns. Never returns COMP/CONT strings. */
 export async function resolveCompanyRefToLegacy(raw: unknown): Promise<number | null> {
   return (await resolveCompanyRef(raw)).legacyId;
@@ -313,12 +396,18 @@ export async function resolveContactRefToLegacy(raw: unknown): Promise<number | 
   return (await resolveContactRef(raw)).legacyId;
 }
 
-/** contacts_v1.contact_id (CONT-*) for v1 TEXT FK columns. */
+/** contacts_v1.contact_id (CONT-*) for v1 TEXT FK columns; falls back to D* business_id. */
 export async function resolveContactRefToV1(raw: unknown): Promise<string | null> {
   const resolved = await resolveContactRef(raw);
   if (resolved.v1Id) return resolved.v1Id;
   if (resolved.legacyId != null) {
-    return (await v1ContactIdFromLegacy(resolved.legacyId)) ?? null;
+    const mapped = await v1ContactIdFromLegacy(resolved.legacyId);
+    if (mapped) return mapped;
+    const biz = await query<{ business_id: string | null }>(
+      `SELECT business_id FROM contacts WHERE id = $1 LIMIT 1`,
+      [resolved.legacyId],
+    );
+    return biz[0]?.business_id ?? null;
   }
   return null;
 }
@@ -329,6 +418,10 @@ export async function resolveOpportunityRefToLegacy(raw: unknown): Promise<numbe
 
 export async function resolvePremisesRefToId(raw: unknown): Promise<string | null> {
   return (await resolvePremisesRef(raw)).premisesId;
+}
+
+export async function resolveActivityRefToId(raw: unknown): Promise<string | null> {
+  return (await resolveActivityRef(raw)).activityId;
 }
 
 /** Normalize optional ref for legacy bigint column writes. */
@@ -366,4 +459,16 @@ export async function normalizeOptionalPremisesId(raw: unknown): Promise<string 
   const s = trimRef(raw);
   if (!s) return null;
   return resolvePremisesRefToId(s);
+}
+
+/** Resolve UI/import premises refs (P100001, INV-*, etc.) to premises_v1.premises_id for DB FK writes. */
+export async function normalizePremisesIds(rawIds: string[]): Promise<string[]> {
+  const unique = [...new Set(rawIds.map((id) => id.trim()).filter(Boolean))];
+  const resolved: string[] = [];
+  for (const raw of unique) {
+    const premisesId = await resolvePremisesRefToId(raw);
+    if (!premisesId) throw new Error(`Unresolved premises ref: ${raw}`);
+    resolved.push(premisesId);
+  }
+  return resolved;
 }

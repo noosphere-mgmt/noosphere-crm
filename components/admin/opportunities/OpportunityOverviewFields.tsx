@@ -1,146 +1,79 @@
 "use client";
 
-import { useState } from "react";
-import { FormField } from "@/components/admin/AdminFormFields";
-import { DrawerOverviewCard } from "@/components/admin/connections/DrawerOverviewCard";
+import { useEffect, useState } from "react";
+import { FormField, TextAreaField } from "@/components/admin/AdminFormFields";
 import { OpportunityPartyContactSelect } from "@/components/admin/opportunities/OpportunityPartyContactSelect";
-import {
-  CompactField,
-  OpportunityRequirementFields,
-  OpportunitySalesRoleSelect,
-  labelClass,
-  selectClass,
-} from "@/components/admin/opportunities/OpportunityRequirementFields";
+import { OpportunityRequirementSection } from "@/components/admin/opportunities/OpportunityRequirementSection";
+import { OpportunityRequirementIntake } from "@/components/admin/opportunities/OpportunityRequirementIntake";
+import { labelClass, selectClass } from "@/components/admin/opportunities/OpportunityRequirementFields";
 import { useFormEditing } from "@/components/admin/ModuleActionBar";
+import { defaultWaitingFor, formatOpportunityActionDate } from "@/lib/lookups";
+import { OPPORTUNITY_SOURCES, OPPORTUNITY_SOURCE_LABELS } from "@/lib/opportunitySourceValues";
+import { OPPORTUNITY_SALES_ROLE_LABELS, OPPORTUNITY_SALES_ROLES } from "@/lib/opportunityValues";
 import {
-  OPPORTUNITY_LEAD_TYPES,
-  OPPORTUNITY_LEAD_TYPE_LABELS,
-  OPPORTUNITY_STATUSES,
-  OPPORTUNITY_STATUS_LABELS,
-} from "@/lib/lookups";
-import {
-  closedOutcomeReasonLabel,
-  isClosedOpportunityStatus,
-} from "@/lib/openOpportunityStatus";
-import { partiesSummaryRows } from "@/lib/opportunityPartiesDisplay";
-import { toLegacyCompanySelectOptions, toLegacyContactSelectOptions, resolveCompanySelectValue, resolveContactSelectValue } from "@/lib/crmSelectOptions";
-import { OPPORTUNITY_SALES_ROLE_LABELS, type OpportunitySalesRole } from "@/lib/opportunityValues";
+  toLegacyCompanySelectOptions,
+  toLegacyContactSelectOptions,
+  resolveCompanySelectValue,
+  resolveContactSelectValue,
+} from "@/lib/crmSelectOptions";
 import type { CompanyOption } from "@/lib/repos/companies";
 import type { ContactOption } from "@/lib/repos/contacts";
-import type { Opportunity, OpportunityParty, OpportunityStatus } from "@/lib/types/entities";
-import { TextAreaField } from "@/components/admin/AdminFormFields";
+import type { Opportunity } from "@/lib/types/entities";
+
+const compactGrid = "grid grid-cols-2 gap-x-3 gap-y-2.5";
+
+function ClientValue({ label, value }: { label: string; value?: string | null }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[11px] font-medium text-slate-500">{label}</dt>
+      <dd className="mt-0.5 truncate text-sm font-medium text-slate-900">{value?.trim() || "—"}</dd>
+    </div>
+  );
+}
+
+function Section({
+  title,
+  children,
+  className = "",
+}: {
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={`rounded-xl border border-slate-200 bg-white p-3 ${className}`}>
+      <h2 className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{title}</h2>
+      <div className="pt-2.5">{children}</div>
+    </section>
+  );
+}
 
 export function OpportunityOverviewFields({
   opportunity,
-  parties,
   companies,
   contacts,
-  lastActivityDate,
+  sideContent,
 }: {
   opportunity: Opportunity;
-  parties: OpportunityParty[];
   companies: CompanyOption[];
   contacts: ContactOption[];
-  lastActivityDate?: string | null;
+  sideContent: React.ReactNode;
 }) {
   const editing = useFormEditing();
-  const summary = partiesSummaryRows(parties);
   const companyOptions = toLegacyCompanySelectOptions(companies);
   const contactOptions = toLegacyContactSelectOptions(contacts);
-  const [companyId, setCompanyId] = useState(resolveCompanySelectValue(companies, opportunity.company_id));
-  const [salesRole, setSalesRole] = useState<OpportunitySalesRole>(opportunity.sales_role ?? "to_lease");
-  const [status, setStatus] = useState<OpportunityStatus>(opportunity.status);
+  const savedCompanyId = resolveCompanySelectValue(companies, opportunity.company_id);
+  const [companyId, setCompanyId] = useState(savedCompanyId);
+  const waitingDisplay =
+    opportunity.waiting_for?.trim() || defaultWaitingFor(opportunity.status) || "—";
+
+  useEffect(() => {
+    setCompanyId(savedCompanyId);
+  }, [savedCompanyId]);
 
   return (
-    <div className="flex w-full min-w-0 flex-col gap-4">
-      <DrawerOverviewCard title="Opportunity" columns={3} dense={false} className="w-full">
-        {editing ? (
-          <>
-            <FormField label="Opportunity name" name="client_name" defaultValue={opportunity.client_name} required />
-            <label className="block min-w-0 text-sm">
-              <span className={labelClass}>Company</span>
-              <select
-                name="company_id"
-                value={companyId}
-                onChange={(e) => setCompanyId(e.target.value)}
-                className={selectClass}
-              >
-                <option value="">—</option>
-                {companyOptions.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <OpportunityPartyContactSelect
-              instanceKey={`overview-${opportunity.id}-${companyId}`}
-              companyId={companyId}
-              contacts={contacts}
-              companies={companies}
-              contactOptions={contactOptions}
-              defaultContactId={resolveContactSelectValue(contacts, opportunity.primary_contact_id)}
-              fieldName="primary_contact_id"
-              onNewContact={() => {}}
-            />
-            <label className="block min-w-0 text-sm">
-              <span className={labelClass}>Lead type</span>
-              <select name="lead_type" defaultValue={opportunity.lead_type} className={selectClass}>
-                {OPPORTUNITY_LEAD_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {OPPORTUNITY_LEAD_TYPE_LABELS[t]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block min-w-0 text-sm">
-              <span className={labelClass}>Status</span>
-              <select
-                name="status"
-                value={status}
-                onChange={(e) => setStatus(e.target.value as OpportunityStatus)}
-                className={selectClass}
-              >
-                {OPPORTUNITY_STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {OPPORTUNITY_STATUS_LABELS[s]}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <OpportunitySalesRoleSelect value={salesRole} onChange={setSalesRole} />
-            {isClosedOpportunityStatus(status) ? (
-              <FormField
-                label={closedOutcomeReasonLabel(status)}
-                name="lost_reason"
-                defaultValue={opportunity.lost_reason ?? ""}
-              />
-            ) : null}
-          </>
-        ) : (
-          <>
-            <CompactField label="Opportunity name" value={opportunity.client_name} />
-            <CompactField label="Company" value={opportunity.linked_company_name ?? ""} />
-            <CompactField label="Contact" value={opportunity.primary_contact_name ?? ""} />
-            <CompactField label="Lead type" value={OPPORTUNITY_LEAD_TYPE_LABELS[opportunity.lead_type]} />
-            <CompactField label="Status" value={OPPORTUNITY_STATUS_LABELS[opportunity.status]} />
-            {lastActivityDate ? (
-              <CompactField label="Last activity" value={lastActivityDate.slice(0, 10)} />
-            ) : null}
-            <OpportunitySalesRoleSelect
-              value={salesRole}
-              readOnlyLabel={OPPORTUNITY_SALES_ROLE_LABELS[opportunity.sales_role ?? "to_lease"]}
-            />
-            {isClosedOpportunityStatus(opportunity.status) ? (
-              <CompactField
-                label={closedOutcomeReasonLabel(opportunity.status)}
-                value={opportunity.lost_reason ?? ""}
-              />
-            ) : null}
-          </>
-        )}
-      </DrawerOverviewCard>
-
+    <div className="grid w-full min-w-0 items-start gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)_minmax(240px,0.85fr)]">
+      <input type="hidden" name="client_name" value={opportunity.client_name} />
       {opportunity.referrer_company_id ? (
         <input type="hidden" name="referrer_company_id" value={opportunity.referrer_company_id} />
       ) : null}
@@ -148,37 +81,131 @@ export function OpportunityOverviewFields({
         <input type="hidden" name="referrer_contact_id" value={opportunity.referrer_contact_id} />
       ) : null}
 
-      <div className="grid w-full min-w-0 grid-cols-1 items-stretch gap-4 md:grid-cols-2">
-        <DrawerOverviewCard title="Requirement" columns={1} dense={false} matchHeight className="w-full min-w-0">
-          <div className="col-span-full w-full">
-            <OpportunityRequirementFields opportunity={opportunity} salesRole={salesRole} editing={editing} />
-          </div>
-        </DrawerOverviewCard>
+      <div className="flex min-w-0 flex-col gap-3">
+        <Section title="Client">
+          {editing ? (
+            <div className={compactGrid}>
+              <label className="block min-w-0 text-sm">
+                <span className={labelClass}>Company</span>
+                <select
+                  name="company_id"
+                  value={companyId}
+                  onChange={(e) => setCompanyId(e.target.value)}
+                  className={selectClass}
+                >
+                  <option value="">—</option>
+                  {companyOptions.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <OpportunityPartyContactSelect
+                instanceKey={`overview-${opportunity.id}-${companyId}`}
+                companyId={companyId}
+                contacts={contacts}
+                companies={companies}
+                contactOptions={contactOptions}
+                defaultContactId={resolveContactSelectValue(contacts, opportunity.primary_contact_id)}
+                fieldName="primary_contact_id"
+                onNewContact={() => {}}
+              />
+              <label className="block min-w-0 text-sm">
+                <span className={labelClass}>Lead/Opp Source</span>
+                <select name="lead_source" defaultValue={opportunity.lead_source ?? "direct"} className={selectClass}>
+                  {OPPORTUNITY_SOURCES.map((source) => (
+                    <option key={source} value={source}>
+                      {OPPORTUNITY_SOURCE_LABELS[source]}
+                    </option>
+                  ))}
+                </select>
+                <input type="hidden" name="lead_type" value={opportunity.lead_type} />
+              </label>
+              <FormField
+                label="Owner"
+                name="relationship_owner"
+                defaultValue={opportunity.relationship_owner ?? ""}
+              />
+              <label className="block min-w-0 text-sm col-span-2 sm:col-span-1">
+                <span className={labelClass}>Transaction</span>
+                <select name="sales_role" defaultValue={opportunity.sales_role ?? "to_lease"} className={selectClass}>
+                  {OPPORTUNITY_SALES_ROLES.map((role) => (
+                    <option key={role} value={role}>
+                      {OPPORTUNITY_SALES_ROLE_LABELS[role]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          ) : (
+            <dl className={compactGrid}>
+              <ClientValue label="Company" value={opportunity.linked_company_name} />
+              <ClientValue label="Contact" value={opportunity.primary_contact_name} />
+              <ClientValue label="Lead/Opp Source" value={OPPORTUNITY_SOURCE_LABELS[opportunity.lead_source ?? "direct"]} />
+              <ClientValue label="Owner" value={opportunity.relationship_owner} />
+              <ClientValue label="Transaction" value={OPPORTUNITY_SALES_ROLE_LABELS[opportunity.sales_role ?? "to_lease"]} />
+            </dl>
+          )}
+        </Section>
 
-        <DrawerOverviewCard title="Parties summary" columns={1} dense={false} matchHeight className="w-full min-w-0">
-          <dl className="space-y-3">
-            {summary.map((row) => (
-              <div key={row.label} className="min-w-0 py-1">
-                <dt className={labelClass}>{row.label}</dt>
-                <dd className="mt-1 text-sm font-normal leading-relaxed text-slate-900">{row.value}</dd>
+        <Section title="Situation">
+          {editing ? (
+            <div className={compactGrid}>
+              <FormField
+                label="Waiting for"
+                name="waiting_for"
+                defaultValue={opportunity.waiting_for ?? ""}
+              />
+              <FormField
+                label="Next action date"
+                name="next_action_date"
+                type="date"
+                defaultValue={opportunity.next_action_date?.slice(0, 10) ?? ""}
+              />
+              <div className="col-span-2">
+                <FormField
+                  label="Next action"
+                  name="next_action"
+                  defaultValue={opportunity.next_action ?? ""}
+                />
               </div>
-            ))}
-          </dl>
-        </DrawerOverviewCard>
+            </div>
+          ) : (
+            <dl className={compactGrid}>
+              <ClientValue label="Waiting for" value={waitingDisplay} />
+              <ClientValue
+                label="Next action date"
+                value={formatOpportunityActionDate(opportunity.next_action_date)}
+              />
+              <div className="col-span-2">
+                <ClientValue label="Next action" value={opportunity.next_action} />
+              </div>
+            </dl>
+          )}
+        </Section>
+
+        {editing || opportunity.remarks?.trim() ? (
+          <Section title="Notes">
+            {editing ? (
+              <TextAreaField label="Remarks" name="remarks" defaultValue={opportunity.remarks ?? ""} />
+            ) : (
+              <p className="line-clamp-4 text-sm leading-relaxed whitespace-pre-wrap text-slate-800">
+                {opportunity.remarks?.trim() || "—"}
+              </p>
+            )}
+          </Section>
+        ) : null}
       </div>
 
-      <DrawerOverviewCard title="Notes" columns={1} dense={false} className="w-full">
-        {editing ? (
-          <TextAreaField label="Internal remarks" name="remarks" defaultValue={opportunity.remarks ?? ""} />
-        ) : (
-          <div className="py-1">
-            <dt className={labelClass}>Internal remarks</dt>
-            <dd className="mt-1 text-sm font-normal leading-relaxed text-slate-900 whitespace-pre-wrap">
-              {opportunity.remarks?.trim() || "—"}
-            </dd>
-          </div>
-        )}
-      </DrawerOverviewCard>
+      <div className="flex min-w-0 flex-col gap-3">
+        <Section title="Requirement">
+          <OpportunityRequirementSection opportunity={opportunity} editing={editing} />
+        </Section>
+        {!editing ? <OpportunityRequirementIntake opportunity={opportunity} /> : null}
+      </div>
+
+      <aside className="min-w-0 lg:sticky lg:top-20">{sideContent}</aside>
     </div>
   );
 }

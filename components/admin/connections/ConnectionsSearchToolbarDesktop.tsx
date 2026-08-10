@@ -1,6 +1,6 @@
 "use client";
 
-import { COVERAGE_OPTIONS } from "@/lib/connectionsValues";
+import { CoverageMultiSelect } from "@/components/admin/connections/CoverageMultiSelect";
 import { connectionsGlassClasses } from "@/lib/connectionsGlassTheme";
 import type { ConnectionsQuickFilters } from "@/lib/connectionsList";
 
@@ -46,19 +46,10 @@ export function ConnectionsSearchToolbarDesktop({
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">{relationshipTypeSlot}</div>
         ) : null}
 
-        <select
-          aria-label="Filter by coverage"
+        <CoverageMultiSelect
           value={quickFilters.coverage}
-          onChange={(e) => onQuickFiltersChange({ ...quickFilters, coverage: e.target.value })}
-          className={selectClass}
-        >
-          <option value="">Coverage</option>
-          {COVERAGE_OPTIONS.map((v) => (
-            <option key={v} value={v}>
-              {v}
-            </option>
-          ))}
-        </select>
+          onChange={(coverage) => onQuickFiltersChange({ ...quickFilters, coverage })}
+        />
 
         <select
           aria-label="Filter by country"

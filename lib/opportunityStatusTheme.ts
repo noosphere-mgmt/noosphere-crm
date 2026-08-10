@@ -2,11 +2,9 @@ import type { CSSProperties } from "react";
 import type { OpportunityStatus } from "@/lib/types/entities";
 
 export const OPPORTUNITY_STATUS_COLORS: Record<OpportunityStatus, string> = {
-  new: "#94A3B8",
-  qualifying: "#94A3B8",
-  sourcing: "#3B82F6",
-  proposal_preparing: "#8B5CF6",
-  proposal_sent: "#8B5CF6",
+  qualifying: "#64748B",
+  sourcing: "#0EA5E9",
+  proposal_reviewing: "#8B5CF6",
   negotiating: "#F59E0B",
   closed_won: "#10B981",
   closed_lost: "#EF4444",
@@ -25,7 +23,7 @@ export function opportunityStatusChip(status: OpportunityStatus): {
   className: string;
   style: CSSProperties;
 } {
-  const color = OPPORTUNITY_STATUS_COLORS[status];
+  const color = OPPORTUNITY_STATUS_COLORS[status] ?? OPPORTUNITY_STATUS_COLORS.qualifying;
   return {
     className: "inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold",
     style: {
@@ -35,4 +33,3 @@ export function opportunityStatusChip(status: OpportunityStatus): {
     },
   };
 }
-

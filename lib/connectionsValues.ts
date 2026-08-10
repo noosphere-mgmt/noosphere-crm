@@ -37,6 +37,7 @@ export const COVERAGE_OPTIONS = [
   "Retail",
   "Serviced Office",
   "Investment",
+  "Service Carrier",
 ] as const;
 
 export const ACTIVITY_TYPES = [

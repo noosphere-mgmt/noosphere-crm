@@ -72,6 +72,14 @@ export function coerceFieldValue(
     }
     case "string_array":
       return { value: parseStringArray(str), cleared: false };
+    case "json": {
+      try {
+        return { value: JSON.parse(str), cleared: false };
+      } catch {
+        if (opts?.strict) return { value: null, cleared: false, error: "invalid JSON" };
+        return { value: str.trim(), cleared: false };
+      }
+    }
     default:
       return { value: str.trim(), cleared: false };
   }

@@ -2,6 +2,7 @@ import { formatMoney } from "@/lib/formatCurrency";
 import { getPremisesRowPriceDisplay, monthlyRentFieldLabel } from "@/lib/premisesCommercial";
 import { formatListingStatus, normalizeListingIntent } from "@/lib/premisesListing";
 import type { OpportunityProposedPremises } from "@/lib/types/entities";
+import { formatPremisesName } from "@/lib/premisesDisplay";
 
 function isSaleListing(row: Pick<OpportunityProposedPremises, "inventory_status">): boolean {
   return row.inventory_status?.toLowerCase().includes("sale") ?? false;
@@ -64,10 +65,7 @@ export function formatProposedPremisesListMeta(
 }
 
 export function formatProposedPremisesLabel(row: Pick<OpportunityProposedPremises, "building_name" | "floor" | "unit">): string {
-  const space = [row.floor, row.unit].filter(Boolean).join(" / ");
-  const building = row.building_name?.trim();
-  if (building && space) return `${building} · ${space}`;
-  return building || space || "—";
+  return formatPremisesName(row.building_name, row.floor, row.unit);
 }
 
 export function formatProposedPremisesSpace(row: Pick<OpportunityProposedPremises, "floor" | "unit">): string {

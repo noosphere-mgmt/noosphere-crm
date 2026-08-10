@@ -62,6 +62,7 @@ export function CompanyInlineOverview({
   deleteAction,
   initialEditHighlight = false,
   embedded = false,
+  tabHrefFn,
 }: {
   company: Company;
   crmSummary?: CompanyCrmSummary;
@@ -69,6 +70,7 @@ export function CompanyInlineOverview({
   deleteAction?: () => Promise<void>;
   initialEditHighlight?: boolean;
   embedded?: boolean;
+  tabHrefFn?: (tab: CompanyDetailTabId) => string;
 }) {
   const searchParams = useSearchParams();
   const roles = useMemo(() => normalizeRoles(company.roles?.length ? company.roles : ["client"]), [company.roles]);
@@ -82,8 +84,9 @@ export function CompanyInlineOverview({
     [company.id],
   );
 
-  const tabHref = (tab: CompanyDetailTabId) =>
+  const defaultTabHref = (tab: CompanyDetailTabId) =>
     companyDrawerHref("/admin/companies", searchParams, company.id, tab);
+  const resolveTabHref = tabHrefFn ?? defaultTabHref;
 
   const body = (
     <div className="grid gap-4 lg:grid-cols-2">
@@ -121,19 +124,19 @@ export function CompanyInlineOverview({
         <InlineTextField label="Industry" value={company.industry} onSave={save("industry")} />
         <InlineTextField label="Source" value={company.source} onSave={save("source")} />
         {crmSummary && crmSummary.contacts > 0 ? (
-          <CrmStat label="Contacts" value={crmSummary.contacts} href={tabHref("contacts")} />
+          <CrmStat label="Contacts" value={crmSummary.contacts} href={resolveTabHref("contacts")} />
         ) : null}
         {crmSummary && crmSummary.properties > 0 ? (
-          <CrmStat label="Properties" value={crmSummary.properties} href={tabHref("premises")} />
+          <CrmStat label="Properties" value={crmSummary.properties} href={resolveTabHref("premises")} />
         ) : null}
         {crmSummary && crmSummary.premises > 0 ? (
-          <CrmStat label="Premises" value={crmSummary.premises} href={tabHref("premises")} />
+          <CrmStat label="Premises" value={crmSummary.premises} href={resolveTabHref("premises")} />
         ) : null}
         {crmSummary && crmSummary.openOpportunities > 0 ? (
           <CrmStat
             label="Open Opps"
             value={crmSummary.openOpportunities}
-            href={tabHref("opportunities")}
+            href={resolveTabHref("opportunities")}
           />
         ) : null}
         {lastActivity ? <InlineReadOnlyField label="Last Activity" value={lastActivity} /> : null}

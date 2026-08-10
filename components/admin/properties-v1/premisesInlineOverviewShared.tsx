@@ -17,6 +17,8 @@ export type PremisesInlineOverviewProps = {
   companyLabels: Map<string, string>;
   lastActivityDate?: string | null;
   drawerBasePath?: string;
+  /** When set, overrides drawer-style tab links (e.g. full-page workspace URLs). */
+  tabHrefFn?: (tab: PremisesDetailTabId) => string;
 };
 
 export function controllingParty(

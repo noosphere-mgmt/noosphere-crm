@@ -6,11 +6,9 @@ export type ListingIntent = "lease" | "sale" | "both";
 export type OfferType = "Unit" | "Floor" | "Enbloc" | "Serviced Office" | "Shared Office";
 export type WindowType = "Yes" | "No" | "Partial";
 export type OpportunityStatus =
-  | "new"
   | "qualifying"
   | "sourcing"
-  | "proposal_preparing"
-  | "proposal_sent"
+  | "proposal_reviewing"
   | "negotiating"
   | "closed_won"
   | "closed_lost";
@@ -218,7 +216,7 @@ export type Company = {
 
 export type Contact = {
   id: number;
-  company_id: number;
+  company_id: number | null;
   contact_name: string;
   first_name: string | null;
   last_name: string | null;
@@ -233,6 +231,7 @@ export type Contact = {
   is_primary: boolean;
   contact_role: CompanyRole[];
   coverage: string[];
+  locate_at: string | null;
   last_contact_date: string | null;
   last_activity_date?: string | null;
   next_follow_up_date: string | null;
@@ -248,7 +247,7 @@ export type Contact = {
   v1_contact_id?: string | null;
 };
 
-export type OpportunitySalesRole = "to_lease" | "to_buy";
+export type OpportunitySalesRole = "to_lease" | "to_buy" | "to_sell" | "prof_service";
 
 export type OpportunityFundingStatus =
   | "cash"
@@ -261,6 +260,7 @@ export type Opportunity = {
   id: number;
   client_name: string;
   lead_type: OpportunityLeadType;
+  lead_source?: import("@/lib/opportunitySourceValues").OpportunitySource;
   company_name: string | null;
   company_id: number | null;
   primary_contact_id: number | null;
@@ -278,10 +278,15 @@ export type Opportunity = {
   district_preference: string | null;
   workspace_type: string | null;
   property_type: string | null;
+  property_category_preference: string | null;
+  property_type_preference: string | null;
   target_yield: string | null;
   funding_status: OpportunityFundingStatus | string | null;
   move_in_date: string | null;
   status: OpportunityStatus;
+  waiting_for: string | null;
+  next_action: string | null;
+  next_action_date: string | null;
   requirement_summary: string | null;
   remarks: string | null;
   created_at: string;
@@ -293,6 +298,10 @@ export type Opportunity = {
   referrer_company_name?: string | null;
   referrer_contact_name?: string | null;
   has_viewing_premises?: boolean;
+  expected_fee?: string | null;
+  activity_count?: number;
+  last_activity_date?: string | null;
+  last_activity_type?: string | null;
 };
 
 export type ProposedPremisesStatus =
@@ -449,6 +458,8 @@ export type MarketableProperty = {
 
 export type MatchedProperty = {
   property_id: number;
+  premises_id: string | null;
+  premises_business_id: string | null;
   match_score: number;
   match_reasons: string[];
   match_gaps: string[];
@@ -488,4 +499,104 @@ export type MatchedOffer = {
   sale_price: string | null;
   available_date: string | null;
   offer_status: InventoryStatus;
+};
+
+export type ProposalLanguage = "en" | "zh-Hant" | "zh-Hans";
+
+export type ProposalStatus = "draft" | "sent" | "accepted" | "superseded";
+
+export type ProposalPricingSnapshot = {
+  computed_at: string;
+  sales_role: string | null;
+  face_rent: number | null;
+  face_rent_psf: number | null;
+  rent_free_months: number | null;
+  term_months: number | null;
+  management_fee: number | null;
+  deposit_months: number | null;
+  net_effective_rent: number | null;
+  total_initial_cost: number | null;
+  asking_sale_price: number | null;
+  currency: string;
+  display_rent: string;
+  overrides?: {
+    display_rent?: string | null;
+    net_effective_rent?: number | null;
+    advisor_note?: string | null;
+  };
+};
+
+export type ProposalPremisesSnapshot = {
+  captured_at: string;
+  premises_id: string;
+  premises_business_id: string | null;
+  building_business_id: string | null;
+  building_name: string;
+  building_name_zh: string | null;
+  building_name_cn: string | null;
+  district: string | null;
+  floor: string | null;
+  unit: string | null;
+  display_label: string;
+  property_category: string | null;
+  space_form: string | null;
+  area_sqft: string | null;
+  capacity_pax: number | null;
+  operating_model: string | null;
+};
+
+export type ProposalMediaSnapshot = {
+  captured_at: string;
+  items: {
+    kind: "photo" | "floorplan" | "brochure";
+    url: string;
+    source: string;
+    caption?: string;
+  }[];
+};
+
+export type OpportunityProposal = {
+  id: number;
+  opportunity_id: number;
+  title: string;
+  proposal_date: string | null;
+  language: ProposalLanguage;
+  status: ProposalStatus;
+  version_number: number;
+  supersedes_id: number | null;
+  prepared_for_company_id: number | null;
+  prepared_for_contact_id: number | null;
+  template_key: string;
+  executive_summary: string | null;
+  consultancy_advice: string | null;
+  output_file: string | null;
+  sent_date: string | null;
+  remarks: string | null;
+  created_at: string;
+  updated_at: string;
+  prepared_for_company_name?: string | null;
+  prepared_for_contact_name?: string | null;
+};
+
+export type OpportunityProposalItem = {
+  id: number;
+  proposal_id: number;
+  premises_id: string;
+  proposed_premises_id: number | null;
+  rank: number | null;
+  recommended: boolean;
+  recommendation_label: string | null;
+  display_rent: string | null;
+  net_effective_rent: string | null;
+  total_initial_cost: string | null;
+  pros: string | null;
+  cons: string | null;
+  advisor_comment: string | null;
+  pricing_snapshot: ProposalPricingSnapshot | null;
+  premises_snapshot: ProposalPremisesSnapshot | null;
+  media_snapshot: ProposalMediaSnapshot | null;
+  created_at: string;
+  updated_at: string;
+  premises_business_id?: string | null;
+  building_name?: string | null;
 };

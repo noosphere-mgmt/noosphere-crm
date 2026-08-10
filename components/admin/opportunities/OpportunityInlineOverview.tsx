@@ -26,8 +26,10 @@ import { partiesSummaryRows } from "@/lib/opportunityPartiesDisplay";
 import {
   OPPORTUNITY_SALES_ROLES,
   OPPORTUNITY_SALES_ROLE_LABELS,
+  isProfServiceSalesRole,
   type OpportunitySalesRole,
 } from "@/lib/opportunityValues";
+import { OPPORTUNITY_SOURCES, OPPORTUNITY_SOURCE_LABELS } from "@/lib/opportunitySourceValues";
 import type { OpportunityDetailData } from "@/lib/repos/opportunityDetail";
 import { toLegacyContactSelectOptions, resolveCompanySelectValue, resolveContactSelectValue } from "@/lib/crmSelectOptions";
 import type { CompanyOption } from "@/lib/repos/companies";
@@ -93,6 +95,12 @@ export function OpportunityInlineOverview({ data }: { data: OpportunityDetailDat
           onSave={save("lead_type")}
         />
         <InlineSelectField
+          label="Lead/Opp Source"
+          value={opportunity.lead_source ?? "direct"}
+          options={OPPORTUNITY_SOURCES.map((source) => ({ value: source, label: OPPORTUNITY_SOURCE_LABELS[source] }))}
+          onSave={save("lead_source")}
+        />
+        <InlineSelectField
           label="Status"
           value={opportunity.status}
           options={OPPORTUNITY_STATUSES.map((s) => ({
@@ -108,15 +116,17 @@ export function OpportunityInlineOverview({ data }: { data: OpportunityDetailDat
             onSave={save("lost_reason")}
           />
         ) : null}
-        <InlineSelectField
-          label="Sales role"
-          value={(opportunity.sales_role ?? "to_lease") as OpportunitySalesRole}
-          options={OPPORTUNITY_SALES_ROLES.map((r) => ({
-            value: r,
-            label: OPPORTUNITY_SALES_ROLE_LABELS[r],
-          }))}
-          onSave={save("sales_role")}
-        />
+        {!isProfServiceSalesRole(opportunity.sales_role) ? (
+          <InlineSelectField
+            label="Sales Type"
+            value={(opportunity.sales_role ?? "to_lease") as OpportunitySalesRole}
+            options={OPPORTUNITY_SALES_ROLES.map((r) => ({
+              value: r,
+              label: OPPORTUNITY_SALES_ROLE_LABELS[r],
+            }))}
+            onSave={save("sales_role")}
+          />
+        ) : null}
       </DrawerOverviewCard>
 
       <div className="grid w-full min-w-0 grid-cols-1 items-stretch gap-4 md:grid-cols-2">

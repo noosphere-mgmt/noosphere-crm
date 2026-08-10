@@ -6,11 +6,12 @@ import {
   countPremisesV1,
   getPremisesListItemByRef,
   listPremisesFilterOptions,
+  listPremisesForPropertyV1,
   listPremisesFullFiltered,
   resolvePremisesV1Id,
   type PremisesFlatFilters,
 } from "@/lib/repos/premisesV1";
-import { listPropertyV1SelectOptions } from "@/lib/repos/propertiesV1";
+import { getPropertyV1, listPropertyV1SelectOptions } from "@/lib/repos/propertiesV1";
 import { getPremisesDrawerData } from "@/lib/repos/premisesDrawer";
 
 export const dynamic = "force-dynamic";
@@ -20,14 +21,22 @@ type Props = {
     q?: string;
     city?: string;
     district?: string;
+    title?: string;
+    building_type?: string;
+    asset_class?: string;
+    product_subtype?: string;
+    property_category?: string;
     property_type?: string;
     operating_model?: string;
     fit_out_condition?: string;
+    view_type?: string;
     listing_intent?: string;
     listing_status?: string;
     premises?: string;
     mode?: string;
     tab?: string;
+    building?: string;
+    building_mode?: string;
   }>;
 };
 
@@ -37,14 +46,17 @@ export default async function AllPremisesPage({ searchParams }: Props) {
     q: sp.q?.trim() || undefined,
     city: sp.city?.trim() || undefined,
     district: sp.district?.trim() || undefined,
-    property_type: sp.property_type?.trim() || undefined,
-    operating_model: sp.operating_model?.trim() || undefined,
+    title: sp.title?.trim() || undefined,
+    asset_class: sp.asset_class?.trim() || undefined,
+    product_subtype: sp.product_subtype?.trim() || undefined,
     fit_out_condition: sp.fit_out_condition?.trim() || undefined,
+    view_type: sp.view_type?.trim() || undefined,
     listing_intent: sp.listing_intent?.trim() || undefined,
     listing_status: sp.listing_status?.trim() || undefined,
   };
 
   const premisesRef = sp.premises?.trim();
+  const buildingRef = sp.building?.trim();
 
   const [rowsRaw, options, companies, contacts, propertyOptions, totalCount, drawerData] = await Promise.all([
     listPremisesFullFiltered(filters),
@@ -70,6 +82,10 @@ export default async function AllPremisesPage({ searchParams }: Props) {
     }
   }
 
+  const [selectedBuildingProperty, selectedBuildingPremises] = buildingRef
+    ? await Promise.all([getPropertyV1(buildingRef), listPremisesForPropertyV1(buildingRef)])
+    : [null, []];
+
   return (
     <AdminShell title="Properties" module="properties" wide hideHeader>
       <AllPremisesWorkspace
@@ -82,6 +98,8 @@ export default async function AllPremisesPage({ searchParams }: Props) {
         contacts={contacts}
         propertyOptions={propertyOptions}
         drawerData={drawerData}
+        selectedBuildingProperty={selectedBuildingProperty}
+        selectedBuildingPremises={selectedBuildingPremises}
       />
     </AdminShell>
   );

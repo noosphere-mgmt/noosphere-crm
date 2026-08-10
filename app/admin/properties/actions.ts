@@ -13,6 +13,13 @@ import { rethrowNextNavigation } from "@/lib/nextNavigation";
 import { parsePropertyV1Form } from "@/lib/parsePropertyV1Form";
 import { createPropertyV1, deletePropertiesV1, getPropertyV1, updatePropertyV1, type PropertyV1Patch } from "@/lib/repos/propertiesV1";
 import { applyPropertyFieldPatch, PROPERTY_LOCATION_FIELDS } from "@/lib/propertyFieldPatch";
+import { formatPremisesViewTypes, isOfficePremisesPropertyType } from "@/lib/premisesDisplay";
+import {
+  derivePremisesClassification,
+  parseCanonicalListingIntent,
+  parsePropertyCategory,
+  parseSpaceForm,
+} from "@/lib/premisesClassification";
 import { createPremisesV1, duplicatePremisesV1, getPremisesV1, updatePremisesV1, type PremisesV1Patch } from "@/lib/repos/premisesV1";
 
 function s(v: FormDataEntryValue | null): string | null {
@@ -77,6 +84,51 @@ export async function updatePropertyV1Action(propertyId: string, formData: FormD
   redirect(`/admin/properties/${propertyId}`);
 }
 
+export async function updatePropertyProposalContentAction(
+  propertyId: string,
+  formData: FormData,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const property = await getPropertyV1(propertyId);
+    if (!property) return { ok: false, error: "Building not found" };
+
+    const patch: PropertyV1Patch = {
+      bldg_name_en: s(formData.get("bldg_name_en")),
+      bldg_name_zh: s(formData.get("bldg_name_zh")),
+      bldg_name_cn: s(formData.get("bldg_name_cn")),
+      city_en: s(formData.get("city_en")),
+      city_zh: s(formData.get("city_zh")),
+      city_cn: s(formData.get("city_cn")),
+      district_en: s(formData.get("district_en")),
+      district_zh: s(formData.get("district_zh")),
+      district_cn: s(formData.get("district_cn")),
+      street_name_en: s(formData.get("street_name_en")),
+      street_name_zh: s(formData.get("street_name_zh")),
+      street_name_cn: s(formData.get("street_name_cn")),
+      bldg_desc: s(formData.get("bldg_desc")),
+      bldg_desc_zh: s(formData.get("bldg_desc_zh")),
+      bldg_desc_cn: s(formData.get("bldg_desc_cn")),
+      location_advantages_en: s(formData.get("location_advantages_en")),
+      location_advantages_zh: s(formData.get("location_advantages_zh")),
+      location_advantages_cn: s(formData.get("location_advantages_cn")),
+      proposal_highlights_en: s(formData.get("proposal_highlights_en")),
+      proposal_highlights_zh: s(formData.get("proposal_highlights_zh")),
+      proposal_highlights_cn: s(formData.get("proposal_highlights_cn")),
+      facilities: s(formData.get("facilities")),
+      facilities_zh: s(formData.get("facilities_zh")),
+      facilities_cn: s(formData.get("facilities_cn")),
+    };
+    const addresses = composePropertyFullAddresses({ ...property, ...patch });
+    await updatePropertyV1(propertyId, { ...patch, ...addresses });
+    revalidatePath(`/admin/properties/buildings/${property.business_id ?? propertyId}`);
+    revalidatePath(`/admin/properties/${propertyId}`);
+    revalidatePath("/admin/properties/buildings");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to save proposal content" };
+  }
+}
+
 async function parsePremisesV1Form(formData: FormData): Promise<PremisesV1Patch> {
   const relationshipPatch = await buildPremisesRelationshipLinesPatch(
     parseRelationshipLines(s(formData.get("relationship_lines"))),
@@ -84,23 +136,61 @@ async function parsePremisesV1Form(formData: FormData): Promise<PremisesV1Patch>
 
   const operatingModel = s(formData.get("operating_model"));
   const packageFees = isPackageOperatingModel(operatingModel);
+  const propertyType = s(formData.get("property_type"));
+  const viewTypes = formData.getAll("view_type").map(String).filter(Boolean);
+  const inventoryStatus = s(formData.get("inventory_status"));
+  const monthlyRent = nDec(formData.get("monthly_rent"));
+  const askingSalePrice = nDec(formData.get("asking_sale_price"));
+
+  const derived = derivePremisesClassification({
+    property_type: propertyType,
+    centre_type: s(formData.get("centre_type")),
+    offer_type: s(formData.get("offer_type")),
+    operating_model: operatingModel,
+    inventory_status: inventoryStatus,
+    monthly_rent: monthlyRent,
+    asking_sale_price: askingSalePrice,
+  });
 
   return {
     property_name_en: s(formData.get("property_name_en")),
     property_name_zh: s(formData.get("property_name_zh")),
-    property_type: s(formData.get("property_type")),
+    property_name_cn: s(formData.get("property_name_cn")),
+    property_type: propertyType,
+    property_category:
+      parsePropertyCategory(formData.get("property_category")) ?? derived.property_category,
+    asset_class: s(formData.get("asset_class")),
+    asset_scope: s(formData.get("asset_scope")),
+    product_subtype: s(formData.get("product_subtype")),
+    whole_asset_type: s(formData.get("whole_asset_type")),
+    market_mode: s(formData.get("market_mode")),
+    occupancy_status: s(formData.get("occupancy_status")),
+    availability_status: s(formData.get("availability_status")),
+    discovery_status: s(formData.get("discovery_status")),
+    access_status: s(formData.get("access_status")),
+    source_type: s(formData.get("source_type")),
+    address_confidence: s(formData.get("address_confidence")),
+    last_verified_at: s(formData.get("last_verified_at")),
+    space_form: parseSpaceForm(formData.get("space_form")) ?? derived.space_form,
+    listing_intent:
+      parseCanonicalListingIntent(formData.get("listing_intent")) ?? derived.listing_intent,
     operating_model: operatingModel,
     fit_out_condition: s(formData.get("fit_out_condition")),
-    inventory_status: s(formData.get("inventory_status")),
+    inventory_status: inventoryStatus,
     floor: s(formData.get("floor")),
     unit: s(formData.get("unit")),
     workstation_count: s(formData.get("workstation_count")),
-    office_type: s(formData.get("office_type")),
+    no_of_rooms: s(formData.get("no_of_rooms")),
+    office_type: isOfficePremisesPropertyType(propertyType) ? s(formData.get("office_type")) : null,
     gross_area_sqft: nDec(formData.get("gross_area_sqft")),
     net_area_sqft: nDec(formData.get("net_area_sqft")),
-    view_type: s(formData.get("view_type")),
+    gross_area_sqm: nDec(formData.get("gross_area_sqm")),
+    net_area_sqm: nDec(formData.get("net_area_sqm")),
+    view_type:
+      viewTypes.length > 0 ? formatPremisesViewTypes(viewTypes) : s(formData.get("view_type")),
     currency: s(formData.get("currency")) ?? "HKD",
     management_fee: packageFees ? 0 : nDec(formData.get("management_fee")),
+    management_fee_psf: packageFees ? 0 : nDec(formData.get("management_fee_psf")),
     government_rates: packageFees ? 0 : nDec(formData.get("government_rates")),
     remarks: s(formData.get("remarks")),
     ...relationshipPatch,
@@ -247,6 +337,10 @@ export async function patchPremisesFieldAction(
     const nextPropertyId = patch.property_id ?? premises.property_id;
     revalidatePath("/admin/properties");
     revalidatePath(`/admin/properties/${premises.property_id}`);
+    revalidatePath("/admin/properties/premises");
+    if (premises.business_id?.trim()) {
+      revalidatePath(`/admin/properties/premises/${premises.business_id}`);
+    }
     if (nextPropertyId !== premises.property_id) {
       revalidatePath(`/admin/properties/${nextPropertyId}`);
     }

@@ -1,12 +1,13 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import { ContactCompanyAffiliationsCard } from "@/components/admin/connections/ContactCompanyAffiliationsCard";
 import { ContactCompanyTab } from "@/components/admin/connections/ContactCompanySummary";
 import { ContactInlineDetail } from "@/components/admin/connections/ContactInlineDetail";
 import { EntityRelationshipsTab } from "@/components/admin/connections/EntityRelationshipsTab";
 import { LinkedOpportunitiesTable } from "@/components/admin/connections/LinkedOpportunitiesTable";
 import { ContactDetailTabs } from "@/components/admin/connections/ContactDetailTabs";
-import { EntityActivitiesTab } from "@/components/admin/activities/EntityActivitiesTab";
+import { EntityActivityWorkspace } from "@/components/admin/activities/EntityActivityWorkspace";
 import {
   ConnectionsDrawerHeader,
   ConnectionsDrawerTableLink,
@@ -22,9 +23,10 @@ import Link from "next/link";
 
 const overlayClass = "fixed inset-0 z-40 bg-slate-900/10 transition-opacity";
 const panelClass =
-  "fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-slate-200 max-md:bg-white md:bg-slate-50 shadow-xl lg:w-[42vw] lg:max-w-[45vw]";
+  "fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-slate-200 max-md:bottom-[calc(3.5rem+env(safe-area-inset-bottom))] max-md:bg-white md:bg-slate-50 shadow-xl lg:w-[42vw] lg:max-w-[45vw]";
 
-function spaceLinkRoles(space: Asset, companyId: number): string[] {
+function spaceLinkRoles(space: Asset, companyId: number | null): string[] {
+  if (companyId == null) return [];
   const roles: string[] = [];
   if (space.operator_company_id === companyId) roles.push("Operator");
   if (space.landlord_company_id === companyId) roles.push("Landlord");
@@ -39,22 +41,36 @@ function ContactDrawerBody({ data }: { data: ContactDrawerData }) {
 
   if (tab === "overview") {
     return (
-      <ContactInlineDetail
-        contact={contact}
-        companies={companies}
-        crmSummary={data.crmSummary}
-        lastActivityDate={data.lastActivityDate}
-        embedded
-      />
+      <div className="space-y-4">
+        <ContactInlineDetail
+          contact={contact}
+          companies={companies}
+          crmSummary={data.crmSummary}
+          lastActivityDate={data.lastActivityDate}
+          embedded
+        />
+        <ContactCompanyAffiliationsCard
+          contactId={contact.id}
+          affiliations={data.affiliations ?? []}
+          companies={companies}
+        />
+      </div>
     );
   }
 
   if (tab === "company") {
     if (!company) {
       return (
-        <p className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600">
-          Company record not found.
-        </p>
+        <div className="space-y-4">
+          <p className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600">
+            No primary company linked. Add affiliations below.
+          </p>
+          <ContactCompanyAffiliationsCard
+            contactId={contact.id}
+            affiliations={data.affiliations ?? []}
+            companies={companies}
+          />
+        </div>
       );
     }
     return (
@@ -80,7 +96,7 @@ function ContactDrawerBody({ data }: { data: ContactDrawerData }) {
 
   if (tab === "activities") {
     return (
-      <EntityActivitiesTab
+      <EntityActivityWorkspace
         activities={activities}
         defaults={{
           contact_business_id: contact.business_id ?? null,
@@ -174,7 +190,7 @@ export function ContactDrawer({
           <ConnectionsDrawerHeader
             title={getContactLabel(contact)}
             subtitle={contact.company_name ?? undefined}
-            businessId={data.v1ContactId}
+            businessId={contact.business_id}
             onClose={onClose}
           />
           <div className="shrink-0 bg-white px-4 pt-2">

@@ -60,6 +60,7 @@ export function ContactInlineDetail({
   deleteAction,
   initialEditHighlight = false,
   embedded = false,
+  tabHrefFn,
 }: {
   contact: Contact;
   companies?: CompanyOption[];
@@ -68,6 +69,7 @@ export function ContactInlineDetail({
   deleteAction?: () => Promise<void>;
   initialEditHighlight?: boolean;
   embedded?: boolean;
+  tabHrefFn?: (tab: ContactDetailTabId) => string;
 }) {
   const save = useCallback(
     (field: string) => async (value: unknown) => {
@@ -78,9 +80,10 @@ export function ContactInlineDetail({
   );
   const searchParams = useSearchParams();
 
-  function tabHref(tab: ContactDetailTabId) {
+  function defaultTabHref(tab: ContactDetailTabId) {
     return contactDrawerHref("/admin/contacts", searchParams, contact.id, tab);
   }
+  const resolveTabHref = tabHrefFn ?? defaultTabHref;
 
   const body = (
     <div className="flex w-full min-w-0 flex-col gap-3">
@@ -96,6 +99,7 @@ export function ContactInlineDetail({
           onSave={save("company_id")}
         />
         <InlineTextField label="Title" value={contact.title} onSave={save("title")} />
+        <InlineTextField label="Locate at" value={contact.locate_at} onSave={save("locate_at")} />
         <InlineBooleanField label="Primary" value={contact.is_primary} onSave={save("is_primary")} />
         <InlineBooleanField
           label="Status"
@@ -130,11 +134,11 @@ export function ContactInlineDetail({
           <CrmStat
             label="Open opps"
             value={crmSummary.openOpportunities}
-            href={tabHref("opportunities")}
+            href={resolveTabHref("opportunities")}
           />
         ) : null}
         {crmSummary && crmSummary.properties > 0 ? (
-          <CrmStat label="Properties" value={crmSummary.properties} href={tabHref("premises")} />
+          <CrmStat label="Properties" value={crmSummary.properties} href={resolveTabHref("premises")} />
         ) : null}
         {lastActivityDate ? (
           <InlineReadOnlyField label="Last Activity" value={lastActivityDate.slice(0, 10)} />

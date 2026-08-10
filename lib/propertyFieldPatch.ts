@@ -56,6 +56,8 @@ export function applyPropertyFieldPatch(
     case "bldg_name_en":
     case "bldg_name_zh":
     case "bldg_name_cn":
+    case "building_type":
+    case "tower_block":
     case "country":
     case "city_en":
     case "city_zh":
@@ -74,8 +76,18 @@ export function applyPropertyFieldPatch(
     case "mtr_station":
     case "green_certification":
     case "bldg_desc":
+    case "bldg_desc_zh":
+    case "bldg_desc_cn":
+    case "location_advantages_en":
+    case "location_advantages_zh":
+    case "location_advantages_cn":
+    case "proposal_highlights_en":
+    case "proposal_highlights_zh":
+    case "proposal_highlights_cn":
     case "building_remarks":
     case "facilities":
+    case "facilities_zh":
+    case "facilities_cn":
       patch[field] = strOrNull(value);
       break;
     case "year_built":
@@ -83,12 +95,24 @@ export function applyPropertyFieldPatch(
     case "walking_minutes":
       patch[field] = intOrNull(value);
       break;
-    case "bldg_area_sqft":
-    case "bldg_area_sqm":
     case "plot_ratio":
-    case "site_area_sqft":
-    case "site_area_sqm":
       patch[field] = decOrNull(value);
+      break;
+    case "bldg_area_sqft":
+      patch.bldg_area_sqft = decOrNull(value);
+      patch.bldg_area_sqm = patch.bldg_area_sqft == null ? null : Math.round((patch.bldg_area_sqft / 10.7639) * 100) / 100;
+      break;
+    case "bldg_area_sqm":
+      patch.bldg_area_sqm = decOrNull(value);
+      patch.bldg_area_sqft = patch.bldg_area_sqm == null ? null : Math.round((patch.bldg_area_sqm * 10.7639) * 100) / 100;
+      break;
+    case "site_area_sqft":
+      patch.site_area_sqft = decOrNull(value);
+      patch.site_area_sqm = patch.site_area_sqft == null ? null : Math.round((patch.site_area_sqft / 10.7639) * 100) / 100;
+      break;
+    case "site_area_sqm":
+      patch.site_area_sqm = decOrNull(value);
+      patch.site_area_sqft = patch.site_area_sqm == null ? null : Math.round((patch.site_area_sqm * 10.7639) * 100) / 100;
       break;
     case "grade": {
       const grade = mustBeIn(value, BUILDING_GRADES);

@@ -1,4 +1,5 @@
 import { query } from "@/lib/db";
+import { resolveOpportunityRefToLegacy } from "@/lib/crmRefResolve";
 
 const V1_OPPORTUNITY_ID_RE = /^OPP-\d{4}-\d{4}$/;
 
@@ -6,35 +7,15 @@ export function isV1OpportunityId(value: string | null | undefined): boolean {
   return V1_OPPORTUNITY_ID_RE.test(value?.trim() ?? "");
 }
 
-/** Resolve ?opportunity= query param to legacy opportunities.id (bigint PK). */
+/** Resolve ?opportunity= query param (or full-page path id) to legacy opportunities.id. */
 export async function resolveOpportunityQueryParam(
   raw: string | undefined,
 ): Promise<number | null> {
   const trimmed = raw?.trim();
   if (!trimmed) return null;
 
-  if (/^\d+$/.test(trimmed)) {
-    const id = Number.parseInt(trimmed, 10);
-    return Number.isFinite(id) && id > 0 ? id : null;
-  }
-
-  if (isV1OpportunityId(trimmed)) {
-    const fromV1 = await query<{ legacy_opportunity_id: number }>(
-      `SELECT legacy_opportunity_id::int AS legacy_opportunity_id
-       FROM opportunities_v1 WHERE opportunity_id = $1`,
-      [trimmed],
-    );
-    if (fromV1[0]?.legacy_opportunity_id) return fromV1[0].legacy_opportunity_id;
-
-    const fromMap = await query<{ legacy_id: number }>(
-      `SELECT legacy_id::int AS legacy_id
-       FROM id_map_v1 WHERE entity_type = 'opportunity' AND new_id = $1`,
-      [trimmed],
-    );
-    if (fromMap[0]?.legacy_id) return fromMap[0].legacy_id;
-  }
-
-  return null;
+  // Permanent business ID (M100001), OPP-*, numeric, or other known refs.
+  return resolveOpportunityRefToLegacy(trimmed);
 }
 
 export async function lookupV1OpportunityId(legacyOpportunityId: number): Promise<string | null> {

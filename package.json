@@ -39,7 +39,12 @@
     "db:audit:company-refs": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/audit-company-references.ts",
     "db:audit:company-refs:fix": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/audit-company-references.ts --fix",
     "db:fix-relationship-lines": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/fix-premises-relationship-lines.ts",
-    "verify:premises-relationship-lines": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-premises-relationship-lines.ts"
+    "verify:premises-relationship-lines": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-premises-relationship-lines.ts",
+    "verify:supply-consolidation": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-supply-consolidation.ts",
+    "verify:opportunity-preferences": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-opportunity-preferences.ts",
+    "verify:match-premises": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-match-premises.ts",
+    "verify:opportunity-proposals": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-opportunity-proposals.ts",
+    "db:backfill-premises-category": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/backfill-premises-category.ts"
   },
   "dependencies": {
     "dotenv": "^17.4.2",

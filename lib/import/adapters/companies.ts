@@ -1,9 +1,12 @@
 import { query } from "@/lib/db";
+import { allocateNextBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
+import { isPermanentBusinessId } from "@/lib/businessIds";
 import { sqlContactDisplayName } from "@/lib/contactName";
 import { resolveCompanyRefToLegacy, resolveContactRefToLegacy } from "@/lib/crmRefResolve";
 import { COMPANY_ROLES, COMPANY_ROLE_LABELS } from "@/lib/lookups";
+import { syncLegacyCompanyToV1 } from "@/lib/repos/companiesV1";
 import type { CompanyRole } from "@/lib/types/entities";
-import { applySessionMetadata, genericUpdateRecord, rowToRecord } from "../adapterUtils";
+import { applySessionMetadata, genericUpdateRecord, rowToRecord, withExportMatchIds } from "../adapterUtils";
 import { sqlExportContactId, sqlJoinLegacyContact } from "../lookupSql";
 import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
 import { mergeReferenceResults, resolveContactIdOrName } from "../referenceResolution";
@@ -28,10 +31,17 @@ const FIELD_KEYS = [
   "email",
   "primary_contact_id",
   "primary_contact_name",
+  "relationship_owner",
+  "last_contact_date",
+  "last_meeting_date",
+  "next_follow_up_date",
+  "relationship_strength",
+  "is_active",
   "remarks",
 ] as const;
 
 const SELECT = `
+  co.id::text AS company_pk,
   COALESCE(cv.business_id, co.business_id) AS company_id,
   co.external_ref,
   co.company_name AS company_name_en,
@@ -44,6 +54,12 @@ const SELECT = `
   CASE WHEN co.primary_contact_id IS NULL THEN NULL
        ELSE ${sqlExportContactId("co.primary_contact_id")} END AS primary_contact_id,
   ${sqlContactDisplayName("pc")} AS primary_contact_name,
+  co.relationship_owner,
+  co.last_contact_date::text AS last_contact_date,
+  co.last_meeting_date::text AS last_meeting_date,
+  co.next_follow_up_date::text AS next_follow_up_date,
+  co.relationship_strength,
+  co.is_active,
   co.notes AS remarks
 `;
 
@@ -78,7 +94,7 @@ function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
       .filter(Boolean);
   }
   if ("remarks" in values) p.notes = values.remarks;
-  for (const k of ["external_ref", "country", "city", "district", "industry", "source", "website", "phone", "email", "primary_contact_id"] as const) {
+  for (const k of ["external_ref", "country", "city", "district", "industry", "source", "website", "phone", "email", "primary_contact_id", "relationship_owner", "last_contact_date", "last_meeting_date", "next_follow_up_date", "relationship_strength", "is_active"] as const) {
     if (k in values) p[k] = values[k];
   }
   return p;
@@ -118,6 +134,12 @@ export const companiesImportDefinition: ImportObjectDefinition = {
     { key: "email", label: "email", type: "string" },
     { key: "primary_contact_id", label: "primary_contact_id", type: "string" },
     { key: "primary_contact_name", label: "primary_contact_name", type: "string", lookupOnly: true },
+    { key: "relationship_owner", label: "relationship_owner", type: "string" },
+    { key: "last_contact_date", label: "last_contact_date", type: "date" },
+    { key: "last_meeting_date", label: "last_meeting_date", type: "date" },
+    { key: "next_follow_up_date", label: "next_follow_up_date", type: "date" },
+    { key: "relationship_strength", label: "relationship_strength", type: "string" },
+    { key: "is_active", label: "is_active", type: "boolean" },
     { key: "remarks", label: "remarks", type: "string", aliases: ["notes"] },
   ],
 
@@ -202,7 +224,28 @@ export const companiesImportDefinition: ImportObjectDefinition = {
         v.import_run_id ?? null,
       ],
     );
-    return Number.parseInt(rows[0]!.id, 10);
+    const id = Number.parseInt(rows[0]!.id, 10);
+    const suppliedCompanyId = String(values.company_id ?? "").trim();
+    const businessId = isPermanentBusinessId("company", suppliedCompanyId)
+      ? suppliedCompanyId
+      : await allocateNextBusinessId("company");
+    await query(`UPDATE companies SET business_id = $1 WHERE id = $2`, [businessId, id]);
+    await registerBusinessId({
+      entityType: "company",
+      businessId,
+      primaryRef: String(id),
+      legacyNumeric: id,
+    });
+    await syncLegacyCompanyToV1(
+      id,
+      String(v.company_name ?? values.company_name_en ?? ""),
+      (v.company_name_zh as string | null | undefined) ?? null,
+      v.is_active !== false,
+    );
+    const extra = dbPatch(values);
+    const extraPatch = Object.fromEntries(Object.entries(extra).filter(([key]) => ["relationship_owner", "last_contact_date", "last_meeting_date", "next_follow_up_date", "relationship_strength", "is_active"].includes(key)));
+    if (Object.keys(extraPatch).length) await genericUpdateRecord("companies", "id", id, extraPatch, ctx);
+    return id;
   },
 
   async updateRecord(id, patch, ctx) {
@@ -213,7 +256,13 @@ export const companiesImportDefinition: ImportObjectDefinition = {
 
   async exportRows() {
     const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM ${FROM} ORDER BY co.company_name ASC`);
-    return rows.map((r) => rowToRecord(r, String(r.company_id), FIELD_KEYS).values);
+    return rows.map((r) =>
+      withExportMatchIds(
+        rowToRecord(r, String(r.company_id ?? r.company_pk), FIELD_KEYS).values,
+        r.company_id,
+        r.company_pk,
+      ),
+    );
   },
 };
 

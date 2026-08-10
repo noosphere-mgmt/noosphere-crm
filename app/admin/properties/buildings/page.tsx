@@ -9,16 +9,19 @@ import { getPropertyV1, listPropertiesV1, listPropertyV1SelectOptions, countProp
 export const dynamic = "force-dynamic";
 
 type Props = {
-  searchParams: Promise<{ q?: string; property?: string; mode?: string }>;
+  searchParams: Promise<{ q?: string; category?: string; title?: string; related_company?: string; property?: string; mode?: string }>;
 };
 
 export default async function AllPropertiesPage({ searchParams }: Props) {
   const sp = await searchParams;
   const q = sp.q?.trim() || undefined;
+  const category = sp.category?.trim() || undefined;
+  const title = sp.title?.trim() || undefined;
+  const relatedCompany = sp.related_company?.trim() || undefined;
   const propertyId = sp.property?.trim() || undefined;
 
   const [rows, propertyOptions, companies, contacts, totalCount] = await Promise.all([
-    listPropertiesV1({ q }),
+    listPropertiesV1({ q, category, title, related_company: relatedCompany }),
     listPropertyV1SelectOptions(),
     listCompanyV1Options(),
     listContactV1Options(),
@@ -35,6 +38,9 @@ export default async function AllPropertiesPage({ searchParams }: Props) {
         rows={rows}
         totalCount={totalCount}
         initialQuery={q}
+        initialCategory={category}
+        initialTitle={title}
+        initialRelatedCompany={relatedCompany}
         selectedProperty={selectedProperty}
         selectedPremises={selectedPremises}
         propertyOptions={propertyOptions}

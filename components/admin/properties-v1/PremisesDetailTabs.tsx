@@ -12,7 +12,6 @@ const TAB_DEFS: { id: PremisesDetailTabId; label: string; countKey?: "relationsh
   { id: "opportunities", label: "Opportunities", countKey: "opportunities" },
   { id: "fees", label: "Fees", countKey: "fees" },
   { id: "activities", label: "Activities" },
-  { id: "notes", label: "Notes" },
 ];
 
 export function PremisesDetailTabs({

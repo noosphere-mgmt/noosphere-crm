@@ -17,8 +17,9 @@ async function syncLegacyCompaniesToV1(): Promise<void> {
       company_name_zh: string | null;
       is_active: boolean;
       created_at: string;
+      business_id: string | null;
     }>(
-      `SELECT id::text, company_name, company_name_zh, is_active, created_at::text
+      `SELECT id::text, company_name, company_name_zh, is_active, created_at::text, business_id
        FROM companies ORDER BY id ASC`,
     );
 
@@ -39,14 +40,22 @@ async function syncLegacyCompaniesToV1(): Promise<void> {
 
       await client.query(
         `INSERT INTO companies_v1 (
-           company_id, company_name_en, company_name_zh, company_status, legacy_company_id
-         ) VALUES ($1, $2, $3, $4, $5)
+           company_id, company_name_en, company_name_zh, company_status, legacy_company_id, business_id
+         ) VALUES ($1, $2, $3, $4, $5, $6)
          ON CONFLICT (company_id) DO UPDATE SET
            company_name_en = EXCLUDED.company_name_en,
            company_name_zh = EXCLUDED.company_name_zh,
            company_status = EXCLUDED.company_status,
-           legacy_company_id = EXCLUDED.legacy_company_id`,
-        [companyId, r.company_name, r.company_name_zh, r.is_active ? "Active" : "Inactive", legacyId],
+           legacy_company_id = EXCLUDED.legacy_company_id,
+           business_id = COALESCE(companies_v1.business_id, EXCLUDED.business_id)`,
+        [
+          companyId,
+          r.company_name,
+          r.company_name_zh,
+          r.is_active ? "Active" : "Inactive",
+          legacyId,
+          r.business_id,
+        ],
       );
     }
   });
@@ -81,12 +90,22 @@ export async function getCompanyV1NamesByIds(ids: string[]): Promise<CompanyV1Op
   );
 }
 
+/**
+ * Ensure companies_v1 + id_map_v1 exist for a legacy company.
+ * Reuses companies.business_id when present — never allocates a second C* for the same row.
+ */
 export async function syncLegacyCompanyToV1(
   legacyId: number,
   companyName: string,
   companyNameZh: string | null,
   isActive: boolean,
 ): Promise<void> {
+  const legacyRow = await query<{ business_id: string | null }>(
+    `SELECT business_id FROM companies WHERE id = $1`,
+    [legacyId],
+  );
+  const existingCompanyBusinessId = legacyRow[0]?.business_id?.trim() || null;
+
   const mapped = await query<{ new_id: string }>(
     `SELECT new_id FROM id_map_v1 WHERE entity_type = 'company' AND legacy_id = $1`,
     [legacyId],
@@ -108,40 +127,16 @@ export async function syncLegacyCompanyToV1(
        ON CONFLICT (entity_type, legacy_id) DO UPDATE SET new_id = EXCLUDED.new_id`,
       [legacyId, companyId],
     );
-
-    const businessId = await allocateNextBusinessId("company");
-
-    await query(
-      `INSERT INTO companies_v1 (
-         company_id, company_name_en, company_name_zh, company_status, legacy_company_id, business_id
-       ) VALUES ($1, $2, $3, $4, $5, $6)
-       ON CONFLICT (company_id) DO UPDATE SET
-         company_name_en = EXCLUDED.company_name_en,
-         company_name_zh = EXCLUDED.company_name_zh,
-         company_status = EXCLUDED.company_status,
-         legacy_company_id = EXCLUDED.legacy_company_id,
-         business_id = COALESCE(companies_v1.business_id, EXCLUDED.business_id)`,
-      [companyId, companyName, companyNameZh, isActive ? "Active" : "Inactive", legacyId, businessId],
-    );
-    await query(`UPDATE companies SET business_id = $1 WHERE id = $2`, [businessId, legacyId]);
-    await registerBusinessId({
-      entityType: "company",
-      businessId,
-      primaryRef: companyId,
-      deprecatedRef: companyId,
-      legacyNumeric: legacyId,
-    });
-    return;
   }
 
   const existingBiz = await query<{ business_id: string | null }>(
     `SELECT business_id FROM companies_v1 WHERE company_id = $1`,
     [companyId],
   );
-  let businessId = existingBiz[0]?.business_id ?? null;
-  if (!businessId) {
-    businessId = await allocateNextBusinessId("company");
-  }
+  const businessId =
+    existingCompanyBusinessId ||
+    existingBiz[0]?.business_id?.trim() ||
+    (await allocateNextBusinessId("company"));
 
   await query(
     `INSERT INTO companies_v1 (
@@ -155,14 +150,16 @@ export async function syncLegacyCompanyToV1(
        business_id = COALESCE(companies_v1.business_id, EXCLUDED.business_id)`,
     [companyId, companyName, companyNameZh, isActive ? "Active" : "Inactive", legacyId, businessId],
   );
-  await query(`UPDATE companies SET business_id = $1 WHERE id = $2`, [businessId, legacyId]);
-  if (!existingBiz[0]?.business_id) {
-    await registerBusinessId({
-      entityType: "company",
-      businessId,
-      primaryRef: companyId,
-      deprecatedRef: companyId,
-      legacyNumeric: legacyId,
-    });
-  }
+
+  await query(`UPDATE companies SET business_id = COALESCE(business_id, $1) WHERE id = $2`, [
+    businessId,
+    legacyId,
+  ]);
+  await registerBusinessId({
+    entityType: "company",
+    businessId,
+    primaryRef: companyId,
+    deprecatedRef: companyId,
+    legacyNumeric: legacyId,
+  });
 }

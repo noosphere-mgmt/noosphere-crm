@@ -16,22 +16,20 @@ import { formatLabelWithBusinessId } from "@/lib/crmSelectOptions";
 type SaveFn = (value: unknown) => Promise<{ ok: boolean; error?: string }>;
 
 function useGatedInlineEdit() {
-  const { editHighlight, runSave } = useInlineEdit();
+  const { runSave } = useInlineEdit();
   const [editing, setEditing] = useState(false);
 
-  useEffect(() => {
-    if (!editHighlight) setEditing(false);
-  }, [editHighlight]);
+  /** Always allow click-to-edit in view/drawer; pen opens full-page edit. */
+  const editHighlight = true;
 
   const beginEdit = useCallback(() => {
-    if (editHighlight) setEditing(true);
-  }, [editHighlight]);
+    setEditing(true);
+  }, []);
 
   return { editHighlight, runSave, editing, setEditing, beginEdit };
 }
 
-function editableFieldProps(editHighlight: boolean, beginEdit: () => void) {
-  if (!editHighlight) return {};
+function editableFieldProps(_editHighlight: boolean, beginEdit: () => void) {
   return {
     onClick: beginEdit,
     onKeyDown: (e: React.KeyboardEvent) => {
@@ -50,7 +48,19 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 }
 
 function FieldValue({ children }: { children: React.ReactNode }) {
-  return <dd className="mt-0.5 text-sm font-normal leading-snug text-slate-900">{children}</dd>;
+  return <dd className="mt-0.5 min-h-5 text-sm font-normal leading-snug text-slate-900">{children}</dd>;
+}
+
+function formatInlineNumber(value: string | null): string {
+  const raw = value?.trim();
+  if (!raw) return "";
+  const number = Number(raw.replace(/,/g, ""));
+  if (!Number.isFinite(number)) return raw;
+  const decimalPlaces = raw.includes(".") ? Math.min(raw.split(".")[1]?.length ?? 0, 6) : 0;
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: decimalPlaces,
+    maximumFractionDigits: decimalPlaces,
+  }).format(number);
 }
 
 export function InlineTextField({
@@ -59,12 +69,16 @@ export function InlineTextField({
   onSave,
   type = "text",
   placeholder,
+  hideLabel = false,
+  useGrouping = true,
 }: {
   label: string;
   value: string | null;
   onSave: SaveFn;
   type?: string;
   placeholder?: string;
+  hideLabel?: boolean;
+  useGrouping?: boolean;
 }) {
   const { editHighlight, runSave, editing, setEditing, beginEdit } = useGatedInlineEdit();
   const [draft, setDraft] = useState(value ?? "");
@@ -91,10 +105,11 @@ export function InlineTextField({
   if (editing) {
     return (
       <div className={inlineFieldShellClass(editHighlight, true)}>
-        <FieldLabel>{label}</FieldLabel>
+        {!hideLabel ? <FieldLabel>{label}</FieldLabel> : null}
         <input
           ref={inputRef}
           type={type}
+          step={type === "number" ? "0.01" : undefined}
           value={draft}
           placeholder={placeholder}
           className={inlineInputClass}
@@ -120,8 +135,8 @@ export function InlineTextField({
       className={inlineFieldShellClass(editHighlight, false)}
       {...editableFieldProps(editHighlight, beginEdit)}
     >
-      <FieldLabel>{label}</FieldLabel>
-      <FieldValue>{displayOrDash(value)}</FieldValue>
+      {!hideLabel ? <FieldLabel>{label}</FieldLabel> : null}
+      <FieldValue>{type === "number" && useGrouping ? formatInlineNumber(value) : displayOrDash(value)}</FieldValue>
     </div>
   );
 }
@@ -381,6 +396,8 @@ export function InlineTextAreaField({
   onSave,
   compact = false,
   fullWidth = false,
+  singleColumn = false,
+  hideLabel = false,
 }: {
   label: string;
   value: string | null;
@@ -388,6 +405,9 @@ export function InlineTextAreaField({
   compact?: boolean;
   /** Span all columns in a multi-column overview grid. */
   fullWidth?: boolean;
+  /** Stay within one grid column instead of using the default two-column span. */
+  singleColumn?: boolean;
+  hideLabel?: boolean;
 }) {
   const { editHighlight, runSave, editing, setEditing, beginEdit } = useGatedInlineEdit();
   const [draft, setDraft] = useState(value ?? "");
@@ -411,12 +431,12 @@ export function InlineTextAreaField({
     if (ok) setEditing(false);
   }
 
-  const spanClass = fullWidth ? "col-span-full" : "sm:col-span-2";
+  const spanClass = fullWidth ? "col-span-full" : singleColumn ? "" : "sm:col-span-2";
 
   if (editing) {
     return (
       <div className={`${inlineFieldShellClass(editHighlight, true)} ${spanClass}`}>
-        <FieldLabel>{label}</FieldLabel>
+        {!hideLabel ? <FieldLabel>{label}</FieldLabel> : null}
         <textarea
           ref={ref}
           rows={compact ? 2 : 4}
@@ -442,7 +462,7 @@ export function InlineTextAreaField({
       className={`${inlineFieldShellClass(editHighlight, false)} ${spanClass}`}
       {...editableFieldProps(editHighlight, beginEdit)}
     >
-      <FieldLabel>{label}</FieldLabel>
+      {!hideLabel ? <FieldLabel>{label}</FieldLabel> : null}
       <FieldValue>
         {display ? (
           <span className={`whitespace-pre-wrap ${compact ? "line-clamp-2" : ""}`}>{display}</span>
@@ -459,7 +479,7 @@ export function InlineSelectField({
   value,
   options,
   onSave,
-  placeholder = "—",
+  placeholder = "Select…",
 }: {
   label: string;
   value: string | null;
@@ -574,17 +594,16 @@ export function InlineBooleanField({
   trueLabel?: string;
   falseLabel?: string;
 }) {
-  const { editHighlight, runSave } = useInlineEdit();
+  const { runSave } = useInlineEdit();
 
   async function toggle() {
-    if (!editHighlight) return;
     await runSave(() => onSave(!value));
   }
 
   return (
     <div
-      className={inlineFieldShellClass(editHighlight, false)}
-      {...editableFieldProps(editHighlight, () => void toggle())}
+      className={inlineFieldShellClass(true, false)}
+      {...editableFieldProps(true, () => void toggle())}
     >
       <FieldLabel>{label}</FieldLabel>
       <FieldValue>{value ? trueLabel : falseLabel}</FieldValue>
@@ -642,7 +661,7 @@ export function InlineMultiSelectField({
   const display =
     values.length > 0
       ? values.map((v) => optionLabel?.(v) ?? v).join(", ")
-      : "—";
+      : "";
 
   const spanClass =
     colSpan === 3 ? "col-span-full" : colSpan === 2 ? "sm:col-span-2" : "";
@@ -736,7 +755,7 @@ export function InlineCompanyPickerField({
   onSave,
 }: {
   label: string;
-  companyId: number;
+  companyId: number | null;
   companyName: string | null;
   companies: { id: number; company_name: string; business_id?: string | null }[];
   onSave: SaveFn;

@@ -14,6 +14,7 @@ import { useActivitiesListSelection } from "@/components/admin/activities/Activi
 import { ListingRecordCount } from "@/components/admin/ListingRecordCount";
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
 import { ModulePageHeader } from "@/components/admin/ModulePageHeader";
+import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import { MobileFilterBar, MobileFilterField } from "@/components/admin/mobile/MobileFilterSheet";
 import {
@@ -34,9 +35,11 @@ import type { ActivityListRow } from "@/lib/repos/activities";
 export function ActivitiesListClient({
   rows,
   initialActivityId,
+  initialCreate,
 }: {
   rows: ActivityListRow[];
   initialActivityId?: string;
+  initialCreate?: boolean;
 }) {
   const router = useRouter();
   const theme = moduleAccentClasses("activities");
@@ -59,6 +62,13 @@ export function ActivitiesListClient({
     setEditing(row);
     setDrawerOpen(true);
   }, [initialActivityId, rows]);
+
+  useEffect(() => {
+    if (!initialCreate) return;
+    setEditing(null);
+    setCreateDefaults(undefined);
+    setDrawerOpen(true);
+  }, [initialCreate]);
 
   const openActivity = useCallback(
     (row: ActivityListRow) => {
@@ -491,7 +501,12 @@ export function ActivitiesListClient({
                       className="rounded border-slate-300"
                     />
                   </td>
-                  <td className="whitespace-nowrap px-3 py-1.5 text-slate-700">{formatActivityDate(row)}</td>
+                  <td className="whitespace-nowrap px-3 py-1.5 text-slate-700">
+                    <div>{formatActivityDate(row)}</div>
+                    {row.business_id ? (
+                      <RecordBusinessId id={row.business_id} className="mt-0.5 block" />
+                    ) : null}
+                  </td>
                   <td className="whitespace-nowrap px-3 py-1.5 font-medium text-slate-900">{row.activity_type}</td>
                   <td className="px-3 py-1.5 text-slate-700" onClick={(e) => e.stopPropagation()}>
                     <div className="flex flex-col gap-0.5">

@@ -12,6 +12,9 @@ export type BuildingsViewProps = {
   rows: PropertyListRow[];
   totalCount: number;
   initialQuery?: string;
+  initialCategory?: string;
+  initialTitle?: string;
+  initialRelatedCompany?: string;
   selectedProperty: PropertyV1 | null;
   selectedPremises: PremisesV1[];
   propertyOptions: PropertyV1SelectOption[];
@@ -24,11 +27,11 @@ export function BuildingsDesktop(props: BuildingsViewProps) {
   return (
     <>
       <PropertiesBuildingsListHeader rows={props.rows} />
-      <PropertiesSearchBar initialQuery={props.initialQuery} />
+      <PropertiesSearchBar initialQuery={props.initialQuery} initialCategory={props.initialCategory} initialTitle={props.initialTitle} initialRelatedCompany={props.initialRelatedCompany} />
       <PropertiesFlatListClient
         rows={props.rows}
         totalCount={props.totalCount}
-        hasSearch={Boolean(props.initialQuery)}
+        hasSearch={Boolean(props.initialQuery || props.initialCategory || props.initialTitle || props.initialRelatedCompany)}
         selectedProperty={props.selectedProperty}
         selectedPremises={props.selectedPremises}
         companies={props.companies}

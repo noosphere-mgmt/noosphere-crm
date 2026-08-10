@@ -44,10 +44,11 @@ export function OpportunityPartyContactSelect({
     }
     setContactId((current) => {
       if (!current) return "";
-      const ok = filtered.some((c) => resolveContactSelectValue(contacts, c.id) === current);
-      return ok ? current : "";
+      return filtered.some((contact) => resolveContactSelectValue(contacts, contact.id) === current)
+        ? current
+        : "";
     });
-  }, [companyId, filtered, contacts]);
+  }, [companyId, contacts, filtered]);
 
   return (
     <div>
@@ -72,7 +73,6 @@ export function OpportunityPartyContactSelect({
         <option value="">—</option>
         {filtered.map((c) => {
           const value = resolveContactSelectValue(contacts, c.id);
-          if (!value) return null;
           const label = contactOptions.find((o) => o.value === value)?.label ?? c.contact_name;
           return (
             <option key={c.id} value={value}>

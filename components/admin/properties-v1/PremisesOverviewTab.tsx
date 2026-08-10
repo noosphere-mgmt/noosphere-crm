@@ -85,7 +85,7 @@ export function PremisesOverviewTab({
 }) {
   const searchParams = useSearchParams();
   const currency = premises.currency ?? "HKD";
-  const rentLabel = monthlyRentFieldLabel(premises.operating_model);
+  const rentLabel = monthlyRentFieldLabel(premises.product_subtype ?? premises.operating_model);
   const feesNote = packageFeesNote(premises.operating_model);
   const listingIntent = normalizeListingIntent(premises.inventory_status);
   const forLease = isListingIntentForLease(premises.inventory_status);
@@ -113,8 +113,8 @@ export function PremisesOverviewTab({
             label="Gross area"
             value={premises.gross_area_sqft ? `${premises.gross_area_sqft} sq ft` : "—"}
           />
-          <PremisesMetric label="Desks" value={display(premises.workstation_count)} />
-          <PremisesMetric label="View" value={display(premises.view_type)} />
+          <PremisesMetric label="No. of Rooms" value={display(premises.workstation_count)} />
+          <PremisesMetric label="View type" value={display(premises.view_type)} />
           <PremisesMetric label="Operator / owner" value={controller} />
           <PremisesMetric label="Last verified" value={formatVerifiedDate(premises.last_verified_date)} />
           {lastActivityDate ? (
@@ -134,6 +134,14 @@ export function PremisesOverviewTab({
                 isPackageOperatingModel(premises.operating_model)
                   ? formatMoney(0, currency)
                   : formatMoney(premises.management_fee, currency)
+              }
+            />
+            <PremisesField
+              label="Mgmt fee psf"
+              value={
+                isPackageOperatingModel(premises.operating_model)
+                  ? formatPsf(0, currency)
+                  : formatPsf(premises.management_fee_psf, currency)
               }
             />
             <PremisesField

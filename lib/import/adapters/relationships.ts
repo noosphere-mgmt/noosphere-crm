@@ -5,6 +5,7 @@ import {
   isCreationRelationshipType,
   isEntityType,
 } from "@/lib/entityRelationships";
+import { resolveCompanyRefToV1, resolveContactRefToV1 } from "@/lib/crmRefResolve";
 import { genericUpdateRecord, rowToRecord } from "../adapterUtils";
 import { sqlExportRelationshipEntityId, sqlRelationshipEntityName } from "../lookupSql";
 import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
@@ -99,10 +100,19 @@ export const relationshipsImportDefinition: ImportObjectDefinition = {
     const parts = splitNaturalKeyParts(key, 5);
     if (!parts) return [];
     const [fromType, fromId, relType, toType, toId] = parts;
+    const resolveEndpoint = async (entityType: string, rawId: string) => {
+      const t = entityType.trim().toLowerCase();
+      if (t === "company") return resolveCompanyRefToV1(rawId);
+      if (t === "contact") return resolveContactRefToV1(rawId);
+      return rawId.trim() || null;
+    };
+    const fromResolved = await resolveEndpoint(fromType ?? "", fromId ?? "");
+    const toResolved = await resolveEndpoint(toType ?? "", toId ?? "");
+    if (!fromResolved || !toResolved) return [];
     return load(
       `r.from_entity_type = $1 AND r.from_entity_id = $2 AND r.relationship_type = $3
        AND r.to_entity_type = $4 AND r.to_entity_id = $5`,
-      [fromType, fromId, relType, toType, toId],
+      [fromType, fromResolved, relType, toType, toResolved],
     );
   },
 

@@ -5,6 +5,7 @@ import { deleteOpportunityFromDetailAction } from "@/app/admin/opportunities/act
 import { IconCheck, IconPen, IconTrash, IconX } from "@/components/admin/ModuleActionIcons";
 import { moduleActionButtonClass, moduleEditButtonClass } from "@/components/admin/ModuleActionBar";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
+import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { OPPORTUNITY_LEAD_TYPE_LABELS, OPPORTUNITY_STATUS_LABELS } from "@/lib/lookups";
 import { opportunityStatusChip } from "@/lib/opportunityStatusTheme";
 import type { Opportunity } from "@/lib/types/entities";
@@ -30,21 +31,24 @@ export function OpportunityDetailHeader({
         <Link href="/admin/opportunities" className={`text-xs ${theme.link}`}>
           ← Opportunities
         </Link>
-        <div className="mt-0.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <div className="mt-0.5">
           <h1 className="text-xl font-semibold tracking-tight text-slate-900">
             {opportunity.client_name}
           </h1>
-          <span {...opportunityStatusChip(opportunity.status)} className="inline-flex text-xs">
-            {OPPORTUNITY_STATUS_LABELS[opportunity.status]}
-          </span>
-          <span className="text-sm text-slate-600">
-            {OPPORTUNITY_LEAD_TYPE_LABELS[opportunity.lead_type]}
-          </span>
-          {lastActivityDate ? (
-            <span className="text-sm text-slate-500">
-              Last activity {lastActivityDate.slice(0, 10)}
+          <RecordBusinessId id={opportunity.business_id} className="mt-0.5 block" />
+          <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <span {...opportunityStatusChip(opportunity.status)} className="inline-flex text-xs">
+              {OPPORTUNITY_STATUS_LABELS[opportunity.status]}
             </span>
-          ) : null}
+            <span className="text-sm text-slate-600">
+              {OPPORTUNITY_LEAD_TYPE_LABELS[opportunity.lead_type]}
+            </span>
+            {lastActivityDate ? (
+              <span className="text-sm text-slate-500">
+                Last activity {lastActivityDate.slice(0, 10)}
+              </span>
+            ) : null}
+          </div>
         </div>
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -61,7 +65,11 @@ export function OpportunityDetailHeader({
             </button>
           ) : activeTab === "overview" && !editMode ? (
             <Link
-              href={`/admin/opportunities/${opportunity.id}?mode=edit`}
+              href={
+                opportunity.business_id
+                  ? `/admin/opportunities/${encodeURIComponent(opportunity.business_id)}?mode=edit`
+                  : `/admin/opportunities/${opportunity.id}?mode=edit`
+              }
               className={moduleEditButtonClass("opportunities")}
               aria-label="Edit"
               title="Edit"

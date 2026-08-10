@@ -178,6 +178,141 @@ async function main(): Promise<void> {
   await query(migratePhase35);
   console.log("Phase 35 premises relationship_lines JSONB cleanup applied.");
 
+  const migratePhase36 = await readSql("schema-migrate-phase36-contact-company-affiliations.sql");
+  await query(migratePhase36);
+  console.log("Phase 36 contact company affiliations applied.");
+
+  const migratePhase37 = await readSql("schema-migrate-phase37-contact-locate-at.sql");
+  await query(migratePhase37);
+  console.log("Phase 37 contact locate_at applied.");
+
+  const migratePhase38 = await readSql("schema-migrate-phase38-premises-category.sql");
+  await query(migratePhase38);
+  console.log("Phase 38 premises classification applied.");
+
+  const migratePhase39 = await readSql("schema-migrate-phase39-opportunity-preferences.sql");
+  await query(migratePhase39);
+  console.log("Phase 39 opportunity preferences applied.");
+
+  const migratePhase42 = await readSql("schema-migrate-phase42-matching-indexes.sql");
+  await query(migratePhase42);
+  console.log("Phase 42 matching indexes applied.");
+
+  const migratePhase43 = await readSql("schema-migrate-phase43-opportunity-proposals.sql");
+  await query(migratePhase43);
+  console.log("Phase 43 opportunity proposals applied.");
+
+  const migratePhase44 = await readSql("schema-migrate-phase44-proposal-pricing.sql");
+  await query(migratePhase44);
+  console.log("Phase 44 proposal pricing snapshots applied.");
+
+  const migratePhase45 = await readSql("schema-migrate-phase45-opportunity-status-model.sql");
+  await query(migratePhase45);
+  console.log("Phase 45 opportunity status model applied.");
+
+  const migratePhase46 = await readSql("schema-migrate-phase46-opportunity-status-simplify.sql");
+  await query(migratePhase46);
+  console.log("Phase 46 opportunity status simplify applied.");
+
+  const migratePhase47 = await readSql("schema-migrate-phase47-proposed-premises-status.sql");
+  await query(migratePhase47);
+  console.log("Phase 47 proposed premises status simplify applied.");
+
+  const migratePhase48 = await readSql("schema-migrate-phase48-referring-agent-role.sql");
+  await query(migratePhase48);
+  console.log("Phase 48 referring agent role cleanup applied.");
+
+  const migratePhase49 = await readSql("schema-migrate-phase49-opportunity-documents.sql");
+  await query(migratePhase49);
+  console.log("Phase 49 opportunity documents applied.");
+
+  const migratePhase50 = await readSql("schema-migrate-phase50-building-proposal-content.sql");
+  await query(migratePhase50);
+  console.log("Phase 50 building proposal content applied.");
+
+  const migratePhase51 = await readSql("schema-migrate-phase51-premises-industry-model.sql");
+  await query(migratePhase51);
+  console.log("Phase 51 premises industry model applied.");
+
+  const migratePhase52 = await readSql("schema-migrate-phase52-premises-management-fee-psf.sql");
+  await query(migratePhase52);
+  console.log("Phase 52 premises management fee PSF applied.");
+
+  const migratePhase53 = await readSql("schema-migrate-phase53-premises-overview-fields.sql");
+  await query(migratePhase53);
+  console.log("Phase 53 premises overview and commission fields applied.");
+
+  const migratePhase54 = await readSql("schema-migrate-phase54-generated-premises-name.sql");
+  await query(migratePhase54);
+  console.log("Phase 54 generated English premises names applied.");
+
+  const migratePhase55 = await readSql("schema-migrate-phase55-premises-area-conversion.sql");
+  await query(migratePhase55);
+  console.log("Phase 55 premises area conversion backfill applied.");
+
+  const migratePhase56 = await readSql("schema-migrate-phase56-premises-language-listing.sql");
+  await query(migratePhase56);
+  console.log("Phase 56 premises language and listing defaults applied.");
+
+  const migratePhase57 = await readSql("schema-migrate-phase57-premises-offer-taxonomy.sql");
+  await query(migratePhase57);
+  console.log("Phase 57 premises offer taxonomy defaults applied.");
+
+  const migratePhase58 = await readSql("schema-migrate-phase58-editable-generated-premises-name.sql");
+  await query(migratePhase58);
+  console.log("Phase 58 editable generated premises names applied.");
+
+  const migratePhase59 = await readSql("schema-migrate-phase59-remove-payer-commission-fields.sql");
+  await query(migratePhase59);
+  console.log("Phase 59 payer-specific commission fields removed.");
+
+  const migratePhase60 = await readSql("schema-migrate-phase60-premises-source-default.sql");
+  await query(migratePhase60);
+  console.log("Phase 60 premises source default applied.");
+
+  const migratePhase61 = await readSql("schema-migrate-phase61-premises-date-defaults.sql");
+  await query(migratePhase61);
+  console.log("Phase 61 premises date defaults applied.");
+
+  const migratePhase62 = await readSql("schema-migrate-phase62-generated-chinese-premises-names.sql");
+  await query(migratePhase62);
+  console.log("Phase 62 generated Chinese premises names applied.");
+
+  const migratePhase63 = await readSql("schema-migrate-phase63-building-relationships.sql");
+  await query(migratePhase63);
+  console.log("Phase 63 building relationships applied.");
+
+  const migratePhase64 = await readSql("schema-migrate-phase64-building-proposal-facilities-languages.sql");
+  await query(migratePhase64);
+  console.log("Phase 64 building proposal facilities languages applied.");
+
+  const migratePhase65 = await readSql("schema-migrate-phase65-building-type.sql");
+  await query(migratePhase65);
+  console.log("Phase 65 building type applied.");
+
+  const migratePhase66 = await readSql("schema-migrate-phase66-leads.sql");
+  await query(migratePhase66);
+  console.log("Phase 66 email leads inbox applied.");
+
+  const migratePhase67 = await readSql("schema-migrate-phase67-email-config.sql");
+  await query(migratePhase67);
+  console.log("Phase 67 email configuration applied.");
+  const migratePhase68 = await readSql("schema-migrate-phase68-crm-users.sql");
+  await query(migratePhase68);
+  console.log("Phase 68 CRM users and virtual staff applied.");
+
+  const migratePhase69 = await readSql("schema-migrate-phase69-premises-space-form.sql");
+  await query(migratePhase69);
+  console.log("Phase 69 premises space form values standardized.");
+
+  const migratePhase70 = await readSql("schema-migrate-phase70-premises-source-direct.sql");
+  await query(migratePhase70);
+  console.log("Phase 70 premises source type default standardized.");
+
+  const migratePhase71 = await readSql("schema-migrate-phase71-opportunity-lifecycle-source.sql");
+  await query(migratePhase71);
+  console.log("Phase 71 opportunity lifecycle and source standardized.");
+
   const crosswalkCompanies = await query<{ n: string }>(
     `SELECT COUNT(*)::text AS n FROM business_id_crosswalk WHERE entity_type = 'company'`,
   );

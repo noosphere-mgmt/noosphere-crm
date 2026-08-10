@@ -12,12 +12,12 @@ import {
   resolveOpportunityRefToLegacy,
   resolvePremisesRef,
   resolvePremisesRefToId,
+  resolveActivityRefToId,
 } from "@/lib/crmRefResolve";
 import { sqlContactDisplayName } from "@/lib/contactName";
 import { sqlActivityLabel, sqlPremisesLabel } from "./lookupSql";
 import type { ExistingRecord } from "./types";
 import {
-  activityExists,
   buildingExists,
   parseOptionalInt,
   parseOptionalText,
@@ -70,6 +70,27 @@ async function lookupLegacyCompanyIdByName(name: string): Promise<number | null>
 
 async function lookupBuildingId(raw: string): Promise<string | null> {
   if (await buildingExists(raw)) return raw;
+
+  // Canonical CSV ID: B100001 → internal property_id for FK writes
+  const byBusinessId = await query<{ property_id: string }>(
+    `SELECT property_id FROM properties_v1 WHERE business_id = $1 LIMIT 1`,
+    [raw],
+  );
+  if (byBusinessId[0]?.property_id) return byBusinessId[0].property_id;
+
+  const byCrosswalk = await query<{ property_id: string }>(
+    `SELECT COALESCE(
+       (SELECT p.property_id FROM properties_v1 p WHERE p.property_id = x.primary_ref LIMIT 1),
+       x.primary_ref
+     ) AS property_id
+     FROM business_id_crosswalk x
+     WHERE x.entity_type = 'building' AND x.business_id = $1
+     LIMIT 1`,
+    [raw],
+  );
+  if (byCrosswalk[0]?.property_id && (await buildingExists(byCrosswalk[0].property_id))) {
+    return byCrosswalk[0].property_id;
+  }
 
   const byExternalRef = await query<{ property_id: string }>(
     `SELECT property_id FROM properties_v1 WHERE external_ref = $1 LIMIT 1`,
@@ -175,14 +196,14 @@ async function lookupPremisesIdByName(name: string): Promise<string | null> {
 }
 
 async function lookupActivityId(raw: string): Promise<string | null> {
-  if (await activityExists(raw)) return raw;
-  return null;
+  return resolveActivityRefToId(raw);
 }
 
 async function lookupActivityIdByName(name: string): Promise<string | null> {
   const trimmed = name.trim();
   if (!trimmed) return null;
-  if (await activityExists(trimmed)) return trimmed;
+  const asId = await resolveActivityRefToId(trimmed);
+  if (asId) return asId;
 
   const rows = await query<{ activity_id: string }>(
     `SELECT a.activity_id FROM activities a
@@ -209,10 +230,9 @@ async function resolveReference(
   let resolved: string | number | null = null;
   switch (kind) {
     case "company_v1": {
-      const r = await resolveCompanyRef(trimmed);
-      if (r.v1Id) {
-        result.writablePatches[field] = r.v1Id;
-        if (r.warning) result.warnings.push(r.warning);
+      const v1Id = await resolveCompanyRefToV1(trimmed);
+      if (v1Id) {
+        result.writablePatches[field] = v1Id;
         return result;
       }
       break;
@@ -239,10 +259,9 @@ async function resolveReference(
       break;
     }
     case "contact_v1": {
-      const r = await resolveContactRef(trimmed);
-      if (r.v1Id) {
-        result.writablePatches[field] = r.v1Id;
-        if (r.warning) result.warnings.push(r.warning);
+      const v1Id = await resolveContactRefToV1(trimmed);
+      if (v1Id) {
+        result.writablePatches[field] = v1Id;
         return result;
       }
       break;

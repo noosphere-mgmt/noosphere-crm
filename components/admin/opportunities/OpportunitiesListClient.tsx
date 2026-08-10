@@ -4,31 +4,43 @@ import { AdminViewportSwitch } from "@/components/admin/layout/AdminViewportSwit
 import { OpportunitiesDesktop } from "@/components/admin/opportunities/OpportunitiesDesktop";
 import { OpportunitiesMobile } from "@/components/admin/opportunities/OpportunitiesMobile";
 import { useOpportunitiesList } from "@/components/admin/opportunities/useOpportunitiesList";
-import type { OpportunitiesDashboardStage } from "@/lib/opportunitiesList";
-import type { Opportunity } from "@/lib/types/entities";
+import type {
+  OpportunitiesDashboardStage,
+  OpportunitiesListStatusFilter,
+} from "@/lib/opportunitiesList";
+import type { Opportunity, OpportunityStatus } from "@/lib/types/entities";
 
 export function OpportunitiesListClient({
   rows,
-  onQuickView,
+  onOpenWorkspace,
   onNewOpportunity,
-  initialStatus,
-  initialStage,
+  onCaptureRequirement,
+  initialListStatusFilter,
+  initialLegacyStatuses,
+  initialDashboardStage,
 }: {
   rows: Opportunity[];
-  onQuickView: (id: number) => void;
+  onOpenWorkspace: (row: Opportunity) => void;
   onNewOpportunity: () => void;
-  initialStatus?: string;
-  initialStage?: OpportunitiesDashboardStage;
+  onCaptureRequirement: () => void;
+  initialListStatusFilter?: OpportunitiesListStatusFilter;
+  initialLegacyStatuses?: OpportunityStatus[];
+  initialDashboardStage?: OpportunitiesDashboardStage;
 }) {
-  const state = useOpportunitiesList(rows, initialStatus, initialStage);
+  const state = useOpportunitiesList(
+    rows,
+    initialListStatusFilter,
+    initialLegacyStatuses,
+    initialDashboardStage,
+  );
 
   return (
     <AdminViewportSwitch
       mobile={
-        <OpportunitiesMobile state={state} onQuickView={onQuickView} onNewOpportunity={onNewOpportunity} />
+        <OpportunitiesMobile state={state} onOpenWorkspace={onOpenWorkspace} onNewOpportunity={onNewOpportunity} />
       }
       desktop={
-        <OpportunitiesDesktop state={state} onQuickView={onQuickView} onNewOpportunity={onNewOpportunity} />
+        <OpportunitiesDesktop state={state} onOpenWorkspace={onOpenWorkspace} onNewOpportunity={onNewOpportunity} onCaptureRequirement={onCaptureRequirement} />
       }
     />
   );

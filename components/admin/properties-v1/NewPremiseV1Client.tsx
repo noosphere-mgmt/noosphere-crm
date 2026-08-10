@@ -17,14 +17,35 @@ const selectClass =
   "mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900";
 
 function emptyPremisesV1(propertyId: string): PremisesV1 {
+  const now = new Date();
+  const today = new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
   return {
     premises_id: "",
     business_id: null,
     property_id: propertyId,
     property_name_en: null,
+    property_name_en_is_custom: false,
     property_name_zh: null,
+    property_name_zh_is_custom: false,
+    property_name_cn: null,
+    property_name_cn_is_custom: false,
     property_type: null,
     centre_type: null,
+    property_category: null,
+    asset_class: "commercial",
+    asset_scope: "unit",
+    product_subtype: "conventional_office",
+    whole_asset_type: null,
+    market_mode: "lease",
+    occupancy_status: "unknown",
+    availability_status: "available",
+    discovery_status: "identified",
+    access_status: "no_contact",
+    source_type: "direct",
+    address_confidence: "building_confirmed",
+    last_verified_at: null,
+    space_form: null,
+    listing_intent: null,
     inventory_status: null,
     ownership_type: null,
     floor: null,
@@ -37,6 +58,7 @@ function emptyPremisesV1(propertyId: string): PremisesV1 {
     view_type: null,
     windows: null,
     management_fee: null,
+    management_fee_psf: null,
     government_rates: null,
     remarks: null,
     owner_company_id: null,
@@ -54,7 +76,7 @@ function emptyPremisesV1(propertyId: string): PremisesV1 {
     deposit_months: null,
     rent_free_period: null,
     contract_term_months: null,
-    available_date: null,
+    available_date: today,
     commission_rate: null,
     currency: "HKD",
     asking_sale_price: null,
@@ -69,7 +91,7 @@ function emptyPremisesV1(propertyId: string): PremisesV1 {
     operating_model: null,
     fit_out_condition: null,
     relationship_lines: null,
-    last_verified_date: null,
+    last_verified_date: today,
     listing_remarks: null,
     updated_at: "",
   };
@@ -155,10 +177,6 @@ export function NewPremiseV1Client({
           isNew
           premises={premises}
           propertyId={propertyId}
-          propertyOptions={properties.map((p) => ({
-            property_id: p.property_id,
-            label: [p.bldg_name_en?.trim() || p.property_id, p.district_en?.trim()].filter(Boolean).join(" · "),
-          }))}
           createAction={createPremisesV1Action}
           companyOptions={companyOptions}
           contacts={contacts}

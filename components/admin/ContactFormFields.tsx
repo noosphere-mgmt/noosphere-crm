@@ -127,16 +127,20 @@ export function ContactFormFields({ defaults, companies, fixedCompanyId, layout 
     if (suggested) setDisplayName(suggested);
   }, [firstName, lastName, displayTouched, editing]);
 
+  const fixedCompanyRef =
+    fixedCompanyId != null
+      ? resolveCompanySelectValue(companies, fixedCompanyId) || String(fixedCompanyId)
+      : null;
+
   const companyField =
     fixedCompanyId != null ? (
-      <input type="hidden" name="company_id" value={resolveCompanySelectValue(companies, fixedCompanyId)} />
+      <input type="hidden" name="company_id" value={fixedCompanyRef ?? ""} />
     ) : (
       <SelectField
         label="Company"
         name="company_id"
         defaultValue={selectedCompanyValue}
-        placeholder="— Select company —"
-        required
+        placeholder="— No company —"
         options={companyOptions.map((c) => ({
           value: c.value,
           label: c.label,
@@ -184,6 +188,7 @@ export function ContactFormFields({ defaults, companies, fixedCompanyId, layout 
         required={editing}
       />
       <FormField label="Title" name="title" defaultValue={defaults?.title ?? ""} />
+      <FormField label="Locate at" name="locate_at" defaultValue={defaults?.locate_at ?? ""} disabled={!editing} />
       <SelectField
         label="Preferred language"
         name="preferred_language"
@@ -226,7 +231,7 @@ export function ContactFormFields({ defaults, companies, fixedCompanyId, layout 
 
   return (
     <div className="space-y-4">
-      {defaults?.business_id ?? defaults?.v1_contact_id ? <RecordBusinessId id={defaults.business_id ?? defaults.v1_contact_id} /> : null}
+      {defaults?.business_id ? <RecordBusinessId id={defaults.business_id} /> : null}
       {companyField}
       {nameRow}
       {identityRow}

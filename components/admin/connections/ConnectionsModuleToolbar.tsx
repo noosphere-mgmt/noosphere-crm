@@ -30,6 +30,7 @@ export function ConnectionsModuleToolbar({
     pathname === "/admin/companies" ||
     pathname.startsWith("/admin/companies/");
   const isContacts = pathname === "/admin/contacts" || pathname.startsWith("/admin/contacts/");
+  const isChannelTree = pathname === "/admin/connections/channel-tree";
 
   const createButtonClass =
     "flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-lg leading-none text-slate-600 hover:bg-slate-50";
@@ -47,6 +48,9 @@ export function ConnectionsModuleToolbar({
         </Link>
         <Link href="/admin/contacts" className={connectionsMobileTabClass(isContacts)}>
           Contacts
+        </Link>
+        <Link href="/admin/connections/channel-tree" className={connectionsMobileTabClass(isChannelTree)}>
+          Channel Tree
         </Link>
       </nav>
       <div className="flex shrink-0 items-center gap-1">

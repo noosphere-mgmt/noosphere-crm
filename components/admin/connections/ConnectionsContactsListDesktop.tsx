@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
 import type { ConnectionsContactsListState } from "@/components/admin/connections/useConnectionsContactsList";
 import { contactDrawerHref } from "@/lib/connectionsDrawerNav";
@@ -56,7 +57,7 @@ export function ConnectionsContactsListDesktop({
     sortKey,
     sortDir,
     displayedRows,
-    displayedIds,
+    selectionIds,
     allDisplayedSelected,
     handleSort,
   } = state;
@@ -71,7 +72,7 @@ export function ConnectionsContactsListDesktop({
                 type="checkbox"
                 aria-label="Select all"
                 checked={allDisplayedSelected}
-                onChange={(e) => toggleAll(displayedIds, e.target.checked)}
+                onChange={(e) => toggleAll(selectionIds, e.target.checked)}
                 className="rounded border-slate-300"
               />
             </th>
@@ -119,23 +120,26 @@ export function ConnectionsContactsListDesktop({
                     />
                   </td>
                   <td className="px-3 py-1.5 font-medium">
-                    <button
-                      type="button"
-                      onClick={() => onOpenContact(row.id)}
-                      className={`text-left ${connectionsGlassClasses.link}`}
+                    <Link
+                      href={contactDrawerHref("/admin/contacts", searchParams, row.id, "overview")}
+                      className={`inline-block text-left font-semibold underline-offset-2 hover:underline ${connectionsGlassClasses.link}`}
                     >
                       {getContactLabel(row)}
-                    </button>
+                    </Link>
                     <RecordBusinessId id={row.business_id ?? row.v1_contact_id} className="mt-0.5 block" />
                   </td>
                   <td className="px-3 py-1.5 text-slate-700">
-                    <button
-                      type="button"
-                      onClick={() => onOpenCompany(row.company_id)}
-                      className={`text-left ${connectionsGlassClasses.link}`}
-                    >
-                      {row.company_name ?? `#${row.company_id}`}
-                    </button>
+                    {row.company_id != null ? (
+                      <button
+                        type="button"
+                        onClick={() => onOpenCompany(row.company_id!)}
+                        className={`text-left ${connectionsGlassClasses.link}`}
+                      >
+                        {row.company_name ?? `#${row.company_id}`}
+                      </button>
+                    ) : (
+                      <span className="text-slate-400">—</span>
+                    )}
                   </td>
                   <td className="px-3 py-1.5 text-slate-700">{row.open_opportunities ?? 0}</td>
                   <td className="px-3 py-1.5 text-slate-700">

@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ContactFormDrawer } from "@/components/admin/connections/ContactFormDrawer";
 import { formatCoverage } from "@/lib/connectionsDisplay";
 import { contactDrawerHref } from "@/lib/connectionsDrawerNav";
+import { companyFullPageHref } from "@/lib/crmDetailNav";
 import { getContactLabel } from "@/lib/contactName";
 import { connectionsGlassClasses } from "@/lib/connectionsGlassTheme";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
@@ -16,12 +17,14 @@ type CompanyOption = { id: number; company_name: string };
 export function CompanyContactsTabClient({
   companyId,
   companyName,
+  companyBusinessId,
   contacts,
   companies,
   drawerMode = false,
 }: {
   companyId: number;
   companyName: string;
+  companyBusinessId?: string | null;
   contacts: Contact[];
   companies: CompanyOption[];
   drawerMode?: boolean;
@@ -55,9 +58,12 @@ export function CompanyContactsTabClient({
       ? contactDrawerHref("/admin/contacts", searchParams, contactId)
       : `/admin/contacts/${contactId}`;
 
+  const companyRef = companyBusinessId?.trim() || String(companyId);
+
   const returnTo = drawerMode
-    ? `${listPath}?company=${companyId}&tab=contacts`
-    : `/admin/companies/${companyId}?tab=contacts`;
+    ? `${listPath}?company=${encodeURIComponent(companyRef)}&tab=contacts`
+    : companyFullPageHref(companyBusinessId ?? companyRef, { tab: "contacts" }) ??
+      `/admin/companies/${companyId}?tab=contacts`;
 
   return (
     <div className="space-y-4">

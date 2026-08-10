@@ -13,7 +13,7 @@ function NavLink({
 }: {
   href: string;
   label: string;
-  desc: string;
+  desc?: string;
   module: AdminModuleKey;
 }) {
   const pathname = usePathname();
@@ -34,7 +34,9 @@ function NavLink({
           <p className={`text-base font-semibold ${active ? theme.navActiveTitle : "text-slate-900"}`}>
             {label}
           </p>
-          <p className={`mt-1 text-sm ${active ? theme.navActiveDesc : "text-slate-600"}`}>{desc}</p>
+          {desc ? (
+            <p className={`mt-1 text-sm ${active ? theme.navActiveDesc : "text-slate-600"}`}>{desc}</p>
+          ) : null}
         </div>
         <span className={`mt-0.5 text-lg ${active ? theme.navActiveArrow : "text-slate-400"}`}>→</span>
       </div>

@@ -5,8 +5,8 @@ import { PremisesListDesktop } from "@/components/admin/properties-v1/PremisesLi
 import { PremisesListHeaderDesktop } from "@/components/admin/properties-v1/PremisesListHeaderDesktop";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
 import type { ContactV1Option } from "@/lib/repos/contactsV1";
-import type { PremisesFlatFilters, PremisesListItem } from "@/lib/repos/premisesV1";
-import type { PropertyV1SelectOption } from "@/lib/repos/propertiesV1";
+import type { PremisesFlatFilters, PremisesListItem, PremisesV1 } from "@/lib/repos/premisesV1";
+import type { PropertyV1, PropertyV1SelectOption } from "@/lib/repos/propertiesV1";
 import type { PremisesDrawerData } from "@/lib/repos/premisesDrawer";
 
 export type PremisesViewProps = {
@@ -19,6 +19,8 @@ export type PremisesViewProps = {
   contacts: ContactV1Option[];
   propertyOptions: PropertyV1SelectOption[];
   drawerData: PremisesDrawerData | null;
+  selectedBuildingProperty: PropertyV1 | null;
+  selectedBuildingPremises: PremisesV1[];
 };
 
 /** Workstation layout: module header, inline filters, sortable table. */

@@ -1,5 +1,11 @@
 import { isPackageOperatingModel } from "@/lib/premisesCommercial";
+import { formatPremisesViewTypes, parsePremisesViewTypes } from "@/lib/premisesDisplay";
 import type { PremisesV1, PremisesV1Patch } from "@/lib/repos/premisesV1";
+import {
+  parseCanonicalListingIntent,
+  parsePropertyCategory,
+  parseSpaceForm,
+} from "@/lib/premisesClassification";
 import {
   V1_FIT_OUT_CONDITIONS,
   V1_LISTING_INTENTS,
@@ -57,6 +63,38 @@ export function applyPremisesFieldPatch(
       patch.inventory_status = intent;
       break;
     }
+    case "property_category": {
+      const category = parsePropertyCategory(value);
+      if (value && !category) return { error: "Invalid property category" };
+      patch.property_category = category;
+      break;
+    }
+    case "asset_class":
+    case "asset_scope":
+    case "product_subtype":
+    case "whole_asset_type":
+    case "market_mode":
+    case "occupancy_status":
+    case "availability_status":
+    case "discovery_status":
+    case "access_status":
+    case "source_type":
+    case "address_confidence":
+    case "last_verified_at":
+      patch[field] = strOrNull(value);
+      break;
+    case "space_form": {
+      const form = parseSpaceForm(value);
+      if (value && !form) return { error: "Invalid space form" };
+      patch.space_form = form;
+      break;
+    }
+    case "listing_intent": {
+      const intent = parseCanonicalListingIntent(value);
+      if (value && !intent) return { error: "Invalid listing intent (use lease, sale, or both)" };
+      patch.listing_intent = intent;
+      break;
+    }
     case "offer_status": {
       const status = mustBeIn(value, V1_LISTING_STATUSES);
       if (value && !status) return { error: "Invalid listing status" };
@@ -80,13 +118,37 @@ export function applyPremisesFieldPatch(
       break;
     }
     case "view_type": {
-      const view = mustBeIn(value, V1_VIEW_TYPES);
-      if (value && !view) return { error: "Invalid view type" };
-      patch.view_type = view;
+      if (Array.isArray(value)) {
+        const valid = value
+          .map(String)
+          .filter((v) => (V1_VIEW_TYPES as readonly string[]).includes(v));
+        patch.view_type = formatPremisesViewTypes(valid);
+      } else {
+        const parts = parsePremisesViewTypes(strOrNull(value));
+        const valid = parts.filter((v) => (V1_VIEW_TYPES as readonly string[]).includes(v));
+        if (value && valid.length === 0) return { error: "Invalid view type" };
+        patch.view_type = formatPremisesViewTypes(valid);
+      }
       break;
     }
     case "gross_area_sqft":
       patch.gross_area_sqft = numOrNull(value);
+      patch.gross_area_sqm = patch.gross_area_sqft == null ? null : Math.round((patch.gross_area_sqft / 10.7639) * 100) / 100;
+      break;
+    case "net_area_sqft":
+      patch.net_area_sqft = numOrNull(value);
+      patch.net_area_sqm = patch.net_area_sqft == null ? null : Math.round((patch.net_area_sqft / 10.7639) * 100) / 100;
+      break;
+    case "gross_area_sqm":
+      patch.gross_area_sqm = numOrNull(value);
+      patch.gross_area_sqft = patch.gross_area_sqm == null ? null : Math.round((patch.gross_area_sqm * 10.7639) * 100) / 100;
+      break;
+    case "net_area_sqm":
+      patch.net_area_sqm = numOrNull(value);
+      patch.net_area_sqft = patch.net_area_sqm == null ? null : Math.round((patch.net_area_sqm * 10.7639) * 100) / 100;
+      break;
+    case "no_of_rooms":
+      patch.no_of_rooms = strOrNull(value);
       break;
     case "workstation_count":
       patch.workstation_count = strOrNull(value);
@@ -103,6 +165,12 @@ export function applyPremisesFieldPatch(
     case "sale_price_psf":
       patch.sale_price_psf = numOrNull(value);
       break;
+    case "negotiable_sale_price":
+      patch.negotiable_sale_price = numOrNull(value);
+      break;
+    case "negotiable_sale_price_psf":
+      patch.negotiable_sale_price_psf = numOrNull(value);
+      break;
     case "last_verified_date":
       patch.last_verified_date = strOrNull(value);
       break;
@@ -114,6 +182,9 @@ export function applyPremisesFieldPatch(
       break;
     case "management_fee":
       patch.management_fee = isPackageOperatingModel(premises.operating_model) ? 0 : numOrNull(value);
+      break;
+    case "management_fee_psf":
+      patch.management_fee_psf = isPackageOperatingModel(premises.operating_model) ? 0 : numOrNull(value);
       break;
     case "government_rates":
       patch.government_rates = isPackageOperatingModel(premises.operating_model) ? 0 : numOrNull(value);
@@ -127,6 +198,18 @@ export function applyPremisesFieldPatch(
       break;
     case "contract_term_months":
       patch.contract_term_months = intOrNull(value);
+      break;
+    case "capacity_pax":
+      patch.capacity_pax = intOrNull(value);
+      break;
+    case "deposit_months":
+    case "rent_free_period":
+    case "expected_commission":
+    case "payout_commission":
+    case "commission_remarks":
+    case "source_url":
+    case "source_file":
+      patch[field] = strOrNull(value);
       break;
     case "available_date":
       patch.available_date = strOrNull(value);

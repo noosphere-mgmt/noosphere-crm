@@ -1,7 +1,10 @@
-import { redirect } from "next/navigation";
-import { getContactTab } from "@/lib/contactDetailTab";
+import { Suspense } from "react";
+import { notFound, redirect } from "next/navigation";
+import { AdminShell } from "@/components/admin/AdminShell";
+import { ContactWorkspacePageClient } from "@/components/admin/connections/ContactWorkspacePageClient";
 import { resolveContactQueryParam } from "@/lib/contactDrawerResolve";
 import { classifyContactQueryParam } from "@/lib/entityRefGuards";
+import { getContactDrawerData } from "@/lib/repos/connectionsDrawer";
 
 export const dynamic = "force-dynamic";
 
@@ -10,26 +13,33 @@ type Props = {
   searchParams: Promise<{ tab?: string; mode?: string }>;
 };
 
-export default async function ContactDetailRedirectPage({ params, searchParams }: Props) {
+export default async function ContactDetailPage({ params, searchParams }: Props) {
   const { id: idRaw } = await params;
   const sp = await searchParams;
 
   const precheck = classifyContactQueryParam(idRaw);
   if (precheck?.kind === "company_mismatch") {
-    redirect(`/admin/companies?company=${encodeURIComponent(precheck.redirectToCompany)}`);
+    redirect(`/admin/companies/${encodeURIComponent(precheck.redirectToCompany)}`);
   }
 
   const resolved = await resolveContactQueryParam(idRaw);
-  if (!resolved) redirect("/admin/contacts");
+  if (!resolved) notFound();
   if (resolved.kind === "company_mismatch") {
-    redirect(`/admin/companies?company=${encodeURIComponent(resolved.redirectToCompany)}`);
+    redirect(`/admin/companies/${encodeURIComponent(resolved.redirectToCompany)}`);
   }
 
-  const tab = getContactTab(sp);
-  const qs = new URLSearchParams();
-  qs.set("contact", String(resolved.legacyContactId));
-  if (tab !== "overview") qs.set("tab", tab);
-  if (sp.mode === "edit") qs.set("mode", "edit");
+  const data = await getContactDrawerData(resolved.legacyContactId);
+  if (!data) notFound();
 
-  redirect(`/admin/contacts?${qs.toString()}`);
+  return (
+    <AdminShell title="" wide module="connections" hideHeader>
+      <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-slate-100" />}>
+        <ContactWorkspacePageClient
+          data={data}
+          affiliations={data.affiliations}
+          editMode={sp.mode === "edit"}
+        />
+      </Suspense>
+    </AdminShell>
+  );
 }

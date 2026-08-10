@@ -44,7 +44,7 @@ export function usePropertyInlineOverview(property: PropertyV1, companies: Compa
 
   const locationSummary = useMemo(() => {
     const parts = [property.country, property.city_en, property.district_en].filter(Boolean);
-    return parts.length > 0 ? parts.join(" · ") : addressEn || "—";
+    return parts.length > 0 ? parts.join(" · ") : addressEn || "";
   }, [property.country, property.city_en, property.district_en, addressEn]);
 
   return { companyOptions, coerceCompanyId: (id: string | null) => coerceCompanyIdToSelectValue(id, companyOptions), save, addressEn, addressZh, locationSummary };

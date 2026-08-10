@@ -8,14 +8,14 @@
 #
 # Optional:
 #   SKIP_GIT_PULL=1
-#   PM2_NAME=noosphere-realestate
+#   PM2_NAME=noosphere-crm
 #   PORT=3001
 #
 set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-PM2_NAME="${PM2_NAME:-noosphere-realestate}"
+PM2_NAME="${PM2_NAME:-noosphere-crm}"
 PORT="${PORT:-3001}"
 
 if [[ "${SKIP_GIT_PULL:-0}" != "1" ]]; then

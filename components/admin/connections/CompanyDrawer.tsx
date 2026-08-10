@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CompanyContactsTabClient } from "@/components/admin/connections/CompanyContactsTabClient";
-import { EntityActivitiesTab } from "@/components/admin/activities/EntityActivitiesTab";
-import { CompanyDrawerFullEdit } from "@/components/admin/connections/CompanyDrawerFullEdit";
+import { EntityActivityWorkspace } from "@/components/admin/activities/EntityActivityWorkspace";
 import { CompanyInlineOverview } from "@/components/admin/connections/CompanyInlineOverview";
 import { EntityRelationshipsTab } from "@/components/admin/connections/EntityRelationshipsTab";
 import { LinkedOpportunitiesTable } from "@/components/admin/connections/LinkedOpportunitiesTable";
@@ -19,11 +18,8 @@ import type { CompanyDrawerData } from "@/lib/repos/connectionsDrawer";
 import type { Asset } from "@/lib/types/entities";
 
 const overlayViewClass = "fixed inset-0 z-40 bg-slate-900/10 transition-opacity";
-const overlayEditClass = "fixed inset-0 z-40 bg-slate-900/25 backdrop-blur-[1px] transition-opacity";
 const panelViewClass =
-  "fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-slate-200 max-md:bg-white md:bg-slate-50 shadow-xl lg:w-[42vw] lg:max-w-[45vw]";
-const panelEditClass =
-  "fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-slate-200 max-md:bg-white md:bg-slate-50 shadow-2xl lg:w-[75vw] lg:max-w-6xl";
+  "fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-slate-200 max-md:bottom-[calc(3.5rem+env(safe-area-inset-bottom))] max-md:bg-white md:bg-slate-50 shadow-xl lg:w-[42vw] lg:max-w-[45vw]";
 
 function spaceLinkRoles(space: Asset, companyId: number): string[] {
   const roles: string[] = [];
@@ -35,10 +31,8 @@ function spaceLinkRoles(space: Asset, companyId: number): string[] {
 
 function CompanyDrawerBody({
   data,
-  fullEdit,
 }: {
   data: CompanyDrawerData;
-  fullEdit: boolean;
 }) {
   const searchParams = useSearchParams();
   const tab = getCompanyTab({ tab: searchParams.get("tab") ?? undefined });
@@ -46,9 +40,6 @@ function CompanyDrawerBody({
   const companyId = company.id;
 
   if (tab === "overview") {
-    if (fullEdit) {
-      return <CompanyDrawerFullEdit company={company} />;
-    }
     return <CompanyInlineOverview company={company} crmSummary={data.crmSummary} lastActivityDate={data.lastActivityDate} embedded />;
   }
 
@@ -57,6 +48,7 @@ function CompanyDrawerBody({
       <CompanyContactsTabClient
         companyId={companyId}
         companyName={company.company_name}
+        companyBusinessId={company.business_id}
         contacts={contacts}
         companies={companies}
         drawerMode
@@ -88,7 +80,7 @@ function CompanyDrawerBody({
 
   if (tab === "activities") {
     return (
-      <EntityActivitiesTab
+      <EntityActivityWorkspace
         activities={timeline}
         defaults={{
           company_business_id: company.business_id ?? null,
@@ -159,8 +151,6 @@ function CompanyDrawerBody({
 export function CompanyDrawer({
   data,
   onClose,
-  initialEditHighlight = false,
-  fullEdit = false,
 }: {
   data: CompanyDrawerData | null;
   onClose: () => void;
@@ -176,32 +166,29 @@ export function CompanyDrawer({
     <>
       <button
         type="button"
-        className={fullEdit ? overlayEditClass : overlayViewClass}
+        className={overlayViewClass}
         aria-label="Close company panel"
         onClick={onClose}
       />
       <aside
-        className={fullEdit ? panelEditClass : panelViewClass}
+        className={panelViewClass}
         role="dialog"
         aria-modal="true"
-        aria-label={fullEdit ? `Edit company: ${company.company_name}` : `Company: ${company.company_name}`}
+        aria-label={`Company: ${company.company_name}`}
       >
-        <InlineEditProvider initialEditHighlight={!fullEdit} resetKey={company.id}>
+        <InlineEditProvider initialEditHighlight resetKey={company.id}>
           <CompanyDrawerHeader
             companyId={company.id}
             title={company.company_name}
             subtitle={roleLabel}
-            businessId={data.v1CompanyId}
-            fullEdit={fullEdit}
+            businessId={company.business_id}
             onClose={onClose}
           />
-          {!fullEdit ? (
-            <div className="shrink-0 bg-white px-4 pt-2">
-              <CompanyDetailTabs embedded companyId={company.id} />
-            </div>
-          ) : null}
+          <div className="shrink-0 bg-white px-4 pt-2">
+            <CompanyDetailTabs embedded companyId={company.id} />
+          </div>
           <div className="flex-1 overflow-y-auto px-4 py-3">
-            <CompanyDrawerBody data={data} fullEdit={fullEdit} />
+            <CompanyDrawerBody data={data} />
           </div>
         </InlineEditProvider>
       </aside>

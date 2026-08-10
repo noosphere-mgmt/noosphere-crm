@@ -1,24 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { ListingRecordCount } from "@/components/admin/ListingRecordCount";
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import type { OpportunitiesListState } from "@/components/admin/opportunities/useOpportunitiesList";
-import { OPPORTUNITY_LEAD_TYPE_LABELS, OPPORTUNITY_STATUS_LABELS } from "@/lib/lookups";
-import {
-  formatOpportunityAreaCapacity,
-  formatOpportunityBudget,
-} from "@/lib/opportunitiesList";
-import { opportunityDrawerHref } from "@/lib/opportunitiesDrawerNav";
+import { OPPORTUNITY_STATUS_LABELS } from "@/lib/lookups";
+import { opportunityWorkspaceHref } from "@/lib/opportunityWorkspaceNav";
 import { opportunityStatusChip } from "@/lib/opportunityStatusTheme";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
+import type { Opportunity } from "@/lib/types/entities";
 
 function formatDateLabel(value: string | null | undefined): string {
   if (!value) return "—";
   return value.slice(0, 10);
 }
+
+const STATUS_CHANCE: Record<Opportunity["status"], { percent: number; label: string }> = {
+  qualifying: { percent: 20, label: "Low" },
+  sourcing: { percent: 30, label: "Low" },
+  proposal_reviewing: { percent: 50, label: "Medium" },
+  negotiating: { percent: 70, label: "High" },
+  closed_won: { percent: 100, label: "Won" },
+  closed_lost: { percent: 0, label: "Lost" },
+};
 
 function SortableHeader({
   label,
@@ -52,10 +56,10 @@ function SortableHeader({
 
 export function OpportunitiesListDesktop({
   state,
-  onQuickView,
+  onOpenWorkspace,
 }: {
   state: OpportunitiesListState;
-  onQuickView: (id: number) => void;
+  onOpenWorkspace: (row: Opportunity) => void;
 }) {
   const {
     rows,
@@ -70,7 +74,7 @@ export function OpportunitiesListDesktop({
     handleSort,
   } = state;
   const theme = moduleAccentClasses("opportunities");
-  const searchParams = useSearchParams();
+  const colCount = 8;
 
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
@@ -89,9 +93,7 @@ export function OpportunitiesListDesktop({
             <SortableHeader label="Opportunity" sortKey="opportunity" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <SortableHeader label="Company" sortKey="company" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <SortableHeader label="Contact" sortKey="contact" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-            <SortableHeader label="Lead Type" sortKey="lead" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-            <SortableHeader label="Requirement" sortKey="requirement" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-            <SortableHeader label="Budget (HKD)" sortKey="budget" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+            <SortableHeader label="Expected close · chance" sortKey="expected_close" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <SortableHeader label="Status" sortKey="status" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <SortableHeader label="Updated" sortKey="updated" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <th className="w-24 px-3 py-1.5 align-top font-medium">Actions</th>
@@ -100,13 +102,13 @@ export function OpportunitiesListDesktop({
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={10} className="px-4 py-8 text-center text-slate-500">
+              <td colSpan={colCount} className="px-4 py-8 text-center text-slate-500">
                 No opportunities yet.
               </td>
             </tr>
           ) : displayedRows.length === 0 ? (
             <tr>
-              <td colSpan={10} className="px-4 py-8 text-center text-slate-500">
+              <td colSpan={colCount} className="px-4 py-8 text-center text-slate-500">
                 No opportunities match your search.
               </td>
             </tr>
@@ -124,23 +126,22 @@ export function OpportunitiesListDesktop({
                 </td>
                 <td className="max-w-[14rem] px-3 py-1.5">
                   <Link
-                    href={opportunityDrawerHref(searchParams, row.id)}
+                    href={opportunityWorkspaceHref(row, "overview")}
                     className={`block truncate text-left ${theme.link}`}
                     title={row.client_name}
                   >
                     {row.client_name}
                     {row.district_preference ? ` – ${row.district_preference.split(/[,;/|]/)[0]?.trim()}` : ""}
                   </Link>
-                  <RecordBusinessId id={row.v1_opportunity_id} className="mt-0.5 block" />
+                  <RecordBusinessId id={row.business_id ?? row.v1_opportunity_id} className="mt-0.5 block" />
                 </td>
                 <td className="px-3 py-1.5 text-slate-700">{row.linked_company_name ?? "—"}</td>
                 <td className="px-3 py-1.5 text-slate-700">{row.primary_contact_name ?? "—"}</td>
-                <td className="px-3 py-1.5 text-slate-700">{OPPORTUNITY_LEAD_TYPE_LABELS[row.lead_type]}</td>
                 <td className="px-3 py-1.5 text-slate-700">
-                  {formatOpportunityAreaCapacity(row.required_area_sqft, row.required_capacity_pax)}
-                </td>
-                <td className="px-3 py-1.5 text-slate-700">
-                  {formatOpportunityBudget(row.budget_max, row.budget_min)}
+                  <p className="tabular-nums">{formatDateLabel(row.expected_close_date)}</p>
+                  <p className="mt-0.5 text-[11px] text-slate-500">
+                    {STATUS_CHANCE[row.status].label} · {STATUS_CHANCE[row.status].percent}%
+                  </p>
                 </td>
                 <td className="px-3 py-1.5">
                   <span {...opportunityStatusChip(row.status)}>{OPPORTUNITY_STATUS_LABELS[row.status]}</span>
@@ -149,8 +150,8 @@ export function OpportunitiesListDesktop({
                 <td className="px-3 py-1.5">
                   <ModuleRowActions
                     module="opportunities"
-                    onView={() => onQuickView(row.id)}
-                    editHref={`/admin/opportunities/${row.id}?mode=edit`}
+                    onView={() => onOpenWorkspace(row)}
+                    editHref={opportunityWorkspaceHref(row, "overview", "edit")}
                   />
                 </td>
               </tr>

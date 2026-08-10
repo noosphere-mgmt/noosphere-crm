@@ -1,7 +1,14 @@
 /**
- * Populate permanent business IDs and crosswalk for all existing records.
+ * Populate permanent business IDs and crosswalk for existing records.
  * Idempotent: skips rows that already have business_id.
- * Usage: npm run db:populate-business-ids
+ *
+ * Usage:
+ *   npm run db:populate-business-ids
+ *   npm run db:populate-business-ids -- --only=building,contact
+ *
+ * --only accepts: company, building, premise, contact, opportunity, activity
+ * When --only is set, only missing IDs for those entities are assigned
+ * (no company FK rewrite / constraint migration).
  */
 import "./ensure-env";
 import { readFile } from "node:fs/promises";
@@ -10,6 +17,37 @@ import { query, withTransaction } from "../lib/db";
 import { formatBusinessId, BUSINESS_ID_PREFIX, type BusinessEntityType } from "../lib/businessIds";
 import { registerBusinessId } from "../lib/businessIdResolve";
 
+const ONLY_ALIASES: Record<string, BusinessEntityType> = {
+  company: "company",
+  companies: "company",
+  building: "building",
+  buildings: "building",
+  premise: "premise",
+  premises: "premise",
+  contact: "contact",
+  contacts: "contact",
+  opportunity: "opportunity",
+  opportunities: "opportunity",
+  activity: "activity",
+  activities: "activity",
+};
+
+function parseOnlyEntities(argv: string[]): BusinessEntityType[] | null {
+  const raw = argv.find((arg) => arg.startsWith("--only="))?.slice("--only=".length)
+    ?? (argv.includes("--only") ? argv[argv.indexOf("--only") + 1] : null);
+  if (!raw?.trim()) return null;
+  const out: BusinessEntityType[] = [];
+  for (const part of raw.split(/[,+\s]+/).map((s) => s.trim().toLowerCase()).filter(Boolean)) {
+    const mapped = ONLY_ALIASES[part];
+    if (!mapped) {
+      throw new Error(
+        `Unknown --only entity "${part}". Use: company, building, premise, contact, opportunity, activity`,
+      );
+    }
+    if (!out.includes(mapped)) out.push(mapped);
+  }
+  return out;
+}
 async function nextSeq(entityType: BusinessEntityType, start: number): Promise<number> {
   const rows = await query<{ business_id: string }>(
     `SELECT business_id FROM business_id_crosswalk WHERE entity_type = $1 ORDER BY business_id DESC LIMIT 1`,
@@ -255,27 +293,37 @@ async function addBusinessIdFkConstraints(): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  await runPopulateBusinessIds();
+  const only = parseOnlyEntities(process.argv.slice(2));
+  await runPopulateBusinessIds(only ?? undefined);
 }
 
-export async function runPopulateBusinessIds(): Promise<void> {
+export async function runPopulateBusinessIds(only?: BusinessEntityType[]): Promise<void> {
   const phase34 = await readFile(
     path.join(__dirname, "schema-migrate-phase34-business-ids.sql"),
     "utf8",
   );
   await query(phase34);
 
+  const selected = only && only.length > 0 ? new Set(only) : null;
+  const runAll = selected == null;
+
   await withTransaction(async () => {
-    await assignCompanyBusinessIds();
-    await syncLegacyCompanyBusinessIds();
-    await assignBuildingBusinessIds();
-    await assignPremiseBusinessIds();
-    await assignContactBusinessIds();
-    await assignOpportunityBusinessIds();
-    await assignActivityBusinessIds();
-    await dropOldCompanyFkConstraints();
-    await rewriteCompanyFkColumns();
-    await addBusinessIdFkConstraints();
+    if (runAll || selected!.has("company")) {
+      await assignCompanyBusinessIds();
+      await syncLegacyCompanyBusinessIds();
+    }
+    if (runAll || selected!.has("building")) await assignBuildingBusinessIds();
+    if (runAll || selected!.has("premise")) await assignPremiseBusinessIds();
+    if (runAll || selected!.has("contact")) await assignContactBusinessIds();
+    if (runAll || selected!.has("opportunity")) await assignOpportunityBusinessIds();
+    if (runAll || selected!.has("activity")) await assignActivityBusinessIds();
+
+    // Full migration only — do not rewrite FKs when doing a narrow ID backfill.
+    if (runAll) {
+      await dropOldCompanyFkConstraints();
+      await rewriteCompanyFkColumns();
+      await addBusinessIdFkConstraints();
+    }
   });
 
   const counts = await query<{ entity_type: string; n: string }>(
@@ -283,7 +331,11 @@ export async function runPopulateBusinessIds(): Promise<void> {
   );
   console.log("business_id_crosswalk:");
   for (const row of counts) console.log(`  ${row.entity_type}: ${row.n}`);
-  console.log("populate-business-ids: OK");
+  if (selected) {
+    console.log(`populate-business-ids: OK (only: ${Array.from(selected).join(", ")})`);
+  } else {
+    console.log("populate-business-ids: OK");
+  }
 }
 
 main().catch((err) => {

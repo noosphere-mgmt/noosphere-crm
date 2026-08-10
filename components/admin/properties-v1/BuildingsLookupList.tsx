@@ -39,7 +39,7 @@ function BuildingRow({
   onOpen: (propertyId: string) => void;
 }) {
   const name = row.bldg_name_en?.trim() || "Unnamed building";
-  const district = row.district_en?.trim() || row.city_en?.trim() || "—";
+  const district = row.district_en?.trim() || row.city_en?.trim() || "";
   const grade = formatBuildingGradeShort(row.grade);
   const count = row.inventory_count ?? 0;
   const metaParts = [

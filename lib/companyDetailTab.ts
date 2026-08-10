@@ -12,14 +12,17 @@ export type CompanyDetailTabId = (typeof COMPANY_DETAIL_TABS)[number];
 
 export function getCompanyTab(searchParams: { tab?: string }): CompanyDetailTabId {
   const tab = searchParams.tab;
-  if (tab === "timeline") return "activities";
+  if (tab === "timeline" || tab === "activities") return "activities";
+  if (tab === "notes") return "activities";
+  if (tab === "profile") return "overview";
+  if (tab === "deals") return "opportunities";
+  if (tab === "supply" || tab === "fees") return "premises";
   if (
     tab === "contacts" ||
     tab === "relationships" ||
     tab === "opportunities" ||
     tab === "activities" ||
-    tab === "premises" ||
-    tab === "notes"
+    tab === "premises"
   ) {
     return tab;
   }

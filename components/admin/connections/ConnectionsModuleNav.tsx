@@ -11,6 +11,7 @@ export function ConnectionsModuleNav({ embedded = false }: { embedded?: boolean 
     pathname === "/admin/companies" ||
     pathname.startsWith("/admin/companies/");
   const isContacts = pathname === "/admin/contacts" || pathname.startsWith("/admin/contacts/");
+  const isChannelTree = pathname === "/admin/connections/channel-tree";
 
   return (
     <nav
@@ -26,6 +27,9 @@ export function ConnectionsModuleNav({ embedded = false }: { embedded?: boolean 
       </Link>
       <Link href="/admin/contacts" className={connectionsTabClass(isContacts)}>
         Contacts
+      </Link>
+      <Link href="/admin/connections/channel-tree" className={connectionsTabClass(isChannelTree)}>
+        Channel Tree
       </Link>
     </nav>
   );

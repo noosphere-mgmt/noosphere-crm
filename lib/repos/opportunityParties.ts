@@ -68,6 +68,23 @@ export async function createOpportunityParty(
   opportunityId: number,
   input: OpportunityPartyInput,
 ): Promise<number> {
+  const existing = await query<{ id: string }>(
+    `SELECT id::text AS id
+       FROM opportunity_parties
+      WHERE opportunity_id = $1
+        AND company_id = $2
+        AND contact_id IS NOT DISTINCT FROM $3
+        AND role = $4
+      ORDER BY id
+      LIMIT 1`,
+    [opportunityId, input.company_id, input.contact_id ?? null, input.role.trim()],
+  );
+  if (existing[0]) {
+    const existingId = Number.parseInt(existing[0].id, 10);
+    await updateOpportunityParty(existingId, input);
+    return existingId;
+  }
+
   const rows = await query<{ id: string }>(
     `INSERT INTO opportunity_parties (
        opportunity_id, company_id, contact_id, role, partnership_mode,

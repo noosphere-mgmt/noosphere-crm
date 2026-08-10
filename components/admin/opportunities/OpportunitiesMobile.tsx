@@ -8,11 +8,11 @@ import type { OpportunitiesListState } from "@/components/admin/opportunities/us
 
 export function OpportunitiesMobile({
   state,
-  onQuickView,
+  onOpenWorkspace,
   onNewOpportunity,
 }: {
   state: OpportunitiesListState;
-  onQuickView: (id: number) => void;
+  onOpenWorkspace: (row: import("@/lib/types/entities").Opportunity) => void;
   onNewOpportunity: () => void;
 }) {
   return (
@@ -21,13 +21,17 @@ export function OpportunitiesMobile({
       <OpportunitiesSearchToolbarMobile
         searchQuery={state.searchQuery}
         onSearchChange={state.setSearchQuery}
+        listStatusFilter={state.listStatusFilter}
+        onListStatusFilterChange={state.setListStatusFilter}
+        statusFilterCounts={state.statusFilterCounts}
+        usingLegacyStatusFilter={state.usingLegacyStatusFilter}
       />
       <ListingRecordCount
         filteredCount={state.displayedRows.length}
         totalCount={state.rows.length}
         label="Opportunities"
       />
-      <OpportunitiesListMobile state={state} onQuickView={onQuickView} />
+      <OpportunitiesListMobile state={state} onOpenWorkspace={onOpenWorkspace} />
     </>
   );
 }

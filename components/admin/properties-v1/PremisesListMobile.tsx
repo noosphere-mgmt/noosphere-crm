@@ -13,7 +13,6 @@ import {
 } from "@/components/admin/mobile/MobileSwipeToDeleteRow";
 import { formatAreaSqft } from "@/lib/formatCurrency";
 import { formatPremisesListLabel, formatPremisesName } from "@/lib/premisesDisplay";
-import { formatListingStatus } from "@/lib/premisesListing";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { premisesDrawerHref } from "@/lib/premisesDrawerNav";
 import {
@@ -88,7 +87,6 @@ export function PremisesListMobile(props: PremisesListComponentProps) {
                 row.district_en,
                 row.operator_name,
                 formatAreaSqft(row.gross_area_sqft) !== "—" ? formatAreaSqft(row.gross_area_sqft) : null,
-                formatListingStatus(row.offer_status),
               ].filter(Boolean);
 
               return (

@@ -1,13 +1,14 @@
-import { AdminViewportSwitch } from "@/components/admin/layout/AdminViewportSwitch";
 import { DashboardDesktop } from "@/components/admin/dashboard/DashboardDesktop";
-import { DashboardMobile } from "@/components/admin/dashboard/DashboardMobile";
 import type { DashboardData } from "@/lib/repos/dashboard";
+import type { Opportunity } from "@/lib/types/entities";
 
-export function DashboardV2({ data }: { data: DashboardData }) {
-  return (
-    <AdminViewportSwitch
-      mobile={<DashboardMobile data={data} />}
-      desktop={<DashboardDesktop data={data} />}
-    />
-  );
+export type DashboardViewData = {
+  dashboard: DashboardData;
+  deals: Opportunity[];
+};
+
+export function DashboardV2({ data }: { data: DashboardViewData }) {
+  // Keep one responsive information architecture on every device.  The old
+  // mobile-only dashboard had different sections and metrics from desktop.
+  return <DashboardDesktop data={data} />;
 }

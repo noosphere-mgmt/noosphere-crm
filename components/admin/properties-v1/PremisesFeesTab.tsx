@@ -52,7 +52,7 @@ export function PremisesFeesTab({ fees }: { fees: PremisesFeeSummary | null | un
                   <tr key={line.id} className="border-t border-slate-100 align-top">
                     <td className="px-3 py-2 font-medium text-slate-900">
                       <PremisesDrawerTableLink href={`/admin/opportunities/${line.opportunity_id}?tab=fees`}>
-                        {line.opportunity_client_name ?? `Opportunity #${line.opportunity_id}`}
+                        {line.opportunity_client_name ?? `Deal #${line.opportunity_id}`}
                       </PremisesDrawerTableLink>
                     </td>
                     <td className="px-3 py-2 text-slate-700">{line.collect_fee_from_company_name ?? "—"}</td>

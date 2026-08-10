@@ -13,12 +13,16 @@ export function buildCompaniesReturnTo(searchParams: URLSearchParams): string {
 }
 
 export function buildContactsReturnTo(searchParams: URLSearchParams): string {
+  const requestedReturnTo = searchParams.get("return_to")?.trim();
+  if (requestedReturnTo?.startsWith("/admin/")) return requestedReturnTo;
+
   const params = new URLSearchParams(searchParams.toString());
   params.delete("contact");
   params.delete("tab");
   params.delete("mode");
   params.delete("new");
   params.delete("company_id");
+  params.delete("return_to");
   const qs = params.toString();
   return qs ? `/admin/contacts?${qs}` : "/admin/contacts";
 }

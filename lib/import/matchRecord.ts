@@ -18,10 +18,11 @@ export async function matchRecord(
   const id = coerceRecordId(rawId, def.idType);
   if (id != null) {
     const byId = await def.findById(id);
-    if (!byId) {
-      return { kind: "error", message: `${def.matchIdField} ${id} not found`, method: def.matchIdField };
+    if (byId) {
+      return { kind: "found", record: byId, method: def.matchIdField };
     }
-    return { kind: "found", record: byId, method: def.matchIdField };
+    // Explicit ID supplied but not in DB → create (preserve ID on create when possible).
+    return { kind: "not_found", method: null };
   }
 
   const extRef = values.external_ref != null ? String(values.external_ref).trim() : "";

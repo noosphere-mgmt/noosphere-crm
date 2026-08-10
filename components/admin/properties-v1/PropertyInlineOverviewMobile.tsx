@@ -7,8 +7,10 @@ import {
   InlineTextField,
 } from "@/components/admin/inline/InlineFields";
 import { PremisesSectionCard } from "@/components/admin/properties-v1/premisesDrawerUi";
+import { PropertyInlineAreaConversionFields } from "@/components/admin/properties-v1/PropertyInlineAreaConversionFields";
+import { BuildingRelationshipsView } from "@/components/admin/properties-v1/BuildingRelationships";
 import { usePropertyInlineOverview } from "@/components/admin/properties-v1/usePropertyInlineOverview";
-import { BUILDING_GRADES, BUILDING_TITLES } from "@/lib/lookups";
+import { BUILDING_GRADES, BUILDING_TITLES, PROPERTY_TYPES } from "@/lib/lookups";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
 import type { PropertyV1 } from "@/lib/repos/propertiesV1";
 
@@ -47,37 +49,36 @@ function MobileCollapsibleSection({
 export function PropertyInlineOverviewMobile({
   property,
   companies,
+  showMultilingualNames = false,
 }: {
   property: PropertyV1;
   companies: CompanyV1Option[];
+  showMultilingualNames?: boolean;
 }) {
-  const { companyOptions, coerceCompanyId, save, locationSummary } = usePropertyInlineOverview(property, companies);
+  const { companyOptions, save, locationSummary } = usePropertyInlineOverview(property, companies);
 
   return (
     <div className="space-y-3">
       <PremisesSectionCard title="Building">
-        <div className="space-y-3">
-          <InlineTextField label="Building name (EN)" value={property.bldg_name_en} onSave={save("bldg_name_en")} />
-          <div className="grid grid-cols-2 gap-3">
-            <InlineTextField label="Building name (ZH)" value={property.bldg_name_zh} onSave={save("bldg_name_zh")} />
-            <InlineTextField label="Building name (CN)" value={property.bldg_name_cn} onSave={save("bldg_name_cn")} />
+        <div className="grid grid-cols-2 gap-3">
+          <div className="col-span-2">
+            <InlineTextField label="Building Name (English)" value={property.bldg_name_en} onSave={save("bldg_name_en")} />
           </div>
+          {showMultilingualNames ? (
+            <div className="col-span-2">
+              <InlineTextField label="物業名稱（繁體中文）" value={property.bldg_name_zh} onSave={save("bldg_name_zh")} />
+            </div>
+          ) : null}
         </div>
       </PremisesSectionCard>
 
       <PremisesSectionCard title="Building specification">
         <div className="grid grid-cols-2 gap-3">
-          <InlineTextField
-            label="Year built"
-            value={property.year_built?.toString() ?? null}
-            type="number"
-            onSave={save("year_built")}
-          />
-          <InlineTextField
-            label="No. of floors"
-            value={property.floor_count?.toString() ?? null}
-            type="number"
-            onSave={save("floor_count")}
+          <InlineSelectField
+            label="Building Type"
+            value={property.building_type}
+            options={PROPERTY_TYPES.map((v) => ({ value: v, label: v }))}
+            onSave={save("building_type")}
           />
           <InlineSelectField
             label="Grade"
@@ -85,12 +86,28 @@ export function PropertyInlineOverviewMobile({
             options={BUILDING_GRADES.map((g) => ({ value: g, label: g }))}
             onSave={save("grade")}
           />
-          <InlineSelectField
-            label="Title"
-            value={property.title}
-            options={BUILDING_TITLES.map((t) => ({ value: t, label: t }))}
-            onSave={save("title")}
+          <InlineTextField
+            label="Year built"
+            value={property.year_built?.toString() ?? null}
+            type="number"
+            useGrouping={false}
+            onSave={save("year_built")}
           />
+          <InlineTextField
+            label="Total Floors"
+            value={property.floor_count?.toString() ?? null}
+            type="number"
+            onSave={save("floor_count")}
+          />
+          <PropertyInlineAreaConversionFields fieldPrefix="bldg_area" label="Gross Area" sqftValue={property.bldg_area_sqft} sqmValue={property.bldg_area_sqm} save={save} />
+          <div className="col-span-2">
+            <InlineSelectField
+              label="Title"
+              value={property.title}
+              options={BUILDING_TITLES.map((t) => ({ value: t, label: t }))}
+              onSave={save("title")}
+            />
+          </div>
         </div>
       </PremisesSectionCard>
 
@@ -101,56 +118,32 @@ export function PropertyInlineOverviewMobile({
           <InlineTextField label="District" value={property.district_en} onSave={save("district_en")} />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <InlineTextField label="Street no." value={property.street_no} onSave={save("street_no")} />
           <InlineTextField label="Street" value={property.street_name_en} onSave={save("street_name_en")} />
+          <InlineTextField label="Street no." value={property.street_no} onSave={save("street_no")} />
         </div>
       </MobileCollapsibleSection>
 
-      <PremisesSectionCard title="Companies">
+      <MobileCollapsibleSection title="Site & planning" summary={[property.lot_number, property.land_use].filter(Boolean).join(" · ")}>
         <div className="grid grid-cols-2 gap-3">
-          <InlineSelectField
-            label="Owner"
-            value={coerceCompanyId(property.owner_company_id) || null}
-            options={companyOptions}
-            onSave={save("owner_company_id")}
-            placeholder="— Select company —"
-          />
-          <InlineSelectField
-            label="Management company"
-            value={coerceCompanyId(property.management_company_id) || null}
-            options={companyOptions}
-            onSave={save("management_company_id")}
-            placeholder="— Select company —"
-          />
-          <InlineSelectField
-            label="Current tenant"
-            value={coerceCompanyId(property.current_tenant_company_id) || null}
-            options={companyOptions}
-            onSave={save("current_tenant_company_id")}
-            placeholder="— Select company —"
-          />
+          <InlineTextField label="Lot number" value={property.lot_number} onSave={save("lot_number")} />
+          <InlineTextField label="Land Use / Zoning" value={property.land_use} onSave={save("land_use")} />
+          <InlineTextField label="Class of site" value={property.class_of_site} onSave={save("class_of_site")} />
+          <InlineTextField label="Land tenure" value={property.land_tenure} onSave={save("land_tenure")} />
+          <InlineTextField label="Plot ratio" value={property.plot_ratio} type="number" onSave={save("plot_ratio")} />
+          <PropertyInlineAreaConversionFields fieldPrefix="site_area" label="Site area" sqftValue={property.site_area_sqft} sqmValue={property.site_area_sqm} save={save} />
         </div>
+      </MobileCollapsibleSection>
+
+      <PremisesSectionCard title="Relationships">
+        <BuildingRelationshipsView value={property.building_relationship_lines} companyOptions={companyOptions} />
       </PremisesSectionCard>
 
-      <PremisesSectionCard title="Accessibility">
+      <PremisesSectionCard title="Proposal content">
         <div className="grid grid-cols-2 gap-3">
-          <InlineTextField label="MTR station" value={property.mtr_station} onSave={save("mtr_station")} />
-          <InlineTextField
-            label="Walking minutes"
-            value={property.walking_minutes?.toString() ?? null}
-            type="number"
-            onSave={save("walking_minutes")}
-          />
-        </div>
-      </PremisesSectionCard>
-
-      <PremisesSectionCard title="Building notes">
-        <div className="grid grid-cols-2 gap-3">
-          <InlineTextAreaField label="Building description" value={property.bldg_desc} onSave={save("bldg_desc")} />
-          <InlineTextAreaField label="Building remarks" value={property.building_remarks} onSave={save("building_remarks")} />
-          <div className="col-span-2">
-            <InlineTextAreaField label="Facilities" value={property.facilities} onSave={save("facilities")} />
-          </div>
+          <InlineTextAreaField label="Building Introduction" value={property.bldg_desc} onSave={save("bldg_desc")} />
+          <InlineTextAreaField label="Location Highlights" value={property.location_advantages_en} onSave={save("location_advantages_en")} />
+          <InlineTextAreaField label="Accessibility & Transport" value={property.proposal_highlights_en} onSave={save("proposal_highlights_en")} />
+          <InlineTextAreaField label="Facilities & Amenities" value={property.facilities} onSave={save("facilities")} />
         </div>
       </PremisesSectionCard>
     </div>

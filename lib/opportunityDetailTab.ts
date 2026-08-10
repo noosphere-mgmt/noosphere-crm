@@ -1,26 +1,53 @@
+export type OpportunityWorkspaceTabId = "overview" | "parties" | "proposed" | "timeline" | "documents";
+
+/** @deprecated Legacy tab ids — mapped to workspace tabs in getOpportunityTab */
 export type OpportunityDetailTabId =
-  | "overview"
-  | "premises"
+  | OpportunityWorkspaceTabId
+  | "brief"
+  | "matches"
+  | "shortlist"
   | "parties"
   | "proposals"
+  | "premises"
   | "fees"
   | "activities"
   | "notes";
 
-export const OPPORTUNITY_DETAIL_TABS: { id: OpportunityDetailTabId; label: string }[] = [
+export const OPPORTUNITY_WORKSPACE_TABS: { id: OpportunityWorkspaceTabId; label: string }[] = [
   { id: "overview", label: "Overview" },
-  { id: "premises", label: "Proposed Premises" },
   { id: "parties", label: "Parties" },
-  { id: "proposals", label: "Proposals" },
-  { id: "fees", label: "Fees" },
-  { id: "activities", label: "Activities" },
-  { id: "notes", label: "Notes" },
+  { id: "proposed", label: "Proposed" },
+  { id: "timeline", label: "Activity" },
+  { id: "documents", label: "Documents" },
 ];
 
-const VALID_TABS = new Set<string>(OPPORTUNITY_DETAIL_TABS.map((t) => t.id));
+/** @deprecated Use OPPORTUNITY_WORKSPACE_TABS */
+export const OPPORTUNITY_DETAIL_TABS = OPPORTUNITY_WORKSPACE_TABS;
 
-export function getOpportunityTab(input: { tab?: string | null }): OpportunityDetailTabId {
-  const tab = input.tab?.trim();
-  if (tab && VALID_TABS.has(tab)) return tab as OpportunityDetailTabId;
-  return "overview";
+const LEGACY_TAB_ALIASES: Record<string, OpportunityWorkspaceTabId> = {
+  brief: "overview",
+  overview: "overview",
+  matches: "proposed",
+  shortlist: "proposed",
+  premises: "proposed",
+  parties: "parties",
+  fees: "overview",
+  proposals: "documents",
+  activities: "timeline",
+  notes: "timeline",
+};
+
+const VALID_TABS = new Set<string>(OPPORTUNITY_WORKSPACE_TABS.map((t) => t.id));
+
+export function normalizeOpportunityTab(tab?: string | null): OpportunityWorkspaceTabId {
+  const raw = tab?.trim();
+  if (!raw) return "overview";
+  if (VALID_TABS.has(raw)) return raw as OpportunityWorkspaceTabId;
+  return LEGACY_TAB_ALIASES[raw] ?? "overview";
 }
+
+export function getOpportunityTab(input: { tab?: string | null }): OpportunityWorkspaceTabId {
+  return normalizeOpportunityTab(input.tab);
+}
+
+export const PROF_SERVICE_HIDDEN_WORKSPACE_TABS = new Set<OpportunityWorkspaceTabId>();

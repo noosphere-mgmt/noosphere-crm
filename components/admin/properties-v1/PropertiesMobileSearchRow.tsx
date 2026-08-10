@@ -13,6 +13,7 @@ export function PropertiesMobileSearchRow({
   onReset,
   showReset = false,
   showFilters = true,
+  resetAfterSearch = false,
 }: {
   search: ReactNode;
   activeFilterCount?: number;
@@ -22,11 +23,21 @@ export function PropertiesMobileSearchRow({
   onReset?: () => void;
   showReset?: boolean;
   showFilters?: boolean;
+  resetAfterSearch?: boolean;
 }) {
   return (
     <>
       <div className="mb-2 flex items-center gap-1.5">
         <div className="min-w-0 flex-1 [&_input]:py-1.5 [&_input]:text-sm">{search}</div>
+        {resetAfterSearch && showReset && onReset && activeFilterCount > 0 ? (
+          <button
+            type="button"
+            onClick={onReset}
+            className="shrink-0 rounded-md px-1.5 py-1.5 text-xs text-slate-500 hover:bg-slate-50"
+          >
+            Reset
+          </button>
+        ) : null}
         {showFilters ? (
           <button
             type="button"
@@ -41,7 +52,7 @@ export function PropertiesMobileSearchRow({
             ) : null}
           </button>
         ) : null}
-        {showReset && onReset && activeFilterCount > 0 ? (
+        {!resetAfterSearch && showReset && onReset && activeFilterCount > 0 ? (
           <button
             type="button"
             onClick={onReset}

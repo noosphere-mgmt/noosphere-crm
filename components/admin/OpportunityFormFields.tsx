@@ -23,12 +23,14 @@ import {
 } from "@/lib/openOpportunityStatus";
 import {
   type OpportunitySalesRole,
+  isProfServiceSalesRole,
 } from "@/lib/opportunityValues";
 import { toLegacyCompanySelectOptions, toLegacyContactSelectOptions, resolveCompanySelectValue, resolveContactSelectValue } from "@/lib/crmSelectOptions";
 import type { ContactOption } from "@/lib/repos/contacts";
 import type { CompanyOption } from "@/lib/repos/companies";
 import type { Opportunity, OpportunityStatus } from "@/lib/types/entities";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
+import { OPPORTUNITY_SOURCES, OPPORTUNITY_SOURCE_LABELS } from "@/lib/opportunitySourceValues";
 
 type Props = {
   defaults?: Opportunity;
@@ -49,7 +51,7 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
     resolveContactSelectValue(contacts, defaults?.primary_contact_id),
   );
   const [salesRole, setSalesRole] = useState<OpportunitySalesRole>(defaults?.sales_role ?? "to_lease");
-  const [status, setStatus] = useState<OpportunityStatus>(defaults?.status ?? "new");
+  const [status, setStatus] = useState<OpportunityStatus>(defaults?.status ?? "qualifying");
 
   const contactsForCompanyList = useMemo(
     () => contactsForCompany(contacts, companyId, companies),
@@ -60,6 +62,7 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
     id: defaults?.id ?? 0,
     client_name: defaults?.client_name ?? "",
     lead_type: defaults?.lead_type ?? "direct_client",
+    lead_source: defaults?.lead_source ?? "direct",
     company_name: defaults?.company_name ?? null,
     company_id: defaults?.company_id ?? null,
     primary_contact_id: defaults?.primary_contact_id ?? null,
@@ -77,10 +80,15 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
     district_preference: defaults?.district_preference ?? null,
     workspace_type: defaults?.workspace_type ?? null,
     property_type: defaults?.property_type ?? null,
+    property_category_preference: defaults?.property_category_preference ?? null,
+    property_type_preference: defaults?.property_type_preference ?? null,
     target_yield: defaults?.target_yield ?? null,
     funding_status: defaults?.funding_status ?? null,
     move_in_date: defaults?.move_in_date ?? null,
     status,
+    waiting_for: defaults?.waiting_for ?? null,
+    next_action: defaults?.next_action ?? null,
+    next_action_date: defaults?.next_action_date ?? null,
     requirement_summary: defaults?.requirement_summary ?? null,
     remarks: defaults?.remarks ?? null,
     created_at: defaults?.created_at ?? "",
@@ -189,6 +197,12 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
             </select>
           </label>
           <label className="block min-w-0 text-sm">
+            <span className={labelClass}>Lead/Opp Source</span>
+            <select name="lead_source" defaultValue={defaults?.lead_source ?? "direct"} disabled={!editing} className={editing ? selectClass : selectReadOnlyClass}>
+              {OPPORTUNITY_SOURCES.map((source) => <option key={source} value={source}>{OPPORTUNITY_SOURCE_LABELS[source]}</option>)}
+            </select>
+          </label>
+          <label className="block min-w-0 text-sm">
             <span className={labelClass}>Status</span>
             <select
               name="status"
@@ -221,9 +235,11 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
       </div>
 
       <TextAreaField label="Internal remarks" name="remarks" defaultValue={defaults?.remarks ?? ""} />
-      <p className="text-xs text-slate-500">
-        District: comma-separated (e.g. Central, Admiralty, Causeway Bay).
-      </p>
+      {!isProfServiceSalesRole(salesRole) ? (
+        <p className="text-xs text-slate-500">
+          District: comma-separated (e.g. Central, Admiralty, Causeway Bay).
+        </p>
+      ) : null}
     </>
   );
 }

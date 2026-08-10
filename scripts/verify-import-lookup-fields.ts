@@ -32,6 +32,7 @@ function assertAdjacentLookup(objectType: ObjectType, pairs: [string, string][])
 }
 
 const ALL_LOOKUPS: Record<ObjectType, [string, string][]> = {
+  leads: [],
   contacts: [["company_id", "company_name_en"]],
   buildings: [
     ["management_company_id", "management_company_name_en"],

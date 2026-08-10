@@ -1,5 +1,10 @@
 import { query } from "@/lib/db";
 import { sqlContactDisplayName } from "@/lib/contactName";
+import {
+  resolveCompanyRefToLegacy,
+  resolveContactRefToLegacy,
+  resolveOpportunityRefToLegacy,
+} from "@/lib/crmRefResolve";
 import { genericUpdateRecord, rowToRecord } from "../adapterUtils";
 import {
   sqlExportCompanyId,
@@ -29,6 +34,8 @@ const FIELD_KEYS = [
   "contact_id",
   "contact_name",
   "role",
+  "collect_fee_status",
+  "external_ref",
   "partnership_mode",
   "fee_note",
   "collect_fee_amount",
@@ -48,6 +55,8 @@ const SELECT = `
        ELSE ${sqlExportContactId("op.contact_id")} END AS contact_id,
   ${sqlContactDisplayName("ct")} AS contact_name,
   op.role,
+  op.collect_fee_status,
+  op.external_ref,
   op.partnership_mode,
   op.fee_note,
   op.collect_fee_amount::text AS collect_fee_amount,
@@ -85,11 +94,12 @@ function partyFieldDef(key: (typeof FIELD_KEYS)[number]): ImportFieldDef {
     return { ...base, type: "string", requiredOnCreate: true };
   }
   if (key === "partnership_mode") {
-    return { ...base, type: "string", aliases: ["partnership_type"] };
+    return { ...base, type: "string", aliases: ["partnership_type"], exportHidden: true };
   }
   if (key.includes("amount") || key.includes("percent")) {
-    return { ...base, type: "number" };
+    return { ...base, type: "number", exportHidden: true };
   }
+  if (key === "fee_note") return { ...base, type: "string", exportHidden: true };
   return { ...base, type: "string" };
 }
 
@@ -119,8 +129,8 @@ export const opportunityPartiesImportDefinition: ImportObjectDefinition = {
     return rows[0] ?? null;
   },
 
-  async findByExternalRef() {
-    return [];
+  async findByExternalRef(externalRef) {
+    return load("op.external_ref = $1", [externalRef.trim()]);
   },
 
   buildNaturalKey(values) {
@@ -139,12 +149,25 @@ export const opportunityPartiesImportDefinition: ImportObjectDefinition = {
     const parts = splitNaturalKeyParts(key, 4);
     if (!parts) return [];
     const [oppId, companyId, contactId, role] = parts;
-    const oppIdNum = parseBigIntParam(oppId);
-    if (!oppIdNum) return [];
+    const oppIdNum = await resolveOpportunityRefToLegacy(oppId);
+    if (oppIdNum == null) return [];
+    const companyLegacy =
+      companyId?.trim() ? await resolveCompanyRefToLegacy(companyId) : null;
+    if (companyId?.trim() && companyLegacy == null) return [];
+    const contactLegacy =
+      contactId?.trim() ? await resolveContactRefToLegacy(contactId) : null;
+    if (contactId?.trim() && contactLegacy == null) return [];
     return load(
-      `op.opportunity_id = $1 AND coalesce(op.company_id::text, '') = $2
-       AND coalesce(op.contact_id::text, '') = $3 AND op.role = $4`,
-      [oppIdNum, companyId ?? "", contactId ?? "", role],
+      `op.opportunity_id = $1
+       AND coalesce(op.company_id::text, '') = $2
+       AND coalesce(op.contact_id::text, '') = $3
+       AND op.role = $4`,
+      [
+        oppIdNum,
+        companyLegacy != null ? String(companyLegacy) : "",
+        contactLegacy != null ? String(contactLegacy) : "",
+        role,
+      ],
     );
   },
 
@@ -204,8 +227,9 @@ export const opportunityPartiesImportDefinition: ImportObjectDefinition = {
     const rows = await query<{ id: string }>(
       `INSERT INTO opportunity_parties (
          opportunity_id, company_id, contact_id, role, partnership_mode, fee_note,
-         collect_fee_amount, collect_fee_percent, paid_out_fee_amount, paid_out_fee_percent, remarks
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+         collect_fee_amount, collect_fee_percent, paid_out_fee_amount, paid_out_fee_percent, remarks,
+         collect_fee_status, external_ref
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
        RETURNING id::text`,
       [
         parseBigIntParam(values.opportunity_id) ?? (() => { throw new Error("opportunity_id is required"); })(),
@@ -219,6 +243,8 @@ export const opportunityPartiesImportDefinition: ImportObjectDefinition = {
         values.paid_out_fee_amount ?? null,
         values.paid_out_fee_percent ?? null,
         values.remarks ?? null,
+        values.collect_fee_status ?? null,
+        values.external_ref ?? null,
       ],
     );
     return Number.parseInt(rows[0]!.id, 10);

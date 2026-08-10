@@ -1,4 +1,8 @@
 import { query } from "@/lib/db";
+import {
+  resolveOpportunityRefToLegacy,
+  resolvePremisesRefToId,
+} from "@/lib/crmRefResolve";
 import { genericUpdateRecord, rowToRecord } from "../adapterUtils";
 import { parseBigIntParam } from "../fkValidation";
 import { sqlExportOpportunityId, sqlExportPremiseId, sqlJoinLegacyOpportunity, sqlPremisesLabel } from "../lookupSql";
@@ -18,7 +22,10 @@ const FIELD_KEYS = [
   "premises_id",
   "premises_name",
   "building_name_en",
+  "rank",
+  "proposed_date",
   "proposed_price",
+  "proposed_price_psf",
   "tour_date",
   "status",
   "preference",
@@ -30,6 +37,7 @@ const FIELD_KEYS = [
   "expected_paid_out_fee",
   "paid_out_fee_status",
   "fee_remarks",
+  "external_ref",
 ] as const;
 
 const SELECT = `
@@ -39,7 +47,10 @@ const SELECT = `
   ${sqlExportPremiseId("opp.premises_id")} AS premises_id,
   ${sqlPremisesLabel("pm", "b")} AS premises_name,
   b.bldg_name_en AS building_name_en,
+  opp.rank,
+  opp.proposed_date::text AS proposed_date,
   opp.proposed_price::text AS proposed_price,
+  opp.proposed_price_psf::text AS proposed_price_psf,
   opp.tour_date::text AS tour_date,
   opp.status,
   opp.preference,
@@ -50,7 +61,8 @@ const SELECT = `
   opp.collect_fee_status,
   opp.paid_out_fee_amount::text AS expected_paid_out_fee,
   opp.paid_out_status AS paid_out_fee_status,
-  opp.fee_remarks
+  opp.fee_remarks,
+  opp.external_ref
 `;
 
 const FROM = `
@@ -72,7 +84,9 @@ function proposedFieldDef(key: (typeof FIELD_KEYS)[number]): ImportFieldDef {
     return { ...base, type: "string", lookupOnly: true };
   }
   if (key.includes("date")) return { ...base, type: "date" };
-  if (key.includes("price") || key.includes("fee")) return { ...base, type: "number" };
+  if (key === "rank") return { ...base, type: "number", integer: true };
+  if (key.includes("price")) return { ...base, type: "number" };
+  if (key.includes("fee")) return { ...base, type: "number", exportHidden: true };
   return { ...base, type: "string" };
 }
 
@@ -123,8 +137,8 @@ export const opportunityProposedPremisesImportDefinition: ImportObjectDefinition
     return rows[0] ?? null;
   },
 
-  async findByExternalRef() {
-    return [];
+  async findByExternalRef(externalRef) {
+    return load("opp.external_ref = $1", [externalRef.trim()]);
   },
 
   buildNaturalKey(values) {
@@ -138,9 +152,12 @@ export const opportunityProposedPremisesImportDefinition: ImportObjectDefinition
     const parts = splitNaturalKeyParts(key, 2);
     if (!parts) return [];
     const [oppId, premisesId] = parts;
-    const oppIdNum = parseBigIntParam(oppId);
-    if (!oppIdNum || !premisesId?.trim()) return [];
-    return load("opp.opportunity_id = $1 AND opp.premises_id = $2", [oppIdNum, premisesId]);
+    const oppIdNum = await resolveOpportunityRefToLegacy(oppId);
+    const premisesInternal = premisesId?.trim()
+      ? await resolvePremisesRefToId(premisesId)
+      : null;
+    if (oppIdNum == null || !premisesInternal) return [];
+    return load("opp.opportunity_id = $1 AND opp.premises_id = $2", [oppIdNum, premisesInternal]);
   },
 
   async validateReferences(values, suppliedFields, existing, writable) {
@@ -169,15 +186,18 @@ export const opportunityProposedPremisesImportDefinition: ImportObjectDefinition
   async createRecord(values) {
     const rows = await query<{ id: string }>(
       `INSERT INTO opportunity_proposed_premises (
-         opportunity_id, premises_id, proposed_price, tour_date, status, preference,
+         opportunity_id, premises_id, rank, proposed_date, proposed_price, proposed_price_psf, tour_date, status, preference,
          client_comment, advisor_comment, remarks,
-         collect_fee_amount, collect_fee_status, paid_out_fee_amount, paid_out_status, fee_remarks
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+         collect_fee_amount, collect_fee_status, paid_out_fee_amount, paid_out_status, fee_remarks, external_ref
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
        RETURNING id::text`,
       [
         parseBigIntParam(values.opportunity_id) ?? (() => { throw new Error("opportunity_id is required"); })(),
         String(values.premises_id),
+        values.rank ?? null,
+        values.proposed_date ?? null,
         values.proposed_price ?? null,
+        values.proposed_price_psf ?? null,
         values.tour_date ?? null,
         values.status ?? null,
         values.preference ?? null,
@@ -189,6 +209,7 @@ export const opportunityProposedPremisesImportDefinition: ImportObjectDefinition
         values.expected_paid_out_fee ?? null,
         values.paid_out_fee_status ?? null,
         values.fee_remarks ?? null,
+        values.external_ref ?? null,
       ],
     );
     return Number.parseInt(rows[0]!.id, 10);

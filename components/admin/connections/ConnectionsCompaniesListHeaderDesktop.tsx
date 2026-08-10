@@ -10,8 +10,12 @@ import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 
 export function ConnectionsCompaniesListHeaderDesktop({
   exportSelectedIds,
+  filteredIds,
+  showCreate = true,
 }: {
   exportSelectedIds: string[];
+  filteredIds?: string[];
+  showCreate?: boolean;
 }) {
   const theme = moduleAccentClasses("connections");
   const { someSelected, selectedCount, selected } = useConnectionsListSelection();
@@ -39,12 +43,15 @@ export function ConnectionsCompaniesListHeaderDesktop({
             selectedCount={selectedCount}
             someSelected={someSelected}
             selectedIds={selectedIds}
+            filteredIds={filteredIds}
             isPending={isPending}
             onDelete={onBulkDelete}
           />
-          <Link href="/admin/companies/new" className={theme.primaryButton}>
-            New
-          </Link>
+          {showCreate ? (
+            <Link href="/admin/companies/new" className={theme.primaryButton}>
+              + Company
+            </Link>
+          ) : null}
         </>
       }
     />

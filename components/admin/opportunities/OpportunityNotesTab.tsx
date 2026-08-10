@@ -4,6 +4,7 @@ import { EditableRecordForm } from "@/components/admin/EditableRecordForm";
 import { TextAreaField } from "@/components/admin/AdminFormFields";
 import { updateOpportunityAction } from "@/app/admin/opportunities/actions";
 import { opportunityPropertyType } from "@/lib/opportunityFormParsing";
+import { opportunityWorkspaceHref } from "@/lib/opportunityWorkspaceNav";
 import type { OpportunityDetailData } from "@/lib/repos/opportunityDetail";
 
 function hiddenField(name: string, value: string | number | null | undefined) {
@@ -14,7 +15,7 @@ function hiddenField(name: string, value: string | number | null | undefined) {
 export function OpportunityNotesTab({ data }: { data: OpportunityDetailData }) {
   const { opportunity } = data;
   const update = updateOpportunityAction.bind(null, opportunity.id);
-  const returnTo = `/admin/opportunities/${opportunity.id}?tab=notes`;
+  const returnTo = opportunityWorkspaceHref(opportunity, "timeline");
   const propertyType = opportunityPropertyType(opportunity);
 
   async function action(formData: FormData) {
@@ -32,22 +33,26 @@ export function OpportunityNotesTab({ data }: { data: OpportunityDetailData }) {
       {hiddenField("primary_contact_id", opportunity.primary_contact_id)}
       {hiddenField("referrer_company_id", opportunity.referrer_company_id)}
       {hiddenField("referrer_contact_id", opportunity.referrer_contact_id)}
-      {hiddenField("property_type", propertyType)}
-      {hiddenField("district_preference", opportunity.district_preference)}
-      {hiddenField("budget_max", opportunity.budget_max ?? opportunity.budget_min)}
-      {hiddenField("required_area_sqft", opportunity.required_area_sqft)}
-      {opportunity.sales_role === "to_buy" ? (
+      {opportunity.sales_role !== "prof_service" ? (
+        <>
+          {hiddenField("property_type", propertyType)}
+          {hiddenField("district_preference", opportunity.district_preference)}
+          {hiddenField("budget_max", opportunity.budget_max ?? opportunity.budget_min)}
+          {hiddenField("required_area_sqft", opportunity.required_area_sqft)}
+        </>
+      ) : null}
+      {opportunity.sales_role === "to_buy" || opportunity.sales_role === "to_sell" ? (
         <>
           {hiddenField("target_yield", opportunity.target_yield)}
           {hiddenField("funding_status", opportunity.funding_status)}
         </>
-      ) : (
+      ) : opportunity.sales_role === "to_lease" ? (
         <>
           {hiddenField("lease_term", opportunity.lease_term)}
           {hiddenField("expected_close_date", opportunity.expected_close_date?.slice(0, 10))}
           {hiddenField("required_capacity_pax", opportunity.required_capacity_pax)}
         </>
-      )}
+      ) : null}
       <TextAreaField
         label="Requirement summary"
         name="requirement_summary"
@@ -58,10 +63,13 @@ export function OpportunityNotesTab({ data }: { data: OpportunityDetailData }) {
   );
 }
 
-export function OpportunityProposalsTab() {
+export function OpportunityProposalsTabPlaceholder() {
   return (
     <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-600">
-      Proposal lines and PDF export are not built yet. Use Proposed Premises to track options manually.
+      Proposal editing is available in the Opportunity Workspace on desktop.
     </div>
   );
 }
+
+/** @deprecated Use OpportunityProposalsTab from OpportunityProposalsTab.tsx */
+export const OpportunityProposalsTab = OpportunityProposalsTabPlaceholder;

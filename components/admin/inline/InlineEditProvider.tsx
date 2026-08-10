@@ -90,3 +90,8 @@ export function useInlineEdit(): InlineEditContextValue {
   if (!ctx) throw new Error("useInlineEdit must be used within InlineEditProvider");
   return ctx;
 }
+
+/** Safe for chrome that may render outside the provider (returns null). */
+export function useOptionalInlineEdit(): InlineEditContextValue | null {
+  return useContext(InlineEditContext);
+}

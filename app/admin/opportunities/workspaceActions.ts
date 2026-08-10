@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { isMatchEngineV1Enabled } from "@/lib/matchEngine";
+import { matchPremisesForOpportunity } from "@/lib/matchPremises";
 import {
   PROPOSED_PREMISES_PREFERENCES,
   PROPOSED_PREMISES_STATUSES,
@@ -14,6 +16,7 @@ import {
   patchProposedPremisesLine,
   updateProposedPremisesLine,
 } from "@/lib/repos/opportunityProposedPremises";
+import { getPremisesV1 } from "@/lib/repos/premisesV1";
 import {
   createOpportunityParty,
   deleteOpportunityParty,
@@ -77,6 +80,16 @@ function revalidateOpportunity(opportunityId: number) {
   revalidatePath(`/admin/opportunities/${opportunityId}`);
 }
 
+async function revalidateProposedPremisesContexts(premisesId: string, opportunityId: number) {
+  revalidateOpportunity(opportunityId);
+  revalidatePath("/admin/properties/premises");
+  revalidatePath("/admin/properties");
+  const premises = await getPremisesV1(premisesId);
+  if (premises?.business_id?.trim()) {
+    revalidatePath(`/admin/properties/premises/${premises.business_id}`);
+  }
+}
+
 export async function addProposedPremisesAction(opportunityId: number, formData: FormData) {
   const raw = String(formData.get("premises_ids") ?? "").trim();
   const premisesIds = raw
@@ -85,6 +98,9 @@ export async function addProposedPremisesAction(opportunityId: number, formData:
     .filter(Boolean);
   await addProposedPremises(opportunityId, premisesIds);
   revalidateOpportunity(opportunityId);
+  for (const premisesId of premisesIds) {
+    await revalidateProposedPremisesContexts(premisesId, opportunityId);
+  }
 }
 
 export async function deleteProposedPremisesAction(opportunityId: number, formData: FormData) {
@@ -106,7 +122,7 @@ export async function updateProposedPremisesLineAction(lineId: number, formData:
     status: parseEnum(
       formData.get("status"),
       PROPOSED_PREMISES_STATUSES,
-      "proposed",
+      "shortlisted",
     ) as ProposedPremisesStatus,
     tour_date: parseOptionalString(formData.get("tour_date")),
     proposed_price: parseOptionalDecimal(formData.get("proposed_price")),
@@ -147,7 +163,7 @@ export async function patchProposedPremisesLineInlineAction(
     patch.status = parseEnum(
       formData.get("status"),
       PROPOSED_PREMISES_STATUSES,
-      line.status,
+      "shortlisted",
     ) as ProposedPremisesStatus;
   }
   if (formData.has("preference")) {
@@ -158,7 +174,7 @@ export async function patchProposedPremisesLineInlineAction(
   }
 
   await patchProposedPremisesLine(lineId, patch);
-  revalidateOpportunity(opportunityId);
+  await revalidateProposedPremisesContexts(line.premises_id, opportunityId);
 }
 
 async function partyInputFromForm(formData: FormData) {
@@ -167,7 +183,7 @@ async function partyInputFromForm(formData: FormData) {
   return {
     company_id: companyId,
     contact_id: await normalizeOptionalLegacyContactId(formData.get("contact_id")),
-    role: parseEnum(formData.get("role"), OPPORTUNITY_PARTY_ROLES, "end_user"),
+    role: parseEnum(formData.get("role"), OPPORTUNITY_PARTY_ROLES, "agent"),
     partnership_mode: parseOptionalString(formData.get("partnership_mode")),
     collect_fee_amount: parseOptionalDecimal(formData.get("collect_fee_amount")),
     collect_fee_percent: parseOptionalDecimal(formData.get("collect_fee_percent")),
@@ -212,4 +228,9 @@ export async function searchPremisesForSelectorAction(formData: FormData) {
     inventory_status: r.inventory_status,
     currency: r.currency,
   }));
+}
+
+export async function getOpportunityMatchesAction(opportunityId: number) {
+  if (!isMatchEngineV1Enabled()) return [];
+  return matchPremisesForOpportunity(opportunityId);
 }

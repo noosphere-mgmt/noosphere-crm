@@ -12,15 +12,14 @@ export function DashboardSection({
   description?: string;
   children: ReactNode;
   className?: string;
-  /** Hide description on phone screens. */
   compact?: boolean;
 }) {
   return (
-    <section className={`rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-5 ${className ?? ""}`}>
+    <section className={`${className ?? ""}`}>
       <div className="mb-3 md:mb-4">
-        <h2 className="text-sm font-semibold text-slate-900 md:text-base">{title}</h2>
+        <h2 className="text-base font-semibold tracking-tight text-slate-900 md:text-lg">{title}</h2>
         {description ? (
-          <p className={`mt-1 text-sm text-slate-600 ${compact ? "hidden md:block" : ""}`}>{description}</p>
+          <p className={`mt-1 text-sm text-slate-500 ${compact ? "hidden md:block" : ""}`}>{description}</p>
         ) : null}
       </div>
       {children}
@@ -30,7 +29,7 @@ export function DashboardSection({
 
 export function DashboardTableWrap({ children }: { children: ReactNode }) {
   return (
-    <div className="overflow-x-auto md:-mx-1">
+    <div className="overflow-x-auto rounded-xl bg-white ring-1 ring-slate-100">
       <table className="min-w-full text-sm">{children}</table>
     </div>
   );
@@ -41,7 +40,11 @@ export function DashboardMobileList({ children }: { children: ReactNode }) {
 }
 
 export function DashboardEmpty({ message }: { message: string }) {
-  return <p className="py-4 text-center text-sm text-slate-500 md:py-6">{message}</p>;
+  return (
+    <p className="rounded-xl bg-white px-4 py-8 text-center text-sm text-slate-500 ring-1 ring-slate-100">
+      {message}
+    </p>
+  );
 }
 
 export function DashboardKpiLink({
@@ -61,21 +64,21 @@ export function DashboardKpiLink({
 }) {
   const toneClass =
     tone === "emerald"
-      ? "border-emerald-200 bg-emerald-50 hover:border-emerald-300"
+      ? "bg-emerald-50 ring-emerald-100 hover:bg-emerald-100/80"
       : tone === "amber"
-        ? "border-amber-200 bg-amber-50 hover:border-amber-300"
+        ? "bg-amber-50 ring-amber-100 hover:bg-amber-100/80"
         : tone === "violet"
-          ? "border-violet-200 bg-violet-50 hover:border-violet-300"
-          : "border-slate-200 bg-white hover:border-slate-300";
+          ? "bg-violet-50 ring-violet-100 hover:bg-violet-100/80"
+          : "bg-white ring-slate-100 hover:bg-slate-50";
 
   return (
     <Link
       href={href}
-      className={`block rounded-lg border px-3 py-2 transition md:rounded-xl md:px-4 md:py-3 ${toneClass}`}
+      className={`block rounded-xl px-4 py-3 ring-1 transition ${toneClass}`}
     >
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 md:text-xs">{label}</p>
-      <p className="mt-0.5 text-lg font-semibold tabular-nums tracking-tight text-slate-900 md:mt-1 md:text-xl">{value}</p>
-      {hint && !compact ? <p className="mt-1 hidden text-[11px] leading-snug text-slate-500 md:block">{hint}</p> : null}
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-1 text-2xl font-semibold tabular-nums tracking-tight text-slate-900">{value}</p>
+      {hint && !compact ? <p className="mt-1 hidden text-xs leading-snug text-slate-500 md:block">{hint}</p> : null}
     </Link>
   );
 }
@@ -94,10 +97,7 @@ export function DashboardRowLink({
   className?: string;
 }) {
   return (
-    <Link
-      href={href}
-      className={`block transition hover:bg-slate-50 ${className ?? ""}`}
-    >
+    <Link href={href} className={`transition hover:text-emerald-800 ${className ?? ""}`}>
       {children}
     </Link>
   );

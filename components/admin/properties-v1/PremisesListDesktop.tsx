@@ -7,7 +7,6 @@ import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { formatAreaSqft } from "@/lib/formatCurrency";
 import { formatPremisesListLabel, formatPremisesName, formatVerifiedDate } from "@/lib/premisesDisplay";
-import { formatListingStatus } from "@/lib/premisesListing";
 import { premisesDrawerHref } from "@/lib/premisesDrawerNav";
 import {
   resolvePremisesFlatListFilters,
@@ -79,8 +78,6 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
     drawerMode,
     sortKey,
     sortDir,
-    colFilters,
-    setColFilters,
     priceHeaders,
     openPremises,
     displayedRows,
@@ -138,9 +135,6 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                 activeKey={sortKey}
                 sortDir={sortDir}
                 onSort={handleSort}
-                filterValue={colFilters.premises}
-                onFilterChange={(v) => setColFilters((f) => ({ ...f, premises: v }))}
-                filterPlaceholder="Filter…"
               />
               <SortableHeader
                 label="District"
@@ -148,9 +142,6 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                 activeKey={sortKey}
                 sortDir={sortDir}
                 onSort={handleSort}
-                filterValue={colFilters.district}
-                onFilterChange={(v) => setColFilters((f) => ({ ...f, district: v }))}
-                filterPlaceholder="Filter…"
               />
               <SortableHeader
                 label="Operator"
@@ -158,9 +149,6 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                 activeKey={sortKey}
                 sortDir={sortDir}
                 onSort={handleSort}
-                filterValue={colFilters.operator}
-                onFilterChange={(v) => setColFilters((f) => ({ ...f, operator: v }))}
-                filterPlaceholder="Filter…"
               />
               <SortableHeader
                 label="Desks"
@@ -179,20 +167,6 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
               <SortableHeader
                 label={priceHeaders.price}
                 sortKey="price"
-                activeKey={sortKey}
-                sortDir={sortDir}
-                onSort={handleSort}
-              />
-              <SortableHeader
-                label={priceHeaders.psf}
-                sortKey="psf"
-                activeKey={sortKey}
-                sortDir={sortDir}
-                onSort={handleSort}
-              />
-              <SortableHeader
-                label="Listing Status"
-                sortKey="listing_status"
                 activeKey={sortKey}
                 sortDir={sortDir}
                 onSort={handleSort}
@@ -249,8 +223,6 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                     <td className="px-3 py-1.5 text-slate-700">{row.workstation_count ?? "—"}</td>
                     <td className="px-3 py-1.5 text-slate-700">{formatAreaSqft(row.gross_area_sqft)}</td>
                     <td className="px-3 py-1.5 text-slate-700">{prices.price}</td>
-                    <td className="px-3 py-1.5 text-slate-700">{prices.psf}</td>
-                    <td className="px-3 py-1.5 text-slate-700">{formatListingStatus(row.offer_status)}</td>
                     <td className="px-3 py-1.5 text-slate-700">{formatVerifiedDate(row.last_verified_date)}</td>
                     <td className="px-3 py-1.5">
                       <ModuleRowActions

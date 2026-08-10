@@ -9,6 +9,7 @@ export type PremisesFiltersBarProps = {
   filters: PremisesFlatFilters;
   cities: string[];
   districts: string[];
+  hideLocationSearch?: boolean;
 };
 
 function filtersToParams(filters: PremisesFlatFilters, existing: URLSearchParams): URLSearchParams {
@@ -24,9 +25,15 @@ function filtersToParams(filters: PremisesFlatFilters, existing: URLSearchParams
   setOrDelete("q", filters.q);
   setOrDelete("city", filters.city);
   setOrDelete("district", filters.district);
-  setOrDelete("property_type", filters.property_type);
-  setOrDelete("operating_model", filters.operating_model);
+  setOrDelete("title", filters.title);
+  setOrDelete("asset_class", filters.asset_class);
+  setOrDelete("product_subtype", filters.product_subtype);
+  params.delete("building_type");
+  params.delete("property_category");
+  params.delete("property_type");
+  params.delete("operating_model");
   setOrDelete("fit_out_condition", filters.fit_out_condition);
+  setOrDelete("view_type", filters.view_type);
   setOrDelete("listing_intent", filters.listing_intent);
   setOrDelete("listing_status", filters.listing_status);
 
@@ -91,9 +98,11 @@ export function usePremisesFiltersBar({ filters, cities, districts }: PremisesFi
     filters.q ||
       filters.city ||
       filters.district ||
-      filters.property_type ||
-      filters.operating_model ||
+      filters.title ||
+      filters.asset_class ||
+      filters.product_subtype ||
       filters.fit_out_condition ||
+      filters.view_type ||
       filters.listing_intent ||
       filters.listing_status,
   );
@@ -101,9 +110,11 @@ export function usePremisesFiltersBar({ filters, cities, districts }: PremisesFi
   const activeFilterCount = [
     filters.city,
     filters.district,
-    filters.property_type,
-    filters.operating_model,
+    filters.title,
+    filters.asset_class,
+    filters.product_subtype,
     filters.fit_out_condition,
+    filters.view_type,
     filters.listing_intent,
     filters.listing_status,
   ].filter(Boolean).length;

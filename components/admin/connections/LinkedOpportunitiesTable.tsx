@@ -5,7 +5,7 @@ import { formatOpportunityBudget } from "@/lib/opportunitiesList";
 import { OPPORTUNITY_LEAD_TYPE_LABELS, OPPORTUNITY_STATUS_LABELS } from "@/lib/lookups";
 import { OPPORTUNITY_SALES_ROLE_LABELS } from "@/lib/opportunityValues";
 import type { LinkedOpportunityRow } from "@/lib/repos/connectionOpportunities";
-import { ConnectionsDrawerTableLink } from "@/components/admin/connections/ConnectionsDrawerHeader";
+import { opportunityDetailHref } from "@/lib/opportunityDetailNav";
 
 export function LinkedOpportunitiesTable({
   rows,
@@ -33,7 +33,7 @@ export function LinkedOpportunitiesTable({
             <th className="px-3 py-2 font-medium">Role</th>
             {mode === "contact" ? <th className="px-3 py-2 font-medium">Company</th> : null}
             <th className="px-3 py-2 font-medium">Lead type</th>
-            <th className="px-3 py-2 font-medium">Sales role</th>
+            <th className="px-3 py-2 font-medium">Sales Type</th>
             <th className="px-3 py-2 font-medium">Status</th>
             <th className="px-3 py-2 font-medium">Budget</th>
             <th className="px-3 py-2 font-medium">Fee note</th>
@@ -71,9 +71,12 @@ export function LinkedOpportunitiesTable({
                 </td>
                 <td className="px-3 py-2 text-slate-700">{row.updated_at?.slice(0, 10) ?? "—"}</td>
                 <td className="px-3 py-2 text-right">
-                  <ConnectionsDrawerTableLink href={`/admin/opportunities?opportunity=${row.id}`}>
+                  <Link
+                    href={opportunityDetailHref(row.id, "overview")}
+                    className="text-sm font-medium text-violet-800 hover:underline"
+                  >
                     Open
-                  </ConnectionsDrawerTableLink>
+                  </Link>
                 </td>
               </tr>
             ))

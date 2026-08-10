@@ -11,15 +11,20 @@ import {
 } from "@/components/admin/properties-v1/premisesInlineOverviewShared";
 import { usePremisesInlineOverview } from "@/components/admin/properties-v1/usePremisesInlineOverview";
 import {
+  InlineMultiSelectField,
   InlineSelectField,
   InlineTextField,
 } from "@/components/admin/inline/InlineFields";
+import { parsePremisesViewTypes } from "@/lib/premisesDisplay";
 import { formatMoney, formatPsf } from "@/lib/formatCurrency";
 import { formatPremisesName } from "@/lib/premisesDisplay";
 import { isPackageOperatingModel } from "@/lib/premisesCommercial";
 import { formatListingStatus } from "@/lib/premisesListing";
-import { PREMISES_NO_BUILDING_LABEL } from "@/lib/premisesDetailDisplay";
 import {
+  CANONICAL_LISTING_INTENT_LABELS,
+  CANONICAL_LISTING_INTENTS,
+  PREMISES_ASSET_CLASSES,
+  PREMISES_PRODUCT_SUBTYPES,
   V1_FIT_OUT_CONDITIONS,
   V1_LISTING_INTENTS,
   V1_LISTING_STATUSES,
@@ -36,6 +41,7 @@ export function PremisesInlineOverviewDesktop({
   companyLabels,
   lastActivityDate,
   drawerBasePath = "/admin/properties",
+  tabHrefFn,
 }: PremisesInlineOverviewProps) {
   const {
     currency,
@@ -46,34 +52,58 @@ export function PremisesInlineOverviewDesktop({
     forSale,
     companyOptions,
     coerceCompanyId,
-    propertySelectOptions,
     save,
-    tabHref,
+    tabHref: defaultTabHref,
   } = usePremisesInlineOverview(premises, propertyOptions, companies, companyLabels, drawerBasePath);
+  const tabHref = tabHrefFn ?? defaultTabHref;
+  const subtypeOptions = premises.asset_class && premises.asset_class in PREMISES_PRODUCT_SUBTYPES
+    ? PREMISES_PRODUCT_SUBTYPES[premises.asset_class as keyof typeof PREMISES_PRODUCT_SUBTYPES]
+    : PREMISES_PRODUCT_SUBTYPES.other;
 
   return (
     <div className="space-y-4">
-      <PremisesSectionCard title="Building link">
-        <InlineSelectField
-          label="Linked building"
-          value={premises.property_id}
-          options={propertySelectOptions}
-          onSave={save("property_id")}
-          placeholder={PREMISES_NO_BUILDING_LABEL}
-        />
-      </PremisesSectionCard>
-
       <PremisesSectionCard title="Key snapshot">
         <p className="mb-3 text-base font-semibold text-slate-900">
           {formatPremisesName(buildingName, premises.floor, premises.unit)}
         </p>
         <div className="mb-4 flex flex-wrap gap-2">
+          {premises.property_category ? (
+            <PremisesSnapshotChip>{premises.property_category}</PremisesSnapshotChip>
+          ) : null}
           {listingIntent ? <PremisesSnapshotChip>{listingIntent}</PremisesSnapshotChip> : null}
+          {premises.listing_intent ? (
+            <PremisesSnapshotChip>
+              {CANONICAL_LISTING_INTENT_LABELS[
+                premises.listing_intent as keyof typeof CANONICAL_LISTING_INTENT_LABELS
+              ] ?? premises.listing_intent}
+            </PremisesSnapshotChip>
+          ) : null}
           {premises.operating_model ? <PremisesSnapshotChip>{premises.operating_model}</PremisesSnapshotChip> : null}
           {premises.fit_out_condition ? <PremisesSnapshotChip>{premises.fit_out_condition}</PremisesSnapshotChip> : null}
           {premises.offer_status ? <PremisesSnapshotChip>{formatListingStatus(premises.offer_status)}</PremisesSnapshotChip> : null}
         </div>
         <div className="mb-4 grid gap-3 sm:grid-cols-2">
+          <InlineSelectField
+            label="Asset Class"
+            value={premises.asset_class ?? null}
+            options={[...PREMISES_ASSET_CLASSES]}
+            onSave={save("asset_class")}
+          />
+          <InlineSelectField
+            label="Product Subtype"
+            value={premises.product_subtype ?? null}
+            options={[...subtypeOptions]}
+            onSave={save("product_subtype")}
+          />
+          <InlineSelectField
+            label="Transaction intent"
+            value={premises.listing_intent}
+            options={CANONICAL_LISTING_INTENTS.map((v) => ({
+              value: v,
+              label: CANONICAL_LISTING_INTENT_LABELS[v],
+            }))}
+            onSave={save("listing_intent")}
+          />
           <InlineSelectField
             label="Listing intent"
             value={premises.inventory_status}
@@ -111,13 +141,13 @@ export function PremisesInlineOverviewDesktop({
             />
           </div>
           <div className="rounded-lg border border-white/80 bg-white/70 px-3 py-2">
-            <InlineTextField label="Desks" value={premises.workstation_count} onSave={save("workstation_count")} />
+            <InlineTextField label={premises.asset_class === "residential" ? "No. of rooms" : "Workstations / rooms"} value={premises.workstation_count} onSave={save("workstation_count")} />
           </div>
-          <div className="rounded-lg border border-white/80 bg-white/70 px-3 py-2">
-            <InlineSelectField
-              label="View"
-              value={premises.view_type}
-              options={V1_VIEW_TYPES.map((v) => ({ value: v, label: v }))}
+          <div className="rounded-lg border border-white/80 bg-white/70 px-3 py-2 sm:col-span-2">
+            <InlineMultiSelectField
+              label="View type"
+              values={parsePremisesViewTypes(premises.view_type)}
+              options={[...V1_VIEW_TYPES]}
               onSave={save("view_type")}
             />
           </div>
@@ -172,6 +202,12 @@ export function PremisesInlineOverviewDesktop({
                   onSave={save("management_fee")}
                 />
                 <InlineTextField
+                  label="Mgmt fee psf"
+                  value={premises.management_fee_psf}
+                  type="number"
+                  onSave={save("management_fee_psf")}
+                />
+                <InlineTextField
                   label="Government rates"
                   value={premises.government_rates}
                   type="number"
@@ -181,6 +217,7 @@ export function PremisesInlineOverviewDesktop({
             ) : (
               <>
                 <PremisesMetric label="Management fee" value={formatMoney(0, currency)} />
+                <PremisesMetric label="Mgmt fee psf" value={formatMoney(0, currency)} />
                 <PremisesMetric label="Government rates" value={formatMoney(0, currency)} />
               </>
             )}

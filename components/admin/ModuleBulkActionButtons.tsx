@@ -95,7 +95,7 @@ export function ModuleListingBulkActions({
       {!exportOnly ? (
         <button
           type="button"
-          disabled={!someSelected || busy}
+          disabled={!someSelected || selectedIds.length === 0 || busy}
           onClick={() => runExport(selectedIds, "selected")}
           className={compact ? iconButtonClass : textButtonClass}
           title="Export selected"
@@ -120,8 +120,8 @@ export function ModuleListingBulkActions({
         href={`/admin/import?objectType=${importObjectType}`}
         className={
           compact
-            ? `${theme.secondaryButton} p-2 text-xs font-medium`
-            : `${theme.secondaryButton} text-sm font-medium`
+            ? `${theme.secondaryButton} hidden p-2 text-xs font-medium sm:inline-flex`
+            : `${theme.secondaryButton} hidden text-sm font-medium sm:inline-flex`
         }
         title="Import CSV"
       >

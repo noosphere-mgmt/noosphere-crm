@@ -3,6 +3,10 @@ import type { ContactInput } from "@/lib/repos/contacts";
 import type { OpportunityInput } from "@/lib/repos/opportunities";
 import { syncContactDerivedNames } from "@/lib/contactName";
 import { parseOpportunityFundingStatus, parseOpportunityStatus } from "@/lib/opportunityFormParsing";
+import {
+  normalizeCategoryPreference,
+  normalizeSpaceFormPreference,
+} from "@/lib/opportunityPreferences";
 import { OPPORTUNITY_LEAD_TYPES } from "@/lib/lookups";
 import { isClosedOpportunityStatus } from "@/lib/openOpportunityStatus";
 import type {
@@ -14,6 +18,7 @@ import type {
   OpportunitySalesRole,
   RelationshipStrength,
 } from "@/lib/types/entities";
+import { normalizeOpportunitySource } from "@/lib/opportunitySourceValues";
 import { OPPORTUNITY_SALES_ROLES } from "@/lib/opportunityValues";
 
 function normalizeCompanyRoles(roles: CompanyRole[]): CompanyRole[] {
@@ -65,6 +70,7 @@ export function contactToInput(contact: Contact): ContactInput {
     preferred_language: contact.preferred_language,
     contact_role: contact.contact_role ?? [],
     coverage: contact.coverage ?? [],
+    locate_at: contact.locate_at,
     is_primary: contact.is_primary,
     last_contact_date: contact.last_contact_date,
     next_follow_up_date: contact.next_follow_up_date,
@@ -156,6 +162,7 @@ export function applyContactPatch(
     case "whatsapp":
     case "wechat":
     case "preferred_language":
+    case "locate_at":
     case "notes":
       input[field] = value ? String(value).trim() || null : null;
       break;
@@ -194,6 +201,7 @@ export function opportunityToInput(opportunity: Opportunity): OpportunityInput {
   return {
     client_name: opportunity.client_name,
     lead_type: opportunity.lead_type,
+    lead_source: opportunity.lead_source,
     company_name: opportunity.company_name ?? opportunity.linked_company_name ?? null,
     company_id: opportunity.company_id,
     primary_contact_id: opportunity.primary_contact_id,
@@ -211,10 +219,15 @@ export function opportunityToInput(opportunity: Opportunity): OpportunityInput {
     district_preference: opportunity.district_preference,
     workspace_type: opportunity.workspace_type ?? opportunity.property_type,
     property_type: opportunity.property_type ?? opportunity.workspace_type,
+    property_category_preference: opportunity.property_category_preference,
+    property_type_preference: opportunity.property_type_preference,
     target_yield: opportunity.target_yield,
     funding_status: opportunity.funding_status as OpportunityInput["funding_status"],
     move_in_date: opportunity.move_in_date,
     status: opportunity.status,
+    waiting_for: opportunity.waiting_for,
+    next_action: opportunity.next_action,
+    next_action_date: opportunity.next_action_date,
     requirement_summary: opportunity.requirement_summary,
     remarks: opportunity.remarks,
   };
@@ -234,7 +247,7 @@ export function applyOpportunityPatch(
       break;
     }
     case "status":
-      input.status = parseOpportunityStatus(String(value ?? "new"));
+      input.status = parseOpportunityStatus(String(value ?? "qualifying"));
       if (!isClosedOpportunityStatus(input.status)) {
         input.lost_reason = null;
       }
@@ -246,6 +259,9 @@ export function applyOpportunityPatch(
         : input.lead_type;
       break;
     }
+    case "lead_source":
+      input.lead_source = normalizeOpportunitySource(value);
+      break;
     case "company_id": {
       const id = parseOptionalInt(value);
       input.company_id = id;
@@ -269,12 +285,17 @@ export function applyOpportunityPatch(
     case "lease_term":
     case "relationship_owner":
     case "target_yield":
+    case "waiting_for":
+    case "next_action":
       input[field] = value ? String(value).trim() || null : null;
+      break;
+    case "next_action_date":
+      input.next_action_date = value ? String(value).trim() || null : null;
       break;
     case "expected_close_date": {
       const date = value ? String(value).trim() || null : null;
       input.expected_close_date = date;
-      if (input.sales_role !== "to_buy") {
+      if (input.sales_role === "to_lease") {
         input.move_in_date = date;
       }
       break;
@@ -282,7 +303,9 @@ export function applyOpportunityPatch(
     case "move_in_date": {
       const date = value ? String(value).trim() || null : null;
       input.move_in_date = date;
-      input.expected_close_date = date;
+      if (input.sales_role === "to_lease") {
+        input.expected_close_date = date;
+      }
       break;
     }
     case "lost_reason":
@@ -298,6 +321,12 @@ export function applyOpportunityPatch(
       input.workspace_type = pt;
       break;
     }
+    case "property_category_preference":
+      input.property_category_preference = normalizeCategoryPreference(value);
+      break;
+    case "property_type_preference":
+      input.property_type_preference = normalizeSpaceFormPreference(value);
+      break;
     case "required_capacity_pax":
       input.required_capacity_pax = parseOptionalInt(value);
       break;
@@ -311,6 +340,28 @@ export function applyOpportunityPatch(
       input.sales_role = (OPPORTUNITY_SALES_ROLES as readonly string[]).includes(role)
         ? (role as OpportunitySalesRole)
         : input.sales_role;
+      if (input.sales_role === "prof_service") {
+        input.lease_term = null;
+        input.move_in_date = null;
+        input.required_capacity_pax = null;
+        input.budget_max = null;
+        input.budget_min = null;
+        input.required_area_sqft = null;
+        input.district_preference = null;
+        input.property_type = null;
+        input.workspace_type = null;
+        input.property_category_preference = null;
+        input.property_type_preference = null;
+        input.target_yield = null;
+        input.funding_status = null;
+      } else if (input.sales_role === "to_buy" || input.sales_role === "to_sell") {
+        input.lease_term = null;
+        input.move_in_date = null;
+        input.required_capacity_pax = null;
+      } else if (input.sales_role === "to_lease") {
+        input.target_yield = null;
+        input.funding_status = null;
+      }
       break;
     }
     default:

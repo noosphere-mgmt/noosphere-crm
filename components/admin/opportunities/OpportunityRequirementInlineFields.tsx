@@ -10,9 +10,16 @@ import { opportunityPropertyType } from "@/lib/opportunityFormParsing";
 import {
   OPPORTUNITY_FUNDING_STATUSES,
   OPPORTUNITY_FUNDING_STATUS_LABELS,
+  isProfServiceSalesRole,
   type OpportunitySalesRole,
 } from "@/lib/opportunityValues";
 import { V1_PROPERTY_TYPES } from "@/lib/v1ListValues";
+import {
+  OPPORTUNITY_CATEGORY_OPTIONS,
+  OPPORTUNITY_SPACE_FORM_OPTIONS,
+  primaryCategoryPreference,
+  primarySpaceFormPreference,
+} from "@/lib/opportunityPreferences";
 import type { Opportunity } from "@/lib/types/entities";
 
 type SaveFn = (field: string) => (value: unknown) => Promise<{ ok: boolean; error?: string }>;
@@ -29,7 +36,19 @@ function LeaseRequirementInline({
   return (
     <>
       <InlineSelectField
-        label="Property type"
+        label="Property category"
+        value={primaryCategoryPreference(opportunity.property_category_preference)}
+        options={[{ value: "", label: "Any" }, ...OPPORTUNITY_CATEGORY_OPTIONS]}
+        onSave={save("property_category_preference")}
+      />
+      <InlineSelectField
+        label="Space form"
+        value={primarySpaceFormPreference(opportunity.property_type_preference)}
+        options={[{ value: "", label: "Any" }, ...OPPORTUNITY_SPACE_FORM_OPTIONS]}
+        onSave={save("property_type_preference")}
+      />
+      <InlineSelectField
+        label="Building property type"
         value={opportunityPropertyType(opportunity)}
         options={propertyOptions}
         onSave={save("property_type")}
@@ -90,7 +109,19 @@ function BuyRequirementInline({
   return (
     <>
       <InlineSelectField
-        label="Property type"
+        label="Property category"
+        value={primaryCategoryPreference(opportunity.property_category_preference)}
+        options={[{ value: "", label: "Any" }, ...OPPORTUNITY_CATEGORY_OPTIONS]}
+        onSave={save("property_category_preference")}
+      />
+      <InlineSelectField
+        label="Space form"
+        value={primarySpaceFormPreference(opportunity.property_type_preference)}
+        options={[{ value: "", label: "Any" }, ...OPPORTUNITY_SPACE_FORM_OPTIONS]}
+        onSave={save("property_type_preference")}
+      />
+      <InlineSelectField
+        label="Building property type"
         value={opportunityPropertyType(opportunity)}
         options={propertyOptions}
         onSave={save("property_type")}
@@ -148,7 +179,21 @@ export function OpportunityRequirementInlineFields({
   save: SaveFn;
   salesRole?: OpportunitySalesRole;
 }) {
-  return salesRole === "to_buy" ? (
+  if (isProfServiceSalesRole(salesRole)) {
+    return (
+      <div className="col-span-full">
+        <InlineTextAreaField
+          label="Requirement summary"
+          value={opportunity.requirement_summary}
+          onSave={save("requirement_summary")}
+          compact
+          fullWidth
+        />
+      </div>
+    );
+  }
+
+  return salesRole === "to_buy" || salesRole === "to_sell" ? (
     <BuyRequirementInline opportunity={opportunity} save={save} />
   ) : (
     <LeaseRequirementInline opportunity={opportunity} save={save} />

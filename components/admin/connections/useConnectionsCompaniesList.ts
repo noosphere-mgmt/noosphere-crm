@@ -77,17 +77,25 @@ export function useConnectionsCompaniesList(rows: ConnectionCompanyListRow[]) {
     });
   }, [rows, quickFilters, roleFilter, searchQuery, sortKey, sortDir]);
 
+  const selectionIds = useMemo(
+    () => displayedRows.map((r) => String(r.id)),
+    [displayedRows],
+  );
   const displayedIds = useMemo(
-    () => displayedRows.map((r) => companyBusinessExportId(r)),
+    () => displayedRows.map((r) => companyBusinessExportId(r)).filter(Boolean),
     [displayedRows],
   );
   const exportSelectedIds = useMemo(
-    () => displayedRows.filter((r) => selected.has(String(r.id))).map((r) => companyBusinessExportId(r)),
+    () =>
+      displayedRows
+        .filter((r) => selected.has(String(r.id)))
+        .map((r) => companyBusinessExportId(r))
+        .filter(Boolean),
     [displayedRows, selected],
   );
   useSyncListingExportIds(displayedIds);
   const allDisplayedSelected =
-    displayedIds.length > 0 && displayedIds.every((id) => selected.has(id));
+    selectionIds.length > 0 && selectionIds.every((id) => selected.has(id));
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -114,6 +122,7 @@ export function useConnectionsCompaniesList(rows: ConnectionCompanyListRow[]) {
     countries,
     cities,
     displayedRows,
+    selectionIds,
     displayedIds,
     exportSelectedIds,
     allDisplayedSelected,

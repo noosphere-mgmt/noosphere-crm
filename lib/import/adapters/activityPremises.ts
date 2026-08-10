@@ -1,6 +1,11 @@
 import { query } from "@/lib/db";
 import { rowToRecord } from "../adapterUtils";
-import { sqlActivityLabel, sqlPremisesLabel } from "../lookupSql";
+import {
+  sqlActivityLabel,
+  sqlExportActivityId,
+  sqlExportPremiseId,
+  sqlPremisesLabel,
+} from "../lookupSql";
 import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
 import {
   mergeReferenceResults,
@@ -9,6 +14,7 @@ import {
 } from "../referenceResolution";
 import type { ImportObjectDefinition } from "../objectRegistry";
 import type { ExistingRecord } from "../types";
+import { resolveActivityRefToId, resolvePremisesRefToId } from "@/lib/crmRefResolve";
 
 const FIELD_KEYS = [
   "activity_checkpoint_id",
@@ -21,10 +27,10 @@ const FIELD_KEYS = [
 ] as const;
 
 const SELECT = `
-  ap.activity_id || ':' || ap.premises_id AS activity_checkpoint_id,
-  ap.activity_id,
+  ${sqlExportActivityId("ap.activity_id")} || ':' || ${sqlExportPremiseId("ap.premises_id")} AS activity_checkpoint_id,
+  ${sqlExportActivityId("ap.activity_id")} AS activity_id,
   ${sqlActivityLabel("a")} AS activity_name,
-  ap.premises_id,
+  ${sqlExportPremiseId("ap.premises_id")} AS premises_id,
   ${sqlPremisesLabel("pm", "b")} AS premises_name,
   b.bldg_name_en AS building_name_en,
   NULL::text AS remarks
@@ -40,6 +46,16 @@ const FROM = `
 async function load(where: string, params: unknown[]): Promise<ExistingRecord[]> {
   const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM ${FROM} WHERE ${where}`, params);
   return rows.map((row) => rowToRecord(row, String(row.activity_checkpoint_id), FIELD_KEYS));
+}
+
+async function resolvePair(activityRaw: string, premisesRaw: string): Promise<{
+  activityId: string;
+  premisesId: string;
+} | null> {
+  const activityId = await resolveActivityRefToId(activityRaw);
+  const premisesId = await resolvePremisesRefToId(premisesRaw);
+  if (!activityId || !premisesId) return null;
+  return { activityId, premisesId };
 }
 
 export const activityPremisesImportDefinition: ImportObjectDefinition = {
@@ -59,9 +75,14 @@ export const activityPremisesImportDefinition: ImportObjectDefinition = {
   ],
 
   async findById(id) {
-    const [activityId, premisesId] = String(id).split(":");
-    if (!activityId || !premisesId) return null;
-    const rows = await load("ap.activity_id = $1 AND ap.premises_id = $2", [activityId, premisesId]);
+    const [activityRaw, premisesRaw] = String(id).split(":");
+    if (!activityRaw || !premisesRaw) return null;
+    const pair = await resolvePair(activityRaw, premisesRaw);
+    if (!pair) return null;
+    const rows = await load("ap.activity_id = $1 AND ap.premises_id = $2", [
+      pair.activityId,
+      pair.premisesId,
+    ]);
     return rows[0] ?? null;
   },
 
@@ -79,8 +100,10 @@ export const activityPremisesImportDefinition: ImportObjectDefinition = {
   async findByNaturalKey(key) {
     const parts = splitNaturalKeyParts(key, 2);
     if (!parts) return [];
-    const [activityId, premisesId] = parts;
-    return load("ap.activity_id = $1 AND ap.premises_id = $2", [activityId, premisesId]);
+    const [activityRaw, premisesRaw] = parts;
+    const pair = await resolvePair(activityRaw ?? "", premisesRaw ?? "");
+    if (!pair) return [];
+    return load("ap.activity_id = $1 AND ap.premises_id = $2", [pair.activityId, pair.premisesId]);
   },
 
   async validateReferences(values, suppliedFields, existing, writable) {

@@ -1,3 +1,5 @@
+import { isMatchEngineV1Enabled } from "@/lib/matchEngine";
+import { matchPremisesForOpportunity, matchPremisesForRequirement } from "@/lib/matchPremises";
 import { getOpportunity } from "@/lib/repos/opportunities";
 import { query } from "@/lib/db";
 import type { MatchedProperty, Opportunity } from "@/lib/types/entities";
@@ -70,7 +72,7 @@ type WorkspaceFit = {
 const WORKSPACE_FIT: Record<string, WorkspaceFit> = {
   "whole floor": {
     operatingModels: ["Conventional Space"],
-    spaceForms: ["Whole Floor", "Building"],
+    spaceForms: ["Floor (s)", "Enbloc"],
     categories: [],
   },
   unit: {
@@ -90,12 +92,12 @@ const WORKSPACE_FIT: Record<string, WorkspaceFit> = {
   },
   "traditional lease": {
     operatingModels: ["Conventional Space"],
-    spaceForms: ["Unit", "Whole Floor", "Suite"],
+    spaceForms: ["Unit (s)", "Floor (s)"],
     categories: [],
   },
   industrial: {
     operatingModels: ["Conventional Space"],
-    spaceForms: ["Warehouse", "Whole Floor", "Unit", "Building"],
+    spaceForms: ["Unit (s)", "Floor (s)", "Enbloc"],
     categories: ["Industrial"],
   },
   retail: {
@@ -135,7 +137,7 @@ function resolveComparablePrice(row: PropertyRow): number | null {
   return rent;
 }
 
-function scoreProperty(opp: Opportunity, row: PropertyRow): MatchedProperty {
+function scoreLegacyProperty(opp: Opportunity, row: PropertyRow): MatchedProperty {
   const reasons: string[] = [];
   const gaps: string[] = [];
   let score = 0;
@@ -237,6 +239,8 @@ function scoreProperty(opp: Opportunity, row: PropertyRow): MatchedProperty {
 
   return {
     property_id: row.property_id,
+    premises_id: null,
+    premises_business_id: null,
     match_score: Math.min(100, score),
     match_reasons: reasons,
     match_gaps: gaps,
@@ -258,7 +262,7 @@ function scoreProperty(opp: Opportunity, row: PropertyRow): MatchedProperty {
   };
 }
 
-async function listPropertyCandidates(): Promise<PropertyRow[]> {
+async function listLegacyPropertyCandidates(): Promise<PropertyRow[]> {
   return query<PropertyRow>(
     `SELECT ${propertyCandidateSelect}
      FROM properties p
@@ -268,25 +272,30 @@ async function listPropertyCandidates(): Promise<PropertyRow[]> {
   );
 }
 
+async function matchLegacyPropertiesForRequirement(opportunity: Opportunity): Promise<MatchedProperty[]> {
+  const candidates = await listLegacyPropertyCandidates();
+  return candidates
+    .map((row) => scoreLegacyProperty(opportunity, row))
+    .filter((m) => m.match_score >= 25)
+    .sort((a, b) => b.match_score - a.match_score);
+}
+
 export async function matchPropertiesForOpportunity(
   opportunityId: number,
 ): Promise<MatchedProperty[]> {
+  if (isMatchEngineV1Enabled()) {
+    return matchPremisesForOpportunity(opportunityId);
+  }
   const opportunity = await getOpportunity(opportunityId);
   if (!opportunity) return [];
-
-  const candidates = await listPropertyCandidates();
-  return candidates
-    .map((row) => scoreProperty(opportunity, row))
-    .filter((m) => m.match_score >= 25)
-    .sort((a, b) => b.match_score - a.match_score);
+  return matchLegacyPropertiesForRequirement(opportunity);
 }
 
 export async function matchPropertiesForRequirement(
   opportunity: Opportunity,
 ): Promise<MatchedProperty[]> {
-  const candidates = await listPropertyCandidates();
-  return candidates
-    .map((row) => scoreProperty(opportunity, row))
-    .filter((m) => m.match_score >= 25)
-    .sort((a, b) => b.match_score - a.match_score);
+  if (isMatchEngineV1Enabled()) {
+    return matchPremisesForRequirement(opportunity);
+  }
+  return matchLegacyPropertiesForRequirement(opportunity);
 }

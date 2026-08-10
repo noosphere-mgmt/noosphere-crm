@@ -1,4 +1,4 @@
-import type { OpportunityDetailTabId } from "@/lib/opportunityDetailTab";
+import type { OpportunityWorkspaceTabId } from "@/lib/opportunityDetailTab";
 
 export function buildOpportunitiesReturnTo(searchParams: URLSearchParams): string {
   const params = new URLSearchParams(searchParams.toString());
@@ -7,6 +7,7 @@ export function buildOpportunitiesReturnTo(searchParams: URLSearchParams): strin
   params.delete("mode");
   params.delete("new");
   params.delete("company_id");
+  params.delete("capture");
   const qs = params.toString();
   return qs ? `/admin/opportunities?${qs}` : "/admin/opportunities";
 }
@@ -14,7 +15,7 @@ export function buildOpportunitiesReturnTo(searchParams: URLSearchParams): strin
 export function opportunityDrawerHref(
   searchParams: URLSearchParams,
   opportunityId: number | string,
-  tab: OpportunityDetailTabId = "overview",
+  tab: OpportunityWorkspaceTabId = "overview",
   mode?: "edit",
 ): string {
   const params = new URLSearchParams(searchParams.toString());
@@ -28,7 +29,7 @@ export function opportunityDrawerHref(
   return `/admin/opportunities?${params.toString()}`;
 }
 
-export function opportunityCreateHref(searchParams: URLSearchParams, companyId?: number): string {
+export function opportunityCreateHref(searchParams: URLSearchParams, companyId?: number, capture = false): string {
   const params = new URLSearchParams(searchParams.toString());
   params.set("new", "1");
   params.delete("opportunity");
@@ -36,5 +37,7 @@ export function opportunityCreateHref(searchParams: URLSearchParams, companyId?:
   params.delete("mode");
   if (companyId && companyId > 0) params.set("company_id", String(companyId));
   else params.delete("company_id");
+  if (capture) params.set("capture", "1");
+  else params.delete("capture");
   return `/admin/opportunities?${params.toString()}`;
 }

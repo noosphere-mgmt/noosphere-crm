@@ -3,6 +3,7 @@ import type { ImportObjectType } from "@/lib/import/types";
 export type ExportScope = "all" | "selected" | "filtered";
 
 const EXPORT_FILE_PREFIX: Record<ImportObjectType, string> = {
+  leads: "leads",
   buildings: "buildings",
   premises: "premises",
   companies: "companies",

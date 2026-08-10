@@ -1,4 +1,4 @@
-import { fieldsToCsvRow } from "./adapterUtils";
+import { EXPORT_MATCH_IDS_KEY, fieldsToCsvRow } from "./adapterUtils";
 import { escapeCsvCell } from "@/lib/csvEncoding";
 import { getImportObjectDefinition, listExportFields } from "./objectRegistry";
 import { buildTemplateCsv } from "./parseCsv";
@@ -34,6 +34,21 @@ export type ExportObjectCsvOptions = {
   ids?: string[];
 };
 
+function exportRowMatchIds(row: Record<string, unknown>, matchIdField: string): string[] {
+  const fromMeta = row[EXPORT_MATCH_IDS_KEY];
+  if (Array.isArray(fromMeta)) {
+    return fromMeta.map((id) => String(id ?? "").trim()).filter(Boolean);
+  }
+  const primary = String(row[matchIdField] ?? "").trim();
+  return primary ? [primary] : [];
+}
+
+function stripExportMeta(row: Record<string, unknown>): Record<string, unknown> {
+  if (!(EXPORT_MATCH_IDS_KEY in row)) return row;
+  const { [EXPORT_MATCH_IDS_KEY]: _removed, ...rest } = row;
+  return rest;
+}
+
 export async function exportObjectCsv(
   objectType: ImportObjectType,
   options?: ExportObjectCsvOptions,
@@ -61,11 +76,13 @@ export async function exportObjectCsv(
   }
   if (options?.ids?.length) {
     const idSet = new Set(options.ids.map(String));
-    rows = rows.filter((row) => idSet.has(String(row[def.matchIdField] ?? "")));
+    rows = rows.filter((row) =>
+      exportRowMatchIds(row, def.matchIdField).some((id) => idSet.has(id)),
+    );
   }
   const lines = [headers.join(",")];
   for (const row of rows) {
-    const csvRow = fieldsToCsvRow(fields, row);
+    const csvRow = fieldsToCsvRow(fields, stripExportMeta(row));
     lines.push(headers.map((h) => escapeCsvCell(csvRow[h] ?? "")).join(","));
   }
   return `${lines.join("\n")}\n`;

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import {
   createOpportunityPartyAction,
@@ -11,11 +13,10 @@ import { ContactFormDrawer } from "@/components/admin/connections/ContactFormDra
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
 import { OpportunityPartyContactSelect } from "@/components/admin/opportunities/OpportunityPartyContactSelect";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
+import { companyFullPageHref, contactFullPageHref } from "@/lib/crmDetailNav";
 import {
   FEE_STATUSES,
   FEE_STATUS_LABELS,
-  OPPORTUNITY_PARTNERSHIP_MODES,
-  OPPORTUNITY_PARTNERSHIP_MODE_LABELS,
   OPPORTUNITY_PARTY_ROLES,
 } from "@/lib/opportunityValues";
 import { formatPartyFeeCell, partyRoleLabel } from "@/lib/opportunityPartiesDisplay";
@@ -27,11 +28,14 @@ import type { OpportunityParty } from "@/lib/types/entities";
 const selectClass = "mt-0.5 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm";
 
 export function OpportunityPartiesTab({ data }: { data: OpportunityDetailData }) {
+  const router = useRouter();
   const theme = moduleAccentClasses("opportunities");
   const { opportunity, parties, companies, contacts } = data;
   const [editingId, setEditingId] = useState<number | "new" | null>(null);
   const [contactDrawerOpen, setContactDrawerOpen] = useState(false);
   const [contactDrawerCompanyId, setContactDrawerCompanyId] = useState<number | undefined>();
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const editingParty = useMemo(() => {
@@ -54,6 +58,10 @@ export function OpportunityPartiesTab({ data }: { data: OpportunityDetailData })
     const [companyId, setCompanyId] = useState(
       resolveCompanySelectValue(companies as CompanyOption[], party?.company_id),
     );
+    const [showFees, setShowFees] = useState(Boolean(
+      party?.collect_fee_amount || party?.collect_fee_percent || party?.paid_out_fee_amount || party?.paid_out_fee_percent ||
+      (party?.collect_fee_status && party.collect_fee_status !== "expected"),
+    ));
     const action =
       party != null
         ? updateOpportunityPartyAction.bind(null, party.id)
@@ -66,8 +74,16 @@ export function OpportunityPartiesTab({ data }: { data: OpportunityDetailData })
           const fd = new FormData(e.currentTarget);
           fd.set("opportunity_id", String(opportunity.id));
           startTransition(async () => {
-            await action(fd);
-            setEditingId(null);
+            setSaveMessage(null);
+            setSaveError(null);
+            try {
+              await action(fd);
+              router.refresh();
+              setEditingId(null);
+              setSaveMessage(party ? "Party updated." : "Company and contact linked to this opportunity.");
+            } catch (error) {
+              setSaveError(error instanceof Error ? error.message : "The party could not be saved.");
+            }
           });
         }}
         className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3"
@@ -105,33 +121,42 @@ export function OpportunityPartiesTab({ data }: { data: OpportunityDetailData })
           />
           <label className="block text-sm">
             <span className="text-xs font-medium uppercase text-slate-500">Role</span>
-            <select name="role" defaultValue={party?.role ?? "end_user"} className={selectClass}>
+            <select name="role" defaultValue={party?.role ?? "agent"} className={selectClass}>
+              {party?.role && !(OPPORTUNITY_PARTY_ROLES as readonly string[]).includes(party.role) ? (
+                <option value={party.role}>Historical: {partyRoleLabel(party.role)}</option>
+              ) : null}
               {OPPORTUNITY_PARTY_ROLES.map((r) => (
                 <option key={r} value={r}>{partyRoleLabel(r)}</option>
               ))}
             </select>
           </label>
-          <label className="block text-sm">
-            <span className="text-xs font-medium uppercase text-slate-500">Partnership mode</span>
-            <select name="partnership_mode" defaultValue={party?.partnership_mode ?? ""} className={selectClass}>
-              <option value="">—</option>
-              {OPPORTUNITY_PARTNERSHIP_MODES.map((m) => (
-                <option key={m} value={m}>{OPPORTUNITY_PARTNERSHIP_MODE_LABELS[m]}</option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-sm">
-            <span className="text-xs font-medium uppercase text-slate-500">Collect status</span>
-            <select name="collect_fee_status" defaultValue={party?.collect_fee_status ?? "expected"} className={selectClass}>
-              {FEE_STATUSES.map((s) => (
-                <option key={s} value={s}>{FEE_STATUS_LABELS[s]}</option>
-              ))}
-            </select>
-          </label>
-          <FormField label="Collect fee amount" name="collect_fee_amount" type="number" defaultValue={party?.collect_fee_amount ?? ""} />
-          <FormField label="Collect fee %" name="collect_fee_percent" type="number" defaultValue={party?.collect_fee_percent ?? ""} />
-          <FormField label="Paid out amount" name="paid_out_fee_amount" type="number" defaultValue={party?.paid_out_fee_amount ?? ""} />
-          <FormField label="Paid out %" name="paid_out_fee_percent" type="number" defaultValue={party?.paid_out_fee_percent ?? ""} />
+          <div className="flex items-end">
+            <button type="button" onClick={() => setShowFees((open) => !open)} className="mb-0.5 rounded-lg border border-violet-200 bg-white px-3 py-1.5 text-sm font-medium text-violet-800 hover:bg-violet-50">
+              {showFees ? "Hide fee arrangement" : "+ Fee arrangement"}
+            </button>
+          </div>
+          {showFees ? (
+            <div className="grid gap-3 rounded-lg border border-violet-100 bg-white p-3 sm:col-span-2 sm:grid-cols-2 lg:col-span-3 lg:grid-cols-5">
+              <label className="block text-sm">
+                <span className="text-xs font-medium uppercase text-slate-500">Collect status</span>
+                <select name="collect_fee_status" defaultValue={party?.collect_fee_status ?? "expected"} className={selectClass}>
+                  {FEE_STATUSES.map((s) => <option key={s} value={s}>{FEE_STATUS_LABELS[s]}</option>)}
+                </select>
+              </label>
+              <FormField label="Collect amount" name="collect_fee_amount" type="number" defaultValue={party?.collect_fee_amount ?? ""} />
+              <FormField label="Collect %" name="collect_fee_percent" type="number" defaultValue={party?.collect_fee_percent ?? ""} />
+              <FormField label="Pay out amount" name="paid_out_fee_amount" type="number" defaultValue={party?.paid_out_fee_amount ?? ""} />
+              <FormField label="Pay out %" name="paid_out_fee_percent" type="number" defaultValue={party?.paid_out_fee_percent ?? ""} />
+            </div>
+          ) : party ? (
+            <>
+              <input type="hidden" name="collect_fee_status" value={party.collect_fee_status ?? "expected"} />
+              <input type="hidden" name="collect_fee_amount" value={party.collect_fee_amount ?? ""} />
+              <input type="hidden" name="collect_fee_percent" value={party.collect_fee_percent ?? ""} />
+              <input type="hidden" name="paid_out_fee_amount" value={party.paid_out_fee_amount ?? ""} />
+              <input type="hidden" name="paid_out_fee_percent" value={party.paid_out_fee_percent ?? ""} />
+            </>
+          ) : null}
           <div className="sm:col-span-2 lg:col-span-3">
             <TextAreaField label="Remarks" name="remarks" defaultValue={party?.remarks ?? ""} />
           </div>
@@ -150,16 +175,55 @@ export function OpportunityPartiesTab({ data }: { data: OpportunityDetailData })
 
   return (
     <div className="space-y-4">
-      <button
-        type="button"
-        onClick={() => setEditingId("new")}
-        className={theme.primaryButton}
-      >
-        + Add party
-      </button>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-violet-200 bg-violet-50/40 px-4 py-3">
+        <div>
+          <h2 className="text-sm font-semibold text-slate-900">People, channel and commercial roles</h2>
+          <p className="mt-0.5 text-xs text-slate-500">Record the client, referrer, agent, operator, landlord or service partner involved in this opportunity.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <p className="text-lg font-semibold text-violet-900">{parties.length}</p>
+            <p className="text-[10px] uppercase tracking-wide text-slate-500">Linked parties</p>
+          </div>
+          <button type="button" onClick={() => setEditingId("new")} className={theme.primaryButton}>
+            + Add party
+          </button>
+        </div>
+      </div>
+
+      {saveMessage ? (
+        <div role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800">
+          {saveMessage}
+        </div>
+      ) : null}
+      {saveError ? (
+        <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-800">
+          {saveError}
+        </div>
+      ) : null}
 
       {editingId === "new" ? <PartyForm /> : null}
       {editingParty ? <PartyForm party={editingParty} /> : null}
+
+      <section className="grid gap-2 sm:grid-cols-[1fr_auto_1fr_auto_1fr] sm:items-stretch">
+        <div className="rounded-xl border border-amber-200 bg-amber-50/50 px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">Introduced by</p>
+          <p className="mt-1 text-sm font-semibold text-slate-900">{opportunity.referrer_contact_name ?? opportunity.referrer_company_name ?? "Direct / not recorded"}</p>
+          {opportunity.referrer_contact_name && opportunity.referrer_company_name ? <p className="text-xs text-slate-600">{opportunity.referrer_company_name}</p> : null}
+        </div>
+        <div className="hidden items-center text-slate-300 sm:flex" aria-hidden>→</div>
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">Client</p>
+          <p className="mt-1 text-sm font-semibold text-slate-900">{opportunity.primary_contact_name ?? opportunity.client_name}</p>
+          {opportunity.linked_company_name ? <p className="text-xs text-slate-600">{opportunity.linked_company_name}</p> : null}
+        </div>
+        <div className="hidden items-center text-slate-300 sm:flex" aria-hidden>→</div>
+        <div className="rounded-xl border border-sky-200 bg-sky-50/50 px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-sky-700">Supporting parties</p>
+          <p className="mt-1 text-sm font-semibold text-slate-900">{parties.length} linked</p>
+          <p className="truncate text-xs text-slate-600">{parties.slice(0, 3).map((party) => party.company_name).filter(Boolean).join(" · ") || "Add agents, operators or partners"}</p>
+        </div>
+      </section>
 
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="min-w-full text-sm">
@@ -168,7 +232,6 @@ export function OpportunityPartiesTab({ data }: { data: OpportunityDetailData })
               <th className="px-3 py-1.5 font-medium">Company</th>
               <th className="px-3 py-1.5 font-medium">Contact</th>
               <th className="px-3 py-1.5 font-medium">Role</th>
-              <th className="px-3 py-1.5 font-medium">Partnership mode</th>
               <th className="px-3 py-1.5 font-medium">Collect fee</th>
               <th className="px-3 py-1.5 font-medium">Paid out fee</th>
               <th className="px-3 py-1.5 font-medium">Remarks</th>
@@ -178,23 +241,22 @@ export function OpportunityPartiesTab({ data }: { data: OpportunityDetailData })
           <tbody>
             {parties.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
                   No parties linked to this opportunity yet.
                 </td>
               </tr>
             ) : (
               parties.map((party) => (
                 <tr key={party.id} className="border-t border-slate-100 align-top">
-                  <td className="px-3 py-1.5 text-slate-900">{party.company_name ?? "—"}</td>
-                  <td className="px-3 py-1.5 text-slate-700">{party.contact_name ?? "—"}</td>
+                  <td className="px-3 py-1.5 text-slate-900">{(() => {
+                    const href = companyFullPageHref(resolveCompanySelectValue(companies as CompanyOption[], party.company_id));
+                    return href ? <Link href={href} className="font-medium text-violet-900 hover:underline">{party.company_name ?? "View company"}</Link> : party.company_name ?? "—";
+                  })()}</td>
+                  <td className="px-3 py-1.5 text-slate-700">{(() => {
+                    const href = contactFullPageHref(resolveContactSelectValue(contacts, party.contact_id));
+                    return href ? <Link href={href} className="text-violet-900 hover:underline">{party.contact_name ?? "View contact"}</Link> : party.contact_name ?? "—";
+                  })()}</td>
                   <td className="px-3 py-1.5 text-slate-700">{partyRoleLabel(party.role)}</td>
-                  <td className="px-3 py-1.5 text-slate-700">
-                    {party.partnership_mode
-                      ? OPPORTUNITY_PARTNERSHIP_MODE_LABELS[
-                          party.partnership_mode as keyof typeof OPPORTUNITY_PARTNERSHIP_MODE_LABELS
-                        ] ?? party.partnership_mode
-                      : "—"}
-                  </td>
                   <td className="px-3 py-1.5 text-slate-700">
                     {formatPartyFeeCell(party.collect_fee_amount, party.collect_fee_percent)}
                   </td>
@@ -210,7 +272,15 @@ export function OpportunityPartiesTab({ data }: { data: OpportunityDetailData })
                       onEdit={() => setEditingId(party.id)}
                       onDelete={() =>
                         startTransition(async () => {
-                          await deleteOpportunityPartyAction(opportunity.id, party.id);
+                          setSaveMessage(null);
+                          setSaveError(null);
+                          try {
+                            await deleteOpportunityPartyAction(opportunity.id, party.id);
+                            router.refresh();
+                            setSaveMessage("Party removed from this opportunity.");
+                          } catch (error) {
+                            setSaveError(error instanceof Error ? error.message : "The party could not be removed.");
+                          }
                         })
                       }
                     />

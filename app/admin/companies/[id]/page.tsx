@@ -1,26 +1,34 @@
-import { redirect } from "next/navigation";
-import { getCompanyTab } from "@/lib/companyDetailTab";
+import { Suspense } from "react";
+import { notFound } from "next/navigation";
+import { AdminShell } from "@/components/admin/AdminShell";
+import { CompanyWorkspacePageClient } from "@/components/admin/connections/CompanyWorkspacePageClient";
 import { resolveLegacyCompanyIdFromQuery } from "@/lib/companyDrawerResolve";
+import { getCompanyDrawerData } from "@/lib/repos/connectionsDrawer";
+import { listCompanyFeeDealRows } from "@/lib/repos/connectionOpportunities";
 
 export const dynamic = "force-dynamic";
 
 type Props = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string; mode?: string; add_contact?: string }>;
+  searchParams: Promise<{ tab?: string; mode?: string }>;
 };
 
-export default async function CompanyDetailRedirectPage({ params, searchParams }: Props) {
+export default async function CompanyDetailPage({ params, searchParams }: Props) {
   const { id: idRaw } = await params;
   const sp = await searchParams;
   const legacyCompanyId = await resolveLegacyCompanyIdFromQuery(idRaw);
-  if (legacyCompanyId == null) redirect("/admin/companies");
+  if (legacyCompanyId == null) notFound();
 
-  const tab = getCompanyTab(sp);
-  const qs = new URLSearchParams();
-  qs.set("company", String(legacyCompanyId));
-  if (tab !== "overview") qs.set("tab", tab);
-  if (sp.mode === "edit" || sp.mode === "full") qs.set("mode", sp.mode);
-  if (sp.add_contact === "1") qs.set("add_contact", "1");
+  const data = await getCompanyDrawerData(legacyCompanyId);
+  if (!data) notFound();
 
-  redirect(`/admin/companies?${qs.toString()}`);
+  const feeRows = await listCompanyFeeDealRows(legacyCompanyId).catch(() => []);
+
+  return (
+    <AdminShell title="" wide module="connections" hideHeader>
+      <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-slate-100" />}>
+        <CompanyWorkspacePageClient data={data} feeRows={feeRows} editMode={sp.mode === "edit"} />
+      </Suspense>
+    </AdminShell>
+  );
 }

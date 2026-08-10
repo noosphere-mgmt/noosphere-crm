@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { IMPORT_OBJECT_TYPES, type ImportObjectType } from "../lib/import/types";
 
 const ADAPTER_FILES: Record<ImportObjectType, string> = {
+  leads: "leads.ts",
   buildings: "buildings.ts",
   premises: "premises.ts",
   companies: "companies.ts",

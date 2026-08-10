@@ -9,7 +9,7 @@ import {
   MobileSwipeToDeleteRow,
 } from "@/components/admin/mobile/MobileSwipeToDeleteRow";
 import { OPPORTUNITY_STATUS_LABELS } from "@/lib/lookups";
-import { formatOpportunityBudget } from "@/lib/opportunitiesList";
+import { formatOpportunityExpectedFee } from "@/lib/opportunitiesList";
 import { opportunityStatusChip } from "@/lib/opportunityStatusTheme";
 import { MobileCardMeta, MobileCardTitle } from "@/components/admin/mobile/MobileCard";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
@@ -21,10 +21,10 @@ function formatDateLabel(value: string | null | undefined): string {
 
 export function OpportunitiesListMobile({
   state,
-  onQuickView,
+  onOpenWorkspace,
 }: {
   state: OpportunitiesListState;
-  onQuickView: (id: number) => void;
+  onOpenWorkspace: (row: import("@/lib/types/entities").Opportunity) => void;
 }) {
   const router = useRouter();
   const [isDeleting, startDelete] = useTransition();
@@ -58,12 +58,12 @@ export function OpportunitiesListMobile({
               >
                 <button
                   type="button"
-                  onClick={() => onQuickView(row.id)}
+                  onClick={() => onOpenWorkspace(row)}
                   className="w-full cursor-pointer px-3 py-3 text-left active:bg-slate-50"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <MobileCardTitle>{row.client_name}</MobileCardTitle>
-                    <RecordBusinessId id={row.v1_opportunity_id} className="mt-0.5 block" />
+                    <RecordBusinessId id={row.business_id ?? row.v1_opportunity_id} className="mt-0.5 block" />
                     <span {...opportunityStatusChip(row.status)} className="shrink-0 text-xs">
                       {OPPORTUNITY_STATUS_LABELS[row.status]}
                     </span>
@@ -73,7 +73,7 @@ export function OpportunitiesListMobile({
                     {row.district_preference ? ` · ${row.district_preference.split(/[,;/|]/)[0]?.trim()}` : ""}
                   </MobileCardMeta>
                   <MobileCardMeta>
-                    {formatOpportunityBudget(row.budget_max, row.budget_min)} · Updated{" "}
+                    Expected fees {formatOpportunityExpectedFee(row.expected_fee)} · Updated{" "}
                     {formatDateLabel(row.updated_at)}
                   </MobileCardMeta>
                 </button>

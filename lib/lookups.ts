@@ -81,15 +81,10 @@ export const OPERATING_MODELS = [
 
 /** Physical / deal form of a space within a building. */
 export const SPACE_FORMS = [
-  "Whole Floor",
-  "Unit",
-  "Suite",
-  "Room",
-  "Shop",
-  "Warehouse",
-  "Apartment",
-  "Building",
-  "Portfolio",
+  "Unit (s)",
+  "Floor (s)",
+  "Enbloc",
+  "Land",
 ] as const;
 
 /** Current occupancy state of a marketable property row. */
@@ -185,16 +180,21 @@ export const LISTING_INTENT_LABELS: Record<(typeof LISTING_INTENTS)[number], str
 /** @deprecated legacy inventory table only supports lease and sale */
 export const LEGACY_LISTING_INTENTS = ["lease", "sale"] as const;
 
-export const OPPORTUNITY_STATUSES = [
-  "new",
-  "qualifying",
-  "sourcing",
-  "proposal_preparing",
-  "proposal_sent",
-  "negotiating",
-  "closed_won",
-  "closed_lost",
-] as const;
+export {
+  ACTIVE_OPPORTUNITY_STATUSES,
+  CLIENT_REVIEW_OPPORTUNITY_STATUSES,
+  LEGACY_OPPORTUNITY_STATUS_MAP,
+  OPPORTUNITY_STATUSES,
+  OPPORTUNITY_STATUS_LABELS,
+  OPPORTUNITY_STATUS_PROBABILITY,
+  defaultWaitingFor,
+  formatOpportunityActionDate,
+  isOpportunityStatusValue,
+  normalizeOpportunityStatus,
+} from "@/lib/opportunityStatusModel";
+
+/** @deprecated Use CLIENT_REVIEW_OPPORTUNITY_STATUSES */
+export { CLIENT_REVIEW_OPPORTUNITY_STATUSES as CLIENT_WAITING_OPPORTUNITY_STATUSES } from "@/lib/opportunityStatusModel";
 
 export const OPPORTUNITY_LEAD_TYPES = [
   "agent_lead",
@@ -204,22 +204,14 @@ export const OPPORTUNITY_LEAD_TYPES = [
 ] as const;
 
 export const OPPORTUNITY_LEAD_TYPE_LABELS: Record<(typeof OPPORTUNITY_LEAD_TYPES)[number], string> = {
-  agent_lead: "Agent Lead",
-  direct_client: "Direct Client",
+  agent_lead: "Referral",
+  direct_client: "Direct client",
   investor: "Investor",
   landlord: "Landlord",
 };
 
-export const OPPORTUNITY_STATUS_LABELS: Record<(typeof OPPORTUNITY_STATUSES)[number], string> = {
-  new: "New",
-  qualifying: "Qualifying",
-  sourcing: "Sourcing",
-  proposal_preparing: "Proposal preparing",
-  proposal_sent: "Proposal sent",
-  negotiating: "Negotiating",
-  closed_won: "Closed won",
-  closed_lost: "Closed lost",
-};
+/** Source labels for opportunity workspace (avoid "lead" in UI). */
+export const OPPORTUNITY_SOURCE_LABELS = OPPORTUNITY_LEAD_TYPE_LABELS;
 
 export const WORKSPACE_TYPES = [
   "Whole floor",

@@ -6,7 +6,6 @@ import { OpportunitiesListHeaderMobile } from "@/components/admin/opportunities/
 import type { Opportunity } from "@/lib/types/entities";
 
 export function OpportunitiesListHeader({
-  rows: _rows,
   onNewOpportunity,
 }: {
   rows: Opportunity[];
@@ -14,7 +13,7 @@ export function OpportunitiesListHeader({
 }) {
   return (
     <AdminViewportSwitch
-      desktop={<OpportunitiesListHeaderDesktop onNewOpportunity={onNewOpportunity} />}
+      desktop={<OpportunitiesListHeaderDesktop onNewOpportunity={onNewOpportunity} onCaptureRequirement={onNewOpportunity} />}
       mobile={<OpportunitiesListHeaderMobile onNewOpportunity={onNewOpportunity} />}
     />
   );

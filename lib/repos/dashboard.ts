@@ -1,6 +1,7 @@
 import { query } from "@/lib/db";
 import { sqlJoinV1Company } from "@/lib/import/lookupSql";
 import { OPEN_OPPORTUNITY_STATUS_SQL } from "@/lib/openOpportunityStatus";
+import { getChannelTreeData, type ChannelEntityType } from "@/lib/repos/channelTree";
 
 export type DashboardPipelineKpis = {
   open_count: number;
@@ -45,10 +46,22 @@ export type DashboardPartyPerformanceRow = {
   company_id: number;
   contact_id: number | null;
   party_name: string;
+  total_opps: number;
   active_opps: number;
   won_opps: number;
   expected_fee: number;
   collected_fee: number;
+};
+
+export type DashboardReferrerPerformanceRow = {
+  entity_key: string;
+  entity_type: ChannelEntityType;
+  entity_id: number;
+  business_id: string | null;
+  party_name: string;
+  total_opps: number;
+  active_opps: number;
+  won_opps: number;
 };
 
 export type DashboardProposedPremisesRow = {
@@ -90,7 +103,7 @@ export type DashboardData = {
   upcoming_activities: DashboardUpcomingActivity[];
   revenue_pipeline: DashboardRevenueRow[];
   revenue_totals: { opp_count: number; expected_fee: number; confirmed_fee: number };
-  top_referrers: DashboardPartyPerformanceRow[];
+  top_referrers: DashboardReferrerPerformanceRow[];
   top_agents: DashboardPartyPerformanceRow[];
   top_proposed_premises: DashboardProposedPremisesRow[];
   operator_performance: DashboardOperatorRow[];
@@ -123,7 +136,9 @@ async function fetchPipelineKpis(): Promise<DashboardPipelineKpis> {
      )
      SELECT
        COUNT(*) FILTER (WHERE o.status NOT IN ${OPEN_STATUS_SQL})::text AS open_count,
-       COUNT(*) FILTER (WHERE o.status IN ('proposal_sent', 'proposal_preparing'))::text AS proposal_sent_count,
+       COUNT(*) FILTER (WHERE o.status IN (
+         'proposal_reviewing'
+       ))::text AS proposal_sent_count,
        (SELECT COUNT(*)::text FROM viewing_opps vo
          JOIN opportunities ox ON ox.id = vo.opportunity_id
          WHERE ox.status NOT IN ${OPEN_STATUS_SQL}) AS viewing_count,
@@ -279,8 +294,8 @@ async function fetchRevenuePipeline(): Promise<{
            WHEN status = 'closed_won' THEN 'won'
            WHEN status = 'negotiating' THEN 'negotiation'
            WHEN has_viewing THEN 'viewing'
-           WHEN status IN ('proposal_sent', 'proposal_preparing') THEN 'proposal_sent'
-           WHEN status IN ('sourcing', 'qualifying') THEN 'sourcing'
+           WHEN status = 'proposal_reviewing' THEN 'proposal_sent'
+           WHEN status IN ('qualifying', 'sourcing') THEN 'sourcing'
            ELSE 'new'
          END AS bucket,
          expected_fee,
@@ -331,36 +346,90 @@ async function fetchRevenuePipeline(): Promise<{
   return { rows: ordered, totals };
 }
 
-async function fetchTopReferrers(): Promise<DashboardPartyPerformanceRow[]> {
-  const rows = await query<Record<string, unknown>>(
-    `SELECT
-       op.company_id::text,
-       op.contact_id::text,
-       COALESCE(ct.contact_name, c.company_name) AS party_name,
-       COUNT(DISTINCT o.id) FILTER (WHERE o.status NOT IN ${OPEN_STATUS_SQL})::text AS active_opps,
-       COUNT(DISTINCT o.id) FILTER (WHERE o.status = 'closed_won')::text AS won_opps,
-       COALESCE(SUM(op.paid_out_fee_amount), 0)::text AS expected_fee,
-       COALESCE(SUM(
-         CASE WHEN op.collect_fee_status = 'paid' THEN op.paid_out_fee_amount ELSE 0 END
-       ), 0)::text AS collected_fee
-     FROM opportunity_parties op
-     JOIN companies c ON c.id::text = op.company_id::text
-     LEFT JOIN contacts ct ON ct.id::text = op.contact_id::text
-     JOIN opportunities o ON o.id::text = op.opportunity_id::text
-     WHERE op.role IN ('referrer')
-     GROUP BY op.company_id, op.contact_id, party_name
-     ORDER BY active_opps DESC, expected_fee DESC
-     LIMIT ${DASHBOARD_TABLE_LIMIT}`,
-  );
-  return rows.map((r) => ({
-    company_id: num(r.company_id),
-    contact_id: r.contact_id != null && String(r.contact_id) !== "" ? num(r.contact_id) : null,
-    party_name: String(r.party_name ?? ""),
-    active_opps: num(r.active_opps),
-    won_opps: num(r.won_opps),
-    expected_fee: num(r.expected_fee),
-    collected_fee: num(r.collected_fee),
-  }));
+async function fetchTopReferrers(): Promise<DashboardReferrerPerformanceRow[]> {
+  const [tree, directRows] = await Promise.all([
+    getChannelTreeData(),
+    query<Record<string, unknown>>(
+      `WITH raw_referrals AS (
+         SELECT op.opportunity_id, op.company_id, op.contact_id
+         FROM opportunity_parties op
+         WHERE op.role = 'referrer'
+         UNION
+         SELECT o.id, o.referrer_company_id, o.referrer_contact_id
+         FROM opportunities o
+         WHERE o.referrer_company_id IS NOT NULL OR o.referrer_contact_id IS NOT NULL
+       )
+       SELECT DISTINCT
+         o.id::text AS opportunity_id,
+         o.status,
+         CASE WHEN rr.contact_id IS NOT NULL THEN 'contact' ELSE 'company' END AS entity_type,
+         COALESCE(rr.contact_id, rr.company_id)::text AS entity_id,
+         CASE WHEN rr.contact_id IS NOT NULL THEN COALESCE(ct.business_id, ctv.business_id) ELSE COALESCE(c.business_id, cv.business_id) END AS business_id,
+         CASE WHEN rr.contact_id IS NOT NULL THEN COALESCE(ct.display_name, ct.contact_name) ELSE c.company_name END AS party_name
+       FROM raw_referrals rr
+       JOIN opportunities o ON o.id = rr.opportunity_id
+       LEFT JOIN contacts ct ON ct.id::text = rr.contact_id::text
+       LEFT JOIN contacts_v1 ctv ON ctv.legacy_contact_id = ct.id
+       LEFT JOIN companies c ON c.id::text = rr.company_id::text
+       LEFT JOIN companies_v1 cv ON cv.legacy_company_id = c.id
+       WHERE COALESCE(rr.contact_id, rr.company_id) IS NOT NULL`,
+    ),
+  ]);
+
+  type OpportunityCredit = { id: number; status: string };
+  const entities = new Map(tree.entities.map((entity) => [entity.key, entity]));
+  const children = new Map<string, string[]>();
+  for (const edge of tree.introductions) {
+    children.set(edge.from_key, [...(children.get(edge.from_key) ?? []), edge.to_key]);
+  }
+  const direct = new Map<string, Map<number, OpportunityCredit>>();
+  for (const row of directRows) {
+    const entityType = String(row.entity_type) as ChannelEntityType;
+    const entityId = num(row.entity_id);
+    const opportunityId = num(row.opportunity_id);
+    if (!entityId || !opportunityId) continue;
+    const key = `${entityType}:${entityId}`;
+    if (!entities.has(key)) {
+      entities.set(key, {
+        key,
+        entity_type: entityType,
+        id: entityId,
+        business_id: row.business_id != null ? String(row.business_id) : null,
+        name: String(row.party_name ?? "Unknown referrer"),
+      });
+    }
+    const credits = direct.get(key) ?? new Map<number, OpportunityCredit>();
+    credits.set(opportunityId, { id: opportunityId, status: String(row.status) });
+    direct.set(key, credits);
+  }
+
+  function collectBranch(key: string, path = new Set<string>()): Map<number, OpportunityCredit> {
+    if (path.has(key)) return new Map();
+    const nextPath = new Set(path).add(key);
+    const result = new Map(direct.get(key) ?? []);
+    for (const childKey of children.get(key) ?? []) {
+      for (const [id, opportunity] of collectBranch(childKey, nextPath)) result.set(id, opportunity);
+    }
+    return result;
+  }
+
+  return [...entities.values()]
+    .map((entity) => {
+      const opportunities = [...collectBranch(entity.key).values()];
+      return {
+        entity_key: entity.key,
+        entity_type: entity.entity_type,
+        entity_id: entity.id,
+        business_id: entity.business_id,
+        party_name: entity.name,
+        total_opps: opportunities.length,
+        active_opps: opportunities.filter((opportunity) => !["closed_won", "closed_lost"].includes(opportunity.status)).length,
+        won_opps: opportunities.filter((opportunity) => opportunity.status === "closed_won").length,
+      };
+    })
+    .filter((row) => row.total_opps > 0)
+    .sort((a, b) => b.total_opps - a.total_opps || b.active_opps - a.active_opps || a.party_name.localeCompare(b.party_name))
+    .slice(0, DASHBOARD_TABLE_LIMIT);
 }
 
 async function fetchTopAgents(): Promise<DashboardPartyPerformanceRow[]> {
@@ -369,6 +438,7 @@ async function fetchTopAgents(): Promise<DashboardPartyPerformanceRow[]> {
        op.company_id::text,
        op.contact_id::text,
        COALESCE(ct.contact_name, c.company_name) AS party_name,
+       COUNT(DISTINCT o.id)::text AS total_opps,
        COUNT(DISTINCT o.id) FILTER (WHERE o.status NOT IN ${OPEN_STATUS_SQL})::text AS active_opps,
        COUNT(DISTINCT o.id) FILTER (WHERE o.status = 'closed_won')::text AS won_opps,
        COALESCE(SUM(op.collect_fee_amount), 0)::text AS expected_fee,
@@ -389,6 +459,7 @@ async function fetchTopAgents(): Promise<DashboardPartyPerformanceRow[]> {
     company_id: num(r.company_id),
     contact_id: r.contact_id != null && String(r.contact_id) !== "" ? num(r.contact_id) : null,
     party_name: String(r.party_name ?? ""),
+    total_opps: num(r.total_opps),
     active_opps: num(r.active_opps),
     won_opps: num(r.won_opps),
     expected_fee: num(r.expected_fee),
@@ -525,38 +596,25 @@ async function fetchRelationshipNetwork(): Promise<DashboardRelationshipNode[]> 
 }
 
 export async function fetchDashboardData(): Promise<DashboardData> {
-  const [
-    pipeline,
-    attention,
-    upcoming_activities,
-    revenue,
-    top_referrers,
-    top_agents,
-    top_proposed_premises,
-    operator_performance,
-    relationship_network,
-  ] = await Promise.all([
+  // The current dashboard uses only these four reports. Keep the remaining
+  // result keys empty for API compatibility without running unused queries.
+  const [pipeline, attention, top_referrers, relationship_network] = await Promise.all([
     fetchPipelineKpis(),
     fetchAttentionRequired(),
-    fetchUpcomingActivities(),
-    fetchRevenuePipeline(),
     fetchTopReferrers(),
-    fetchTopAgents(),
-    fetchTopProposedPremises(),
-    fetchOperatorPerformance(),
     fetchRelationshipNetwork(),
   ]);
 
   return {
     pipeline,
     attention,
-    upcoming_activities,
-    revenue_pipeline: revenue.rows,
-    revenue_totals: revenue.totals,
+    upcoming_activities: [],
+    revenue_pipeline: [],
+    revenue_totals: { opp_count: 0, expected_fee: 0, confirmed_fee: 0 },
     top_referrers,
-    top_agents,
-    top_proposed_premises,
-    operator_performance,
+    top_agents: [],
+    top_proposed_premises: [],
+    operator_performance: [],
     relationship_network,
   };
 }

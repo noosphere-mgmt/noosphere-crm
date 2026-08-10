@@ -12,6 +12,7 @@ const ACTION_LABELS: Record<ImportRowAction, string> = {
 
 /** Preferred import fields for a readable row label, in priority order. */
 const LABEL_FIELDS: Record<ImportObjectType, string[]> = {
+  leads: ["company_name", "contact_name", "subject", "sender_email"],
   buildings: ["building_name_en", "address"],
   premises: ["premises_name", "building_name_en", "floor", "unit", "external_ref"],
   companies: ["company_name_en", "company_name_zh"],

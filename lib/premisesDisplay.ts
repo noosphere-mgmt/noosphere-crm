@@ -71,3 +71,23 @@ export function isPremisesForSale(status: string | null | undefined): boolean {
   const lower = (status ?? "").toLowerCase();
   return status === "For Sale" || lower.includes("sale");
 }
+
+/** Parse comma/semicolon/pipe-delimited view types stored in premises_v1.view_type. */
+export function parsePremisesViewTypes(raw: string | null | undefined): string[] {
+  if (!raw?.trim()) return [];
+  return raw
+    .split(/[,;|]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+export function formatPremisesViewTypes(values: readonly string[]): string | null {
+  const joined = values.map((v) => v.trim()).filter(Boolean).join(", ");
+  return joined || null;
+}
+
+/** Office type applies to office/commercial premises only. */
+export function isOfficePremisesPropertyType(propertyType: string | null | undefined): boolean {
+  const t = propertyType?.trim().toLowerCase() ?? "";
+  return t === "office" || t === "commercial";
+}

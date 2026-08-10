@@ -58,6 +58,7 @@ export function FormField({
       <span className={viewLabelClass}>{label}</span>
       <input
         type={type}
+        step={type === "number" ? "any" : undefined}
         name={name}
         {...(controlled ? { value, onChange } : { defaultValue })}
         required={required}

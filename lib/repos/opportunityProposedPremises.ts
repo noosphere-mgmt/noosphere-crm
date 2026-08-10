@@ -104,7 +104,7 @@ export type ProposedPremisesInput = {
 function inputValues(input: ProposedPremisesInput) {
   return [
     input.preference ?? null,
-    input.status ?? "proposed",
+    input.status ?? "shortlisted",
     input.tour_date?.trim() || null,
     input.proposed_price ?? null,
     input.proposed_price_psf ?? null,
@@ -151,8 +151,8 @@ export async function addProposedPremises(
 ): Promise<number> {
   if (premisesIds.length === 0) return 0;
   const rows = await query<{ id: string }>(
-    `INSERT INTO opportunity_proposed_premises (opportunity_id, premises_id)
-     SELECT $1, unnest($2::text[])
+    `INSERT INTO opportunity_proposed_premises (opportunity_id, premises_id, status)
+     SELECT $1, unnest($2::text[]), 'shortlisted'
      ON CONFLICT (opportunity_id, premises_id) DO NOTHING
      RETURNING id::text AS id`,
     [opportunityId, premisesIds],

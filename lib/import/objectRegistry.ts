@@ -8,6 +8,7 @@ import { opportunityPartiesImportDefinition } from "./adapters/opportunityPartie
 import { opportunityProposedPremisesImportDefinition } from "./adapters/opportunityProposedPremises";
 import { activitiesImportDefinition } from "./adapters/activities";
 import { activityPremisesImportDefinition } from "./adapters/activityPremises";
+import { leadsImportDefinition } from "./adapters/leads";
 import type { ReferenceValidationResult } from "./referenceResolution";
 import type { ImportObjectType, ExistingRecord, ImportWriteContext, RecordId } from "./types";
 
@@ -18,7 +19,8 @@ export type ImportFieldType =
   | "date"
   | "enum"
   | "string_array"
-  | "company_roles";
+  | "company_roles"
+  | "json";
 
 export type ImportFieldDef = {
   key: string;
@@ -81,6 +83,7 @@ const registry: Partial<Record<ImportObjectType, ImportObjectDefinition>> = {
   opportunity_proposed_premises: opportunityProposedPremisesImportDefinition,
   activities: activitiesImportDefinition,
   activity_premises: activityPremisesImportDefinition,
+  leads: leadsImportDefinition,
 };
 
 export function listMappingFieldOptions(objectType: ImportObjectType) {

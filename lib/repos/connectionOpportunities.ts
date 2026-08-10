@@ -154,3 +154,34 @@ export async function countOpenLinkedOpportunitiesForContact(contactId: number):
   );
   return rows[0]?.n ?? 0;
 }
+
+export type CompanyFeeDealRow = {
+  party_id: number;
+  opportunity_id: number;
+  opportunity_client_name: string;
+  opportunity_business_id: string | null;
+  role: string;
+  collect_fee_amount: string | null;
+  paid_out_fee_amount: string | null;
+  collect_fee_status: string | null;
+  fee_note: string | null;
+};
+
+export async function listCompanyFeeDealRows(companyId: number): Promise<CompanyFeeDealRow[]> {
+  return query<CompanyFeeDealRow>(
+    `SELECT op.id AS party_id,
+            o.id AS opportunity_id,
+            o.client_name AS opportunity_client_name,
+            o.business_id AS opportunity_business_id,
+            op.role,
+            op.collect_fee_amount::text AS collect_fee_amount,
+            op.paid_out_fee_amount::text AS paid_out_fee_amount,
+            op.collect_fee_status,
+            op.fee_note
+     FROM opportunity_parties op
+     JOIN opportunities o ON o.id = op.opportunity_id
+     WHERE op.company_id = $1
+     ORDER BY o.updated_at DESC NULLS LAST, op.id DESC`,
+    [companyId],
+  );
+}

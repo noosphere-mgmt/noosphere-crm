@@ -3,6 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
+  normalizeCategoryPreference,
+  normalizeSpaceFormPreference,
+} from "@/lib/opportunityPreferences";
+import {
   parseOpportunityFundingStatus,
   parseOpportunitySalesRole,
   parseOpportunityStatus,
@@ -24,6 +28,7 @@ import {
 import { OPPORTUNITY_LEAD_TYPES } from "@/lib/lookups";
 import { isClosedOpportunityStatus } from "@/lib/openOpportunityStatus";
 import type { OpportunityLeadType } from "@/lib/types/entities";
+import { normalizeOpportunitySource } from "@/lib/opportunitySourceValues";
 
 function parseOptionalDecimal(v: FormDataEntryValue | null): number | null {
   const s = String(v ?? "").trim();
@@ -42,13 +47,6 @@ function parseOptionalInt(v: FormDataEntryValue | null): number | null {
 function parseOptionalString(v: FormDataEntryValue | null): string | null {
   const s = String(v ?? "").trim();
   return s || null;
-}
-
-function parseOptionalId(v: FormDataEntryValue | null): number | null {
-  const s = String(v ?? "").trim();
-  if (!s) return null;
-  const n = Number.parseInt(s, 10);
-  return Number.isFinite(n) && n > 0 ? n : null;
 }
 
 function parseLeadType(v: FormDataEntryValue | null): OpportunityLeadType {
@@ -77,38 +75,55 @@ async function opportunityInputFromForm(formData: FormData) {
 
   const salesRole = parseOpportunitySalesRole(formData.get("sales_role"));
   const propertyType = parseOptionalString(formData.get("property_type"));
-  const status = parseOpportunityStatus(String(formData.get("status") ?? "new"));
-  const expectedCloseDate =
-    salesRole === "to_lease" ? parseOptionalString(formData.get("expected_close_date")) : null;
+  const status = parseOpportunityStatus(String(formData.get("status") ?? "qualifying"));
+  const isLease = salesRole === "to_lease";
+  const isBuy = salesRole === "to_buy";
+  const isSell = salesRole === "to_sell";
+  const isProfService = salesRole === "prof_service";
 
   return {
     client_name: clientName || "Unknown",
     lead_type: parseLeadType(formData.get("lead_type")),
+    lead_source: normalizeOpportunitySource(formData.get("lead_source")),
     company_name: companyName,
     company_id: companyId,
     primary_contact_id: primaryContactId,
     referrer_company_id: referrerCompanyId,
     referrer_contact_id: referrerContactId,
     sales_role: salesRole,
-    lease_term: salesRole === "to_lease" ? parseOptionalString(formData.get("lease_term")) : null,
-    expected_close_date: expectedCloseDate,
+    lease_term: isLease ? parseOptionalString(formData.get("lease_term")) : null,
+    expected_close_date: parseOptionalString(formData.get("expected_close_date")),
     lost_reason: isClosedOpportunityStatus(status)
       ? parseOptionalString(formData.get("lost_reason"))
       : null,
     relationship_owner: parseOptionalString(formData.get("relationship_owner")),
     budget_min: null,
-    budget_max: parseOptionalDecimal(formData.get("budget_max") ?? formData.get("budget")),
-    required_area_sqft: parseOptionalDecimal(formData.get("required_area_sqft")),
-    required_capacity_pax:
-      salesRole === "to_lease" ? parseOptionalInt(formData.get("required_capacity_pax")) : null,
-    district_preference: parseOptionalString(formData.get("district_preference")),
-    workspace_type: propertyType,
-    property_type: propertyType,
-    target_yield: salesRole === "to_buy" ? parseOptionalString(formData.get("target_yield")) : null,
+    budget_max: isProfService
+      ? null
+      : parseOptionalDecimal(formData.get("budget_max") ?? formData.get("budget")),
+    required_area_sqft: isProfService
+      ? null
+      : parseOptionalDecimal(formData.get("required_area_sqft")),
+    required_capacity_pax: isLease ? parseOptionalInt(formData.get("required_capacity_pax")) : null,
+    district_preference: isProfService
+      ? null
+      : parseOptionalString(formData.get("district_preference")),
+    workspace_type: isProfService ? null : propertyType,
+    property_type: isProfService ? null : propertyType,
+    property_category_preference: isProfService
+      ? null
+      : normalizeCategoryPreference(formData.get("property_category_preference")),
+    property_type_preference: isProfService
+      ? null
+      : normalizeSpaceFormPreference(formData.get("property_type_preference")),
+    target_yield: isBuy || isSell ? parseOptionalString(formData.get("target_yield")) : null,
     funding_status:
-      salesRole === "to_buy" ? parseOpportunityFundingStatus(formData.get("funding_status")) : null,
-    move_in_date: salesRole === "to_lease" ? expectedCloseDate : null,
+      isBuy ? parseOpportunityFundingStatus(formData.get("funding_status")) : null,
+    move_in_date: isLease ? parseOptionalString(formData.get("move_in_date")) : null,
     status,
+    waiting_for: parseOptionalString(formData.get("waiting_for")),
+    next_action: parseOptionalString(formData.get("next_action")),
+    next_action_date: parseOptionalString(formData.get("next_action_date")),
     requirement_summary: parseOptionalString(formData.get("requirement_summary")),
     remarks: parseOptionalString(formData.get("remarks")),
   };
@@ -127,6 +142,45 @@ export async function createOpportunityAction(formData: FormData) {
 }
 
 export async function updateOpportunityAction(id: number, formData: FormData) {
+  const existing = await getOpportunity(id);
+  if (!existing) throw new Error("Opportunity not found");
+
+  // The Overview form intentionally edits only part of the opportunity. Preserve
+  // stored values for controls that are not rendered in the current form so a
+  // small edit cannot silently clear header, pipeline or referral information.
+  const preserveWhenAbsent: Array<[string, unknown]> = [
+    ["client_name", existing.client_name],
+    ["lead_type", existing.lead_type],
+    ["company_id", existing.company_id],
+    ["primary_contact_id", existing.primary_contact_id],
+    ["referrer_company_id", existing.referrer_company_id],
+    ["referrer_contact_id", existing.referrer_contact_id],
+    ["sales_role", existing.sales_role],
+    ["lease_term", existing.lease_term],
+    ["expected_close_date", existing.expected_close_date],
+    ["lost_reason", existing.lost_reason],
+    ["relationship_owner", existing.relationship_owner],
+    ["budget_max", existing.budget_max],
+    ["required_area_sqft", existing.required_area_sqft],
+    ["required_capacity_pax", existing.required_capacity_pax],
+    ["district_preference", existing.district_preference],
+    ["property_type", existing.property_type],
+    ["property_category_preference", existing.property_category_preference],
+    ["property_type_preference", existing.property_type_preference],
+    ["target_yield", existing.target_yield],
+    ["funding_status", existing.funding_status],
+    ["move_in_date", existing.move_in_date],
+    ["status", existing.status],
+    ["waiting_for", existing.waiting_for],
+    ["next_action", existing.next_action],
+    ["next_action_date", existing.next_action_date],
+    ["requirement_summary", existing.requirement_summary],
+    ["remarks", existing.remarks],
+  ];
+  for (const [field, value] of preserveWhenAbsent) {
+    if (!formData.has(field)) formData.set(field, value == null ? "" : String(value));
+  }
+
   const input = await opportunityInputFromForm(formData);
   await updateOpportunity(id, input);
   revalidatePath("/admin/opportunities");

@@ -174,7 +174,7 @@ export function MarketablePropertyFormFields({
             label="Space form"
             name="space_form"
             options={SPACE_FORMS}
-            defaultValue={d?.space_form ?? "Unit"}
+            defaultValue={d?.space_form ?? "Unit (s)"}
             required
           />
           <EnumSelect

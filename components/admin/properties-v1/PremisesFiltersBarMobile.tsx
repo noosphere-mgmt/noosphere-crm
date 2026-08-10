@@ -9,12 +9,14 @@ import {
   type PremisesFiltersBarProps,
 } from "@/components/admin/properties-v1/usePremisesFiltersBar";
 import {
+  PREMISES_ASSET_CLASSES,
+  PREMISES_PRODUCT_SUBTYPES,
   V1_FIT_OUT_CONDITIONS,
   V1_LISTING_INTENTS,
   V1_LISTING_STATUSES,
-  V1_OPERATING_MODELS,
-  V1_PROPERTY_TYPES,
+  V1_VIEW_TYPES,
 } from "@/lib/v1ListValues";
+import { BUILDING_TITLES } from "@/lib/lookups";
 
 export function PremisesFiltersBarMobile(props: PremisesFiltersBarProps) {
   const {
@@ -32,6 +34,9 @@ export function PremisesFiltersBarMobile(props: PremisesFiltersBarProps) {
     hasActiveFilters,
     activeFilterCount,
   } = usePremisesFiltersBar(props);
+  const subtypeOptions = filters.asset_class && filters.asset_class in PREMISES_PRODUCT_SUBTYPES
+    ? PREMISES_PRODUCT_SUBTYPES[filters.asset_class as keyof typeof PREMISES_PRODUCT_SUBTYPES]
+    : Object.values(PREMISES_PRODUCT_SUBTYPES).flat();
 
   const searchInput = (
     <input
@@ -72,29 +77,40 @@ export function PremisesFiltersBarMobile(props: PremisesFiltersBarProps) {
           ))}
         </select>
       </MobileFilterField>
-      <MobileFilterField label="Property type">
+      <MobileFilterField label="Building title">
         <select
-          aria-label="Property type"
-          value={filters.property_type ?? ""}
-          onChange={(e) => patch({ property_type: e.target.value || undefined })}
+          aria-label="Building title"
+          value={filters.title ?? ""}
+          onChange={(e) => patch({ title: e.target.value || undefined })}
           className={`${theme.searchSelect} w-full`}
         >
-          <option value="">All types</option>
-          {V1_PROPERTY_TYPES.map((t) => (
-            <option key={t} value={t}>{t}</option>
+          <option value="">All titles</option>
+          {BUILDING_TITLES.map((value) => <option key={value} value={value}>{value}</option>)}
+        </select>
+      </MobileFilterField>
+      <MobileFilterField label="Asset class">
+        <select
+          aria-label="Asset class"
+          value={filters.asset_class ?? ""}
+          onChange={(e) => patch({ asset_class: e.target.value || undefined, product_subtype: undefined })}
+          className={`${theme.searchSelect} w-full`}
+        >
+          <option value="">All asset classes</option>
+          {PREMISES_ASSET_CLASSES.map((t) => (
+            <option key={t.value} value={t.value}>{t.label}</option>
           ))}
         </select>
       </MobileFilterField>
-      <MobileFilterField label="Operating model">
+      <MobileFilterField label="Subtype">
         <select
-          aria-label="Operating model"
-          value={filters.operating_model ?? ""}
-          onChange={(e) => patch({ operating_model: e.target.value || undefined })}
+          aria-label="Subtype"
+          value={filters.product_subtype ?? ""}
+          onChange={(e) => patch({ product_subtype: e.target.value || undefined })}
           className={`${theme.searchSelect} w-full`}
         >
-          <option value="">All models</option>
-          {V1_OPERATING_MODELS.map((t) => (
-            <option key={t} value={t}>{t}</option>
+          <option value="">All subtypes</option>
+          {subtypeOptions.map((t) => (
+            <option key={t.value} value={t.value}>{t.label}</option>
           ))}
         </select>
       </MobileFilterField>
@@ -107,6 +123,20 @@ export function PremisesFiltersBarMobile(props: PremisesFiltersBarProps) {
         >
           <option value="">All conditions</option>
           {V1_FIT_OUT_CONDITIONS.map((t) => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
+      </MobileFilterField>
+      <MobileFilterField label="View">
+        <select
+          aria-label="View"
+          value={filters.view_type ?? ""}
+          onChange={(e) => patch({ view_type: e.target.value || undefined })}
+          className={`${theme.searchSelect} w-full`}
+        >
+          <option value="">All views</option>
+          <option value="Sea View">Any sea view</option>
+          {V1_VIEW_TYPES.map((t) => (
             <option key={t} value={t}>{t}</option>
           ))}
         </select>
@@ -150,6 +180,7 @@ export function PremisesFiltersBarMobile(props: PremisesFiltersBarProps) {
         filterPanel={mobileFilterPanel}
         showReset={hasActiveFilters}
         onReset={resetAll}
+        resetAfterSearch
       />
     </div>
   );

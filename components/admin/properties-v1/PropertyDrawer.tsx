@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { PropertiesV1Client } from "@/app/admin/properties/[id]/PropertiesV1Client";
 import { InlineEditProvider } from "@/components/admin/inline/InlineEditProvider";
 import { ModuleActionBar } from "@/components/admin/ModuleActionBar";
+import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { PropertyDrawerHeader } from "@/components/admin/properties-v1/PropertyDrawerHeader";
 import { PropertyEditForm, propertyFormId } from "@/components/admin/properties-v1/PropertyEditForm";
 import { PropertyInlineOverview } from "@/components/admin/properties-v1/PropertyInlineOverview";
@@ -95,9 +96,8 @@ export function PropertyDrawer({
             <PropertyDrawerHeader
               title={propertyHeading(property)}
               subtitle={propertySubtitle(property)}
-              businessId={property.property_id}
+              businessId={property.business_id}
               onClose={onClose}
-              onFullEdit={() => onModeChange("edit")}
             />
 
             <div className="flex flex-wrap gap-1 border-b border-slate-200 bg-white px-4 sm:px-5">
@@ -130,7 +130,7 @@ export function PropertyDrawer({
 
             <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-5 sm:py-4">
               {tab === "property" ? (
-                <PropertyInlineOverview property={property} companies={companies} />
+                <PropertyInlineOverview property={property} companies={companies} showMultilingualNames />
               ) : (
                 <Suspense fallback={<div className="h-40 animate-pulse rounded-xl bg-slate-100" />}>
                   <PropertiesV1Client
@@ -152,6 +152,7 @@ export function PropertyDrawer({
               <div className="min-w-0">
                 <p className="text-xs text-slate-500">Edit property</p>
                 <h2 className="mt-0.5 text-lg font-semibold tracking-tight text-slate-900">{propertyHeading(property)}</h2>
+                <RecordBusinessId id={property.business_id} className="mt-0.5 block" />
               </div>
               <ModuleActionBar
                 mode="edit"

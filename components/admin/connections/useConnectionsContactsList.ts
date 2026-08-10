@@ -61,17 +61,25 @@ export function useConnectionsContactsList(rows: Contact[]) {
     });
   }, [rows, quickFilters, searchQuery, sortKey, sortDir]);
 
+  const selectionIds = useMemo(
+    () => displayedRows.map((r) => String(r.id)),
+    [displayedRows],
+  );
   const displayedIds = useMemo(
-    () => displayedRows.map((r) => contactBusinessExportId(r)),
+    () => displayedRows.map((r) => contactBusinessExportId(r)).filter(Boolean),
     [displayedRows],
   );
   const exportSelectedIds = useMemo(
-    () => displayedRows.filter((r) => selected.has(String(r.id))).map((r) => contactBusinessExportId(r)),
+    () =>
+      displayedRows
+        .filter((r) => selected.has(String(r.id)))
+        .map((r) => contactBusinessExportId(r))
+        .filter(Boolean),
     [displayedRows, selected],
   );
   useSyncListingExportIds(displayedIds);
   const allDisplayedSelected =
-    displayedIds.length > 0 && displayedIds.every((id) => selected.has(id));
+    selectionIds.length > 0 && selectionIds.every((id) => selected.has(id));
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -98,6 +106,7 @@ export function useConnectionsContactsList(rows: Contact[]) {
     countries,
     cities,
     displayedRows,
+    selectionIds,
     displayedIds,
     exportSelectedIds,
     allDisplayedSelected,

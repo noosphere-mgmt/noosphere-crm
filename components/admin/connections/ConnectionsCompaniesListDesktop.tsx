@@ -56,7 +56,7 @@ export function ConnectionsCompaniesListDesktop({
     sortKey,
     sortDir,
     displayedRows,
-    displayedIds,
+    selectionIds,
     allDisplayedSelected,
     handleSort,
   } = state;
@@ -71,7 +71,7 @@ export function ConnectionsCompaniesListDesktop({
                 type="checkbox"
                 aria-label="Select all"
                 checked={allDisplayedSelected}
-                onChange={(e) => toggleAll(displayedIds, e.target.checked)}
+                onChange={(e) => toggleAll(selectionIds, e.target.checked)}
                 className="rounded border-slate-300"
               />
             </th>

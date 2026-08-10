@@ -13,8 +13,12 @@ export function opportunitiesHref(params?: {
   return qs ? `/admin/opportunities?${qs}` : "/admin/opportunities";
 }
 
-export function opportunityHref(id: number): string {
-  return `/admin/opportunities?opportunity=${id}`;
+export function opportunityHref(id: number | string): string {
+  return `/admin/opportunities/${encodeURIComponent(String(id))}`;
+}
+
+export function dealWorkspaceHref(deal: { id: number; business_id?: string | null }): string {
+  return opportunityHref(deal.business_id?.trim() || deal.id);
 }
 
 export function activityHref(activityId: string): string {
@@ -45,6 +49,15 @@ export function partyHref(companyId: number | string, contactId: number | string
     }
   }
   return companyHref(companyId);
+}
+
+export function referrerPerformanceHref(row: {
+  entity_type: "company" | "contact";
+  entity_id: number;
+  business_id?: string | null;
+}): string {
+  const ref = row.business_id?.trim() || String(row.entity_id);
+  return row.entity_type === "contact" ? contactHref(ref) : companyHref(ref);
 }
 
 export function premisesHref(premisesId: string): string {

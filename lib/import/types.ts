@@ -8,7 +8,8 @@ export type ImportObjectType =
   | "opportunity_parties"
   | "opportunity_proposed_premises"
   | "activities"
-  | "activity_premises";
+  | "activity_premises"
+  | "leads";
 
 export type RecordId = number | string;
 
@@ -27,7 +28,8 @@ export type ImportFieldType =
   | "boolean"
   | "date"
   | "enum"
-  | "string_array";
+  | "string_array"
+  | "json";
 
 export type ParsedCsv = {
   headers: string[];
@@ -93,6 +95,7 @@ export const IMPORT_OBJECT_LABELS: Record<ImportObjectType, string> = {
   opportunity_proposed_premises: "Opportunity proposed premises",
   activities: "Activities",
   activity_premises: "Activity premises checkpoints",
+  leads: "Leads",
 };
 
 export const IMPORT_OBJECT_TYPES: ImportObjectType[] = [
@@ -106,6 +109,7 @@ export const IMPORT_OBJECT_TYPES: ImportObjectType[] = [
   "opportunity_proposed_premises",
   "activities",
   "activity_premises",
+  "leads",
 ];
 
 /** @deprecated use IMPORT_OBJECT_TYPES */

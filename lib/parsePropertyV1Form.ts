@@ -1,5 +1,6 @@
 import { composePropertyFullAddresses, hasAddressParts } from "@/lib/composeAddress";
 import type { PropertyV1Patch } from "@/lib/repos/propertiesV1";
+import { normalizeBuildingRelationships } from "@/lib/buildingRelationships";
 
 function s(v: FormDataEntryValue | null): string | null {
   const out = String(v ?? "").trim();
@@ -26,11 +27,21 @@ export function parsePropertyV1Form(formData: FormData): PropertyV1Patch {
     bldg_name_en: s(formData.get("bldg_name_en")),
     bldg_name_zh: s(formData.get("bldg_name_zh")),
     bldg_name_cn: s(formData.get("bldg_name_cn")),
+    building_type: s(formData.get("building_type")),
+    tower_block: s(formData.get("tower_block")),
     floor_count: nInt(formData.get("floor_count")),
     bldg_area_sqft: nDec(formData.get("bldg_area_sqft")),
     bldg_area_sqm: nDec(formData.get("bldg_area_sqm")),
     year_built: nInt(formData.get("year_built")),
     bldg_desc: s(formData.get("bldg_desc")),
+    bldg_desc_zh: s(formData.get("bldg_desc_zh")),
+    bldg_desc_cn: s(formData.get("bldg_desc_cn")),
+    location_advantages_en: s(formData.get("location_advantages_en")),
+    location_advantages_zh: s(formData.get("location_advantages_zh")),
+    location_advantages_cn: s(formData.get("location_advantages_cn")),
+    proposal_highlights_en: s(formData.get("proposal_highlights_en")),
+    proposal_highlights_zh: s(formData.get("proposal_highlights_zh")),
+    proposal_highlights_cn: s(formData.get("proposal_highlights_cn")),
     building_remarks: s(formData.get("building_remarks")),
     country: s(formData.get("country")),
     city_en: s(formData.get("city_en")),
@@ -52,13 +63,17 @@ export function parsePropertyV1Form(formData: FormData): PropertyV1Patch {
     lot_number: s(formData.get("lot_number")),
     grade: s(formData.get("grade")),
     management_company_id: s(formData.get("management_company_id")),
+    operator_company_id: s(formData.get("operator_company_id")),
     owner_company_id: s(formData.get("owner_company_id")),
     current_tenant_company_id: s(formData.get("current_tenant_company_id")),
     title: s(formData.get("title")),
     mtr_station: s(formData.get("mtr_station")),
     walking_minutes: nInt(formData.get("walking_minutes")),
     facilities: s(formData.get("facilities")),
+    facilities_zh: s(formData.get("facilities_zh")),
+    facilities_cn: s(formData.get("facilities_cn")),
     green_certification: s(formData.get("green_certification")),
+    building_relationship_lines: normalizeBuildingRelationships(formData.get("building_relationship_lines")),
   };
 
   const composed = composePropertyFullAddresses(patch);

@@ -12,13 +12,13 @@ function formatContactRoles(roles: CompanyRole[] | null | undefined): string {
 export type ConnectionsQuickFilters = {
   country: string;
   city: string;
-  coverage: string;
+  coverage: string[];
 };
 
 export const EMPTY_CONNECTIONS_QUICK_FILTERS: ConnectionsQuickFilters = {
   country: "",
   city: "",
-  coverage: "",
+  coverage: [],
 };
 
 /** @deprecated use ConnectionsQuickFilters */
@@ -70,10 +70,10 @@ export function matchesQuickFilters(
 ): boolean {
   const countryQ = filters.country.trim().toLowerCase();
   const cityQ = filters.city.trim().toLowerCase();
-  const coverageQ = filters.coverage.trim().toLowerCase();
+  const coverageValues = (row.coverage ?? []).map((value) => value.toLowerCase());
   if (countryQ && !fuzzyMatch(row.country, countryQ)) return false;
   if (cityQ && !fuzzyMatch(row.city, cityQ)) return false;
-  if (coverageQ && !fuzzyMatch(formatCoverage(row.coverage), coverageQ)) return false;
+  if (filters.coverage.length > 0 && !filters.coverage.some((selected) => coverageValues.includes(selected.toLowerCase()))) return false;
   return true;
 }
 
@@ -120,9 +120,9 @@ export function contactMatchesGlobalSearch(row: Contact, query: string): boolean
 export function contactMatchesQuickFilters(row: Contact, filters: ConnectionsQuickFilters): boolean {
   const countryQ = filters.country.trim().toLowerCase();
   const cityQ = filters.city.trim().toLowerCase();
-  const coverageQ = filters.coverage.trim().toLowerCase();
+  const coverageValues = (row.coverage ?? []).map((value) => value.toLowerCase());
   if (countryQ && !fuzzyMatch(row.company_country, countryQ)) return false;
   if (cityQ && !fuzzyMatch(row.company_city, cityQ)) return false;
-  if (coverageQ && !fuzzyMatch(formatCoverage(row.coverage), coverageQ)) return false;
+  if (filters.coverage.length > 0 && !filters.coverage.some((selected) => coverageValues.includes(selected.toLowerCase()))) return false;
   return true;
 }

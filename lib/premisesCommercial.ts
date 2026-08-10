@@ -1,7 +1,12 @@
 import { formatMoney, formatPsf, formatCurrencyPsf } from "@/lib/formatCurrency";
 import { isListingIntentForSale } from "@/lib/premisesListing";
 
-const PACKAGE_OPERATING_MODELS = new Set(["Serviced Office", "Shared Office"]);
+const PACKAGE_OPERATING_MODELS = new Set([
+  "Serviced Office",
+  "Shared Office",
+  "serviced_office",
+  "shared_sublet_office",
+]);
 
 export function isPackageOperatingModel(operatingModel: string | null | undefined): boolean {
   return PACKAGE_OPERATING_MODELS.has((operatingModel ?? "").trim());
