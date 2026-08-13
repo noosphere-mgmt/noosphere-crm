@@ -313,6 +313,18 @@ async function main(): Promise<void> {
   await query(migratePhase71);
   console.log("Phase 71 opportunity lifecycle and source standardized.");
 
+  const migratePhase72 = await readSql("schema-migrate-phase72-leads-requirement-fields.sql");
+  await query(migratePhase72);
+  console.log("Phase 72 leads requirement fields and source alignment applied.");
+
+  const migratePhase73 = await readSql("schema-migrate-phase73-contact-phone-mobile-area.sql");
+  await query(migratePhase73);
+  console.log("Phase 73 contact phone/mobile and area codes applied.");
+
+  const migratePhase74 = await readSql("schema-migrate-phase74-serviced-office-package-pricing.sql");
+  await query(migratePhase74);
+  console.log("Phase 74 serviced/shared office package pricing applied.");
+
   const crosswalkCompanies = await query<{ n: string }>(
     `SELECT COUNT(*)::text AS n FROM business_id_crosswalk WHERE entity_type = 'company'`,
   );

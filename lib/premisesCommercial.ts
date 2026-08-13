@@ -8,8 +8,74 @@ const PACKAGE_OPERATING_MODELS = new Set([
   "shared_sublet_office",
 ]);
 
+export const YES_NO_OPTIONS = ["Yes", "No"] as const;
+
+export const SERVICED_OFFICE_PRICE_TIERS = [
+  {
+    key: "unique_address",
+    label: "Unique Address",
+    mthField: "price_pax_mth_unique_address",
+    yrField: "price_pax_yr_unique_address",
+  },
+  {
+    key: "workstation",
+    label: "Workstation",
+    mthField: "price_pax_mth_workstation",
+    yrField: "price_pax_yr_workstation",
+  },
+  {
+    key: "room_window",
+    label: "Room Window",
+    mthField: "price_pax_mth_room_window",
+    yrField: "price_pax_yr_room_window",
+  },
+  {
+    key: "room_internal",
+    label: "Room Internal",
+    mthField: "price_pax_mth_room_internal",
+    yrField: "price_pax_yr_room_internal",
+  },
+] as const;
+
+export type ServicedOfficePriceTierKey = (typeof SERVICED_OFFICE_PRICE_TIERS)[number]["key"];
+export type ServicedOfficePriceField =
+  | (typeof SERVICED_OFFICE_PRICE_TIERS)[number]["mthField"]
+  | (typeof SERVICED_OFFICE_PRICE_TIERS)[number]["yrField"];
+
 export function isPackageOperatingModel(operatingModel: string | null | undefined): boolean {
   return PACKAGE_OPERATING_MODELS.has((operatingModel ?? "").trim());
+}
+
+/** Serviced office / shared-sublet office product (package pricing + per-pax tiers). */
+export function isServicedOrSharedOffice(premises: {
+  product_subtype?: string | null;
+  operating_model?: string | null;
+}): boolean {
+  const subtype = (premises.product_subtype ?? "").trim();
+  if (subtype === "serviced_office" || subtype === "shared_sublet_office") return true;
+  return isPackageOperatingModel(premises.operating_model) || isPackageOperatingModel(subtype);
+}
+
+export function parseYesNo(value: unknown): "Yes" | "No" | null {
+  const s = String(value ?? "").trim();
+  if (!s) return null;
+  if (s === "Yes" || s === "No") return s;
+  const lower = s.toLowerCase();
+  if (lower === "y" || lower === "true" || lower === "1") return "Yes";
+  if (lower === "n" || lower === "false" || lower === "0") return "No";
+  return null;
+}
+
+export function isServicedOfficePriceTierKey(value: string | null | undefined): value is ServicedOfficePriceTierKey {
+  return SERVICED_OFFICE_PRICE_TIERS.some((tier) => tier.key === value);
+}
+
+export function servicedOfficePriceTierColumn(
+  tier: ServicedOfficePriceTierKey,
+  period: "mth" | "yr",
+): ServicedOfficePriceField {
+  const row = SERVICED_OFFICE_PRICE_TIERS.find((t) => t.key === tier)!;
+  return period === "mth" ? row.mthField : row.yrField;
 }
 
 export function isConventionalOperatingModel(operatingModel: string | null | undefined): boolean {

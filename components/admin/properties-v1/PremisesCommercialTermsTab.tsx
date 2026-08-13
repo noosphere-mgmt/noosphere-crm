@@ -3,6 +3,7 @@
 import { patchPremisesFieldAction } from "@/app/admin/properties/actions";
 import { InlineTextField } from "@/components/admin/inline/InlineFields";
 import { PremisesSectionCard } from "@/components/admin/properties-v1/premisesDrawerUi";
+import { PremisesServicedOfficeFields } from "@/components/admin/properties-v1/PremisesServicedOfficeFields";
 import { monthlyRentFieldLabel } from "@/lib/premisesCommercial";
 import { isListingIntentForLease, isListingIntentForSale } from "@/lib/premisesListing";
 import type { PremisesV1 } from "@/lib/repos/premisesV1";
@@ -16,6 +17,7 @@ export function PremisesCommercialTermsTab({ premises }: { premises: PremisesV1 
   const showLease = premises.market_mode === "lease" || premises.market_mode === "lease_or_sale" || isListingIntentForLease(premises.inventory_status) || !showSale;
   return (
     <div className="contents">
+      <PremisesServicedOfficeFields premises={premises} save={save} />
       {showLease ? (
         <PremisesSectionCard title="Lease Terms" className="!p-3">
           <div className="grid grid-cols-2 gap-2.5">

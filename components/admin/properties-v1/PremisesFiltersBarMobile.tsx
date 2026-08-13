@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import {
   MobileFilterField,
   PropertiesMobileSearchRow,
@@ -8,6 +9,10 @@ import {
   usePremisesFiltersBar,
   type PremisesFiltersBarProps,
 } from "@/components/admin/properties-v1/usePremisesFiltersBar";
+import {
+  SERVICED_OFFICE_PRICE_TIERS,
+  YES_NO_OPTIONS,
+} from "@/lib/premisesCommercial";
 import {
   PREMISES_ASSET_CLASSES,
   PREMISES_PRODUCT_SUBTYPES,
@@ -34,6 +39,10 @@ export function PremisesFiltersBarMobile(props: PremisesFiltersBarProps) {
     hasActiveFilters,
     activeFilterCount,
   } = usePremisesFiltersBar(props);
+  const [pricePaxMthMax, setPricePaxMthMax] = useState(filters.price_pax_mth_max ?? "");
+  useEffect(() => {
+    setPricePaxMthMax(filters.price_pax_mth_max ?? "");
+  }, [filters.price_pax_mth_max]);
   const subtypeOptions = filters.asset_class && filters.asset_class in PREMISES_PRODUCT_SUBTYPES
     ? PREMISES_PRODUCT_SUBTYPES[filters.asset_class as keyof typeof PREMISES_PRODUCT_SUBTYPES]
     : Object.values(PREMISES_PRODUCT_SUBTYPES).flat();
@@ -43,8 +52,8 @@ export function PremisesFiltersBarMobile(props: PremisesFiltersBarProps) {
       type="search"
       value={search}
       onChange={(e) => setSearch(e.target.value)}
-      placeholder="Search premises, building, operator, district..."
-      aria-label="Search premises"
+      placeholder="Search buildings & premises — names, address, notes…"
+      aria-label="Search buildings and premises"
       className={theme.searchInput}
     />
   );
@@ -166,6 +175,66 @@ export function PremisesFiltersBarMobile(props: PremisesFiltersBarProps) {
             <option key={t} value={t}>{t}</option>
           ))}
         </select>
+      </MobileFilterField>
+      <MobileFilterField label="Unique Address?">
+        <select
+          aria-label="Unique Address"
+          value={filters.offers_unique_address ?? ""}
+          onChange={(e) => patch({ offers_unique_address: e.target.value || undefined })}
+          className={`${theme.searchSelect} w-full`}
+        >
+          <option value="">Any</option>
+          {YES_NO_OPTIONS.map((t) => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
+      </MobileFilterField>
+      <MobileFilterField label="Stamp Duty?">
+        <select
+          aria-label="Stamp Duty"
+          value={filters.offers_stamp_duty ?? ""}
+          onChange={(e) => patch({ offers_stamp_duty: e.target.value || undefined })}
+          className={`${theme.searchSelect} w-full`}
+        >
+          <option value="">Any</option>
+          {YES_NO_OPTIONS.map((t) => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
+      </MobileFilterField>
+      <MobileFilterField label="Package product">
+        <select
+          aria-label="Package product"
+          value={filters.package_product ?? ""}
+          onChange={(e) => patch({ package_product: e.target.value || undefined })}
+          className={`${theme.searchSelect} w-full`}
+        >
+          <option value="">Any product</option>
+          {SERVICED_OFFICE_PRICE_TIERS.map((t) => (
+            <option key={t.key} value={t.key}>{t.label}</option>
+          ))}
+        </select>
+      </MobileFilterField>
+      <MobileFilterField label="Max $/pax/mth">
+        <input
+          type="number"
+          min={0}
+          step="1"
+          inputMode="decimal"
+          aria-label="Max price per pax per month"
+          placeholder="Max price/pax/mth"
+          value={pricePaxMthMax}
+          onChange={(e) => setPricePaxMthMax(e.target.value)}
+          onBlur={() =>
+            patch({ price_pax_mth_max: pricePaxMthMax.trim() || undefined })
+          }
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              patch({ price_pax_mth_max: pricePaxMthMax.trim() || undefined });
+            }
+          }}
+          className={`${theme.searchSelect} w-full`}
+        />
       </MobileFilterField>
     </>
   );

@@ -7,6 +7,11 @@ import {
 } from "@/lib/propertyV1DbCoerce";
 import { allocateNextBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
 import { isPermanentBusinessId } from "@/lib/businessIds";
+import {
+  isServicedOfficePriceTierKey,
+  servicedOfficePriceTierColumn,
+  SERVICED_OFFICE_PRICE_TIERS,
+} from "@/lib/premisesCommercial";
 import { normalizePremisesRelationshipLines } from "@/lib/premisesRelationships";
 import type { PremisesRelationshipLine } from "@/lib/v1ListValues";
 
@@ -76,6 +81,16 @@ export type PremisesV1 = {
   offer_type: string | null;
   offer_status: string | null;
   capacity_pax: number | null;
+  offers_unique_address: string | null;
+  offers_stamp_duty: string | null;
+  price_pax_mth_unique_address: string | null;
+  price_pax_yr_unique_address: string | null;
+  price_pax_mth_workstation: string | null;
+  price_pax_yr_workstation: string | null;
+  price_pax_mth_room_window: string | null;
+  price_pax_yr_room_window: string | null;
+  price_pax_mth_room_internal: string | null;
+  price_pax_yr_room_internal: string | null;
   monthly_rent: string | null;
   rent_psf: string | null;
   deposit_months: string | null;
@@ -129,6 +144,15 @@ const select = `
   source_company_id, source_contact_id, source_contact_role,
   offer_type, offer_status,
   capacity_pax,
+  offers_unique_address, offers_stamp_duty,
+  price_pax_mth_unique_address::text AS price_pax_mth_unique_address,
+  price_pax_yr_unique_address::text AS price_pax_yr_unique_address,
+  price_pax_mth_workstation::text AS price_pax_mth_workstation,
+  price_pax_yr_workstation::text AS price_pax_yr_workstation,
+  price_pax_mth_room_window::text AS price_pax_mth_room_window,
+  price_pax_yr_room_window::text AS price_pax_yr_room_window,
+  price_pax_mth_room_internal::text AS price_pax_mth_room_internal,
+  price_pax_yr_room_internal::text AS price_pax_yr_room_internal,
   monthly_rent::text AS monthly_rent,
   rent_psf::text AS rent_psf,
   deposit_months,
@@ -206,6 +230,14 @@ export type PremisesV1Patch = Partial<
     | "government_rates"
     | "monthly_rent"
     | "rent_psf"
+    | "price_pax_mth_unique_address"
+    | "price_pax_yr_unique_address"
+    | "price_pax_mth_workstation"
+    | "price_pax_yr_workstation"
+    | "price_pax_mth_room_window"
+    | "price_pax_yr_room_window"
+    | "price_pax_mth_room_internal"
+    | "price_pax_yr_room_internal"
     | "asking_sale_price"
     | "sale_price_psf"
     | "negotiable_sale_price"
@@ -221,6 +253,14 @@ export type PremisesV1Patch = Partial<
     government_rates?: number | null;
     monthly_rent?: number | null;
     rent_psf?: number | null;
+    price_pax_mth_unique_address?: number | null;
+    price_pax_yr_unique_address?: number | null;
+    price_pax_mth_workstation?: number | null;
+    price_pax_yr_workstation?: number | null;
+    price_pax_mth_room_window?: number | null;
+    price_pax_yr_room_window?: number | null;
+    price_pax_mth_room_internal?: number | null;
+    price_pax_yr_room_internal?: number | null;
     asking_sale_price?: number | null;
     sale_price_psf?: number | null;
     negotiable_sale_price?: number | null;
@@ -331,6 +371,16 @@ export function emptyPremisesV1(propertyId: string): PremisesV1 {
     offer_type: null,
     offer_status: null,
     capacity_pax: null,
+    offers_unique_address: null,
+    offers_stamp_duty: null,
+    price_pax_mth_unique_address: null,
+    price_pax_yr_unique_address: null,
+    price_pax_mth_workstation: null,
+    price_pax_yr_workstation: null,
+    price_pax_mth_room_window: null,
+    price_pax_yr_room_window: null,
+    price_pax_mth_room_internal: null,
+    price_pax_yr_room_internal: null,
     monthly_rent: null,
     rent_psf: null,
     deposit_months: null,
@@ -411,6 +461,14 @@ export async function duplicatePremisesV1(premisesId: string): Promise<string> {
     government_rates,
     monthly_rent,
     rent_psf,
+    price_pax_mth_unique_address,
+    price_pax_yr_unique_address,
+    price_pax_mth_workstation,
+    price_pax_yr_workstation,
+    price_pax_mth_room_window,
+    price_pax_yr_room_window,
+    price_pax_mth_room_internal,
+    price_pax_yr_room_internal,
     asking_sale_price,
     sale_price_psf,
     negotiable_sale_price,
@@ -419,22 +477,31 @@ export async function duplicatePremisesV1(premisesId: string): Promise<string> {
     ...rest
   } = row;
 
+  const asNum = (v: string | null | undefined) => (v != null ? Number.parseFloat(v) : null);
+
   const patch: PremisesV1Patch = {
     ...rest,
-    gross_area_sqft: gross_area_sqft != null ? Number.parseFloat(gross_area_sqft) : null,
-    net_area_sqft: net_area_sqft != null ? Number.parseFloat(net_area_sqft) : null,
-    gross_area_sqm: gross_area_sqm != null ? Number.parseFloat(gross_area_sqm) : null,
-    net_area_sqm: net_area_sqm != null ? Number.parseFloat(net_area_sqm) : null,
-    management_fee: management_fee != null ? Number.parseFloat(management_fee) : null,
-    management_fee_psf: management_fee_psf != null ? Number.parseFloat(management_fee_psf) : null,
-    government_rates: government_rates != null ? Number.parseFloat(government_rates) : null,
-    monthly_rent: monthly_rent != null ? Number.parseFloat(monthly_rent) : null,
-    rent_psf: rent_psf != null ? Number.parseFloat(rent_psf) : null,
-    asking_sale_price: asking_sale_price != null ? Number.parseFloat(asking_sale_price) : null,
-    sale_price_psf: sale_price_psf != null ? Number.parseFloat(sale_price_psf) : null,
-    negotiable_sale_price: negotiable_sale_price != null ? Number.parseFloat(negotiable_sale_price) : null,
-    negotiable_sale_price_psf:
-      negotiable_sale_price_psf != null ? Number.parseFloat(negotiable_sale_price_psf) : null,
+    gross_area_sqft: asNum(gross_area_sqft),
+    net_area_sqft: asNum(net_area_sqft),
+    gross_area_sqm: asNum(gross_area_sqm),
+    net_area_sqm: asNum(net_area_sqm),
+    management_fee: asNum(management_fee),
+    management_fee_psf: asNum(management_fee_psf),
+    government_rates: asNum(government_rates),
+    monthly_rent: asNum(monthly_rent),
+    rent_psf: asNum(rent_psf),
+    price_pax_mth_unique_address: asNum(price_pax_mth_unique_address),
+    price_pax_yr_unique_address: asNum(price_pax_yr_unique_address),
+    price_pax_mth_workstation: asNum(price_pax_mth_workstation),
+    price_pax_yr_workstation: asNum(price_pax_yr_workstation),
+    price_pax_mth_room_window: asNum(price_pax_mth_room_window),
+    price_pax_yr_room_window: asNum(price_pax_yr_room_window),
+    price_pax_mth_room_internal: asNum(price_pax_mth_room_internal),
+    price_pax_yr_room_internal: asNum(price_pax_yr_room_internal),
+    asking_sale_price: asNum(asking_sale_price),
+    sale_price_psf: asNum(sale_price_psf),
+    negotiable_sale_price: asNum(negotiable_sale_price),
+    negotiable_sale_price_psf: asNum(negotiable_sale_price_psf),
     commission_rate,
   };
 
@@ -456,6 +523,12 @@ export type PremisesFlatFilters = {
   view_type?: string;
   listing_intent?: string;
   listing_status?: string;
+  offers_unique_address?: string;
+  offers_stamp_duty?: string;
+  /** unique_address | workstation | room_window | room_internal — premises with that tier priced */
+  package_product?: string;
+  /** Max Price/pax/mth for the selected package product (or any tier if none selected) */
+  price_pax_mth_max?: string;
 };
 
 export type PremisesFlatRow = {
@@ -567,15 +640,110 @@ function premisesFlatWhere(filters: PremisesFlatFilters): { where: string; param
     clauses.push(`p.offer_status = $${i++}`);
     params.push(filters.listing_status);
   }
+  if (filters.offers_unique_address) {
+    clauses.push(`p.offers_unique_address = $${i++}`);
+    params.push(filters.offers_unique_address);
+  }
+  if (filters.offers_stamp_duty) {
+    clauses.push(`p.offers_stamp_duty = $${i++}`);
+    params.push(filters.offers_stamp_duty);
+  }
+  if (filters.package_product && isServicedOfficePriceTierKey(filters.package_product)) {
+    const mthCol = servicedOfficePriceTierColumn(filters.package_product, "mth");
+    const yrCol = servicedOfficePriceTierColumn(filters.package_product, "yr");
+    clauses.push(`(p.${mthCol} IS NOT NULL OR p.${yrCol} IS NOT NULL)`);
+  }
+  if (filters.price_pax_mth_max) {
+    const max = Number.parseFloat(filters.price_pax_mth_max);
+    if (Number.isFinite(max)) {
+      if (filters.package_product && isServicedOfficePriceTierKey(filters.package_product)) {
+        const mthCol = servicedOfficePriceTierColumn(filters.package_product, "mth");
+        clauses.push(`p.${mthCol} IS NOT NULL AND p.${mthCol} <= $${i++}`);
+        params.push(max);
+      } else {
+        const ors = SERVICED_OFFICE_PRICE_TIERS.map((tier) => {
+          const clause = `(p.${tier.mthField} IS NOT NULL AND p.${tier.mthField} <= $${i})`;
+          return clause;
+        });
+        params.push(max);
+        i++;
+        clauses.push(`(${ors.join(" OR ")})`);
+      }
+    }
+  }
   if (filters.q) {
     const pattern = `%${filters.q}%`;
     clauses.push(`(
-      pr.bldg_name_en ILIKE $${i}
+      pr.property_id ILIKE $${i}
+      OR pr.business_id ILIKE $${i}
+      OR pr.bldg_name_en ILIKE $${i}
+      OR pr.bldg_name_zh ILIKE $${i}
+      OR pr.bldg_name_cn ILIKE $${i}
+      OR pr.tower_block ILIKE $${i}
+      OR pr.building_type ILIKE $${i}
+      OR pr.title ILIKE $${i}
+      OR pr.grade ILIKE $${i}
+      OR pr.country ILIKE $${i}
+      OR pr.city_en ILIKE $${i}
+      OR pr.city_zh ILIKE $${i}
+      OR pr.city_cn ILIKE $${i}
       OR pr.district_en ILIKE $${i}
+      OR pr.district_zh ILIKE $${i}
+      OR pr.district_cn ILIKE $${i}
+      OR pr.street_no ILIKE $${i}
+      OR pr.street_name_en ILIKE $${i}
+      OR pr.street_name_zh ILIKE $${i}
+      OR pr.street_name_cn ILIKE $${i}
+      OR pr.full_address_en ILIKE $${i}
+      OR pr.full_address_zh ILIKE $${i}
+      OR pr.full_address_cn ILIKE $${i}
+      OR pr.mtr_station ILIKE $${i}
+      OR pr.facilities ILIKE $${i}
+      OR pr.facilities_zh ILIKE $${i}
+      OR pr.facilities_cn ILIKE $${i}
+      OR pr.green_certification ILIKE $${i}
+      OR pr.lot_number ILIKE $${i}
+      OR pr.bldg_desc ILIKE $${i}
+      OR pr.bldg_desc_zh ILIKE $${i}
+      OR pr.bldg_desc_cn ILIKE $${i}
+      OR pr.location_advantages_en ILIKE $${i}
+      OR pr.location_advantages_zh ILIKE $${i}
+      OR pr.location_advantages_cn ILIKE $${i}
+      OR pr.proposal_highlights_en ILIKE $${i}
+      OR pr.proposal_highlights_zh ILIKE $${i}
+      OR pr.proposal_highlights_cn ILIKE $${i}
+      OR pr.building_remarks ILIKE $${i}
+      OR p.premises_id ILIKE $${i}
+      OR p.business_id ILIKE $${i}
       OR p.floor ILIKE $${i}
       OR p.unit ILIKE $${i}
       OR p.property_name_en ILIKE $${i}
+      OR p.property_name_zh ILIKE $${i}
+      OR p.property_name_cn ILIKE $${i}
+      OR p.office_name ILIKE $${i}
+      OR p.office_type ILIKE $${i}
+      OR p.property_type ILIKE $${i}
+      OR p.property_category ILIKE $${i}
+      OR p.asset_class ILIKE $${i}
+      OR p.product_subtype ILIKE $${i}
+      OR p.space_form ILIKE $${i}
+      OR p.operating_model ILIKE $${i}
+      OR p.fit_out_condition ILIKE $${i}
+      OR p.view_type ILIKE $${i}
+      OR p.windows ILIKE $${i}
+      OR p.listing_intent ILIKE $${i}
+      OR p.inventory_status ILIKE $${i}
+      OR p.offer_type ILIKE $${i}
+      OR p.offer_status ILIKE $${i}
+      OR p.availability_status ILIKE $${i}
+      OR p.occupancy_status ILIKE $${i}
+      OR p.remarks ILIKE $${i}
+      OR p.listing_remarks ILIKE $${i}
+      OR p.commission_remarks ILIKE $${i}
+      OR p.source_url ILIKE $${i}
       OR c.company_name_en ILIKE $${i}
+      OR c.company_name_zh ILIKE $${i}
+      OR c.business_id ILIKE $${i}
       OR TRIM(CONCAT_WS(' - ',
         NULLIF(TRIM(pr.bldg_name_en), ''),
         CASE
@@ -660,6 +828,15 @@ export async function listPremisesFullFiltered(filters: PremisesFlatFilters = {}
        p.source_company_id, p.source_contact_id, p.source_contact_role,
        p.offer_type, p.offer_status,
        p.capacity_pax,
+       p.offers_unique_address, p.offers_stamp_duty,
+       p.price_pax_mth_unique_address::text AS price_pax_mth_unique_address,
+       p.price_pax_yr_unique_address::text AS price_pax_yr_unique_address,
+       p.price_pax_mth_workstation::text AS price_pax_mth_workstation,
+       p.price_pax_yr_workstation::text AS price_pax_yr_workstation,
+       p.price_pax_mth_room_window::text AS price_pax_mth_room_window,
+       p.price_pax_yr_room_window::text AS price_pax_yr_room_window,
+       p.price_pax_mth_room_internal::text AS price_pax_mth_room_internal,
+       p.price_pax_yr_room_internal::text AS price_pax_yr_room_internal,
        p.monthly_rent::text AS monthly_rent,
        p.rent_psf::text AS rent_psf,
        p.deposit_months,
@@ -725,6 +902,15 @@ export async function getPremisesListItemByRef(raw: string): Promise<PremisesLis
        p.source_company_id, p.source_contact_id, p.source_contact_role,
        p.offer_type, p.offer_status,
        p.capacity_pax,
+       p.offers_unique_address, p.offers_stamp_duty,
+       p.price_pax_mth_unique_address::text AS price_pax_mth_unique_address,
+       p.price_pax_yr_unique_address::text AS price_pax_yr_unique_address,
+       p.price_pax_mth_workstation::text AS price_pax_mth_workstation,
+       p.price_pax_yr_workstation::text AS price_pax_yr_workstation,
+       p.price_pax_mth_room_window::text AS price_pax_mth_room_window,
+       p.price_pax_yr_room_window::text AS price_pax_yr_room_window,
+       p.price_pax_mth_room_internal::text AS price_pax_mth_room_internal,
+       p.price_pax_yr_room_internal::text AS price_pax_yr_room_internal,
        p.monthly_rent::text AS monthly_rent,
        p.rent_psf::text AS rent_psf,
        p.deposit_months,

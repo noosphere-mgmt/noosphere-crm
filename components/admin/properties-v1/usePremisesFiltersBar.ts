@@ -36,6 +36,10 @@ function filtersToParams(filters: PremisesFlatFilters, existing: URLSearchParams
   setOrDelete("view_type", filters.view_type);
   setOrDelete("listing_intent", filters.listing_intent);
   setOrDelete("listing_status", filters.listing_status);
+  setOrDelete("offers_unique_address", filters.offers_unique_address);
+  setOrDelete("offers_stamp_duty", filters.offers_stamp_duty);
+  setOrDelete("package_product", filters.package_product);
+  setOrDelete("price_pax_mth_max", filters.price_pax_mth_max);
 
   return params;
 }
@@ -104,7 +108,11 @@ export function usePremisesFiltersBar({ filters, cities, districts }: PremisesFi
       filters.fit_out_condition ||
       filters.view_type ||
       filters.listing_intent ||
-      filters.listing_status,
+      filters.listing_status ||
+      filters.offers_unique_address ||
+      filters.offers_stamp_duty ||
+      filters.package_product ||
+      filters.price_pax_mth_max,
   );
 
   const activeFilterCount = [
@@ -117,6 +125,10 @@ export function usePremisesFiltersBar({ filters, cities, districts }: PremisesFi
     filters.view_type,
     filters.listing_intent,
     filters.listing_status,
+    filters.offers_unique_address,
+    filters.offers_stamp_duty,
+    filters.package_product,
+    filters.price_pax_mth_max,
   ].filter(Boolean).length;
 
   return {

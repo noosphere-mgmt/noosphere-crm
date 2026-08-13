@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createPremisesV1Action } from "@/app/admin/properties/actions";
-import { ModuleActionBar } from "@/components/admin/ModuleActionBar";
+import { ModuleStickyEditBar } from "@/components/admin/ModuleActionBar";
 import { PremisesV1EditForm } from "@/components/admin/properties-v1/PremisesDrawer";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import { toCompanyV1SelectOptions } from "@/lib/companyV1Display";
@@ -71,6 +71,16 @@ function emptyPremisesV1(propertyId: string): PremisesV1 {
     offer_type: null,
     offer_status: null,
     capacity_pax: null,
+    offers_unique_address: null,
+    offers_stamp_duty: null,
+    price_pax_mth_unique_address: null,
+    price_pax_yr_unique_address: null,
+    price_pax_mth_workstation: null,
+    price_pax_yr_workstation: null,
+    price_pax_mth_room_window: null,
+    price_pax_yr_room_window: null,
+    price_pax_mth_room_internal: null,
+    price_pax_yr_room_internal: null,
     monthly_rent: null,
     rent_psf: null,
     deposit_months: null,
@@ -136,7 +146,7 @@ export function NewPremiseV1Client({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pt-14">
       <header className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm sm:px-5">
         <div className="min-w-0">
           <Link href={backHref} className={`text-xs ${theme.link}`}>
@@ -145,12 +155,6 @@ export function NewPremiseV1Client({
           <h1 className="mt-1 text-xl font-semibold tracking-tight text-slate-900">New premise</h1>
           <p className="mt-1 text-sm text-slate-600">Add a premises line to an existing building.</p>
         </div>
-        <ModuleActionBar
-          mode="edit"
-          formId={formId}
-          onCancel={() => router.push(returnTo)}
-          module="properties"
-        />
       </header>
 
       <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
@@ -183,6 +187,7 @@ export function NewPremiseV1Client({
           returnTo={returnTo}
         />
       ) : null}
+      <ModuleStickyEditBar formId={formId} onCancel={() => router.push(returnTo)} />
     </div>
   );
 }

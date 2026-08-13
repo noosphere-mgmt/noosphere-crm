@@ -32,6 +32,10 @@ type Props = {
     view_type?: string;
     listing_intent?: string;
     listing_status?: string;
+    offers_unique_address?: string;
+    offers_stamp_duty?: string;
+    package_product?: string;
+    price_pax_mth_max?: string;
     premises?: string;
     mode?: string;
     tab?: string;
@@ -53,6 +57,10 @@ export default async function AllPremisesPage({ searchParams }: Props) {
     view_type: sp.view_type?.trim() || undefined,
     listing_intent: sp.listing_intent?.trim() || undefined,
     listing_status: sp.listing_status?.trim() || undefined,
+    offers_unique_address: sp.offers_unique_address?.trim() || undefined,
+    offers_stamp_duty: sp.offers_stamp_duty?.trim() || undefined,
+    package_product: sp.package_product?.trim() || undefined,
+    price_pax_mth_max: sp.price_pax_mth_max?.trim() || undefined,
   };
 
   const premisesRef = sp.premises?.trim();

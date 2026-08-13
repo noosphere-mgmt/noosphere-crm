@@ -56,6 +56,8 @@ import {
   isPackageOperatingModel,
   monthlyRentFieldLabel,
   packageFeesNote,
+  SERVICED_OFFICE_PRICE_TIERS,
+  YES_NO_OPTIONS,
 } from "@/lib/premisesCommercial";
 import { normalizeListingIntent } from "@/lib/premisesListing";
 import { parseSpaceForm } from "@/lib/premisesClassification";
@@ -418,6 +420,77 @@ function PremisesEditForm({
               </div>
             </div>
           </Card>
+
+          {packageFees ? (
+            <Card title="Serviced / shared office">
+              <p className="mb-3 text-xs text-slate-500">
+                Unique address = dedicated room number per company. Stamp duty = available for stamp duty registration.
+              </p>
+              <div className="mb-4 grid gap-4 sm:grid-cols-2">
+                <SelectField
+                  label="Unique Address?"
+                  name="offers_unique_address"
+                  defaultValue={premises.offers_unique_address ?? ""}
+                  placeholder="— Select —"
+                  options={[...YES_NO_OPTIONS]}
+                />
+                <SelectField
+                  label="Stamp Duty?"
+                  name="offers_stamp_duty"
+                  defaultValue={premises.offers_stamp_duty ?? ""}
+                  placeholder="— Select —"
+                  options={[...YES_NO_OPTIONS]}
+                />
+              </div>
+              <div className="overflow-x-auto rounded-lg border border-slate-200">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <tr>
+                      <th className="px-3 py-2">Product</th>
+                      <th className="px-3 py-2">Price/pax/mth</th>
+                      <th className="px-3 py-2">Price/pax/yr</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {SERVICED_OFFICE_PRICE_TIERS.map((tier) => (
+                      <tr key={tier.key} className="border-t border-slate-100">
+                        <td className="px-3 py-2 font-medium text-slate-800">{tier.label}</td>
+                        <td className="px-3 py-1.5">
+                          <input
+                            className={inputClass}
+                            name={tier.mthField}
+                            type="number"
+                            step="0.01"
+                            defaultValue={premises[tier.mthField] ?? ""}
+                            aria-label={`${tier.label} price/pax/mth`}
+                          />
+                        </td>
+                        <td className="px-3 py-1.5">
+                          <input
+                            className={inputClass}
+                            name={tier.yrField}
+                            type="number"
+                            step="0.01"
+                            defaultValue={premises[tier.yrField] ?? ""}
+                            aria-label={`${tier.label} price/pax/yr`}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          ) : (
+            <>
+              <input type="hidden" name="offers_unique_address" value={premises.offers_unique_address ?? ""} />
+              <input type="hidden" name="offers_stamp_duty" value={premises.offers_stamp_duty ?? ""} />
+              {SERVICED_OFFICE_PRICE_TIERS.flatMap((tier) => [
+                <input key={tier.mthField} type="hidden" name={tier.mthField} value={premises[tier.mthField] ?? ""} />,
+                <input key={tier.yrField} type="hidden" name={tier.yrField} value={premises[tier.yrField] ?? ""} />,
+              ])}
+            </>
+          )}
 
           {showLeaseTerms ? (
           <Card title="Lease terms">

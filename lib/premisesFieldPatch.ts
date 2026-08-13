@@ -1,4 +1,9 @@
-import { isPackageOperatingModel } from "@/lib/premisesCommercial";
+import {
+  isPackageOperatingModel,
+  parseYesNo,
+  SERVICED_OFFICE_PRICE_TIERS,
+  YES_NO_OPTIONS,
+} from "@/lib/premisesCommercial";
 import { formatPremisesViewTypes, parsePremisesViewTypes } from "@/lib/premisesDisplay";
 import type { PremisesV1, PremisesV1Patch } from "@/lib/repos/premisesV1";
 import {
@@ -13,6 +18,10 @@ import {
   V1_OPERATING_MODELS,
   V1_VIEW_TYPES,
 } from "@/lib/v1ListValues";
+
+const SERVICED_PRICE_FIELDS = new Set<string>(
+  SERVICED_OFFICE_PRICE_TIERS.flatMap((tier) => [tier.mthField, tier.yrField]),
+);
 
 function strOrNull(value: unknown): string | null {
   const s = String(value ?? "").trim();
@@ -202,6 +211,16 @@ export function applyPremisesFieldPatch(
     case "capacity_pax":
       patch.capacity_pax = intOrNull(value);
       break;
+    case "offers_unique_address":
+    case "offers_stamp_duty": {
+      const yn = parseYesNo(value);
+      if (value && !yn) return { error: "Use Yes or No" };
+      if (yn && !(YES_NO_OPTIONS as readonly string[]).includes(yn)) {
+        return { error: "Use Yes or No" };
+      }
+      patch[field] = yn;
+      break;
+    }
     case "deposit_months":
     case "rent_free_period":
     case "expected_commission":
@@ -214,7 +233,16 @@ export function applyPremisesFieldPatch(
     case "available_date":
       patch.available_date = strOrNull(value);
       break;
+    case "relationship_lines":
+      // Handled specially in patchPremisesFieldAction (async normalize). Allow recognition here.
+      if (!Array.isArray(value)) return { error: "Invalid relationship lines" };
+      patch.relationship_lines = value as PremisesV1["relationship_lines"];
+      break;
     default:
+      if (SERVICED_PRICE_FIELDS.has(field)) {
+        (patch as Record<string, unknown>)[field] = numOrNull(value);
+        break;
+      }
       return { error: `Field "${field}" cannot be edited inline` };
   }
 

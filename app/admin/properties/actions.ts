@@ -6,7 +6,7 @@ import {
   parseRelationshipLines,
 } from "@/lib/premisesRelationships";
 import { buildPremisesRelationshipLinesPatch } from "@/lib/premisesRelationshipPatch";
-import { isPackageOperatingModel } from "@/lib/premisesCommercial";
+import { isPackageOperatingModel, parseYesNo } from "@/lib/premisesCommercial";
 import { applyPremisesFieldPatch } from "@/lib/premisesFieldPatch";
 import { composePropertyFullAddresses } from "@/lib/composeAddress";
 import { rethrowNextNavigation } from "@/lib/nextNavigation";
@@ -197,6 +197,16 @@ async function parsePremisesV1Form(formData: FormData): Promise<PremisesV1Patch>
     offer_type: s(formData.get("offer_type")),
     offer_status: s(formData.get("offer_status")),
     capacity_pax: nInt(formData.get("capacity_pax")),
+    offers_unique_address: parseYesNo(formData.get("offers_unique_address")),
+    offers_stamp_duty: parseYesNo(formData.get("offers_stamp_duty")),
+    price_pax_mth_unique_address: nDec(formData.get("price_pax_mth_unique_address")),
+    price_pax_yr_unique_address: nDec(formData.get("price_pax_yr_unique_address")),
+    price_pax_mth_workstation: nDec(formData.get("price_pax_mth_workstation")),
+    price_pax_yr_workstation: nDec(formData.get("price_pax_yr_workstation")),
+    price_pax_mth_room_window: nDec(formData.get("price_pax_mth_room_window")),
+    price_pax_yr_room_window: nDec(formData.get("price_pax_yr_room_window")),
+    price_pax_mth_room_internal: nDec(formData.get("price_pax_mth_room_internal")),
+    price_pax_yr_room_internal: nDec(formData.get("price_pax_yr_room_internal")),
     monthly_rent: nDec(formData.get("monthly_rent")),
     rent_psf: nDec(formData.get("rent_psf")),
     deposit_months: s(formData.get("deposit_months")),
@@ -323,16 +333,26 @@ export async function patchPremisesFieldAction(
       return { ok: false, error: "Invalid value" };
     }
 
+    // Relationship lines use async company/contact normalization — handle before the scalar patch map.
+    if (field === "relationship_lines") {
+      if (!Array.isArray(value)) return { ok: false, error: "Invalid relationship lines" };
+      const relPatch = await buildPremisesRelationshipLinesPatch(
+        value as import("@/lib/v1ListValues").PremisesRelationshipLine[],
+      );
+      await updatePremisesV1(premisesId, relPatch);
+      revalidatePath("/admin/properties");
+      revalidatePath(`/admin/properties/${premises.property_id}`);
+      revalidatePath("/admin/properties/premises");
+      if (premises.business_id?.trim()) {
+        revalidatePath(`/admin/properties/premises/${premises.business_id}`);
+      }
+      return { ok: true };
+    }
+
     const patch = applyPremisesFieldPatch(premises, field, value);
     if ("error" in patch) return { ok: false, error: patch.error };
 
-    if (field === "relationship_lines") {
-      if (!Array.isArray(value)) return { ok: false, error: "Invalid relationship lines" };
-      const relPatch = await buildPremisesRelationshipLinesPatch(value as import("@/lib/v1ListValues").PremisesRelationshipLine[]);
-      await updatePremisesV1(premisesId, relPatch);
-    } else {
-      await updatePremisesV1(premisesId, patch);
-    }
+    await updatePremisesV1(premisesId, patch);
 
     const nextPropertyId = patch.property_id ?? premises.property_id;
     revalidatePath("/admin/properties");
