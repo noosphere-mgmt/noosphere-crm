@@ -12,7 +12,11 @@ import {
   MobileSwipeToDeleteRow,
 } from "@/components/admin/mobile/MobileSwipeToDeleteRow";
 import { formatAreaSqft } from "@/lib/formatCurrency";
-import { formatPremisesListLabel, formatPremisesName } from "@/lib/premisesDisplay";
+import {
+  formatPremisesListLabel,
+  formatPremisesName,
+  formatPremisesOperatorLandlord,
+} from "@/lib/premisesDisplay";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { premisesDrawerHref } from "@/lib/premisesDrawerNav";
 import {
@@ -83,9 +87,10 @@ export function PremisesListMobile(props: PremisesListComponentProps) {
             displayedRows.map((row) => {
               const prices = getPremisesRowPriceDisplay(row);
               const listLabel = formatPremisesListLabel(row.building_name_en, row.floor, row.unit);
+              const party = formatPremisesOperatorLandlord(row.operator_name, row.landlord_name);
               const metaParts = [
                 row.district_en,
-                row.operator_name,
+                party !== "Not assigned" ? party : null,
                 formatAreaSqft(row.gross_area_sqft) !== "—" ? formatAreaSqft(row.gross_area_sqft) : null,
               ].filter(Boolean);
 

@@ -187,7 +187,11 @@ export function NewPremiseV1Client({
           returnTo={returnTo}
         />
       ) : null}
-      <ModuleStickyEditBar formId={formId} onCancel={() => router.push(returnTo)} />
+      <ModuleStickyEditBar
+        formId={formId}
+        saveLabel="Create premise"
+        onCancel={() => router.push(returnTo)}
+      />
     </div>
   );
 }

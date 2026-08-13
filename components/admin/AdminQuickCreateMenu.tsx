@@ -38,6 +38,9 @@ export function AdminQuickCreateMenu() {
     };
   }, []);
 
+  // Hide while creating/editing so the sticky Save/Create action isn't confused with nav Create.
+  if (editing) return null;
+
   return (
     <div ref={containerRef} className="relative shrink-0">
       <button
@@ -47,8 +50,7 @@ export function AdminQuickCreateMenu() {
         aria-haspopup="menu"
         aria-label="Create"
         title="Create"
-        disabled={editing}
-        className="inline-flex cursor-pointer items-center rounded-md px-2 py-1.5 text-sm font-semibold text-blue-600 transition hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+        className="inline-flex cursor-pointer items-center rounded-md px-2 py-1.5 text-sm font-semibold text-blue-600 transition hover:bg-blue-50 hover:text-blue-700"
       >
         Create
       </button>

@@ -6,7 +6,11 @@ import type { PremisesDrawerMode } from "@/components/admin/properties-v1/Premis
 import { usePremisesListSelection } from "@/components/admin/properties-v1/PremisesListSelectionContext";
 import { useSyncListingExportIds } from "@/components/admin/ModuleListingExportContext";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
-import { formatPremisesListLabel, formatPremisesName } from "@/lib/premisesDisplay";
+import {
+  formatPremisesListLabel,
+  formatPremisesName,
+  formatPremisesOperatorLandlord,
+} from "@/lib/premisesDisplay";
 import { getPremisesListPriceHeaderLabels, isListingIntentForSale } from "@/lib/premisesListing";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
 import type { ContactV1Option } from "@/lib/repos/contactsV1";
@@ -133,7 +137,8 @@ export function usePremisesFlatList(
       const listLabel = formatPremisesListLabel(row.building_name_en, row.floor, row.unit).toLowerCase();
       if (!fuzzyMatch(listLabel === "—" ? "" : listLabel, premisesQ)) return false;
       if (!fuzzyMatch(row.district_en, districtQ)) return false;
-      if (!fuzzyMatch(row.operator_name, operatorQ)) return false;
+      const party = formatPremisesOperatorLandlord(row.operator_name, row.landlord_name);
+      if (!fuzzyMatch(party === "Not assigned" ? "" : party, operatorQ)) return false;
       return true;
     });
 
@@ -147,7 +152,11 @@ export function usePremisesFlatList(
         case "district":
           return compareText(a.district_en ?? "", b.district_en ?? "", sortDir);
         case "operator":
-          return compareText(a.operator_name ?? "", b.operator_name ?? "", sortDir);
+          return compareText(
+            formatPremisesOperatorLandlord(a.operator_name, a.landlord_name),
+            formatPremisesOperatorLandlord(b.operator_name, b.landlord_name),
+            sortDir,
+          );
         case "desks":
           return compareNullableNum(parseNum(a.workstation_count), parseNum(b.workstation_count), sortDir);
         case "gross_area":

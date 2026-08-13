@@ -7,7 +7,12 @@ import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { SortableTableHeader } from "@/components/admin/SortableTableHeader";
 import { formatAreaSqft } from "@/lib/formatCurrency";
-import { formatPremisesListLabel, formatPremisesName, formatVerifiedDate } from "@/lib/premisesDisplay";
+import {
+  formatPremisesListLabel,
+  formatPremisesName,
+  formatPremisesOperatorLandlord,
+  formatVerifiedDate,
+} from "@/lib/premisesDisplay";
 import { premisesDrawerHref } from "@/lib/premisesDrawerNav";
 import {
   resolvePremisesFlatListFilters,
@@ -142,7 +147,7 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                 onSort={handleSort}
               />
               <PremisesSortableHeader
-                label="Operator"
+                label="Operator / landlord"
                 sortKey="operator"
                 activeKey={sortKey}
                 sortDir={sortDir}
@@ -217,7 +222,9 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                       <RecordBusinessId id={row.business_id ?? row.premises_id} className="mt-0.5 block" />
                     </td>
                     <td className="px-3 py-1.5 text-slate-700">{row.district_en ?? "—"}</td>
-                    <td className="px-3 py-1.5 text-slate-700">{row.operator_name ?? "Not assigned"}</td>
+                    <td className="px-3 py-1.5 text-slate-700">
+                      {formatPremisesOperatorLandlord(row.operator_name, row.landlord_name)}
+                    </td>
                     <td className="px-3 py-1.5 text-slate-700">{row.workstation_count ?? "—"}</td>
                     <td className="px-3 py-1.5 text-slate-700">{formatAreaSqft(row.gross_area_sqft)}</td>
                     <td className="px-3 py-1.5 text-slate-700">{prices.price}</td>

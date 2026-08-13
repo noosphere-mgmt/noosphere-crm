@@ -11,6 +11,17 @@ function formatUnitSegment(unit: string): string {
   return `#${trimmed}`;
 }
 
+/** Operator and/or landlord for list columns — one cell, both when distinct. */
+export function formatPremisesOperatorLandlord(
+  operatorName: string | null | undefined,
+  landlordName: string | null | undefined,
+): string {
+  const operator = (operatorName ?? "").trim();
+  const landlord = (landlordName ?? "").trim();
+  if (operator && landlord && operator !== landlord) return `${operator} / ${landlord}`;
+  return operator || landlord || "Not assigned";
+}
+
 /** Floor + unit only — for in-property premises tables (no building name). */
 export function formatPremisesCompactLabel(
   floor: string | null | undefined,

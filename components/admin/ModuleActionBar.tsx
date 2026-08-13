@@ -36,6 +36,8 @@ type ModuleActionBarProps = {
   onCancel?: () => void;
   formId?: string;
   onSave?: () => void;
+  /** Primary submit label (default Save). Use e.g. "Create premise" on new-record pages. */
+  saveLabel?: string;
   deleteAction?: () => Promise<void>;
   module?: AdminModuleKey;
 };
@@ -54,6 +56,7 @@ export function ModuleEditActions({
   onCancel,
   formId,
   onSave,
+  saveLabel = "Save",
   deleteAction,
 }: Omit<ModuleActionBarProps, "mode" | "onEdit" | "module">) {
   return (
@@ -62,10 +65,10 @@ export function ModuleEditActions({
         type="button"
         className={moduleActionButtonClass.save}
         onClick={() => triggerSave({ formId, onSave })}
-        aria-label="Save"
-        title="Save"
+        aria-label={saveLabel}
+        title={saveLabel}
       >
-        Save
+        {saveLabel}
       </button>
       <button
         type="button"
@@ -105,11 +108,18 @@ export function ModuleStickyEditBar({
   onCancel,
   formId,
   onSave,
+  saveLabel,
   deleteAction,
 }: Omit<ModuleActionBarProps, "mode" | "onEdit" | "module">) {
   useRegisterAdminRecordEdit(true);
   const actions = (
-    <ModuleEditActions onCancel={onCancel} formId={formId} onSave={onSave} deleteAction={deleteAction} />
+    <ModuleEditActions
+      onCancel={onCancel}
+      formId={formId}
+      onSave={onSave}
+      saveLabel={saveLabel}
+      deleteAction={deleteAction}
+    />
   );
 
   return (
@@ -130,6 +140,7 @@ export function ModuleActionBar({
   onCancel,
   formId,
   onSave,
+  saveLabel,
   deleteAction,
   module,
 }: ModuleActionBarProps) {
@@ -162,6 +173,12 @@ export function ModuleActionBar({
   }
 
   return (
-    <ModuleEditActions onCancel={onCancel} formId={formId} onSave={onSave} deleteAction={deleteAction} />
+    <ModuleEditActions
+      onCancel={onCancel}
+      formId={formId}
+      onSave={onSave}
+      saveLabel={saveLabel}
+      deleteAction={deleteAction}
+    />
   );
 }

@@ -551,6 +551,7 @@ export type PremisesFlatRow = {
   available_date: string | null;
   currency: string | null;
   operator_name: string | null;
+  landlord_name: string | null;
 };
 
 export async function deletePremisesV1(premisesIds: string[]): Promise<void> {
@@ -562,17 +563,20 @@ export type PremisesListItem = PremisesV1 & {
   building_name_en: string | null;
   district_en: string | null;
   operator_name: string | null;
+  landlord_name: string | null;
 };
 
 const flatJoin = `
   FROM premises_v1 p
   JOIN properties_v1 pr ON pr.property_id = p.property_id
-  LEFT JOIN companies_v1 c ON ${sqlJoinV1Company("c", "p.operator_company_id")}`;
+  LEFT JOIN companies_v1 c ON ${sqlJoinV1Company("c", "p.operator_company_id")}
+  LEFT JOIN companies_v1 landlord ON ${sqlJoinV1Company("landlord", "p.landlord_company_id")}`;
 
 const flatJoinOptionalBuilding = `
   FROM premises_v1 p
   LEFT JOIN properties_v1 pr ON pr.property_id = p.property_id
-  LEFT JOIN companies_v1 c ON ${sqlJoinV1Company("c", "p.operator_company_id")}`;
+  LEFT JOIN companies_v1 c ON ${sqlJoinV1Company("c", "p.operator_company_id")}
+  LEFT JOIN companies_v1 landlord ON ${sqlJoinV1Company("landlord", "p.landlord_company_id")}`;
 
 function premisesFlatWhere(filters: PremisesFlatFilters): { where: string; params: unknown[] } {
   const clauses: string[] = [];
@@ -786,7 +790,8 @@ export async function listPremisesFlat(filters: PremisesFlatFilters = {}): Promi
        p.sale_price_psf::text AS sale_price_psf,
        p.available_date::text AS available_date,
        COALESCE(p.currency, 'HKD') AS currency,
-       c.company_name_en AS operator_name
+       c.company_name_en AS operator_name,
+       landlord.company_name_en AS landlord_name
      ${flatJoin}
      ${where}
      ORDER BY p.last_verified_date DESC NULLS LAST, pr.bldg_name_en ASC NULLS LAST, p.floor ASC NULLS LAST, p.unit ASC NULLS LAST`,
@@ -861,7 +866,8 @@ export async function listPremisesFullFiltered(filters: PremisesFlatFilters = {}
        p.updated_at::text AS updated_at,
        pr.bldg_name_en AS building_name_en,
        pr.district_en,
-       c.company_name_en AS operator_name
+       c.company_name_en AS operator_name,
+       landlord.company_name_en AS landlord_name
      ${flatJoin}
      ${where}
      ORDER BY p.last_verified_date DESC NULLS LAST, pr.bldg_name_en ASC NULLS LAST, p.floor ASC NULLS LAST, p.unit ASC NULLS LAST`,
@@ -935,7 +941,8 @@ export async function getPremisesListItemByRef(raw: string): Promise<PremisesLis
        p.updated_at::text AS updated_at,
        pr.bldg_name_en AS building_name_en,
        pr.district_en,
-       c.company_name_en AS operator_name
+       c.company_name_en AS operator_name,
+       landlord.company_name_en AS landlord_name
      ${flatJoinOptionalBuilding}
      WHERE p.premises_id = $1 OR p.business_id = $1
      LIMIT 1`,
