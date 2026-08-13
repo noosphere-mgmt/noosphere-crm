@@ -5,6 +5,7 @@ import type { OpportunityLeadType, OpportunitySalesRole, OpportunityStatus } fro
 
 export type LinkedOpportunityRow = {
   id: number;
+  business_id: string | null;
   client_name: string;
   role_label: string;
   lead_type: OpportunityLeadType;
@@ -15,7 +16,9 @@ export type LinkedOpportunityRow = {
   fee_note: string | null;
   updated_at: string;
   company_name: string | null;
+  company_business_id: string | null;
   primary_contact_name: string | null;
+  primary_contact_business_id: string | null;
 };
 
 function formatPartyRole(role: string | null): string | null {
@@ -38,6 +41,7 @@ async function loadOpportunityDetails(
 
   const rows = await query<LinkedOpportunityRow>(
     `SELECT o.id,
+            o.business_id,
             o.client_name,
             o.lead_type,
             o.sales_role,
@@ -46,7 +50,9 @@ async function loadOpportunityDetails(
             o.budget_min::text AS budget_min,
             o.updated_at::text AS updated_at,
             lc.company_name,
-            pc.contact_name AS primary_contact_name
+            lc.business_id AS company_business_id,
+            pc.contact_name AS primary_contact_name,
+            pc.business_id AS primary_contact_business_id
      FROM opportunities o
      LEFT JOIN companies lc ON lc.id::text = o.company_id::text
      LEFT JOIN contacts pc ON pc.id::text = o.primary_contact_id::text

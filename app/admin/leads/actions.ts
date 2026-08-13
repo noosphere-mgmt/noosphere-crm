@@ -6,6 +6,12 @@ import { createCompany, getCompany } from "@/lib/repos/companies";
 import { createContact, getContact } from "@/lib/repos/contacts";
 import { createOpportunity } from "@/lib/repos/opportunities";
 import { createLead, getLead, markLeadConverted, updateLead, type LeadInput, type LeadStatus } from "@/lib/repos/leads";
+import { normalizeLeadSource } from "@/lib/leadValues";
+import { normalizeOpportunitySalesRole } from "@/lib/opportunityValues";
+import {
+  normalizeCategoryPreference,
+  normalizeSpaceFormPreference,
+} from "@/lib/opportunityPreferences";
 
 const STATUSES = new Set<LeadStatus>(["new", "reviewing", "qualified", "converted", "nurture", "disqualified", "duplicate"]);
 
@@ -44,7 +50,7 @@ function leadInput(formData: FormData): LeadInput {
     email: text(formData, "email"),
     phone: text(formData, "phone"),
     website: text(formData, "website"),
-    source: text(formData, "source") ?? "email",
+    source: normalizeLeadSource(text(formData, "source")),
     email_subject: text(formData, "email_subject"),
     email_excerpt: text(formData, "email_excerpt"),
     email_message_id: text(formData, "email_message_id"),
@@ -56,6 +62,12 @@ function leadInput(formData: FormData): LeadInput {
     required_area_sqft: decimal(formData, "required_area_sqft"),
     required_capacity_pax: integer(formData, "required_capacity_pax"),
     preferred_location: text(formData, "preferred_location"),
+    property_category_preference: normalizeCategoryPreference(
+      formData.get("property_category_preference"),
+    ),
+    property_type_preference: normalizeSpaceFormPreference(
+      formData.get("property_type_preference"),
+    ),
     assigned_owner: text(formData, "assigned_owner"),
     virtual_staff: text(formData, "virtual_staff"),
     qualification_score: integer(formData, "qualification_score"),
@@ -130,17 +142,33 @@ export async function convertLeadAction(id: number, formData: FormData) {
     lead.next_lease_expiry ? `Current lease expiry: ${lead.next_lease_expiry}` : null,
   ].filter(Boolean).join("\n\n");
   const opportunityOwner = text(formData, "opportunity_owner") ?? lead.assigned_owner;
+  const digest = lead.ai_digest ?? "";
+  const salesRoleMatch = digest.match(/Sales Role:\s*([a-z_]+)/i);
+  const requiredTypeMatch = digest.match(/Required Type:\s*([a-z_]+)/i);
+  const requiredSubtypeMatch = digest.match(/Required Subtype:\s*([a-z_]+)/i);
+  const salesRole = salesRoleMatch
+    ? normalizeOpportunitySalesRole(salesRoleMatch[1])
+    : lead.office_space_required === false
+      ? "others"
+      : "to_lease";
   const opportunityId = await createOpportunity({
     client_name: lead.contact_name ?? lead.company_name ?? "Email lead",
     company_name: lead.company_name,
     company_id: companyId,
     primary_contact_id: contactId,
     lead_type: "direct_client",
-    sales_role: lead.office_space_required === false ? "prof_service" : "to_lease",
+    sales_role: salesRole,
+    lead_source: normalizeLeadSource(lead.source),
     relationship_owner: opportunityOwner,
     required_area_sqft: lead.required_area_sqft ? Number.parseFloat(lead.required_area_sqft) : null,
     required_capacity_pax: lead.required_capacity_pax,
     district_preference: lead.preferred_location,
+    property_category_preference:
+      lead.property_category_preference ??
+      normalizeCategoryPreference(requiredTypeMatch?.[1]),
+    property_type_preference:
+      lead.property_type_preference ??
+      normalizeSpaceFormPreference(requiredSubtypeMatch?.[1]),
     move_in_date: lead.next_lease_expiry,
     status: "qualifying",
     next_action: "Review converted email lead and confirm requirement",

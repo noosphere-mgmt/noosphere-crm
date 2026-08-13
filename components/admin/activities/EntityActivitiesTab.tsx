@@ -7,9 +7,10 @@ import {
   ActivityFormDrawer,
   type ActivityFormDefaults,
 } from "@/components/admin/activities/ActivityFormDrawer";
+import { ActivityReviewDrawer } from "@/components/admin/activities/ActivityReviewDrawer";
 import { MobileQuickActivityBar } from "@/components/admin/activities/MobileQuickActivityBar";
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
-import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
+import { AdminEntityLink } from "@/components/admin/AdminEntityLink";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import { asArray } from "@/lib/asArray";
 import {
@@ -17,6 +18,11 @@ import {
   formatActivityNotesPreview,
   formatActivityPremisesListCell,
 } from "@/lib/activitiesDisplay";
+import {
+  companyFullPageHref,
+  contactFullPageHref,
+  opportunityFullPageHref,
+} from "@/lib/crmDetailNav";
 import type { ActivityListRow } from "@/lib/repos/activities";
 import { useIsMobile } from "@/lib/useIsMobile";
 
@@ -112,10 +118,30 @@ export function EntityActivitiesTab({
               visibleActivities.map((row) => (
                 <tr key={row.activity_id} className="border-t border-slate-100 align-top">
                   <td className="px-3 py-2 text-slate-700">{formatActivityDate(row)}</td>
-                  <td className="px-3 py-2 text-slate-900">{row.activity_type}</td>
-                  <td className="hidden px-3 py-2 text-slate-700 md:table-cell">{row.company_name ?? "—"}</td>
-                  <td className="hidden px-3 py-2 text-slate-700 lg:table-cell">{row.contact_name ?? "—"}</td>
-                  <td className="hidden px-3 py-2 text-slate-700 lg:table-cell">{row.opportunity_name ?? "—"}</td>
+                  <td className="px-3 py-2 text-slate-900">
+                    <button
+                      type="button"
+                      onClick={() => setViewing(row)}
+                      className="cursor-pointer text-left text-inherit hover:underline"
+                    >
+                      {row.activity_type}
+                    </button>
+                  </td>
+                  <td className="hidden px-3 py-2 text-slate-700 md:table-cell">
+                    <AdminEntityLink href={companyFullPageHref(row.company_business_id ?? row.company_id)}>
+                      {row.company_name}
+                    </AdminEntityLink>
+                  </td>
+                  <td className="hidden px-3 py-2 text-slate-700 lg:table-cell">
+                    <AdminEntityLink href={contactFullPageHref(row.contact_business_id ?? row.contact_id)}>
+                      {row.contact_name}
+                    </AdminEntityLink>
+                  </td>
+                  <td className="hidden px-3 py-2 text-slate-700 lg:table-cell">
+                    <AdminEntityLink href={opportunityFullPageHref(row.opportunity_business_id ?? row.opportunity_id)}>
+                      {row.opportunity_name}
+                    </AdminEntityLink>
+                  </td>
                   <td className="hidden px-3 py-2 text-slate-700 xl:table-cell">
                     {formatActivityPremisesListCell(row.premises_label)}
                   </td>
@@ -140,64 +166,15 @@ export function EntityActivitiesTab({
       </div> : null}
 
       {viewing ? (
-        <>
-          <button type="button" className="fixed inset-0 z-40 bg-slate-900/10" onClick={() => setViewing(null)} aria-label="Close" />
-          <aside className="fixed inset-y-0 right-0 z-50 w-full max-w-md border-l border-slate-200 bg-white p-4 shadow-xl">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs text-slate-500">{viewing.activity_type}</p>
-                <h3 className="text-lg font-semibold text-slate-900">{formatActivityDate(viewing)}</h3>
-                <RecordBusinessId id={viewing.business_id} className="mt-0.5 block" />
-              </div>
-              <button type="button" onClick={() => setViewing(null)} className="text-slate-400 hover:text-slate-700">
-                ×
-              </button>
-            </div>
-            <dl className="mt-4 space-y-2 text-sm">
-              {viewing.company_name ? (
-                <div>
-                  <dt className="text-xs text-slate-500">Company</dt>
-                  <dd>{viewing.company_name}</dd>
-                </div>
-              ) : null}
-              {viewing.contact_name ? (
-                <div>
-                  <dt className="text-xs text-slate-500">Contact</dt>
-                  <dd>{viewing.contact_name}</dd>
-                </div>
-              ) : null}
-              {viewing.opportunity_name ? (
-                <div>
-                  <dt className="text-xs text-slate-500">Opportunity</dt>
-                  <dd>{viewing.opportunity_name}</dd>
-                </div>
-              ) : null}
-              {viewing.premises_label ? (
-                <div>
-                  <dt className="text-xs text-slate-500">Premises</dt>
-                  <dd>{viewing.premises_label}</dd>
-                </div>
-              ) : null}
-              {viewing.notes?.trim() ? (
-                <div>
-                  <dt className="text-xs text-slate-500">Notes</dt>
-                  <dd className="whitespace-pre-wrap">{viewing.notes}</dd>
-                </div>
-              ) : null}
-            </dl>
-            <button
-              type="button"
-              className="mt-4 text-sm font-medium text-amber-800 hover:underline"
-              onClick={() => {
-                setEditing(viewing);
-                setViewing(null);
-                setDrawerOpen(true);
-              }}
-            >
-              Edit activity
-            </button>
-          </aside>
-        </>
+        <ActivityReviewDrawer
+          activity={viewing}
+          onClose={() => setViewing(null)}
+          onEdit={() => {
+            setEditing(viewing);
+            setViewing(null);
+            setDrawerOpen(true);
+          }}
+        />
       ) : null}
 
       <ActivityFormDrawer

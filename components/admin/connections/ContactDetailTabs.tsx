@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { connectionsTabClass } from "@/lib/connectionsGlassTheme";
-import type { ContactDetailTabId } from "@/lib/contactDetailTab";
+import { getContactTab, type ContactDetailTabId } from "@/lib/contactDetailTab";
 import { contactDrawerHref } from "@/lib/connectionsDrawerNav";
 import { contactFullPageHref } from "@/lib/crmDetailNav";
 
@@ -27,7 +27,7 @@ export function ContactDetailTabs({
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const active = (searchParams.get("tab") as ContactDetailTabId) || "overview";
+  const active = getContactTab({ tab: searchParams.get("tab") ?? undefined });
   const onFullPage = Boolean(businessId) || pathname.startsWith("/admin/contacts/");
 
   return (

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useFormEditing, moduleActionButtonClass } from "@/components/admin/ModuleActionBar";
-import { IconCheck, IconTrash, IconX } from "@/components/admin/ModuleActionIcons";
+import { IconTrash } from "@/components/admin/ModuleActionIcons";
 import { displayOrDash, inlineReadOnlyClass } from "@/components/admin/inline/InlineRecordChrome";
 
 const inputClass =
@@ -154,7 +154,7 @@ export function SelectField({
 export function SubmitButton({ label }: { label: string }) {
   return (
     <button type="submit" className={moduleActionButtonClass.save} aria-label={label} title={label}>
-      <IconCheck />
+      {label}
     </button>
   );
 }
@@ -162,7 +162,7 @@ export function SubmitButton({ label }: { label: string }) {
 export function CancelLink({ href }: { href: string }) {
   return (
     <Link href={href} className={moduleActionButtonClass.cancel} aria-label="Cancel" title="Cancel">
-      <IconX />
+      Cancel
     </Link>
   );
 }

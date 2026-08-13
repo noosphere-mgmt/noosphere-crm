@@ -1,3 +1,4 @@
+import { withAdminReturnTo } from "@/lib/adminReturnTo";
 import { companyFullPageHref } from "@/lib/crmDetailNav";
 import type { CompanyWorkspaceTabId } from "@/lib/companyWorkspaceTab";
 
@@ -10,11 +11,13 @@ export function companyWorkspaceHref(
   company: CompanyRef,
   tab: CompanyWorkspaceTabId = "profile",
   mode?: "edit",
+  returnTo?: string | null,
 ): string {
   const businessId = company.business_id?.trim() || String(company.id);
   const href = companyFullPageHref(businessId, {
     tab: tab === "profile" ? undefined : tab,
     mode,
   });
-  return href ?? `/admin/companies/${encodeURIComponent(businessId)}`;
+  const base = href ?? `/admin/companies/${encodeURIComponent(businessId)}`;
+  return withAdminReturnTo(base, returnTo);
 }

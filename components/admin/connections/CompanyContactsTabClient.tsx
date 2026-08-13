@@ -6,7 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ContactFormDrawer } from "@/components/admin/connections/ContactFormDrawer";
 import { formatCoverage } from "@/lib/connectionsDisplay";
 import { contactDrawerHref } from "@/lib/connectionsDrawerNav";
-import { companyFullPageHref } from "@/lib/crmDetailNav";
+import { companyWorkspaceHref } from "@/lib/companyWorkspaceNav";
+import { contactWorkspaceHref } from "@/lib/contactWorkspaceNav";
 import { getContactLabel } from "@/lib/contactName";
 import { connectionsGlassClasses } from "@/lib/connectionsGlassTheme";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
@@ -21,6 +22,7 @@ export function CompanyContactsTabClient({
   contacts,
   companies,
   drawerMode = false,
+  listReturnTo,
 }: {
   companyId: number;
   companyName: string;
@@ -28,6 +30,8 @@ export function CompanyContactsTabClient({
   contacts: Contact[];
   companies: CompanyOption[];
   drawerMode?: boolean;
+  /** When on company full page, preserve outer listing return path. */
+  listReturnTo?: string | null;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -53,17 +57,22 @@ export function CompanyContactsTabClient({
     router.push(`${listPath}?${params.toString()}`);
   }, [companyId, drawerMode, listPath, router, searchParams]);
 
-  const contactHref = (contactId: number) =>
-    drawerMode
-      ? contactDrawerHref("/admin/contacts", searchParams, contactId)
-      : `/admin/contacts/${contactId}`;
-
   const companyRef = companyBusinessId?.trim() || String(companyId);
-
-  const returnTo = drawerMode
+  const companyContactsReturnTo = drawerMode
     ? `${listPath}?company=${encodeURIComponent(companyRef)}&tab=contacts`
-    : companyFullPageHref(companyBusinessId ?? companyRef, { tab: "contacts" }) ??
-      `/admin/companies/${companyId}?tab=contacts`;
+    : companyWorkspaceHref(
+        { id: companyId, business_id: companyBusinessId },
+        "contacts",
+        undefined,
+        listReturnTo,
+      );
+
+  const contactHref = (contact: Contact) =>
+    drawerMode
+      ? contactDrawerHref("/admin/companies", searchParams, contact.business_id ?? contact.id)
+      : contactWorkspaceHref(contact, "overview", undefined, companyContactsReturnTo);
+
+  const returnTo = companyContactsReturnTo
 
   return (
     <div className="space-y-4">
@@ -96,7 +105,7 @@ export function CompanyContactsTabClient({
               contacts.map((c) => (
                 <tr key={c.id} className="border-t border-slate-100">
                   <td className="px-4 py-2 font-medium">
-                    <Link href={contactHref(c.id)} className={connectionsGlassClasses.link}>
+                    <Link href={contactHref(c)} className={connectionsGlassClasses.link}>
                       {getContactLabel(c)}
                     </Link>
                   </td>

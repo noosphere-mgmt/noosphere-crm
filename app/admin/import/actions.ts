@@ -145,12 +145,15 @@ export async function confirmImportAction(sessionId: string, formData: FormData)
   await updateImportRunCounts(importRunId, result.summary);
   await markSessionCommitted(sessionId, importRunId);
 
+  revalidatePath("/admin/import");
   revalidatePath("/admin/import/history");
+  revalidatePath(`/admin/import/runs/${importRunId}`);
   revalidatePath("/admin/properties");
   revalidatePath("/admin/companies");
   revalidatePath("/admin/contacts");
   revalidatePath("/admin/opportunities");
   revalidatePath("/admin/activities");
+  revalidatePath("/admin/leads");
   redirect("/admin/import/history");
 }
 

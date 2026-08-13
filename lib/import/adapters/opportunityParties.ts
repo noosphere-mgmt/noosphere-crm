@@ -133,6 +133,24 @@ export const opportunityPartiesImportDefinition: ImportObjectDefinition = {
     return load("op.external_ref = $1", [externalRef.trim()]);
   },
 
+  async prepareMatchValues(values, suppliedFields) {
+    const next = { ...values };
+    const resolved = await resolveOpportunityIdOrName(
+      "opportunity_id",
+      "opportunity_name",
+      next,
+      suppliedFields,
+      null,
+      {},
+      false,
+    );
+    if (resolved.writablePatches.opportunity_id != null) {
+      next.opportunity_id = resolved.writablePatches.opportunity_id;
+      suppliedFields.add("opportunity_id");
+    }
+    return next;
+  },
+
   buildNaturalKey(values) {
     return {
       ok: true,

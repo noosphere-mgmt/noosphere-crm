@@ -7,8 +7,7 @@ import { PropertiesV1Client } from "@/app/admin/properties/[id]/PropertiesV1Clie
 import { InlineEditProvider } from "@/components/admin/inline/InlineEditProvider";
 import { InlineSaveStatus } from "@/components/admin/inline/InlineRecordChrome";
 import { AdminLoadWarningBanner } from "@/components/admin/AdminLoadWarningBanner";
-import { ModuleActionBar, moduleEditButtonClass } from "@/components/admin/ModuleActionBar";
-import { IconPen } from "@/components/admin/ModuleActionIcons";
+import { ModuleStickyEditBar, moduleEditButtonClass } from "@/components/admin/ModuleActionBar";
 import { PropertyEditForm, propertyFormId } from "@/components/admin/properties-v1/PropertyEditForm";
 import { PropertyInlineOverview } from "@/components/admin/properties-v1/PropertyInlineOverview";
 import { composeAddressEnglish, hasAddressParts } from "@/lib/composeAddress";
@@ -43,15 +42,11 @@ function PropertyPageHeader({
   tab,
   fullEditMode,
   onFullEdit,
-  onCancelFullEdit,
-  onSaveFullEdit,
 }: {
   property: PropertyV1;
   tab: TabKey;
   fullEditMode: boolean;
   onFullEdit: () => void;
-  onCancelFullEdit: () => void;
-  onSaveFullEdit: () => void;
 }) {
   const theme = moduleAccentClasses("properties");
   const address = propertyAddressLine(property);
@@ -74,26 +69,20 @@ function PropertyPageHeader({
           <p className="mt-1 text-sm text-slate-400">Address will appear when location fields are filled.</p>
         )}
         {!fullEditMode ? (
-          <p className="mt-1 text-xs text-slate-500">Click a field to edit · pen opens full edit</p>
+          <p className="mt-1 text-xs text-slate-500">Double-click a field to edit · saves automatically</p>
         ) : null}
       </div>
-      {tab === "property" ? (
-        fullEditMode ? (
-          <ModuleActionBar mode="edit" onCancel={onCancelFullEdit} onSave={onSaveFullEdit} formId={formId} />
-        ) : (
-          <div className="flex shrink-0 items-center gap-1">
-            <InlineSaveStatus />
-            <button
-              type="button"
-              className={moduleEditButtonClass("properties")}
-              onClick={onFullEdit}
-              aria-label="Full page edit"
-              title="Full page edit"
-            >
-              <IconPen />
-            </button>
-          </div>
-        )
+      {tab === "property" && !fullEditMode ? (
+        <div className="flex shrink-0 items-center gap-1">
+          <InlineSaveStatus />
+          <button
+            type="button"
+            className={moduleEditButtonClass("properties")}
+            onClick={onFullEdit}
+            aria-label="Full page edit"
+            title="Full page edit"
+          >Edit</button>
+        </div>
       ) : null}
     </header>
   );
@@ -143,22 +132,13 @@ export function PropertyV1DetailClient({
 
   if (isNew) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 pt-14">
         <AdminLoadWarningBanner warnings={loadWarnings} />
         <header className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-slate-200 bg-white px-5 py-3 shadow-sm">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Properties</p>
             <h1 className="text-xl font-semibold tracking-tight text-slate-900">New building</h1>
           </div>
-          <ModuleActionBar
-            mode="edit"
-            onCancel={() => {
-              if (returnTo) router.push(returnTo);
-              else router.push("/admin/properties/buildings");
-            }}
-            onSave={() => submitRef.current?.()}
-            formId={formId}
-          />
         </header>
         <PropertyEditForm
           property={property}
@@ -169,23 +149,26 @@ export function PropertyV1DetailClient({
             submitRef.current = submit;
           }}
         />
+        <ModuleStickyEditBar
+          onCancel={() => {
+            if (returnTo) router.push(returnTo);
+            else router.push("/admin/properties/buildings");
+          }}
+          onSave={() => submitRef.current?.()}
+          formId={formId}
+        />
       </div>
     );
   }
 
   return (
     <InlineEditProvider resetKey={property.property_id}>
-      <div className="space-y-4">
+      <div className={`space-y-4${fullEditMode ? " pt-14" : ""}`}>
         <PropertyPageHeader
           property={property}
           tab={tab}
           fullEditMode={fullEditMode}
           onFullEdit={() => setFullEditMode(true)}
-          onCancelFullEdit={() => {
-            setFullEditMode(false);
-            router.refresh();
-          }}
-          onSaveFullEdit={() => submitRef.current?.()}
         />
 
         <div className="flex flex-wrap gap-1 border-b border-slate-200">
@@ -243,6 +226,16 @@ export function PropertyV1DetailClient({
             />
           </Suspense>
         )}
+        {fullEditMode ? (
+          <ModuleStickyEditBar
+            onCancel={() => {
+              setFullEditMode(false);
+              router.refresh();
+            }}
+            onSave={() => submitRef.current?.()}
+            formId={formId}
+          />
+        ) : null}
       </div>
     </InlineEditProvider>
   );

@@ -29,6 +29,11 @@ import { OPPORTUNITY_LEAD_TYPES } from "@/lib/lookups";
 import { isClosedOpportunityStatus } from "@/lib/openOpportunityStatus";
 import type { OpportunityLeadType } from "@/lib/types/entities";
 import { normalizeOpportunitySource } from "@/lib/opportunitySourceValues";
+import {
+  isLeaseLikeSalesRole,
+  isOtherSalesRole,
+  isSaleCaseSalesRole,
+} from "@/lib/opportunityValues";
 
 function parseOptionalDecimal(v: FormDataEntryValue | null): number | null {
   const s = String(v ?? "").trim();
@@ -76,10 +81,10 @@ async function opportunityInputFromForm(formData: FormData) {
   const salesRole = parseOpportunitySalesRole(formData.get("sales_role"));
   const propertyType = parseOptionalString(formData.get("property_type"));
   const status = parseOpportunityStatus(String(formData.get("status") ?? "qualifying"));
-  const isLease = salesRole === "to_lease";
+  const isLeaseLike = isLeaseLikeSalesRole(salesRole);
   const isBuy = salesRole === "to_buy";
-  const isSell = salesRole === "to_sell";
-  const isProfService = salesRole === "prof_service";
+  const isSaleCase = isSaleCaseSalesRole(salesRole);
+  const isOther = isOtherSalesRole(salesRole);
 
   return {
     client_name: clientName || "Unknown",
@@ -91,35 +96,35 @@ async function opportunityInputFromForm(formData: FormData) {
     referrer_company_id: referrerCompanyId,
     referrer_contact_id: referrerContactId,
     sales_role: salesRole,
-    lease_term: isLease ? parseOptionalString(formData.get("lease_term")) : null,
+    lease_term: isLeaseLike ? parseOptionalString(formData.get("lease_term")) : null,
     expected_close_date: parseOptionalString(formData.get("expected_close_date")),
     lost_reason: isClosedOpportunityStatus(status)
       ? parseOptionalString(formData.get("lost_reason"))
       : null,
     relationship_owner: parseOptionalString(formData.get("relationship_owner")),
     budget_min: null,
-    budget_max: isProfService
+    budget_max: isOther
       ? null
       : parseOptionalDecimal(formData.get("budget_max") ?? formData.get("budget")),
-    required_area_sqft: isProfService
+    required_area_sqft: isOther
       ? null
       : parseOptionalDecimal(formData.get("required_area_sqft")),
-    required_capacity_pax: isLease ? parseOptionalInt(formData.get("required_capacity_pax")) : null,
-    district_preference: isProfService
+    required_capacity_pax: isLeaseLike ? parseOptionalInt(formData.get("required_capacity_pax")) : null,
+    district_preference: isOther
       ? null
       : parseOptionalString(formData.get("district_preference")),
-    workspace_type: isProfService ? null : propertyType,
-    property_type: isProfService ? null : propertyType,
-    property_category_preference: isProfService
+    workspace_type: isOther ? null : propertyType,
+    property_type: isOther ? null : propertyType,
+    property_category_preference: isOther
       ? null
       : normalizeCategoryPreference(formData.get("property_category_preference")),
-    property_type_preference: isProfService
+    property_type_preference: isOther
       ? null
       : normalizeSpaceFormPreference(formData.get("property_type_preference")),
-    target_yield: isBuy || isSell ? parseOptionalString(formData.get("target_yield")) : null,
+    target_yield: isSaleCase ? parseOptionalString(formData.get("target_yield")) : null,
     funding_status:
       isBuy ? parseOpportunityFundingStatus(formData.get("funding_status")) : null,
-    move_in_date: isLease ? parseOptionalString(formData.get("move_in_date")) : null,
+    move_in_date: isLeaseLike ? parseOptionalString(formData.get("move_in_date")) : null,
     status,
     waiting_for: parseOptionalString(formData.get("waiting_for")),
     next_action: parseOptionalString(formData.get("next_action")),
@@ -199,7 +204,11 @@ export async function patchOpportunityFieldAction(
   valueJson: string,
 ): Promise<PatchResult> {
   try {
-    const opportunity = await getOpportunity(id);
+    const legacyId = Number(id);
+    if (!Number.isFinite(legacyId) || legacyId <= 0) {
+      return { ok: false, error: "Invalid opportunity id" };
+    }
+    const opportunity = await getOpportunity(legacyId);
     if (!opportunity) return { ok: false, error: "Opportunity not found" };
 
     let value: unknown;
@@ -227,9 +236,9 @@ export async function patchOpportunityFieldAction(
       if (company) merged.company_name = company.company_name;
     }
 
-    await updateOpportunity(id, merged);
+    await updateOpportunity(legacyId, merged);
     revalidatePath("/admin/opportunities");
-    revalidatePath(`/admin/opportunities/${id}`);
+    revalidatePath(`/admin/opportunities/${legacyId}`);
     if (merged.company_id) revalidatePath(`/admin/companies/${merged.company_id}`);
     return { ok: true };
   } catch (err) {

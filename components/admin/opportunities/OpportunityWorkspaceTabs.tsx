@@ -20,6 +20,7 @@ const TAB_TONES = {
 
 export function OpportunityWorkspaceTabs({
   opportunity,
+  returnTo,
 }: {
   opportunity: {
     id: number;
@@ -27,6 +28,7 @@ export function OpportunityWorkspaceTabs({
     v1_opportunity_id?: string | null;
     sales_role?: OpportunitySalesRole | null;
   };
+  returnTo?: string | null;
 }) {
   const searchParams = useSearchParams();
   const active = getOpportunityTab({ tab: searchParams.get("tab") });
@@ -40,7 +42,7 @@ export function OpportunityWorkspaceTabs({
     <nav className="mb-2 flex w-max items-end gap-1 border-b border-slate-300 px-0.5 pt-1 sm:px-1" aria-label="Opportunity workspace sections">
       {tabs.map((tab) => {
         const isActive = active === tab.id;
-        const href = opportunityWorkspaceHref(opportunity, tab.id);
+        const href = opportunityWorkspaceHref(opportunity, tab.id, undefined, returnTo);
         const tone = TAB_TONES[tab.id];
         return (
           <Link

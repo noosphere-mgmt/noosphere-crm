@@ -112,22 +112,58 @@ export async function listPropertiesV1(filters: PropertiesListFilters = {}): Pro
   if (filters.q) {
     const qParam = `$${params.length + 1}`;
     clauses.push(`(
-      bldg_name_en ILIKE ${qParam}
+      property_id ILIKE ${qParam}
+      OR business_id ILIKE ${qParam}
+      OR bldg_name_en ILIKE ${qParam}
       OR bldg_name_zh ILIKE ${qParam}
       OR bldg_name_cn ILIKE ${qParam}
-      OR full_address_en ILIKE ${qParam}
-      OR full_address_zh ILIKE ${qParam}
-      OR full_address_cn ILIKE ${qParam}
-      OR district_en ILIKE ${qParam}
-      OR district_zh ILIKE ${qParam}
-      OR district_cn ILIKE ${qParam}
+      OR tower_block ILIKE ${qParam}
+      OR building_type ILIKE ${qParam}
+      OR title ILIKE ${qParam}
+      OR grade ILIKE ${qParam}
+      OR country ILIKE ${qParam}
       OR city_en ILIKE ${qParam}
       OR city_zh ILIKE ${qParam}
       OR city_cn ILIKE ${qParam}
+      OR district_en ILIKE ${qParam}
+      OR district_zh ILIKE ${qParam}
+      OR district_cn ILIKE ${qParam}
+      OR street_no ILIKE ${qParam}
+      OR street_name_en ILIKE ${qParam}
+      OR street_name_zh ILIKE ${qParam}
+      OR street_name_cn ILIKE ${qParam}
+      OR full_address_en ILIKE ${qParam}
+      OR full_address_zh ILIKE ${qParam}
+      OR full_address_cn ILIKE ${qParam}
+      OR mtr_station ILIKE ${qParam}
+      OR facilities ILIKE ${qParam}
+      OR facilities_zh ILIKE ${qParam}
+      OR facilities_cn ILIKE ${qParam}
+      OR green_certification ILIKE ${qParam}
+      OR lot_number ILIKE ${qParam}
+      OR bldg_desc ILIKE ${qParam}
+      OR bldg_desc_zh ILIKE ${qParam}
+      OR bldg_desc_cn ILIKE ${qParam}
+      OR location_advantages_en ILIKE ${qParam}
+      OR location_advantages_zh ILIKE ${qParam}
+      OR location_advantages_cn ILIKE ${qParam}
+      OR proposal_highlights_en ILIKE ${qParam}
+      OR proposal_highlights_zh ILIKE ${qParam}
+      OR proposal_highlights_cn ILIKE ${qParam}
+      OR building_remarks ILIKE ${qParam}
       OR EXISTS (
         SELECT 1 FROM companies_v1 co
-        WHERE ${sqlJoinV1Company("co", "properties_v1.operator_company_id")}
-          AND co.company_name_en ILIKE ${qParam}
+        WHERE (
+          ${sqlJoinV1Company("co", "properties_v1.operator_company_id")}
+          OR ${sqlJoinV1Company("co", "properties_v1.owner_company_id")}
+          OR ${sqlJoinV1Company("co", "properties_v1.management_company_id")}
+          OR ${sqlJoinV1Company("co", "properties_v1.current_tenant_company_id")}
+        )
+          AND (
+            co.company_name_en ILIKE ${qParam}
+            OR co.company_name_zh ILIKE ${qParam}
+            OR co.business_id ILIKE ${qParam}
+          )
       )
     )`);
     params.push(`%${filters.q}%`);
@@ -340,6 +376,17 @@ export type PropertyV1SelectOption = {
   property_id: string;
   business_id?: string | null;
   label: string;
+  name_en?: string | null;
+  name_zh?: string | null;
+  name_cn?: string | null;
+  remarks?: string | null;
+  description?: string | null;
+  full_address?: string | null;
+  mtr_station?: string | null;
+  street_no?: string | null;
+  street_name_en?: string | null;
+  street_name_zh?: string | null;
+  street_name_cn?: string | null;
   country: string | null;
   city: string | null;
   district: string | null;
@@ -350,11 +397,24 @@ export async function listPropertyV1SelectOptions(): Promise<PropertyV1SelectOpt
     property_id: string;
     business_id: string | null;
     bldg_name_en: string | null;
+    bldg_name_zh: string | null;
+    bldg_name_cn: string | null;
+    building_remarks: string | null;
+    bldg_desc: string | null;
+    full_address_en: string | null;
+    mtr_station: string | null;
+    street_no: string | null;
+    street_name_en: string | null;
+    street_name_zh: string | null;
+    street_name_cn: string | null;
     district_en: string | null;
     country: string | null;
     city_en: string | null;
   }>(
-    `SELECT property_id, business_id, bldg_name_en, district_en, country, city_en
+    `SELECT property_id, business_id, bldg_name_en, bldg_name_zh, bldg_name_cn, building_remarks,
+            bldg_desc, full_address_en, mtr_station,
+            street_no, street_name_en, street_name_zh, street_name_cn,
+            district_en, country, city_en
      FROM properties_v1
      ORDER BY bldg_name_en ASC NULLS LAST, property_id ASC`,
   );
@@ -365,6 +425,17 @@ export async function listPropertyV1SelectOptions(): Promise<PropertyV1SelectOpt
       property_id: row.property_id,
       business_id: row.business_id?.trim() || null,
       label: district ? `${name} · ${district}` : name,
+      name_en: row.bldg_name_en?.trim() || null,
+      name_zh: row.bldg_name_zh?.trim() || null,
+      name_cn: row.bldg_name_cn?.trim() || null,
+      remarks: row.building_remarks?.trim() || null,
+      description: row.bldg_desc?.trim() || null,
+      full_address: row.full_address_en?.trim() || null,
+      mtr_station: row.mtr_station?.trim() || null,
+      street_no: row.street_no?.trim() || null,
+      street_name_en: row.street_name_en?.trim() || null,
+      street_name_zh: row.street_name_zh?.trim() || null,
+      street_name_cn: row.street_name_cn?.trim() || null,
       country: row.country?.trim() || null,
       city: row.city_en?.trim() || null,
       district: district || null,

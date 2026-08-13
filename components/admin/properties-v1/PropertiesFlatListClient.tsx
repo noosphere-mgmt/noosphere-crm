@@ -9,6 +9,12 @@ import {
 import { ListingRecordCount } from "@/components/admin/ListingRecordCount";
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
 import { RecordNameWithId } from "@/components/admin/RecordBusinessId";
+import {
+  SortableTableHeader,
+  compareSortText,
+  nextSortState,
+  type SortDir,
+} from "@/components/admin/SortableTableHeader";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import { usePropertiesListSelection } from "@/components/admin/properties-v1/PropertiesListSelectionContext";
 import { formatPropertyV1AddressEn } from "@/lib/composeAddress";
@@ -16,6 +22,14 @@ import type { PropertyV1, PropertyV1SelectOption } from "@/lib/repos/propertiesV
 import type { PremisesV1 } from "@/lib/repos/premisesV1";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
 import type { ContactV1Option } from "@/lib/repos/contactsV1";
+
+type BuildingSortKey =
+  | "building"
+  | "district"
+  | "title"
+  | "address"
+  | "premises"
+  | "updated";
 
 export type PropertyListRow = Pick<
   PropertyV1,
@@ -63,9 +77,45 @@ export function PropertiesFlatListClient({
   const searchParams = useSearchParams();
   const { selected, toggleOne, toggleAll, selectedCount } = usePropertiesListSelection();
   const [drawerMode, setDrawerMode] = useState<PropertyDrawerMode>("view");
+  const [sortKey, setSortKey] = useState<BuildingSortKey>("updated");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const openId = searchParams.get("property")?.trim() ?? null;
   const returnTo = useMemo(() => buildReturnTo(searchParams), [searchParams]);
+
+  const sortedRows = useMemo(() => {
+    return [...rows].sort((a, b) => {
+      switch (sortKey) {
+        case "building":
+          return compareSortText(a.bldg_name_en, b.bldg_name_en, sortDir);
+        case "district":
+          return compareSortText(a.district_en, b.district_en, sortDir);
+        case "title":
+          return compareSortText(a.title, b.title, sortDir);
+        case "address":
+          return compareSortText(
+            formatPropertyV1AddressEn(a),
+            formatPropertyV1AddressEn(b),
+            sortDir,
+          );
+        case "premises": {
+          const av = a.inventory_count ?? 0;
+          const bv = b.inventory_count ?? 0;
+          return sortDir === "asc" ? av - bv : bv - av;
+        }
+        case "updated":
+          return compareSortText(a.updated_at, b.updated_at, sortDir);
+        default:
+          return 0;
+      }
+    });
+  }, [rows, sortDir, sortKey]);
+
+  function handleSort(key: BuildingSortKey) {
+    const next = nextSortState(sortKey, sortDir, key, (k) => (k === "updated" ? "desc" : "asc"));
+    setSortKey(next.sortKey);
+    setSortDir(next.sortDir);
+  }
 
   useEffect(() => {
     const modeParam = searchParams.get("mode");
@@ -103,8 +153,8 @@ export function PropertiesFlatListClient({
 
   const emptyMessage = hasSearch ? "No properties match your search." : "No properties yet.";
   const theme = moduleAccentClasses("properties");
-  const displayedIds = useMemo(() => rows.map((r) => r.property_id), [rows]);
-  const allSelected = rows.length > 0 && displayedIds.every((id) => selected.has(id));
+  const displayedIds = useMemo(() => sortedRows.map((r) => r.property_id), [sortedRows]);
+  const allSelected = sortedRows.length > 0 && displayedIds.every((id) => selected.has(id));
 
   function handleToggleAll() {
     toggleAll(displayedIds, !allSelected);
@@ -113,7 +163,7 @@ export function PropertiesFlatListClient({
   return (
     <>
       <ListingRecordCount
-        filteredCount={rows.length}
+        filteredCount={sortedRows.length}
         totalCount={totalCount}
         label="Buildings"
         selectedCount={selectedCount}
@@ -131,24 +181,24 @@ export function PropertiesFlatListClient({
                   className="rounded border-slate-300"
                 />
               </th>
-              <th className="px-3 py-1.5 font-medium">Building</th>
-              <th className="px-3 py-1.5 font-medium">District</th>
-              <th className="px-3 py-1.5 font-medium">Title</th>
-              <th className="px-3 py-1.5 font-medium">Address</th>
-              <th className="px-3 py-1.5 font-medium">Premises</th>
-              <th className="px-3 py-1.5 font-medium">Updated</th>
+              <SortableTableHeader label="Building" sortKey="building" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+              <SortableTableHeader label="District" sortKey="district" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+              <SortableTableHeader label="Title" sortKey="title" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+              <SortableTableHeader label="Address" sortKey="address" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+              <SortableTableHeader label="Premises" sortKey="premises" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+              <SortableTableHeader label="Updated" sortKey="updated" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
               <th className="w-24 px-3 py-1.5 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? (
+            {sortedRows.length === 0 ? (
               <tr>
                 <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
                   {emptyMessage}
                 </td>
               </tr>
             ) : (
-              rows.map((row) => (
+              sortedRows.map((row) => (
                 <tr key={row.property_id} className="border-t border-slate-100">
                   <td className="px-3 py-1.5">
                     <input

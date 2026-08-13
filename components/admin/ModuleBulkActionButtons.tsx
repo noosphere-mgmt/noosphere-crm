@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useTransition } from "react";
 import { IconCopy, IconExport, IconTrash } from "@/components/admin/ModuleActionIcons";
 import { moduleActionButtonClass } from "@/components/admin/ModuleActionBar";
@@ -116,17 +115,6 @@ export function ModuleListingBulkActions({
         <IconExport className={compact ? undefined : "h-3.5 w-3.5"} />
         {compact ? null : "Export filtered"}
       </button>
-      <Link
-        href={`/admin/import?objectType=${importObjectType}`}
-        className={
-          compact
-            ? `${theme.secondaryButton} hidden p-2 text-xs font-medium sm:inline-flex`
-            : `${theme.secondaryButton} hidden text-sm font-medium sm:inline-flex`
-        }
-        title="Import CSV"
-      >
-        {compact ? "↑" : "Import"}
-      </Link>
       {!exportOnly && someSelected ? (
         <span className="hidden text-sm text-slate-600 tabular-nums sm:inline">{selectedCount} selected</span>
       ) : null}

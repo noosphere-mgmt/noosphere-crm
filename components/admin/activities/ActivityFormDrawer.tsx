@@ -38,8 +38,10 @@ function hitFromDefaults(
   id: string | number | null | undefined,
   label: string | null | undefined,
 ): ActivityLinkSearchHit | null {
-  if (id == null || !label) return null;
-  return { entity_type: entityType, entity_id: String(id), label, subtitle: null };
+  if (id == null || String(id).trim() === "") return null;
+  const entityId = String(id).trim();
+  const text = label?.trim() || entityId;
+  return { entity_type: entityType, entity_id: entityId, label: text, subtitle: null };
 }
 
 export function ActivityFormDrawer({
@@ -135,6 +137,7 @@ export function ActivityFormDrawer({
 
   const isSiteTour = isSiteTourActivityType(activityType);
   const useMultiPremises = isSiteTour && !activity;
+  const opportunityLocked = !activity && Boolean(defaults?.opportunity_business_id);
 
   if (!open) return null;
 
@@ -146,7 +149,10 @@ export function ActivityFormDrawer({
     fd.set("notes", notes);
     if (company) fd.set("company_id", company.entity_id);
     if (contact) fd.set("contact_id", contact.entity_id);
-    if (opportunity) fd.set("opportunity_id", opportunity.entity_id);
+    const opportunityId =
+      opportunity?.entity_id ??
+      (opportunityLocked ? defaults?.opportunity_business_id ?? undefined : undefined);
+    if (opportunityId) fd.set("opportunity_id", opportunityId);
 
     if (useMultiPremises && premisesCheckpoints.length > 0) {
       fd.set("premises_ids", premisesCheckpoints.map((p) => p.entity_id).join(","));
@@ -262,8 +268,11 @@ export function ActivityFormDrawer({
               entityType="opportunity"
               value={opportunity}
               onChange={setOpportunity}
-              disabled={pending}
+              disabled={pending || opportunityLocked}
             />
+            {opportunityLocked ? (
+              <p className="mt-1 text-xs text-slate-500">Linked to this opportunity workspace.</p>
+            ) : null}
           </section>
 
           {isSiteTour && !activity ? (

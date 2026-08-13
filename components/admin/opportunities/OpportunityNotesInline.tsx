@@ -20,13 +20,13 @@ export function OpportunityNotesInline({ data }: { data: OpportunityDetailData }
   return (
     <DrawerOverviewCard title="Notes" columns={1} dense={false} className="w-full">
       <InlineTextAreaField
-        label="Requirement summary"
+        label="Requirement Summary"
         value={opportunity.requirement_summary}
         onSave={save("requirement_summary")}
         fullWidth
       />
       <InlineTextAreaField
-        label="Internal remarks"
+        label="Internal Remarks"
         value={opportunity.remarks}
         onSave={save("remarks")}
         fullWidth

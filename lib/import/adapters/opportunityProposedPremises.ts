@@ -86,7 +86,18 @@ function proposedFieldDef(key: (typeof FIELD_KEYS)[number]): ImportFieldDef {
   if (key.includes("date")) return { ...base, type: "date" };
   if (key === "rank") return { ...base, type: "number", integer: true };
   if (key.includes("price")) return { ...base, type: "number" };
-  if (key.includes("fee")) return { ...base, type: "number", exportHidden: true };
+  if (key === "expected_collect_fee") {
+    return { ...base, type: "number", aliases: ["collect_fee_amount"] };
+  }
+  if (key === "expected_paid_out_fee") {
+    return { ...base, type: "number", aliases: ["paid_out_fee_amount"] };
+  }
+  if (key === "paid_out_fee_status") {
+    return { ...base, type: "string", aliases: ["paid_out_status"] };
+  }
+  if (key === "collect_fee_status" || key === "fee_remarks") {
+    return { ...base, type: "string" };
+  }
   return { ...base, type: "string" };
 }
 
@@ -139,6 +150,37 @@ export const opportunityProposedPremisesImportDefinition: ImportObjectDefinition
 
   async findByExternalRef(externalRef) {
     return load("opp.external_ref = $1", [externalRef.trim()]);
+  },
+
+  async prepareMatchValues(values, suppliedFields) {
+    const next = { ...values };
+    const resolved = await resolveOpportunityIdOrName(
+      "opportunity_id",
+      "opportunity_name",
+      next,
+      suppliedFields,
+      null,
+      {},
+      false,
+    );
+    if (resolved.writablePatches.opportunity_id != null) {
+      next.opportunity_id = resolved.writablePatches.opportunity_id;
+      suppliedFields.add("opportunity_id");
+    }
+    const premisesResolved = await resolvePremisesIdOrName(
+      "premises_id",
+      "premises_name",
+      next,
+      suppliedFields,
+      null,
+      {},
+      false,
+    );
+    if (premisesResolved.writablePatches.premises_id != null) {
+      next.premises_id = premisesResolved.writablePatches.premises_id;
+      suppliedFields.add("premises_id");
+    }
+    return next;
   },
 
   buildNaturalKey(values) {

@@ -133,8 +133,8 @@ export function ProposedPremisesLinePanel({
                     value={line.gross_area_sqft ? `${line.gross_area_sqft} sq ft` : "—"}
                   />
                   <PremisesField label="Desks" value={String(line.workstation_count ?? line.capacity_pax ?? "—")} />
-                  <PremisesField label="Listing intent" value={formatProposedPremisesListingIntent(line)} />
-                  <PremisesField label="Listing status" value={formatProposedPremisesListingStatus(line)} />
+                  <PremisesField label="Listing Intent" value={formatProposedPremisesListingIntent(line)} />
+                  <PremisesField label="Listing Status" value={formatProposedPremisesListingStatus(line)} />
                   <PremisesField label={askingLabel} value={askingPrice} />
                 </dl>
               </PremisesSectionCard>
@@ -193,7 +193,7 @@ export function ProposedPremisesLinePanel({
               <PremisesSectionCard title="Fee information">
                 <div className={grid2}>
                   <FormField
-                    label="Expected collect fee"
+                    label="Expected Collect Fee"
                     name="collect_fee_amount"
                     type="number"
                     defaultValue={line.collect_fee_amount ?? ""}
@@ -213,7 +213,7 @@ export function ProposedPremisesLinePanel({
                     </select>
                   </label>
                   <FormField
-                    label="Expected paid out fee"
+                    label="Expected Paid Out Fee"
                     name="paid_out_fee_amount"
                     type="number"
                     defaultValue={line.paid_out_fee_amount ?? ""}
@@ -233,7 +233,7 @@ export function ProposedPremisesLinePanel({
                     </select>
                   </label>
                   <div className="col-span-2">
-                    <TextAreaField label="Fee remarks" name="fee_remarks" rows={2} defaultValue={line.fee_remarks ?? ""} />
+                    <TextAreaField label="Fee Remarks" name="fee_remarks" rows={2} defaultValue={line.fee_remarks ?? ""} />
                   </div>
                 </div>
                 <HiddenField name="collect_fee_basis" value={line.collect_fee_basis} />

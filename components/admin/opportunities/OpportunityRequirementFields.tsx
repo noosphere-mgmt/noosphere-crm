@@ -1,29 +1,34 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { FormField, TextAreaField } from "@/components/admin/AdminFormFields";
 import {
   formatOpportunityBudget,
   opportunityBudgetValue,
-  opportunityPropertyType,
 } from "@/lib/opportunityFormParsing";
 import {
   OPPORTUNITY_FUNDING_STATUSES,
   OPPORTUNITY_FUNDING_STATUS_LABELS,
   OPPORTUNITY_SALES_ROLES,
   OPPORTUNITY_SALES_ROLE_LABELS,
-  isProfServiceSalesRole,
+  isOtherSalesRole,
+  isSaleCaseSalesRole,
   type OpportunitySalesRole,
 } from "@/lib/opportunityValues";
-import { V1_PROPERTY_TYPES } from "@/lib/v1ListValues";
 import {
   OPPORTUNITY_CATEGORY_OPTIONS,
-  OPPORTUNITY_SPACE_FORM_OPTIONS,
   primaryCategoryPreference,
   primarySpaceFormPreference,
 } from "@/lib/opportunityPreferences";
+import {
+  formatRequirementPrimaryTypes,
+  formatRequirementSubtypes,
+  REQUIREMENT_SUBTYPE_OPTIONS,
+  type RequirementPrimaryType,
+} from "@/lib/opportunityRequirementTypes";
 import type { Opportunity } from "@/lib/types/entities";
 
-const labelClass = "text-xs font-medium text-slate-500";
+const labelClass = "text-xs font-medium uppercase tracking-wide text-slate-500";
 const selectClass = "mt-1 w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm";
 const readOnlyValue = "mt-1 text-sm font-normal leading-relaxed text-slate-900";
 const fieldGrid = "grid w-full grid-cols-2 gap-x-5 gap-y-4 md:grid-cols-3";
@@ -46,65 +51,68 @@ function SummaryBlock({ label, value }: { label: string; value: string }) {
   );
 }
 
-function PropertyTypeSelect({
-  defaultValue,
-  name = "property_type",
+function RequiredTypeSubtypeSelects({
+  categoryDefault,
+  subtypeDefault,
 }: {
-  defaultValue?: string | null;
-  name?: string;
+  categoryDefault?: string | null;
+  subtypeDefault?: string | null;
 }) {
-  return (
-    <label className="block min-w-0 text-sm">
-      <span className={labelClass}>Building property type</span>
-      <select name={name} defaultValue={defaultValue ?? ""} className={selectClass}>
-        <option value="">—</option>
-        {V1_PROPERTY_TYPES.map((t) => (
-          <option key={t} value={t}>
-            {t}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
+  const initialType = (primaryCategoryPreference(categoryDefault) ?? "commercial") as RequirementPrimaryType;
+  const initialSubtype = primarySpaceFormPreference(subtypeDefault) ?? "";
+  const [requiredType, setRequiredType] = useState<RequirementPrimaryType | "">(initialType);
+  const [requiredSubtype, setRequiredSubtype] = useState(initialSubtype);
 
-function CategoryPreferenceSelect({ defaultValue }: { defaultValue?: string | null }) {
-  return (
-    <label className="block min-w-0 text-sm">
-      <span className={labelClass}>Property category</span>
-      <select
-        name="property_category_preference"
-        defaultValue={primaryCategoryPreference(defaultValue) ?? ""}
-        className={selectClass}
-      >
-        <option value="">Any</option>
-        {OPPORTUNITY_CATEGORY_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
+  const subtypeOptions = useMemo(() => {
+    if (!requiredType) return [];
+    return REQUIREMENT_SUBTYPE_OPTIONS[requiredType] ?? [];
+  }, [requiredType]);
 
-function SpaceFormPreferenceSelect({ defaultValue }: { defaultValue?: string | null }) {
+  function onRequiredTypeChange(next: string) {
+    const typed = next as RequirementPrimaryType | "";
+    setRequiredType(typed);
+    const options = typed ? REQUIREMENT_SUBTYPE_OPTIONS[typed] ?? [] : [];
+    setRequiredSubtype((current) =>
+      options.some((opt) => opt.value === current) ? current : "",
+    );
+  }
+
   return (
-    <label className="block min-w-0 text-sm">
-      <span className={labelClass}>Space form</span>
-      <select
-        name="property_type_preference"
-        defaultValue={primarySpaceFormPreference(defaultValue) ?? ""}
-        className={selectClass}
-      >
-        <option value="">Any</option>
-        {OPPORTUNITY_SPACE_FORM_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </label>
+    <>
+      <label className="block min-w-0 text-sm">
+        <span className={labelClass}>Required Type</span>
+        <select
+          name="property_category_preference"
+          value={requiredType}
+          onChange={(e) => onRequiredTypeChange(e.target.value)}
+          className={selectClass}
+        >
+          <option value="">—</option>
+          {OPPORTUNITY_CATEGORY_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="block min-w-0 text-sm">
+        <span className={labelClass}>Required Subtype</span>
+        <select
+          name="property_type_preference"
+          value={requiredSubtype}
+          onChange={(e) => setRequiredSubtype(e.target.value)}
+          className={selectClass}
+          disabled={!requiredType}
+        >
+          <option value="">—</option>
+          {subtypeOptions.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </label>
+    </>
   );
 }
 
@@ -127,12 +135,13 @@ function LeaseRequirementEdit({
   return (
     <>
       <dl className={fieldGrid}>
-        <CategoryPreferenceSelect defaultValue={opportunity.property_category_preference} />
-        <SpaceFormPreferenceSelect defaultValue={opportunity.property_type_preference} />
-        <PropertyTypeSelect defaultValue={opportunityPropertyType(opportunity)} />
+        <RequiredTypeSubtypeSelects
+          categoryDefault={opportunity.property_category_preference}
+          subtypeDefault={opportunity.property_type_preference}
+        />
         <FormField label="District" name="district_preference" defaultValue={opportunity.district_preference ?? ""} />
         <FormField
-          label="Area (sq ft)"
+          label="Area (Sq Ft)"
           name="required_area_sqft"
           type="number"
           defaultValue={opportunity.required_area_sqft ?? ""}
@@ -145,15 +154,15 @@ function LeaseRequirementEdit({
         />
         <BudgetFields opportunity={opportunity} />
         <FormField
-          label="Est. start date"
+          label="Est. Start Date"
           name="expected_close_date"
           type="date"
           defaultValue={opportunity.expected_close_date?.slice(0, 10) ?? ""}
         />
-        <FormField label="Lease term" name="lease_term" defaultValue={opportunity.lease_term ?? ""} />
+        <FormField label="Lease Term" name="lease_term" defaultValue={opportunity.lease_term ?? ""} />
       </dl>
       <TextAreaField
-        label="Requirement summary"
+        label="Requirement Summary"
         name="requirement_summary"
         defaultValue={opportunity.requirement_summary ?? ""}
       />
@@ -163,38 +172,48 @@ function LeaseRequirementEdit({
 
 function BuyRequirementEdit({
   opportunity,
+  salesRole,
 }: {
   opportunity: Opportunity;
+  salesRole: OpportunitySalesRole;
 }) {
+  const isBuy = salesRole === "to_buy";
+  const isSaleCase = isSaleCaseSalesRole(salesRole);
+
   return (
     <>
       <dl className={fieldGrid}>
-        <CategoryPreferenceSelect defaultValue={opportunity.property_category_preference} />
-        <SpaceFormPreferenceSelect defaultValue={opportunity.property_type_preference} />
-        <PropertyTypeSelect defaultValue={opportunityPropertyType(opportunity)} />
+        <RequiredTypeSubtypeSelects
+          categoryDefault={opportunity.property_category_preference}
+          subtypeDefault={opportunity.property_type_preference}
+        />
         <FormField label="District" name="district_preference" defaultValue={opportunity.district_preference ?? ""} />
         <BudgetFields opportunity={opportunity} />
-        <FormField label="Target yield (%)" name="target_yield" defaultValue={opportunity.target_yield ?? ""} />
+        {isSaleCase ? (
+          <FormField label="Target Yield (%)" name="target_yield" defaultValue={opportunity.target_yield ?? ""} />
+        ) : null}
         <FormField
-          label="Target area (sq ft)"
+          label="Target Area (Sq Ft)"
           name="required_area_sqft"
           type="number"
           defaultValue={opportunity.required_area_sqft ?? ""}
         />
-        <label className="block min-w-0 text-sm">
-          <span className={labelClass}>Funding status</span>
-          <select name="funding_status" defaultValue={opportunity.funding_status ?? ""} className={selectClass}>
-            <option value="">—</option>
-            {OPPORTUNITY_FUNDING_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {OPPORTUNITY_FUNDING_STATUS_LABELS[s]}
-              </option>
-            ))}
-          </select>
-        </label>
+        {isBuy ? (
+          <label className="block min-w-0 text-sm">
+            <span className={labelClass}>Funding Status</span>
+            <select name="funding_status" defaultValue={opportunity.funding_status ?? ""} className={selectClass}>
+              <option value="">—</option>
+              {OPPORTUNITY_FUNDING_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {OPPORTUNITY_FUNDING_STATUS_LABELS[s]}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
       </dl>
       <TextAreaField
-        label="Requirement summary"
+        label="Requirement Summary"
         name="requirement_summary"
         defaultValue={opportunity.requirement_summary ?? ""}
       />
@@ -206,9 +225,17 @@ function LeaseRequirementView({ opportunity }: { opportunity: Opportunity }) {
   return (
     <>
       <dl className={fieldGrid}>
-        <CompactField label="Property category" value={opportunity.property_category_preference ?? ""} />
-        <CompactField label="Space form" value={opportunity.property_type_preference ?? ""} />
-        <CompactField label="Building property type" value={opportunityPropertyType(opportunity) ?? ""} />
+        <CompactField
+          label="Required Type"
+          value={formatRequirementPrimaryTypes(opportunity.property_category_preference)}
+        />
+        <CompactField
+          label="Required Subtype"
+          value={formatRequirementSubtypes(
+            opportunity.property_category_preference,
+            opportunity.property_type_preference,
+          )}
+        />
         <CompactField label="District" value={opportunity.district_preference ?? ""} />
         <CompactField
           label="Area"
@@ -216,15 +243,23 @@ function LeaseRequirementView({ opportunity }: { opportunity: Opportunity }) {
         />
         <CompactField label="Desks" value={opportunity.required_capacity_pax?.toString() ?? ""} />
         <CompactField label="Budget" value={formatOpportunityBudget(opportunity.budget_max, opportunity.budget_min)} />
-        <CompactField label="Est. start date" value={opportunity.expected_close_date?.slice(0, 10) ?? ""} />
-        <CompactField label="Lease term" value={opportunity.lease_term ?? ""} />
+        <CompactField label="Est. Start Date" value={opportunity.expected_close_date?.slice(0, 10) ?? ""} />
+        <CompactField label="Lease Term" value={opportunity.lease_term ?? ""} />
       </dl>
-      <SummaryBlock label="Requirement summary" value={opportunity.requirement_summary ?? ""} />
+      <SummaryBlock label="Requirement Summary" value={opportunity.requirement_summary ?? ""} />
     </>
   );
 }
 
-function BuyRequirementView({ opportunity }: { opportunity: Opportunity }) {
+function BuyRequirementView({
+  opportunity,
+  salesRole,
+}: {
+  opportunity: Opportunity;
+  salesRole: OpportunitySalesRole;
+}) {
+  const isBuy = salesRole === "to_buy";
+  const isSaleCase = isSaleCaseSalesRole(salesRole);
   const fundingLabel =
     opportunity.funding_status &&
     OPPORTUNITY_FUNDING_STATUS_LABELS[
@@ -238,19 +273,32 @@ function BuyRequirementView({ opportunity }: { opportunity: Opportunity }) {
   return (
     <>
       <dl className={fieldGrid}>
-        <CompactField label="Property category" value={opportunity.property_category_preference ?? ""} />
-        <CompactField label="Space form" value={opportunity.property_type_preference ?? ""} />
-        <CompactField label="Building property type" value={opportunityPropertyType(opportunity) ?? ""} />
+        <CompactField
+          label="Required Type"
+          value={formatRequirementPrimaryTypes(opportunity.property_category_preference)}
+        />
+        <CompactField
+          label="Required Subtype"
+          value={formatRequirementSubtypes(
+            opportunity.property_category_preference,
+            opportunity.property_type_preference,
+          )}
+        />
         <CompactField label="District" value={opportunity.district_preference ?? ""} />
         <CompactField label="Budget" value={formatOpportunityBudget(opportunity.budget_max, opportunity.budget_min)} />
-        <CompactField label="Target yield" value={opportunity.target_yield ? `${opportunity.target_yield}%` : ""} />
+        {isSaleCase ? (
+          <CompactField
+            label="Target Yield (%)"
+            value={opportunity.target_yield ? `${opportunity.target_yield}%` : ""}
+          />
+        ) : null}
         <CompactField
-          label="Target area"
+          label="Target Area"
           value={opportunity.required_area_sqft ? `${opportunity.required_area_sqft} sq ft` : ""}
         />
-        <CompactField label="Funding status" value={fundingLabel} />
+        {isBuy ? <CompactField label="Funding Status" value={fundingLabel} /> : null}
       </dl>
-      <SummaryBlock label="Requirement summary" value={opportunity.requirement_summary ?? ""} />
+      <SummaryBlock label="Requirement Summary" value={opportunity.requirement_summary ?? ""} />
     </>
   );
 }
@@ -269,7 +317,7 @@ export function OpportunitySalesRoleSelect({
   if (readOnlyLabel != null) {
     return (
       <div className="min-w-0 py-1">
-        <dt className={labelClass}>Sales Type</dt>
+        <dt className={labelClass}>Sales Role</dt>
         <dd className={readOnlyValue}>{readOnlyLabel}</dd>
       </div>
     );
@@ -277,7 +325,7 @@ export function OpportunitySalesRoleSelect({
 
   return (
     <label className="block min-w-0 text-sm">
-      <span className={labelClass}>Sales Type</span>
+      <span className={labelClass}>Sales Role</span>
       <select
         name={name}
         value={value}
@@ -303,29 +351,29 @@ export function OpportunityRequirementFields({
   salesRole: OpportunitySalesRole;
   editing: boolean;
 }) {
-  if (isProfServiceSalesRole(salesRole)) {
+  if (isOtherSalesRole(salesRole)) {
     if (editing) {
       return (
         <TextAreaField
-          label="Requirement summary"
+          label="Requirement Summary"
           name="requirement_summary"
           defaultValue={opportunity.requirement_summary ?? ""}
         />
       );
     }
-    return <SummaryBlock label="Requirement summary" value={opportunity.requirement_summary ?? ""} />;
+    return <SummaryBlock label="Requirement Summary" value={opportunity.requirement_summary ?? ""} />;
   }
 
   if (editing) {
-    return salesRole === "to_buy" || salesRole === "to_sell" ? (
-      <BuyRequirementEdit opportunity={opportunity} />
+    return isSaleCaseSalesRole(salesRole) ? (
+      <BuyRequirementEdit opportunity={opportunity} salesRole={salesRole} />
     ) : (
       <LeaseRequirementEdit opportunity={opportunity} />
     );
   }
 
-  return salesRole === "to_buy" || salesRole === "to_sell" ? (
-    <BuyRequirementView opportunity={opportunity} />
+  return isSaleCaseSalesRole(salesRole) ? (
+    <BuyRequirementView opportunity={opportunity} salesRole={salesRole} />
   ) : (
     <LeaseRequirementView opportunity={opportunity} />
   );

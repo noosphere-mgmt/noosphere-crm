@@ -39,9 +39,9 @@ export function OpportunitiesPageClient({
 
   const openWorkspace = useCallback(
     (row: Opportunity) => {
-      router.push(opportunityWorkspaceHref(row, "overview"));
+      router.push(opportunityWorkspaceHref(row, "overview", undefined, returnTo));
     },
-    [router],
+    [router, returnTo],
   );
 
   const openCreateDrawer = useCallback(() => {

@@ -1,5 +1,5 @@
 import { query } from "@/lib/db";
-import { allocateNextBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
+import { allocateNextBusinessId, ensureLegacyBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
 import {
   normalizeCategoryPreference,
   normalizeSpaceFormPreference,
@@ -12,6 +12,7 @@ import type {
 } from "@/lib/types/entities";
 import { normalizeOpportunitySource, type OpportunitySource } from "@/lib/opportunitySourceValues";
 import { normalizeOpportunityStatus } from "@/lib/opportunityStatusModel";
+import { normalizeOpportunitySalesRole } from "@/lib/opportunityValues";
 
 const opportunitySelect = `
   o.id, o.client_name, o.lead_type, COALESCE(o.lead_source, 'direct') AS lead_source, o.company_name,
@@ -31,7 +32,9 @@ const opportunitySelect = `
     WHERE pp.opportunity_id = o.id AND pp.status = 'viewing'
   ) AS has_viewing_premises,
   lc.company_name AS linked_company_name,
+  lc.business_id AS linked_company_business_id,
   pc.contact_name AS primary_contact_name,
+  pc.business_id AS primary_contact_business_id,
   rc.company_name AS referrer_company_name,
   rfc.contact_name AS referrer_contact_name,
   o.business_id,
@@ -110,7 +113,7 @@ function opportunityValues(input: OpportunityInput) {
     input.primary_contact_id ?? null,
     input.referrer_company_id ?? null,
     input.referrer_contact_id ?? null,
-    input.sales_role ?? "to_lease",
+    normalizeOpportunitySalesRole(input.sales_role),
     input.lease_term?.trim() || null,
     input.expected_close_date?.trim() || null,
     input.lost_reason?.trim() || null,
@@ -139,8 +142,14 @@ function opportunityValues(input: OpportunityInput) {
 function normalizeOpportunityRow(row: Opportunity): Opportunity {
   return {
     ...row,
+    id: Number(row.id),
+    company_id: row.company_id == null ? null : Number(row.company_id),
+    primary_contact_id: row.primary_contact_id == null ? null : Number(row.primary_contact_id),
+    referrer_company_id: row.referrer_company_id == null ? null : Number(row.referrer_company_id),
+    referrer_contact_id: row.referrer_contact_id == null ? null : Number(row.referrer_contact_id),
     status: normalizeOpportunityStatus(String(row.status ?? "qualifying")),
     lead_source: normalizeOpportunitySource(row.lead_source),
+    sales_role: normalizeOpportunitySalesRole(row.sales_role),
   };
 }
 
@@ -170,6 +179,7 @@ export async function getOpportunity(id: number): Promise<Opportunity | null> {
 }
 
 export async function createOpportunity(input: OpportunityInput): Promise<number> {
+  const businessId = await allocateNextBusinessId("opportunity");
   const rows = await query<{ id: string }>(
     `INSERT INTO opportunities (
        client_name, lead_type, lead_source, company_name, company_id, primary_contact_id, referrer_company_id,
@@ -180,14 +190,12 @@ export async function createOpportunity(input: OpportunityInput): Promise<number
        property_category_preference, property_type_preference,
        target_yield, funding_status, move_in_date,
        status, waiting_for, next_action, next_action_date,
-       requirement_summary, remarks
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31)
+       requirement_summary, remarks, business_id
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32)
      RETURNING id::text AS id`,
-    opportunityValues(input),
+    [...opportunityValues(input), businessId],
   );
   const id = Number.parseInt(rows[0]!.id, 10);
-  const businessId = await allocateNextBusinessId("opportunity");
-  await query(`UPDATE opportunities SET business_id = $1 WHERE id = $2`, [businessId, id]);
   await registerBusinessId({
     entityType: "opportunity",
     businessId,
@@ -198,6 +206,7 @@ export async function createOpportunity(input: OpportunityInput): Promise<number
 }
 
 export async function updateOpportunity(id: number, input: OpportunityInput): Promise<void> {
+  const legacyId = Number(id);
   await query(
     `UPDATE opportunities SET
        client_name = $2, lead_type = $3, lead_source = $4, company_name = $5, company_id = $6, primary_contact_id = $7,
@@ -212,8 +221,9 @@ export async function updateOpportunity(id: number, input: OpportunityInput): Pr
        waiting_for = $28, next_action = $29, next_action_date = $30,
        requirement_summary = $31, remarks = $32
      WHERE id = $1`,
-    [id, ...opportunityValues(input)],
+    [legacyId, ...opportunityValues(input)],
   );
+  await ensureLegacyBusinessId("opportunity", legacyId);
 }
 
 export async function deleteOpportunity(id: number): Promise<void> {

@@ -75,8 +75,8 @@ export function PropertiesSearchBar({ initialQuery, initialCategory, initialTitl
         type="search"
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="Search building, address, district..."
-        aria-label="Search properties"
+        placeholder="Search buildings — names, address, notes, MTR, related company…"
+        aria-label="Search buildings"
         className={theme.searchInput}
       />
       <select

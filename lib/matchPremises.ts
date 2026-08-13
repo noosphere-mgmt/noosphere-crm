@@ -103,11 +103,23 @@ function acceptedPremisesCategories(categoryPreferences: string[], subtypePrefer
   for (const category of categoryPreferences) {
     if (category === "commercial") {
       const commercialSubtypes = subtypePreferences.filter((value) =>
-        ["conventional_office", "serviced_office", "shared_sublet", "shop_retail"].includes(value),
+        [
+          "conventional_office",
+          "serviced_office",
+          "shared_sublet",
+          "shared_sublet_office",
+          "shop_retail",
+        ].includes(value),
       );
       if (commercialSubtypes.length === 0 || commercialSubtypes.includes("conventional_office")) accepted.add("Office");
       if (commercialSubtypes.length === 0 || commercialSubtypes.includes("serviced_office")) accepted.add("Serviced Office");
-      if (commercialSubtypes.length === 0 || commercialSubtypes.includes("shared_sublet")) accepted.add("Shared Office");
+      if (
+        commercialSubtypes.length === 0 ||
+        commercialSubtypes.includes("shared_sublet") ||
+        commercialSubtypes.includes("shared_sublet_office")
+      ) {
+        accepted.add("Shared Office");
+      }
       if (commercialSubtypes.length === 0 || commercialSubtypes.includes("shop_retail")) accepted.add("Retail");
     } else if (category === "residential") accepted.add("Residential");
     else if (category === "industrial") accepted.add("Industrial");
@@ -156,7 +168,7 @@ export function passesPremisesHardFilter(opp: Opportunity, row: PremisesCandidat
   if (intent) {
     const role = opp.sales_role ?? "to_lease";
     if ((role === "to_buy" || role === "to_sell") && intent !== "sale" && intent !== "both") return false;
-    if (role === "to_lease" && intent !== "lease" && intent !== "both") return false;
+    if ((role === "to_lease" || role === "to_let") && intent !== "lease" && intent !== "both") return false;
   }
 
   return true;

@@ -11,7 +11,7 @@ import { BuildingProposalContentTab } from "@/components/admin/properties-v1/Bui
 import { PropertyEditForm, propertyFormId } from "@/components/admin/properties-v1/PropertyEditForm";
 import { PropertyInlineOverview } from "@/components/admin/properties-v1/PropertyInlineOverview";
 import { InlineEditProvider } from "@/components/admin/inline/InlineEditProvider";
-import { ModuleActionBar } from "@/components/admin/ModuleActionBar";
+import { ModuleStickyEditBar } from "@/components/admin/ModuleActionBar";
 import { getBuildingWorkspaceTab } from "@/lib/buildingWorkspaceTab";
 import { buildingWorkspaceHref } from "@/lib/buildingWorkspaceNav";
 import type { ActivityListRow } from "@/lib/repos/activities";
@@ -47,15 +47,7 @@ export function BuildingWorkspacePageClient({
 
   if (editMode && tab === "overview") {
     return (
-      <div className="space-y-3">
-        <div className="sticky top-0 z-20 flex justify-end border-b border-slate-200 bg-[var(--admin-bg,#f8fafc)] py-2">
-          <ModuleActionBar
-            mode="edit"
-            formId={formId}
-            onCancel={() => router.push(viewHref, { scroll: false })}
-            module="properties"
-          />
-        </div>
+      <div className="space-y-3 pt-14">
         <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
           <PropertyEditForm
             property={property}
@@ -66,14 +58,10 @@ export function BuildingWorkspacePageClient({
             }}
           />
         </div>
-        <div className="flex justify-end border-t border-slate-200 pt-3">
-          <ModuleActionBar
-            mode="edit"
-            formId={formId}
-            onCancel={() => router.push(viewHref, { scroll: false })}
-            module="properties"
-          />
-        </div>
+        <ModuleStickyEditBar
+          formId={formId}
+          onCancel={() => router.push(viewHref, { scroll: false })}
+        />
       </div>
     );
   }

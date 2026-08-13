@@ -43,8 +43,10 @@ export function PremisesAddToShortlistModal({
         const hay = [
           o.client_name,
           o.linked_company_name,
+          o.company_name,
           o.district_preference,
           o.business_id,
+          String(o.id),
         ]
           .filter(Boolean)
           .join(" ")

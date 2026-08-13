@@ -12,8 +12,6 @@ import {
 import { useFormEditing } from "@/components/admin/ModuleActionBar";
 import { contactsForCompany } from "@/lib/contactCompanyFilter";
 import {
-  OPPORTUNITY_LEAD_TYPES,
-  OPPORTUNITY_LEAD_TYPE_LABELS,
   OPPORTUNITY_STATUSES,
   OPPORTUNITY_STATUS_LABELS,
 } from "@/lib/lookups";
@@ -24,6 +22,7 @@ import {
 import {
   type OpportunitySalesRole,
   isProfServiceSalesRole,
+  normalizeOpportunitySalesRole,
 } from "@/lib/opportunityValues";
 import { toLegacyCompanySelectOptions, toLegacyContactSelectOptions, resolveCompanySelectValue, resolveContactSelectValue } from "@/lib/crmSelectOptions";
 import type { ContactOption } from "@/lib/repos/contacts";
@@ -50,7 +49,9 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
   const [primaryContactId, setPrimaryContactId] = useState(
     resolveContactSelectValue(contacts, defaults?.primary_contact_id),
   );
-  const [salesRole, setSalesRole] = useState<OpportunitySalesRole>(defaults?.sales_role ?? "to_lease");
+  const [salesRole, setSalesRole] = useState<OpportunitySalesRole>(
+    normalizeOpportunitySalesRole(defaults?.sales_role),
+  );
   const [status, setStatus] = useState<OpportunityStatus>(defaults?.status ?? "qualifying");
 
   const contactsForCompanyList = useMemo(
@@ -97,7 +98,8 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
 
   function onCompanyChange(next: string) {
     setCompanyId(next);
-    const stillValid = contactsForCompanyList.some(
+    const nextContacts = contactsForCompany(contacts, next, companies);
+    const stillValid = nextContacts.some(
       (c) => resolveContactSelectValue(contacts, c.id) === primaryContactId,
     );
     if (!stillValid) {
@@ -113,10 +115,10 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
         </div>
       ) : null}
       <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-        <p className="mb-3 text-sm font-medium text-slate-800">Referrer & admin</p>
+        <p className="mb-3 text-sm font-medium text-slate-800">Referrer & Admin</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block text-sm font-medium text-slate-700">
-            Referrer company
+            Referrer Company
             <select
               name="referrer_company_id"
               defaultValue={resolveCompanySelectValue(companies, defaults?.referrer_company_id)}
@@ -132,7 +134,7 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
             </select>
           </label>
           <FormField
-            label="Relationship owner (override)"
+            label="Relationship Owner (Override)"
             name="relationship_owner"
             defaultValue={defaults?.relationship_owner ?? ""}
           />
@@ -142,7 +144,7 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
       <div className="rounded-lg border border-slate-200 bg-white p-4">
         <p className="mb-3 text-sm font-medium text-slate-800">Opportunity</p>
         <dl className={fieldGrid}>
-          <FormField label="Opportunity name" name="client_name" defaultValue={defaults?.client_name ?? ""} required />
+          <FormField label="Opportunity Name" name="client_name" defaultValue={defaults?.client_name ?? ""} required />
           <label className="block min-w-0 text-sm">
             <span className={labelClass}>Company</span>
             <select
@@ -152,7 +154,7 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
               disabled={!editing}
               className={editing ? selectClass : selectReadOnlyClass}
             >
-              <option value="">— Select company —</option>
+              <option value="">No Company</option>
               {companyOptions.map((c) => (
                 <option key={c.value} value={c.value}>
                   {c.label}
@@ -167,7 +169,7 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
               value={primaryContactId}
               onChange={(e) => setPrimaryContactId(e.target.value)}
               className={editing ? selectClass : selectReadOnlyClass}
-              disabled={!editing || !companyId}
+              disabled={!editing}
             >
               <option value="">— Select contact —</option>
               {contactsForCompanyList.map((c) => {
@@ -181,27 +183,14 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
               })}
             </select>
           </label>
-          <label className="block min-w-0 text-sm">
-            <span className={labelClass}>Lead type</span>
-            <select
-              name="lead_type"
-              defaultValue={defaults?.lead_type ?? "direct_client"}
-              disabled={!editing}
-              className={editing ? selectClass : selectReadOnlyClass}
-            >
-              {OPPORTUNITY_LEAD_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {OPPORTUNITY_LEAD_TYPE_LABELS[t]}
-                </option>
-              ))}
-            </select>
-          </label>
+          <input type="hidden" name="lead_type" value={defaults?.lead_type ?? "direct_client"} />
           <label className="block min-w-0 text-sm">
             <span className={labelClass}>Lead/Opp Source</span>
             <select name="lead_source" defaultValue={defaults?.lead_source ?? "direct"} disabled={!editing} className={editing ? selectClass : selectReadOnlyClass}>
               {OPPORTUNITY_SOURCES.map((source) => <option key={source} value={source}>{OPPORTUNITY_SOURCE_LABELS[source]}</option>)}
             </select>
           </label>
+          <OpportunitySalesRoleSelect value={salesRole} onChange={setSalesRole} />
           <label className="block min-w-0 text-sm">
             <span className={labelClass}>Status</span>
             <select
@@ -218,7 +207,6 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
               ))}
             </select>
           </label>
-          <OpportunitySalesRoleSelect value={salesRole} onChange={setSalesRole} />
           {isClosedOpportunityStatus(status) ? (
             <FormField
               label={closedOutcomeReasonLabel(status)}
@@ -234,7 +222,7 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
         <OpportunityRequirementFields opportunity={opportunityDefaults} salesRole={salesRole} editing={editing} />
       </div>
 
-      <TextAreaField label="Internal remarks" name="remarks" defaultValue={defaults?.remarks ?? ""} />
+      <TextAreaField label="Internal Remarks" name="remarks" defaultValue={defaults?.remarks ?? ""} />
       {!isProfServiceSalesRole(salesRole) ? (
         <p className="text-xs text-slate-500">
           District: comma-separated (e.g. Central, Admiralty, Causeway Bay).

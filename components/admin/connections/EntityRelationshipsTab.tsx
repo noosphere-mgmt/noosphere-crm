@@ -11,9 +11,10 @@ import {
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
 import { RelationshipEntityTypeahead } from "@/components/admin/connections/RelationshipEntityTypeahead";
 import {
-  CREATION_RELATIONSHIP_TYPES,
+  ADDABLE_RELATIONSHIP_TYPES,
   RELATIONSHIP_STATUSES,
-  isCreationRelationshipType,
+  defaultAddRelationshipType,
+  isAddableRelationshipType,
   type EntityRelationshipRow,
   type EntityType,
 } from "@/lib/entityRelationships";
@@ -67,16 +68,17 @@ export function EntityRelationshipsTab({
   const [error, setError] = useState<string | null>(null);
   const [relatedType, setRelatedType] = useState<EntityType>("company");
   const [relatedParty, setRelatedParty] = useState<RelationshipSearchHit | null>(null);
-  const [relationshipType, setRelationshipType] = useState<string>("Refers");
+  const [relationshipType, setRelationshipType] = useState<string>(() =>
+    defaultAddRelationshipType(entityType),
+  );
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editType, setEditType] = useState("");
   const [editStatus, setEditStatus] = useState("");
   const [editRemarks, setEditRemarks] = useState("");
-  const [editTypeLocked, setEditTypeLocked] = useState(false);
 
   function resetAddForm() {
     setRelatedParty(null);
-    setRelationshipType("Refers");
+    setRelationshipType(defaultAddRelationshipType(entityType));
     setError(null);
   }
 
@@ -117,18 +119,20 @@ export function EntityRelationshipsTab({
     setEditType(row.relationship_type);
     setEditStatus(row.status);
     setEditRemarks(row.remarks ?? "");
-    setEditTypeLocked(!isCreationRelationshipType(row.relationship_type));
   }
 
   function saveEdit() {
     if (!editingId) return;
-    const extra: Record<string, string> = {
+    if (!isAddableRelationshipType(editType)) {
+      setError("Invalid relationship type");
+      return;
+    }
+    const fd = relationshipFormData({
       relationship_id: editingId,
+      relationship_type: editType,
       status: editStatus,
       remarks: editRemarks,
-    };
-    if (!editTypeLocked) extra.relationship_type = editType;
-    const fd = relationshipFormData(extra);
+    });
     startTransition(async () => {
       const result = await updateEntityRelationshipAction(fd);
       if (!result.ok) {
@@ -179,23 +183,17 @@ export function EntityRelationshipsTab({
                       <div className="grid gap-2 sm:grid-cols-3">
                         <label className="block text-sm">
                           <span className="mb-1 block text-xs text-slate-500">Relationship</span>
-                          {editTypeLocked ? (
-                            <p className="rounded border border-slate-200 bg-slate-50 px-2 py-1.5 text-sm text-slate-800">
-                              {editType}
-                            </p>
-                          ) : (
-                            <select
-                              value={editType}
-                              onChange={(e) => setEditType(e.target.value)}
-                              className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
-                            >
-                              {CREATION_RELATIONSHIP_TYPES.map((t) => (
-                                <option key={t} value={t}>
-                                  {t}
-                                </option>
-                              ))}
-                            </select>
-                          )}
+                          <select
+                            value={editType}
+                            onChange={(e) => setEditType(e.target.value)}
+                            className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
+                          >
+                            {ADDABLE_RELATIONSHIP_TYPES.map((t) => (
+                              <option key={t} value={t}>
+                                {t}
+                              </option>
+                            ))}
+                          </select>
                         </label>
                         <label className="block text-sm">
                           <span className="mb-1 block text-xs text-slate-500">Status</span>
@@ -255,7 +253,6 @@ export function EntityRelationshipsTab({
                     <td className="px-3 py-2">
                       <ModuleRowActions
                         module="connections"
-                        viewHref={relatedPartyHref(basePath, searchParams, row)}
                         onEdit={() => startEdit(row)}
                         onDelete={() => handleDelete(row.relationship_id)}
                       />
@@ -284,7 +281,7 @@ export function EntityRelationshipsTab({
               onChange={(e) => setRelationshipType(e.target.value)}
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
             >
-              {CREATION_RELATIONSHIP_TYPES.map((t) => (
+              {ADDABLE_RELATIONSHIP_TYPES.map((t) => (
                 <option key={t} value={t}>
                   {t}
                 </option>

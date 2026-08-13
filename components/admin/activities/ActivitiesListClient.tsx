@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState, useTransition, useEffect } from "react";
 import { bulkDeleteActivitiesAction, bulkDuplicateActivitiesAction } from "@/app/admin/activities/actions";
@@ -15,14 +14,27 @@ import { ListingRecordCount } from "@/components/admin/ListingRecordCount";
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
 import { ModulePageHeader } from "@/components/admin/ModulePageHeader";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
+import {
+  SortableTableHeader,
+  compareSortText,
+  nextSortState,
+  type SortDir,
+} from "@/components/admin/SortableTableHeader";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import { MobileFilterBar, MobileFilterField } from "@/components/admin/mobile/MobileFilterSheet";
+
+type ActivitySortKey = "date" | "type" | "company" | "premises" | "notes";
 import {
   formatActivityDate,
   formatActivityNotesPreview,
   formatActivityPremisesListCell,
 } from "@/lib/activitiesDisplay";
-import { companyHref, contactHref } from "@/lib/dashboardLinks";
+import {
+  companyFullPageHref,
+  contactFullPageHref,
+  opportunityFullPageHref,
+} from "@/lib/crmDetailNav";
+import { AdminEntityLink } from "@/components/admin/AdminEntityLink";
 import {
   activityMatchesGlobalSearch,
   activityMatchesQuickFilters,
@@ -47,6 +59,8 @@ export function ActivitiesListClient({
     useActivitiesListSelection();
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState(EMPTY_ACTIVITIES_QUICK_FILTERS);
+  const [sortKey, setSortKey] = useState<ActivitySortKey>("date");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editing, setEditing] = useState<ActivityListRow | null>(null);
   const [createDefaults, setCreateDefaults] = useState<ActivityFormDefaults | undefined>();
@@ -115,15 +129,47 @@ export function ActivitiesListClient({
     return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
   }, [rows]);
 
-  const displayedRows = useMemo(
-    () =>
-      rows.filter((row) => {
-        if (!activityMatchesQuickFilters(row, filters)) return false;
-        if (!activityMatchesGlobalSearch(row, searchQuery)) return false;
-        return true;
-      }),
-    [rows, filters, searchQuery],
-  );
+  const displayedRows = useMemo(() => {
+    const filtered = rows.filter((row) => {
+      if (!activityMatchesQuickFilters(row, filters)) return false;
+      if (!activityMatchesGlobalSearch(row, searchQuery)) return false;
+      return true;
+    });
+    return [...filtered].sort((a, b) => {
+      switch (sortKey) {
+        case "date":
+          return compareSortText(a.activity_date, b.activity_date, sortDir);
+        case "type":
+          return compareSortText(a.activity_type, b.activity_type, sortDir);
+        case "company":
+          return compareSortText(
+            a.company_name ?? a.contact_name,
+            b.company_name ?? b.contact_name,
+            sortDir,
+          );
+        case "premises":
+          return compareSortText(
+            formatActivityPremisesListCell(a.premises_label),
+            formatActivityPremisesListCell(b.premises_label),
+            sortDir,
+          );
+        case "notes":
+          return compareSortText(
+            formatActivityNotesPreview(a.notes),
+            formatActivityNotesPreview(b.notes),
+            sortDir,
+          );
+        default:
+          return 0;
+      }
+    });
+  }, [rows, filters, searchQuery, sortKey, sortDir]);
+
+  function handleSort(key: ActivitySortKey) {
+    const next = nextSortState(sortKey, sortDir, key, (k) => (k === "date" ? "desc" : "asc"));
+    setSortKey(next.sortKey);
+    setSortDir(next.sortDir);
+  }
 
   const displayedIds = useMemo(() => displayedRows.map((r) => r.activity_id), [displayedRows]);
   useSyncListingExportIds(displayedIds);
@@ -462,11 +508,11 @@ export function ActivitiesListClient({
                   className="rounded border-slate-300"
                 />
               </th>
-              <th className="px-3 py-1.5 font-medium">Date</th>
-              <th className="px-3 py-1.5 font-medium">Type</th>
-              <th className="px-3 py-1.5 font-medium">Company / Contact</th>
-              <th className="px-3 py-1.5 font-medium">Premises</th>
-              <th className="min-w-[12rem] px-3 py-1.5 font-medium">Notes</th>
+              <SortableTableHeader label="Date" sortKey="date" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+              <SortableTableHeader label="Type" sortKey="type" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+              <SortableTableHeader label="Company / Contact" sortKey="company" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+              <SortableTableHeader label="Premises" sortKey="premises" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+              <SortableTableHeader label="Notes" sortKey="notes" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} className="min-w-[12rem]" />
               <th className="w-20 px-3 py-1.5 font-medium">Actions</th>
             </tr>
           </thead>
@@ -507,24 +553,36 @@ export function ActivitiesListClient({
                       <RecordBusinessId id={row.business_id} className="mt-0.5 block" />
                     ) : null}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-1.5 font-medium text-slate-900">{row.activity_type}</td>
+                  <td className="whitespace-nowrap px-3 py-1.5 font-medium text-slate-900" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      onClick={() => openActivity(row)}
+                      className="cursor-pointer text-left text-inherit hover:underline"
+                    >
+                      {row.activity_type}
+                    </button>
+                  </td>
                   <td className="px-3 py-1.5 text-slate-700" onClick={(e) => e.stopPropagation()}>
                     <div className="flex flex-col gap-0.5">
-                      {row.company_id ? (
-                        <Link href={`${companyHref(row.company_id)}&tab=activities`} className={theme.link}>
-                          {row.company_name ?? `#${row.company_id}`}
-                        </Link>
-                      ) : (
-                        <span className="text-slate-400">—</span>
-                      )}
-                      {row.contact_id ? (
-                        <Link
-                          href={`${contactHref(row.contact_id)}&tab=activities`}
-                          className="text-xs text-slate-500 hover:underline"
-                        >
-                          {row.contact_name ?? `#${row.contact_id}`}
-                        </Link>
-                      ) : null}
+                      <AdminEntityLink
+                        href={companyFullPageHref(row.company_business_id ?? row.company_id)}
+                        className={theme.link}
+                        fallback={<span className="text-slate-400">—</span>}
+                      >
+                        {row.company_name ?? (row.company_id != null ? `#${row.company_id}` : null)}
+                      </AdminEntityLink>
+                      <AdminEntityLink
+                        href={contactFullPageHref(row.contact_business_id ?? row.contact_id)}
+                        className="text-xs text-slate-500 hover:underline"
+                      >
+                        {row.contact_name ?? (row.contact_id != null ? `#${row.contact_id}` : null)}
+                      </AdminEntityLink>
+                      <AdminEntityLink
+                        href={opportunityFullPageHref(row.opportunity_business_id ?? row.opportunity_id)}
+                        className="text-xs text-slate-500 hover:underline"
+                      >
+                        {row.opportunity_name}
+                      </AdminEntityLink>
                     </div>
                   </td>
                   <td className="px-3 py-1.5 text-slate-700">{formatActivityPremisesListCell(row.premises_label)}</td>

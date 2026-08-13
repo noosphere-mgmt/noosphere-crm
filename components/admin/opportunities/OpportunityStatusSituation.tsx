@@ -43,9 +43,9 @@ export function OpportunityStatusSituation({ opportunity }: { opportunity: Oppor
         value={OPPORTUNITY_STATUS_LABELS[opportunity.status]}
         prominent
       />
-      <SituationRow label="Waiting for" value={waitingFor} />
-      <SituationRow label="Next action" value={nextAction} />
-      <SituationRow label="Expected date" value={expectedDate} />
+      <SituationRow label="Waiting For" value={waitingFor} />
+      <SituationRow label="Next Action" value={nextAction} />
+      <SituationRow label="Expected Date" value={expectedDate} />
     </div>
   );
 }

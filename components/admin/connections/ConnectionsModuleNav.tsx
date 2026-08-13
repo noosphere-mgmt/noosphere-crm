@@ -6,11 +6,9 @@ import { connectionsTabClass } from "@/lib/connectionsGlassTheme";
 
 export function ConnectionsModuleNav({ embedded = false }: { embedded?: boolean }) {
   const pathname = usePathname();
-  const isCompanies =
-    pathname === "/admin/connections" ||
-    pathname === "/admin/companies" ||
-    pathname.startsWith("/admin/companies/");
   const isContacts = pathname === "/admin/contacts" || pathname.startsWith("/admin/contacts/");
+  const isCompanies =
+    pathname === "/admin/companies" || pathname.startsWith("/admin/companies/");
   const isChannelTree = pathname === "/admin/connections/channel-tree";
 
   return (
@@ -22,11 +20,11 @@ export function ConnectionsModuleNav({ embedded = false }: { embedded?: boolean 
           : "mb-4 flex flex-wrap items-center gap-1 rounded-lg border border-slate-200 bg-white p-1 text-sm"
       }
     >
-      <Link href="/admin/companies" className={connectionsTabClass(isCompanies)}>
-        Companies
-      </Link>
       <Link href="/admin/contacts" className={connectionsTabClass(isContacts)}>
         Contacts
+      </Link>
+      <Link href="/admin/companies" className={connectionsTabClass(isCompanies)}>
+        Companies
       </Link>
       <Link href="/admin/connections/channel-tree" className={connectionsTabClass(isChannelTree)}>
         Channel Tree

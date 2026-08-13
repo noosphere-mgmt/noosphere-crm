@@ -1,6 +1,6 @@
 "use client";
 
-import { IconPen, IconTrash } from "@/components/admin/ModuleActionIcons";
+import { IconTrash } from "@/components/admin/ModuleActionIcons";
 import { moduleActionButtonClass } from "@/components/admin/ModuleActionBar";
 import { useOptionalInlineEdit } from "@/components/admin/inline/InlineEditProvider";
 import { connectionsGlassClasses } from "@/lib/connectionsGlassTheme";
@@ -47,9 +47,7 @@ export function InlineRecordToolbar({
           className={moduleActionButtonClass.edit}
           aria-label="Edit on full page"
           title="Edit on full page"
-        >
-          <IconPen />
-        </a>
+        >Edit</a>
       ) : null}
       {deleteAction ? (
         <form action={deleteAction}>
@@ -74,7 +72,7 @@ export function inlineViewFieldClass(): string {
 
 export function inlineFieldShellClass(_editHighlight: boolean, editing: boolean): string {
   if (editing) return `${inlineViewFieldClass()} cursor-text`;
-  return `${inlineViewFieldClass()} cursor-pointer hover:border-slate-300 hover:bg-white`;
+  return `${inlineViewFieldClass()} cursor-pointer hover:border-amber-300 hover:bg-amber-50/40`;
 }
 
 export const inlineInputClass = `mt-0.5 w-full rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 shadow-sm ${connectionsGlassClasses.inputFocus}`;

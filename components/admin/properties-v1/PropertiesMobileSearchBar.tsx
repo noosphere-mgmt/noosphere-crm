@@ -71,7 +71,7 @@ export function PropertiesMobileSearchBar({ initialQuery, initialCategory, initi
         type="search"
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="Search building, district, address, operator…"
+        placeholder="Search buildings — names, address, notes…"
         aria-label="Search buildings"
         className={`${theme.searchInput} w-full py-1.5 text-sm`}
       />

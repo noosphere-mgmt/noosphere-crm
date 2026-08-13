@@ -65,7 +65,7 @@ async function activityInputFromForm(formData: FormData): Promise<ActivityInput>
   };
 }
 
-function revalidateActivityPaths(input: ActivityInput) {
+function revalidateActivityPaths(input: ActivityInput, opportunityBusinessId?: string | null) {
   revalidatePath("/admin/activities");
   revalidatePath("/admin/companies");
   revalidatePath("/admin/contacts");
@@ -73,7 +73,12 @@ function revalidateActivityPaths(input: ActivityInput) {
   revalidatePath("/admin/properties");
   if (input.company_id) revalidatePath(`/admin/companies?company=${input.company_id}`);
   if (input.contact_id) revalidatePath(`/admin/contacts?contact=${input.contact_id}`);
-  if (input.opportunity_id) revalidatePath(`/admin/opportunities/${input.opportunity_id}`);
+  if (input.opportunity_id) {
+    revalidatePath(`/admin/opportunities/${input.opportunity_id}`);
+    if (opportunityBusinessId) {
+      revalidatePath(`/admin/opportunities/${opportunityBusinessId}`);
+    }
+  }
 }
 
 export type ActivityActionResult =
@@ -83,17 +88,18 @@ export type ActivityActionResult =
 export async function createActivityAction(formData: FormData): Promise<ActivityActionResult> {
   try {
     const input = await activityInputFromForm(formData);
+    const opportunityRef = parseOptionalString(formData.get("opportunity_id"));
     const premisesIds = parsePremisesIds(formData);
     const isSiteTour = input.activity_type === "Site Tour" || input.activity_type === "Site Inspection";
 
     if (isSiteTour && premisesIds.length > 0) {
       const ids = await createSiteTourActivities(input, premisesIds, parseCheckpointMode(formData));
-      revalidateActivityPaths(input);
+      revalidateActivityPaths(input, opportunityRef);
       return { ok: true, activity_id: ids[0]!, created_count: ids.length };
     }
 
     const activity_id = await createActivity(input);
-    revalidateActivityPaths(input);
+    revalidateActivityPaths(input, opportunityRef);
     return { ok: true, activity_id, created_count: 1 };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Failed to create activity" };
@@ -113,7 +119,7 @@ export async function updateActivityAction(
     } else {
       await syncActivityPremises(activityId, input.premises_id ? [input.premises_id] : []);
     }
-    revalidateActivityPaths(input);
+    revalidateActivityPaths(input, parseOptionalString(formData.get("opportunity_id")));
     return { ok: true, activity_id: activityId, created_count: 1 };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Failed to update activity" };
@@ -202,7 +208,7 @@ export async function searchActivityLinkAction(
     case "contact":
       return searchActivityContacts(query, limit);
     case "opportunity":
-      return searchActivityOpportunities(query, limit);
+      return searchActivityOpportunities(query, limit ?? 40);
     case "premises":
       return searchActivityPremises(query, limit ?? 25);
   }

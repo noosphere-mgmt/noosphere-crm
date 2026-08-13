@@ -1,15 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { IconPen, IconX } from "@/components/admin/ModuleActionIcons";
+import { IconX } from "@/components/admin/ModuleActionIcons";
 import { moduleEditButtonClass } from "@/components/admin/ModuleActionBar";
 import { InlineSaveStatus } from "@/components/admin/inline/InlineRecordChrome";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { OPPORTUNITY_STATUS_LABELS } from "@/lib/lookups";
 import { opportunityStatusChip } from "@/lib/opportunityStatusTheme";
-import { opportunityFullPageHref } from "@/lib/crmDetailNav";
+import { companyFullPageHref, contactFullPageHref } from "@/lib/crmDetailNav";
+import { AdminEntityLink } from "@/components/admin/AdminEntityLink";
+import { buildOpportunitiesReturnTo } from "@/lib/opportunitiesDrawerNav";
+import { opportunityWorkspaceHref } from "@/lib/opportunityWorkspaceNav";
 import type { Opportunity } from "@/lib/types/entities";
+import { useSearchParams } from "next/navigation";
 
 export function OpportunityDrawerHeader({
   opportunity,
@@ -18,14 +22,16 @@ export function OpportunityDrawerHeader({
   opportunity: Opportunity;
   onClose: () => void;
 }) {
-  const fullPage = opportunityFullPageHref(opportunity.business_id);
-  const fullEdit = opportunityFullPageHref(opportunity.business_id, { mode: "edit" });
+  const searchParams = useSearchParams();
+  const listReturnTo = buildOpportunitiesReturnTo(searchParams);
+  const fullPage = opportunityWorkspaceHref(opportunity, "overview", undefined, listReturnTo);
+  const fullEdit = opportunityWorkspaceHref(opportunity, "overview", "edit", listReturnTo);
 
   return (
     <div className="sticky top-0 z-10 shrink-0 border-b border-slate-200 bg-white px-4 py-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs text-slate-500">Review — click a field to edit</p>
+          <p className="text-xs text-slate-500">Review — double-click a field to edit · saves automatically</p>
           <h2 className="mt-0.5 text-lg font-semibold tracking-tight text-slate-900">
             {opportunity.client_name}
           </h2>
@@ -35,7 +41,24 @@ export function OpportunityDrawerHeader({
               {OPPORTUNITY_STATUS_LABELS[opportunity.status]}
             </span>
             {opportunity.linked_company_name ? (
-              <span className="text-sm text-slate-600">{opportunity.linked_company_name}</span>
+              <AdminEntityLink
+                href={companyFullPageHref(
+                  opportunity.linked_company_business_id ?? opportunity.company_id,
+                )}
+                className="text-sm text-slate-600 underline-offset-2 hover:underline"
+              >
+                {opportunity.linked_company_name}
+              </AdminEntityLink>
+            ) : null}
+            {opportunity.primary_contact_name ? (
+              <AdminEntityLink
+                href={contactFullPageHref(
+                  opportunity.primary_contact_business_id ?? opportunity.primary_contact_id,
+                )}
+                className="text-sm text-slate-600 underline-offset-2 hover:underline"
+              >
+                {opportunity.primary_contact_name}
+              </AdminEntityLink>
             ) : null}
           </div>
         </div>
@@ -47,9 +70,7 @@ export function OpportunityDrawerHeader({
               className={moduleEditButtonClass("opportunities")}
               aria-label="Edit on full page"
               title="Edit on full page"
-            >
-              <IconPen />
-            </Link>
+            >Edit</Link>
           ) : null}
           {fullPage ? (
             <Link

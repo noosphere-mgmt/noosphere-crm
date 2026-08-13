@@ -1,22 +1,21 @@
+import { getContactTab } from "@/lib/contactDetailTab";
+
 export const CONTACT_WORKSPACE_TABS = [
-  { id: "profile", label: "Profile" },
-  { id: "affiliations", label: "Affiliations" },
-  { id: "deals", label: "Deals" },
+  { id: "overview", label: "Overview" },
+  { id: "company", label: "Company" },
+  { id: "relationships", label: "Relationships" },
   { id: "activities", label: "Activities" },
+  { id: "premises", label: "Properties" },
+  { id: "opportunities", label: "Opportunities" },
 ] as const;
 
 export type ContactWorkspaceTabId = (typeof CONTACT_WORKSPACE_TABS)[number]["id"];
 
+/** Align workspace tabs with drawer/detail tabs (Overview → Opportunities). */
 export function normalizeContactWorkspaceTab(tab?: string | null): ContactWorkspaceTabId {
-  const t = tab?.trim();
-  if (t === "profile" || t === "overview") return "profile";
-  if (t === "affiliations" || t === "company") return "affiliations";
-  if (t === "deals" || t === "opportunities") return "deals";
-  if (t === "activities" || t === "timeline") return "activities";
-  // Preserve old bookmarks while consolidating dated notes into Activities.
-  if (t === "notes") return "activities";
-  if (t === "relationships" || t === "premises") return "profile";
-  return "profile";
+  const normalized = getContactTab({ tab: tab ?? undefined });
+  if (normalized === "notes") return "activities";
+  return normalized as ContactWorkspaceTabId;
 }
 
 export function getContactWorkspaceTab(searchParams: { tab?: string | null }): ContactWorkspaceTabId {

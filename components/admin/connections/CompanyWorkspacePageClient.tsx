@@ -7,13 +7,11 @@ import { EntityActivityWorkspace } from "@/components/admin/activities/EntityAct
 import { CompanyContactsTabClient } from "@/components/admin/connections/CompanyContactsTabClient";
 import { CompanyFeesTab } from "@/components/admin/connections/CompanyFeesTab";
 import { CompanyInlineOverview } from "@/components/admin/connections/CompanyInlineOverview";
-import { CompanyRelationshipStrip } from "@/components/admin/connections/CompanyRelationshipStrip";
 import { CompanySupplyTab } from "@/components/admin/connections/CompanySupplyTab";
-import { CompanyWorkspaceContextPanel } from "@/components/admin/connections/CompanyWorkspaceContextPanel";
 import { CompanyWorkspaceHeader } from "@/components/admin/connections/CompanyWorkspaceHeader";
 import { CompanyWorkspaceTabs } from "@/components/admin/connections/CompanyWorkspaceTabs";
 import { LinkedOpportunitiesTable } from "@/components/admin/connections/LinkedOpportunitiesTable";
-import { FormEditingContext, ModuleActionBar } from "@/components/admin/ModuleActionBar";
+import { FormEditingContext, ModuleStickyEditBar } from "@/components/admin/ModuleActionBar";
 import { CompanyFormFields } from "@/components/admin/CompanyFormFields";
 import { InlineEditProvider } from "@/components/admin/inline/InlineEditProvider";
 import type { CompanyDetailTabId } from "@/lib/companyDetailTab";
@@ -26,10 +24,12 @@ export function CompanyWorkspacePageClient({
   data,
   feeRows,
   editMode,
+  returnTo = "/admin/companies",
 }: {
   data: CompanyDrawerData;
   feeRows: CompanyFeeDealRow[];
   editMode: boolean;
+  returnTo?: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -37,7 +37,7 @@ export function CompanyWorkspacePageClient({
   const { company } = data;
   const formId = `company-detail-${company.id}`;
   const update = updateCompanyAction.bind(null, company.id);
-  const viewHref = companyWorkspaceHref(company, tab);
+  const viewHref = companyWorkspaceHref(company, tab, undefined, returnTo);
 
   function workspaceTabHref(legacyTab: CompanyDetailTabId): string {
     const map: Partial<Record<CompanyDetailTabId, CompanyWorkspaceTabId>> = {
@@ -49,7 +49,7 @@ export function CompanyWorkspacePageClient({
       relationships: "supply",
       notes: "profile",
     };
-    return companyWorkspaceHref(company, map[legacyTab] ?? "profile");
+    return companyWorkspaceHref(company, map[legacyTab] ?? "profile", undefined, returnTo);
   }
 
   const counts = {
@@ -61,10 +61,7 @@ export function CompanyWorkspacePageClient({
   if (editMode) {
     return (
       <InlineEditProvider resetKey={company.id}>
-        <div className="space-y-4">
-          <div className="flex justify-end">
-            <ModuleActionBar mode="edit" formId={formId} onCancel={() => router.push(viewHref)} module="connections" />
-          </div>
+        <div className="space-y-4 pt-14">
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <FormEditingContext.Provider value={true}>
               <form id={formId} action={update} className="space-y-4">
@@ -72,6 +69,10 @@ export function CompanyWorkspacePageClient({
               </form>
             </FormEditingContext.Provider>
           </div>
+          <ModuleStickyEditBar
+            formId={formId}
+            onCancel={() => router.push(viewHref)}
+          />
         </div>
       </InlineEditProvider>
     );
@@ -97,6 +98,7 @@ export function CompanyWorkspacePageClient({
             companyBusinessId={company.business_id}
             contacts={data.contacts}
             companies={data.companies}
+            listReturnTo={returnTo}
           />
         );
       case "deals":
@@ -129,10 +131,14 @@ export function CompanyWorkspacePageClient({
   return (
     <InlineEditProvider initialEditHighlight resetKey={company.id}>
       <AdvisoryWorkspaceShell
-        header={<CompanyWorkspaceHeader company={company} lastActivityDate={data.lastActivityDate} />}
-        requirementStrip={<CompanyRelationshipStrip company={company} crmSummary={data.crmSummary} />}
-        tabs={<CompanyWorkspaceTabs company={company} counts={counts} />}
-        contextPanel={<CompanyWorkspaceContextPanel data={data} feeRows={feeRows} />}
+        header={
+          <CompanyWorkspaceHeader
+            company={company}
+            lastActivityDate={data.lastActivityDate}
+            returnTo={returnTo}
+          />
+        }
+        tabs={<CompanyWorkspaceTabs company={company} counts={counts} returnTo={returnTo} />}
         showAssistToggle={false}
       >
         {renderTab()}

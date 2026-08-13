@@ -5,6 +5,7 @@ import { PremisesDrawer } from "@/components/admin/properties-v1/PremisesDrawer"
 import { ListingRecordCount } from "@/components/admin/ListingRecordCount";
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
+import { SortableTableHeader } from "@/components/admin/SortableTableHeader";
 import { formatAreaSqft } from "@/lib/formatCurrency";
 import { formatPremisesListLabel, formatPremisesName, formatVerifiedDate } from "@/lib/premisesDisplay";
 import { premisesDrawerHref } from "@/lib/premisesDrawerNav";
@@ -12,14 +13,14 @@ import {
   resolvePremisesFlatListFilters,
   usePremisesFlatList,
   type PremisesListComponentProps,
-  type SortDir,
   type SortKey,
 } from "@/components/admin/properties-v1/usePremisesFlatList";
+import { ADMIN_LIST_SCROLL_VIEWPORT_CLASS } from "@/lib/adminListViewport";
 
 const colFilterClass =
   "mt-1 w-full min-w-[5rem] rounded border border-slate-200 px-1.5 py-1 text-xs font-normal text-slate-800 placeholder:text-slate-400 focus:border-[#60A5FA] focus:outline-none focus:ring-1 focus:ring-[#EFF6FF]";
 
-function SortableHeader({
+function PremisesSortableHeader({
   label,
   sortKey,
   activeKey,
@@ -32,23 +33,20 @@ function SortableHeader({
   label: string;
   sortKey: SortKey;
   activeKey: SortKey;
-  sortDir: SortDir;
+  sortDir: "asc" | "desc";
   onSort: (key: SortKey) => void;
   filterValue?: string;
   onFilterChange?: (value: string) => void;
   filterPlaceholder?: string;
 }) {
-  const active = activeKey === sortKey;
   return (
-    <th className="px-3 py-1.5 align-top font-medium">
-      <button
-        type="button"
-        onClick={() => onSort(sortKey)}
-        className="inline-flex items-center gap-1 text-left hover:text-slate-900"
-      >
-        <span>{label}</span>
-        {active ? <span className="text-slate-500">{sortDir === "asc" ? "↑" : "↓"}</span> : null}
-      </button>
+    <SortableTableHeader
+      label={label}
+      sortKey={sortKey}
+      activeKey={activeKey}
+      sortDir={sortDir}
+      onSort={onSort}
+    >
       {onFilterChange ? (
         <input
           type="search"
@@ -60,7 +58,7 @@ function SortableHeader({
           onClick={(e) => e.stopPropagation()}
         />
       ) : null}
-    </th>
+    </SortableTableHeader>
   );
 }
 
@@ -116,9 +114,9 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
         selectedCount={selectedCount}
       />
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <div className={`${ADMIN_LIST_SCROLL_VIEWPORT_CLASS} rounded-xl border border-slate-200 bg-white`}>
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-left text-slate-600">
+          <thead className="sticky top-0 z-10 bg-slate-50 text-left text-slate-600 shadow-[inset_0_-1px_0_0_rgb(226,232,240)]">
             <tr>
               <th className="w-10 px-3 py-1.5 align-top">
                 <input
@@ -129,49 +127,49 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                   className="rounded border-slate-300"
                 />
               </th>
-              <SortableHeader
+              <PremisesSortableHeader
                 label="Premises"
                 sortKey="premises"
                 activeKey={sortKey}
                 sortDir={sortDir}
                 onSort={handleSort}
               />
-              <SortableHeader
+              <PremisesSortableHeader
                 label="District"
                 sortKey="district"
                 activeKey={sortKey}
                 sortDir={sortDir}
                 onSort={handleSort}
               />
-              <SortableHeader
+              <PremisesSortableHeader
                 label="Operator"
                 sortKey="operator"
                 activeKey={sortKey}
                 sortDir={sortDir}
                 onSort={handleSort}
               />
-              <SortableHeader
+              <PremisesSortableHeader
                 label="Desks"
                 sortKey="desks"
                 activeKey={sortKey}
                 sortDir={sortDir}
                 onSort={handleSort}
               />
-              <SortableHeader
+              <PremisesSortableHeader
                 label="Gross area"
                 sortKey="gross_area"
                 activeKey={sortKey}
                 sortDir={sortDir}
                 onSort={handleSort}
               />
-              <SortableHeader
+              <PremisesSortableHeader
                 label={priceHeaders.price}
                 sortKey="price"
                 activeKey={sortKey}
                 sortDir={sortDir}
                 onSort={handleSort}
               />
-              <SortableHeader
+              <PremisesSortableHeader
                 label="Updated"
                 sortKey="updated"
                 activeKey={sortKey}

@@ -106,20 +106,76 @@ export const FEE_STATUS_LABELS: Record<FeeStatus, string> = {
   not_applicable: "Not Applicable",
 };
 
-export const OPPORTUNITY_SALES_ROLES = ["to_lease", "to_buy", "to_sell", "prof_service"] as const;
+export const OPPORTUNITY_SALES_ROLES = [
+  "to_lease",
+  "to_let",
+  "to_buy",
+  "to_sell",
+  "others",
+] as const;
 export type OpportunitySalesRole = (typeof OPPORTUNITY_SALES_ROLES)[number];
 
 export const OPPORTUNITY_SALES_ROLE_LABELS: Record<OpportunitySalesRole, string> = {
-  to_lease: "Lease",
-  to_buy: "Buy / Acquisition",
-  to_sell: "Sell / Disposal",
-  prof_service: "Corporate Service",
+  to_lease: "To Lease",
+  to_let: "To Let",
+  to_buy: "To Buy",
+  to_sell: "To Sell",
+  others: "Others",
 };
 
+/** Normalize stored/import values (incl. legacy `prof_service`) to a canonical sales role. */
+export function normalizeOpportunitySalesRole(
+  value: string | null | undefined,
+): OpportunitySalesRole {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "to_lease";
+  const key = raw.toLowerCase().replace(/[\s/-]+/g, "_");
+  if (key === "prof_service" || key === "corporate_service" || key === "other" || key === "others") {
+    return "others";
+  }
+  if (key === "to_let" || key === "let") return "to_let";
+  if (key === "to_lease" || key === "lease") return "to_lease";
+  if (key === "to_buy" || key === "buy" || key === "acquisition") return "to_buy";
+  if (key === "to_sell" || key === "sell" || key === "disposal") return "to_sell";
+  if ((OPPORTUNITY_SALES_ROLES as readonly string[]).includes(key)) {
+    return key as OpportunitySalesRole;
+  }
+  return "to_lease";
+}
+
+/** Lease-side (tenant) or let-side (landlord) rental cases. */
+export function isLeaseLikeSalesRole(
+  role: OpportunitySalesRole | string | null | undefined,
+): boolean {
+  const normalized = normalizeOpportunitySalesRole(role);
+  return normalized === "to_lease" || normalized === "to_let";
+}
+
+export function isSaleCaseSalesRole(
+  role: OpportunitySalesRole | string | null | undefined,
+): boolean {
+  const normalized = normalizeOpportunitySalesRole(role);
+  return normalized === "to_buy" || normalized === "to_sell";
+}
+
+/** Non-property / catch-all role (legacy: `prof_service`). */
+export function isOtherSalesRole(
+  role: OpportunitySalesRole | string | null | undefined,
+): boolean {
+  return normalizeOpportunitySalesRole(role) === "others";
+}
+
+/** @deprecated Use `isOtherSalesRole` — kept for existing call sites. */
 export function isProfServiceSalesRole(
   role: OpportunitySalesRole | string | null | undefined,
 ): boolean {
-  return role === "prof_service";
+  return isOtherSalesRole(role);
+}
+
+export function opportunitySalesRoleLabel(
+  role: OpportunitySalesRole | string | null | undefined,
+): string {
+  return OPPORTUNITY_SALES_ROLE_LABELS[normalizeOpportunitySalesRole(role)];
 }
 
 export const OPPORTUNITY_FUNDING_STATUSES = [

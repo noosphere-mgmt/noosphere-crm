@@ -225,7 +225,11 @@ export type Contact = {
   title: string | null;
   email: string | null;
   phone: string | null;
+  phone_area_code?: string | null;
+  mobile?: string | null;
+  mobile_area_code?: string | null;
   whatsapp: string | null;
+  whatsapp_area_code?: string | null;
   wechat: string | null;
   preferred_language: string | null;
   is_primary: boolean;
@@ -240,14 +244,16 @@ export type Contact = {
   created_at: string;
   updated_at: string;
   company_name?: string | null;
+  company_name_zh?: string | null;
   company_country?: string | null;
   company_city?: string | null;
+  company_business_id?: string | null;
   open_opportunities?: number;
   business_id?: string | null;
   v1_contact_id?: string | null;
 };
 
-export type OpportunitySalesRole = "to_lease" | "to_buy" | "to_sell" | "prof_service";
+export type OpportunitySalesRole = "to_lease" | "to_let" | "to_buy" | "to_sell" | "others";
 
 export type OpportunityFundingStatus =
   | "cash"
@@ -292,7 +298,9 @@ export type Opportunity = {
   created_at: string;
   updated_at: string;
   linked_company_name?: string | null;
+  linked_company_business_id?: string | null;
   primary_contact_name?: string | null;
+  primary_contact_business_id?: string | null;
   business_id?: string | null;
   v1_opportunity_id?: string | null;
   referrer_company_name?: string | null;

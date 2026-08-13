@@ -7,6 +7,7 @@ import { AdminListLoadingFallback } from "@/components/admin/layout/AdminListLoa
 import { resolveContactQueryParam } from "@/lib/contactDrawerResolve";
 import { classifyContactQueryParam } from "@/lib/entityRefGuards";
 import { listCompanyOptions } from "@/lib/repos/companies";
+import { listConnectionCompanies } from "@/lib/repos/connections";
 import { listContacts } from "@/lib/repos/contacts";
 import { getContactDrawerData } from "@/lib/repos/connectionsDrawer";
 
@@ -17,11 +18,16 @@ type Props = { searchParams: Promise<{ contact?: string }> };
 export default async function ContactsListPage({ searchParams }: Props) {
   const sp = await searchParams;
   let rows: Awaited<ReturnType<typeof listContacts>> = [];
-  let companies: Awaited<ReturnType<typeof listCompanyOptions>> = [];
+  let companies: Awaited<ReturnType<typeof listConnectionCompanies>> = [];
+  let companyOptions: Awaited<ReturnType<typeof listCompanyOptions>> = [];
   let loadError: string | null = null;
 
   try {
-    [rows, companies] = await Promise.all([listContacts(), listCompanyOptions()]);
+    [rows, companies, companyOptions] = await Promise.all([
+      listContacts(),
+      listConnectionCompanies(),
+      listCompanyOptions(),
+    ]);
   } catch (err) {
     loadError = err instanceof Error ? err.message : "Database query failed";
   }
@@ -62,6 +68,7 @@ export default async function ContactsListPage({ searchParams }: Props) {
           <ConnectionsContactsPageClient
             rows={rows}
             companies={companies}
+            companyOptions={companyOptions}
             selectedContact={selectedContact}
             drawerQuery={contactIdRaw ?? null}
             drawerError={drawerError}

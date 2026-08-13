@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { formatPhoneDisplay } from "@/lib/phoneAreaCodes";
 import { companyFullPageHref } from "@/lib/crmDetailNav";
 import type { ContactCrmSummary } from "@/lib/repos/contactCrmSummary";
 import type { ContactCompanyAffiliation } from "@/lib/repos/contactCompanyAffiliations";
@@ -63,7 +64,8 @@ export function ContactRelationshipStrip({
       <StripCell label="Affiliations" value={affiliationsCount} />
       <StripCell label="Open opportunities" value={openDeals} />
       <StripCell label="Email" value={contact.email} />
-      <StripCell label="Phone" value={contact.phone} />
+      <StripCell label="Phone" value={formatPhoneDisplay(contact.phone_area_code, contact.phone)} />
+      <StripCell label="Mobile" value={formatPhoneDisplay(contact.mobile_area_code, contact.mobile)} />
     </dl>
   );
 }

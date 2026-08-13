@@ -1,5 +1,5 @@
 import { CONNECTION_COMPANY_ROLE_LABELS } from "@/lib/connectionsValues";
-import { formatCoverage } from "@/lib/connectionsDisplay";
+import { formatCompanyRoles, formatCoverage } from "@/lib/connectionsDisplay";
 import { getContactLabel } from "@/lib/contactName";
 import type { ConnectionCompanyListRow } from "@/lib/connectionsDisplay";
 import type { CompanyRole, Contact } from "@/lib/types/entities";
@@ -27,7 +27,9 @@ export type ConnectionsListFilters = ConnectionsQuickFilters;
 /** @deprecated use EMPTY_CONNECTIONS_QUICK_FILTERS */
 export const EMPTY_CONNECTIONS_LIST_FILTERS = EMPTY_CONNECTIONS_QUICK_FILTERS;
 
-export const CONNECTION_ROLE_QUICK_FILTERS: { role: CompanyRole | null; label: string }[] = [
+export type ConnectionsRoleFilter = CompanyRole | "individual" | null;
+
+export const CONNECTION_ROLE_QUICK_FILTERS: { role: ConnectionsRoleFilter; label: string }[] = [
   { role: null, label: "All" },
   { role: "client", label: "Client" },
   { role: "prospect", label: "Prospect" },
@@ -37,7 +39,14 @@ export const CONNECTION_ROLE_QUICK_FILTERS: { role: CompanyRole | null; label: s
   { role: "building_management", label: "Bldg Mgmt" },
   { role: "agency", label: "Agency" },
   { role: "referrer", label: "Referrer" },
+  { role: "individual", label: "Individual" },
 ];
+
+export function parseConnectionsRoleFilter(raw: string | null): ConnectionsRoleFilter {
+  if (!raw) return null;
+  if (raw === "individual") return "individual";
+  return raw as CompanyRole;
+}
 
 export function fuzzyMatch(value: string | null | undefined, query: string): boolean {
   if (!query) return true;
@@ -50,8 +59,9 @@ export function matchesGlobalSearch(fields: (string | null | undefined)[], query
   return fields.some((f) => (f ?? "").toLowerCase().includes(q));
 }
 
-export function companyMatchesRole(roles: CompanyRole[], role: CompanyRole | null): boolean {
+export function companyMatchesRole(roles: CompanyRole[], role: ConnectionsRoleFilter): boolean {
   if (!role) return true;
+  if (role === "individual") return false;
   if (roles.includes(role)) return true;
   if (role === "building_management" && roles.includes("property_management" as CompanyRole)) return true;
   if (role === "other" && roles.includes("developer" as CompanyRole)) return true;
@@ -59,9 +69,23 @@ export function companyMatchesRole(roles: CompanyRole[], role: CompanyRole | nul
   return false;
 }
 
-export function formatRoleFilterLabel(role: CompanyRole | null): string {
+export function formatRoleFilterLabel(role: ConnectionsRoleFilter): string {
   if (!role) return "All";
+  if (role === "individual") return "Individual";
   return (CONNECTION_COMPANY_ROLE_LABELS as Record<string, string>)[role] ?? role;
+}
+
+/** Contacts that belong to the currently shortlisted companies (role/search/filter). */
+export function contactsForCompanyShortlist(
+  contacts: Contact[],
+  companyIds: Iterable<number>,
+): Contact[] {
+  const ids = companyIds instanceof Set ? companyIds : new Set(companyIds);
+  return contacts.filter((contact) => contact.company_id != null && ids.has(contact.company_id));
+}
+
+export function contactsWithoutCompany(contacts: Contact[]): Contact[] {
+  return contacts.filter((contact) => contact.company_id == null);
 }
 
 export function matchesQuickFilters(
@@ -77,41 +101,90 @@ export function matchesQuickFilters(
   return true;
 }
 
+function withAreaCode(area: string | null | undefined, number: string | null | undefined): string {
+  const digits = [area, number].map((part) => (part ?? "").replace(/\D/g, "")).filter(Boolean).join("");
+  const labeled = [area, number].map((part) => (part ?? "").trim()).filter(Boolean).join(" ");
+  return [labeled, digits].filter(Boolean).join(" ");
+}
+
 export function companyMatchesGlobalSearch(row: ConnectionCompanyListRow, query: string): boolean {
   return matchesGlobalSearch(
     [
       row.company_name,
       row.company_name_zh,
-      row.primary_contact_name,
+      row.company_name_cn,
       row.country,
       row.city,
-      formatCoverage(row.coverage),
+      row.district,
       row.email,
       row.phone,
+      row.website,
+      row.industry,
+      row.source,
+      row.relationship_owner,
       row.notes,
+      row.business_id,
+      row.v1_company_id,
+      formatCoverage(row.coverage),
+      formatCompanyRoles(row.roles),
+      row.primary_contact_name,
       row.primary_contact_email,
       row.primary_contact_phone,
+      row.primary_contact_business_id,
     ],
     query,
   );
+}
+
+/** Left-column company search: English/Chinese names + notes only. */
+export function companyMatchesNameNotesSearch(
+  row: ConnectionCompanyListRow,
+  query: string,
+): boolean {
+  return matchesGlobalSearch(
+    [row.company_name, row.company_name_zh, row.company_name_cn, row.notes, row.business_id],
+    query,
+  );
+}
+
+/** True when the company itself matches, or any linked contact matches the query. */
+export function companyMatchesSearchWithContacts(
+  row: ConnectionCompanyListRow,
+  companyContacts: Contact[] | undefined,
+  query: string,
+): boolean {
+  if (!query.trim()) return true;
+  if (companyMatchesGlobalSearch(row, query)) return true;
+  return (companyContacts ?? []).some((contact) => contactMatchesGlobalSearch(contact, query));
 }
 
 export function contactMatchesGlobalSearch(row: Contact, query: string): boolean {
   return matchesGlobalSearch(
     [
       getContactLabel(row),
+      row.contact_name,
       row.first_name,
       row.last_name,
       row.chinese_name,
       row.display_name,
+      row.title,
       row.company_name,
+      row.company_name_zh,
       row.company_country,
       row.company_city,
+      row.company_business_id,
       formatCoverage(row.coverage),
       formatContactRoles(row.contact_role),
       row.email,
-      row.phone,
+      withAreaCode(row.phone_area_code, row.phone),
+      withAreaCode(row.mobile_area_code, row.mobile),
+      withAreaCode(row.whatsapp_area_code, row.whatsapp),
+      row.wechat,
+      row.locate_at,
+      row.preferred_language,
       row.notes,
+      row.business_id,
+      row.v1_contact_id,
     ],
     query,
   );

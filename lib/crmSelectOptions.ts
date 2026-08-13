@@ -36,27 +36,24 @@ function v1ContactByLegacy(contacts: ContactV1Option[]): Map<number, ContactV1Op
   return map;
 }
 
-/** Company dropdown: value = permanent business ID (C100001). */
+/** Company dropdown: value = permanent business ID (C100001), legacy numeric id as fallback. */
 export function toLegacyCompanySelectOptions(
   companies: { id: number; company_name: string; business_id?: string | null; v1_company_id?: string | null }[],
   v1Companies: CompanyV1Option[] = [],
 ): LegacyCompanySelectOption[] {
   const v1ByLegacy = v1CompanyByLegacy(v1Companies);
-  return companies
-    .map((c) => {
-      const businessId =
-        c.business_id?.trim() ||
-        v1ByLegacy.get(c.id)?.business_id?.trim() ||
-        null;
-      if (!businessId) return null;
-      const option: LegacyCompanySelectOption = {
-        value: businessId,
-        label: formatLabelWithBusinessId(c.company_name, businessId),
-        businessId,
-      };
-      return option;
-    })
-    .filter((o): o is LegacyCompanySelectOption => o != null);
+  return companies.map((c) => {
+    const businessId =
+      c.business_id?.trim() ||
+      v1ByLegacy.get(c.id)?.business_id?.trim() ||
+      null;
+    const value = businessId ?? String(c.id);
+    return {
+      value,
+      label: formatLabelWithBusinessId(c.company_name, businessId),
+      businessId,
+    };
+  });
 }
 
 /** Contact dropdown: value = permanent business ID (D100001), legacy numeric id as fallback. */
@@ -100,7 +97,8 @@ export function resolveCompanySelectValue(
   if (isPermanentBusinessId("company", s)) return s;
   const legacyId = Number.parseInt(s, 10);
   if (Number.isFinite(legacyId) && legacyId > 0) {
-    return companies.find((c) => String(c.id) === String(legacyId))?.business_id?.trim() ?? "";
+    const company = companies.find((c) => String(c.id) === String(legacyId));
+    return company?.business_id?.trim() || String(legacyId);
   }
   return "";
 }

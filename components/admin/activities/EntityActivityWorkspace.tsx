@@ -1,10 +1,13 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { ActivityFormDrawer, type ActivityFormDefaults } from "@/components/admin/activities/ActivityFormDrawer";
+import { ActivityReviewDrawer } from "@/components/admin/activities/ActivityReviewDrawer";
 import { EntityActivitiesTab } from "@/components/admin/activities/EntityActivitiesTab";
 import { asArray } from "@/lib/asArray";
 import { formatActivityDate } from "@/lib/activitiesDisplay";
 import type { ActivityListRow } from "@/lib/repos/activities";
-import type { ActivityFormDefaults } from "@/components/admin/activities/ActivityFormDrawer";
 
 function activityIcon(type: string): string {
   const value = type.toLowerCase();
@@ -25,7 +28,10 @@ export function EntityActivityWorkspace({
   defaults?: ActivityFormDefaults;
   description?: string;
 }) {
+  const router = useRouter();
   const rows = asArray<ActivityListRow>(activities);
+  const [viewing, setViewing] = useState<ActivityListRow | null>(null);
+  const [editing, setEditing] = useState<ActivityListRow | null>(null);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] lg:items-start">
@@ -52,7 +58,13 @@ export function EntityActivityWorkspace({
                 </span>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <p className="text-sm font-semibold text-slate-900">{row.subject?.trim() || row.activity_type}</p>
+                    <button
+                      type="button"
+                      onClick={() => setViewing(row)}
+                      className="cursor-pointer text-left text-sm font-semibold text-slate-900 underline-offset-2 hover:underline"
+                    >
+                      {row.subject?.trim() || row.activity_type}
+                    </button>
                     <time className="text-xs tabular-nums text-slate-500">{formatActivityDate(row)}</time>
                   </div>
                   {row.owner?.trim() ? <p className="mt-0.5 text-xs font-medium text-slate-500">{row.owner}</p> : null}
@@ -79,6 +91,28 @@ export function EntityActivityWorkspace({
           defaults={defaults}
         />
       </section>
+
+      {viewing ? (
+        <ActivityReviewDrawer
+          activity={viewing}
+          onClose={() => setViewing(null)}
+          onEdit={() => {
+            setEditing(viewing);
+            setViewing(null);
+          }}
+        />
+      ) : null}
+
+      <ActivityFormDrawer
+        open={Boolean(editing)}
+        onClose={() => setEditing(null)}
+        activity={editing}
+        defaults={defaults}
+        onSaved={() => {
+          setEditing(null);
+          router.refresh();
+        }}
+      />
     </div>
   );
 }

@@ -11,7 +11,20 @@ export const RELATIONSHIP_TYPES = [
 
 export type RelationshipType = (typeof RELATIONSHIP_TYPES)[number];
 
-/** Types a user can pick when creating a relationship from the current party. */
+/**
+ * Types a user can pick when creating a relationship from the current party.
+ * Includes reverse directions so referrals can be logged on the referred party
+ * without navigating to the referrer.
+ */
+export const ADDABLE_RELATIONSHIP_TYPES = [
+  "Referred By",
+  "Refers",
+  "Represents",
+  "Represented By",
+] as const;
+export type AddableRelationshipType = (typeof ADDABLE_RELATIONSHIP_TYPES)[number];
+
+/** Forward-only types used by import (from the referring / representing party). */
 export const CREATION_RELATIONSHIP_TYPES = ["Refers", "Represents"] as const;
 export type CreationRelationshipType = (typeof CREATION_RELATIONSHIP_TYPES)[number];
 
@@ -37,6 +50,10 @@ export function reverseRelationshipLabel(type: string): string {
 
 export function isRelationshipType(value: string): value is RelationshipType {
   return (RELATIONSHIP_TYPES as readonly string[]).includes(value);
+}
+
+export function isAddableRelationshipType(value: string): value is AddableRelationshipType {
+  return (ADDABLE_RELATIONSHIP_TYPES as readonly string[]).includes(value);
 }
 
 export function isCreationRelationshipType(value: string): value is CreationRelationshipType {
@@ -74,4 +91,9 @@ export function parseEntityId(id: string): number | null {
 
 export function creationTypeToReverseType(type: CreationRelationshipType): RelationshipType {
   return REVERSE_RELATIONSHIP_TYPES[type];
+}
+
+/** Default add-form type: contacts usually log who referred them. */
+export function defaultAddRelationshipType(entityType: EntityType): AddableRelationshipType {
+  return entityType === "contact" ? "Referred By" : "Refers";
 }

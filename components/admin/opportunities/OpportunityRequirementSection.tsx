@@ -2,8 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { FormField, TextAreaField } from "@/components/admin/AdminFormFields";
-import { labelClass } from "@/components/admin/opportunities/OpportunityRequirementFields";
-import { opportunityBudgetValue } from "@/lib/opportunityFormParsing";
+import { labelClass, selectClass } from "@/components/admin/opportunities/OpportunityRequirementFields";
+import {
+  formatOpportunityBudget,
+  opportunityBudgetValue,
+} from "@/lib/opportunityFormParsing";
 import {
   REQUIREMENT_PRIMARY_LABELS,
   REQUIREMENT_PRIMARY_TYPES,
@@ -18,7 +21,15 @@ import {
   serializeRequirementSubtypes,
   type RequirementPrimaryType,
 } from "@/lib/opportunityRequirementTypes";
-import { isProfServiceSalesRole } from "@/lib/opportunityValues";
+import {
+  OPPORTUNITY_FUNDING_STATUSES,
+  OPPORTUNITY_FUNDING_STATUS_LABELS,
+  isLeaseLikeSalesRole,
+  isOtherSalesRole,
+  isSaleCaseSalesRole,
+  normalizeOpportunitySalesRole,
+  type OpportunitySalesRole,
+} from "@/lib/opportunityValues";
 import type { Opportunity } from "@/lib/types/entities";
 
 const fieldGrid = "grid grid-cols-2 gap-x-3 gap-y-2.5";
@@ -26,7 +37,7 @@ const fieldGrid = "grid grid-cols-2 gap-x-3 gap-y-2.5";
 function ViewField({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[11px] font-medium text-slate-500">{label}</dt>
+      <dt className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{label}</dt>
       <dd className="mt-0.5 text-sm text-slate-900">{value?.trim() || "—"}</dd>
     </div>
   );
@@ -95,9 +106,9 @@ function SubtypeCheckboxes({
   if (options.length === 0) {
     return (
       <div className="space-y-2">
-        <p className={labelClass}>Requirement detail</p>
+        <p className={labelClass}>Required Subtype</p>
         <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-500">
-          Select a required type first. The relevant details will appear here.
+          Select a required type first. Matching subtypes will appear here.
         </div>
       </div>
     );
@@ -109,7 +120,7 @@ function SubtypeCheckboxes({
 
   return (
     <div className="space-y-2">
-      <p className={labelClass}>Requirement detail</p>
+      <p className={labelClass}>Required Subtype</p>
       <div className="flex flex-wrap gap-2">
         {options.map((opt) => {
           const active = selected.includes(opt.value);
@@ -137,14 +148,28 @@ function SubtypeCheckboxes({
   );
 }
 
+function capacityLabel(showResidential: boolean, showCommercial: boolean): string {
+  if (showResidential && showCommercial) return "Rooms / Capacity";
+  if (showResidential) return "No. of Rooms";
+  if (showCommercial) return "Capacity / No. of Persons";
+  return "Capacity";
+}
+
 export function OpportunityRequirementSection({
   opportunity,
   editing,
+  salesRole: salesRoleProp,
 }: {
   opportunity: Opportunity;
   editing: boolean;
+  salesRole?: OpportunitySalesRole | null;
 }) {
-  const profService = isProfServiceSalesRole(opportunity.sales_role);
+  const salesRole = normalizeOpportunitySalesRole(salesRoleProp ?? opportunity.sales_role);
+  const profService = isOtherSalesRole(salesRole);
+  const isLease = isLeaseLikeSalesRole(salesRole);
+  const isBuy = salesRole === "to_buy";
+  const isSaleCase = isSaleCaseSalesRole(salesRole);
+
   const [primaryTypes, setPrimaryTypes] = useState<RequirementPrimaryType[]>(() =>
     parseRequirementPrimaryTypes(opportunity.property_category_preference),
   );
@@ -158,21 +183,31 @@ export function OpportunityRequirementSection({
   const showCommercial = requirementIncludesCommercial(
     serializeRequirementPrimaryTypes(primaryTypes),
   );
+  const showCapacity = isLease && (showResidential || showCommercial);
 
   if (profService) {
     return editing ? (
       <TextAreaField
-        label="Special requirement"
+        label="Special Requirement"
         name="requirement_summary"
         defaultValue={opportunity.requirement_summary ?? ""}
       />
     ) : (
-      <ViewField label="Special requirement" value={opportunity.requirement_summary ?? ""} />
+      <ViewField label="Special Requirement" value={opportunity.requirement_summary ?? ""} />
     );
   }
 
   const primarySerialized = serializeRequirementPrimaryTypes(primaryTypes) ?? "";
   const subtypeSerialized = serializeRequirementSubtypes(subtypes) ?? "";
+  const fundingLabel =
+    opportunity.funding_status &&
+    OPPORTUNITY_FUNDING_STATUS_LABELS[
+      opportunity.funding_status as keyof typeof OPPORTUNITY_FUNDING_STATUS_LABELS
+    ]
+      ? OPPORTUNITY_FUNDING_STATUS_LABELS[
+          opportunity.funding_status as keyof typeof OPPORTUNITY_FUNDING_STATUS_LABELS
+        ]
+      : (opportunity.funding_status ?? "");
 
   return (
     <div className="space-y-3">
@@ -181,19 +216,28 @@ export function OpportunityRequirementSection({
       {editing ? (
         <>
           <div>
-            <p className={`mb-1.5 ${labelClass}`}>Required type</p>
-            <PrimaryTypeCheckboxes selected={primaryTypes} onChange={setPrimaryTypes} />
+            <p className={`mb-1.5 ${labelClass}`}>Required Type</p>
+            <PrimaryTypeCheckboxes
+              selected={primaryTypes}
+              onChange={(next) => {
+                setPrimaryTypes(next);
+                const allowed = new Set(
+                  next.flatMap((type) => REQUIREMENT_SUBTYPE_OPTIONS[type].map((opt) => opt.value)),
+                );
+                setSubtypes((current) => current.filter((value) => allowed.has(value)));
+              }}
+            />
           </div>
           <SubtypeCheckboxes primaryTypes={primaryTypes} selected={subtypes} onChange={setSubtypes} />
         </>
       ) : (
         <dl className={fieldGrid}>
           <ViewField
-            label="Required type"
+            label="Required Type"
             value={formatRequirementPrimaryTypes(opportunity.property_category_preference)}
           />
           <ViewField
-            label="Requirement detail"
+            label="Required Subtype"
             value={formatRequirementSubtypes(
               opportunity.property_category_preference,
               opportunity.property_type_preference,
@@ -210,7 +254,7 @@ export function OpportunityRequirementSection({
             defaultValue={opportunity.district_preference ?? ""}
           />
           <FormField
-            label="Area (sq ft)"
+            label={isSaleCase ? "Target Area (Sq Ft)" : "Area (Sq Ft)"}
             name="required_area_sqft"
             type="number"
             defaultValue={opportunity.required_area_sqft ?? ""}
@@ -221,38 +265,52 @@ export function OpportunityRequirementSection({
             type="number"
             defaultValue={opportunityBudgetValue(opportunity) ?? ""}
           />
-          {showResidential && !showCommercial ? (
+          {showCapacity ? (
             <FormField
-              label="No. of rooms"
-              name="required_capacity_pax"
-              type="number"
-              defaultValue={opportunity.required_capacity_pax?.toString() ?? ""}
-            />
-          ) : showCommercial && !showResidential ? (
-            <FormField
-              label="Capacity / no. of persons"
-              name="required_capacity_pax"
-              type="number"
-              defaultValue={opportunity.required_capacity_pax?.toString() ?? ""}
-            />
-          ) : showResidential || showCommercial ? (
-            <FormField
-              label={showResidential && showCommercial ? "Rooms / capacity" : showResidential ? "No. of rooms" : "Capacity / no. of persons"}
+              label={capacityLabel(showResidential, showCommercial)}
               name="required_capacity_pax"
               type="number"
               defaultValue={opportunity.required_capacity_pax?.toString() ?? ""}
             />
           ) : null}
-          <FormField
-            label="Move-in date"
-            name="move_in_date"
-            type="date"
-            defaultValue={opportunity.move_in_date?.slice(0, 10) ?? ""}
-          />
-          <FormField label="Lease term" name="lease_term" defaultValue={opportunity.lease_term ?? ""} />
+          {isLease ? (
+            <>
+              <FormField
+                label="Move-In Date"
+                name="move_in_date"
+                type="date"
+                defaultValue={opportunity.move_in_date?.slice(0, 10) ?? ""}
+              />
+              <FormField label="Lease Term" name="lease_term" defaultValue={opportunity.lease_term ?? ""} />
+            </>
+          ) : null}
+          {isSaleCase ? (
+            <FormField
+              label="Target Yield (%)"
+              name="target_yield"
+              defaultValue={opportunity.target_yield ?? ""}
+            />
+          ) : null}
+          {isBuy ? (
+            <label className="block min-w-0 text-sm">
+              <span className={labelClass}>Funding Status</span>
+              <select
+                name="funding_status"
+                defaultValue={opportunity.funding_status ?? ""}
+                className={selectClass}
+              >
+                <option value="">—</option>
+                {OPPORTUNITY_FUNDING_STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {OPPORTUNITY_FUNDING_STATUS_LABELS[s]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <div className="col-span-2">
             <TextAreaField
-              label="Special requirement"
+              label="Special Requirement"
               name="requirement_summary"
               defaultValue={opportunity.requirement_summary ?? ""}
             />
@@ -261,30 +319,39 @@ export function OpportunityRequirementSection({
       ) : (
         <dl className={fieldGrid}>
           <ViewField label="Location" value={opportunity.district_preference ?? ""} />
-          <ViewField label="Area" value={opportunity.required_area_sqft ? `${opportunity.required_area_sqft} sq ft` : ""} />
+          <ViewField
+            label={isSaleCase ? "Target Area" : "Area"}
+            value={opportunity.required_area_sqft ? `${opportunity.required_area_sqft} sq ft` : ""}
+          />
           <ViewField
             label="Budget"
-            value={opportunity.budget_max ? `HK$${Number(opportunity.budget_max).toLocaleString()}` : ""}
+            value={formatOpportunityBudget(opportunity.budget_max, opportunity.budget_min)}
           />
-          {showResidential ? (
+          {showCapacity ? (
             <ViewField
-              label="No. of rooms"
-              value={opportunity.required_capacity_pax != null ? String(opportunity.required_capacity_pax) : ""}
+              label={capacityLabel(showResidential, showCommercial)}
+              value={
+                opportunity.required_capacity_pax != null
+                  ? String(opportunity.required_capacity_pax)
+                  : ""
+              }
             />
           ) : null}
-          {showCommercial ? (
+          {isLease ? (
+            <>
+              <ViewField label="Move-In Date" value={opportunity.move_in_date?.slice(0, 10) ?? ""} />
+              <ViewField label="Lease Term" value={opportunity.lease_term ?? ""} />
+            </>
+          ) : null}
+          {isSaleCase ? (
             <ViewField
-              label="Capacity / no. of persons"
-              value={opportunity.required_capacity_pax != null ? String(opportunity.required_capacity_pax) : ""}
+              label="Target Yield (%)"
+              value={opportunity.target_yield ? `${opportunity.target_yield}%` : ""}
             />
           ) : null}
-          {!showResidential && !showCommercial && opportunity.required_capacity_pax != null ? (
-            <ViewField label="Capacity" value={String(opportunity.required_capacity_pax)} />
-          ) : null}
-          <ViewField label="Move-in date" value={opportunity.move_in_date?.slice(0, 10) ?? ""} />
-          <ViewField label="Lease term" value={opportunity.lease_term ?? ""} />
+          {isBuy ? <ViewField label="Funding Status" value={fundingLabel} /> : null}
           <div className="col-span-2">
-            <ViewField label="Special requirement" value={opportunity.requirement_summary ?? ""} />
+            <ViewField label="Special Requirement" value={opportunity.requirement_summary ?? ""} />
           </div>
         </dl>
       )}

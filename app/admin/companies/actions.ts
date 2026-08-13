@@ -66,6 +66,18 @@ export async function createCompanyAction(formData: FormData) {
 }
 
 export async function updateCompanyAction(id: number, formData: FormData) {
+  const existing = await getCompany(id);
+  if (!existing) throw new Error("Company not found");
+
+  // Workspace edit form omits some CRM timing fields — preserve stored values when absent.
+  const preserveWhenAbsent: Array<[string, unknown]> = [
+    ["last_meeting_date", existing.last_meeting_date],
+    ["last_contact_date", existing.last_contact_date],
+  ];
+  for (const [field, value] of preserveWhenAbsent) {
+    if (!formData.has(field)) formData.set(field, value == null ? "" : String(value).slice(0, 10));
+  }
+
   const input = companyInputFromForm(formData);
   await updateCompany(id, input);
   await syncLegacyCompanyToV1(id, input.company_name, input.company_name_zh ?? null, input.is_active);

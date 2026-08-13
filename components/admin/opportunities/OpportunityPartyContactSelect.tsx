@@ -17,6 +17,7 @@ export function OpportunityPartyContactSelect({
   onNewContact,
   instanceKey,
   fieldName = "contact_id",
+  allowWithoutCompany = true,
 }: {
   companyId: string;
   contacts: ContactOption[];
@@ -26,22 +27,21 @@ export function OpportunityPartyContactSelect({
   onNewContact: () => void;
   instanceKey: string;
   fieldName?: string;
+  /** When true (default), contact can be chosen before/without a company. */
+  allowWithoutCompany?: boolean;
 }) {
   const filtered = useMemo(
     () => contactsForCompany(contacts, companyId, companies),
     [contacts, companyId, companies],
   );
   const [contactId, setContactId] = useState(defaultContactId ?? "");
+  const contactEnabled = allowWithoutCompany || Boolean(companyId);
 
   useEffect(() => {
     setContactId(defaultContactId ?? "");
   }, [instanceKey, defaultContactId]);
 
   useEffect(() => {
-    if (!companyId) {
-      setContactId("");
-      return;
-    }
     setContactId((current) => {
       if (!current) return "";
       return filtered.some((contact) => resolveContactSelectValue(contacts, contact.id) === current)
@@ -57,7 +57,7 @@ export function OpportunityPartyContactSelect({
         <button
           type="button"
           onClick={onNewContact}
-          disabled={!companyId}
+          disabled={!allowWithoutCompany && !companyId}
           className="text-xs font-medium text-emerald-800 hover:underline disabled:text-slate-400"
         >
           New
@@ -67,7 +67,7 @@ export function OpportunityPartyContactSelect({
         name={fieldName}
         value={contactId}
         onChange={(e) => setContactId(e.target.value)}
-        disabled={!companyId}
+        disabled={!contactEnabled}
         className={selectClass}
       >
         <option value="">—</option>

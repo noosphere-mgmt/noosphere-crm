@@ -12,12 +12,11 @@ import {
   InlineCompanyPickerField,
   InlineEmailLinkField,
   InlineMultiSelectField,
-  InlinePhoneField,
   InlineReadOnlyField,
   InlineSelectField,
+  InlineTelWithAreaField,
   InlineTextAreaField,
   InlineTextField,
-  InlineWhatsAppField,
 } from "@/components/admin/inline/InlineFields";
 import { COVERAGE_OPTIONS } from "@/lib/connectionsValues";
 import { contactDrawerHref } from "@/lib/connectionsDrawerNav";
@@ -147,8 +146,28 @@ export function ContactInlineDetail({
 
       <div className="grid w-full min-w-0 grid-cols-2 items-stretch gap-3">
         <DrawerOverviewCard title="Contact Channels" columns={2} dense={false} matchHeight className="w-full min-w-0">
-          <InlinePhoneField label="Mobile" value={contact.phone} onSave={save("phone")} />
-          <InlineWhatsAppField label="WhatsApp" value={contact.whatsapp} onSave={save("whatsapp")} />
+          <InlineTelWithAreaField
+            label="Phone"
+            areaCode={contact.phone_area_code}
+            number={contact.phone}
+            onSaveAreaCode={save("phone_area_code")}
+            onSaveNumber={save("phone")}
+          />
+          <InlineTelWithAreaField
+            label="Mobile"
+            areaCode={contact.mobile_area_code}
+            number={contact.mobile}
+            onSaveAreaCode={save("mobile_area_code")}
+            onSaveNumber={save("mobile")}
+          />
+          <InlineTelWithAreaField
+            label="WhatsApp"
+            areaCode={contact.whatsapp_area_code}
+            number={contact.whatsapp}
+            onSaveAreaCode={save("whatsapp_area_code")}
+            onSaveNumber={save("whatsapp")}
+            link="whatsapp"
+          />
           <InlineTextField label="WeChat" value={contact.wechat} onSave={save("wechat")} />
           <InlineEmailLinkField label="Email" value={contact.email} onSave={save("email")} />
           <InlineReadOnlyField label="Country" value={contact.company_country ?? null} />

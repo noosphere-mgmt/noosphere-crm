@@ -1,4 +1,9 @@
 import { query } from "@/lib/db";
+import { normalizeLeadSource } from "@/lib/leadValues";
+import {
+  normalizeCategoryPreference,
+  normalizeSpaceFormPreference,
+} from "@/lib/opportunityPreferences";
 
 export type LeadStatus = "new" | "reviewing" | "qualified" | "converted" | "nurture" | "disqualified" | "duplicate";
 
@@ -22,6 +27,8 @@ export type Lead = {
   required_area_sqft: string | null;
   required_capacity_pax: number | null;
   preferred_location: string | null;
+  property_category_preference: string | null;
+  property_type_preference: string | null;
   assigned_owner: string | null;
   virtual_staff: string | null;
   qualification_score: number | null;
@@ -36,13 +43,23 @@ export type Lead = {
   updated_at: string;
 };
 
-export type LeadInput = Omit<Lead, "id" | "converted_company_id" | "converted_contact_id" | "converted_opportunity_id" | "converted_at" | "created_at" | "updated_at">;
+export type LeadInput = Omit<
+  Lead,
+  | "id"
+  | "converted_company_id"
+  | "converted_contact_id"
+  | "converted_opportunity_id"
+  | "converted_at"
+  | "created_at"
+  | "updated_at"
+>;
 
 const leadSelect = `
   id, status, contact_name, company_name, email, phone, website, source,
   email_subject, email_excerpt, email_message_id, email_thread_id,
   requirement_notes, ai_digest, office_space_required, next_lease_expiry::text,
   required_area_sqft::text, required_capacity_pax, preferred_location,
+  property_category_preference, property_type_preference,
   assigned_owner, virtual_staff, qualification_score, qualification_reason,
   last_email_at::text, next_follow_up_date::text,
   converted_company_id, converted_contact_id, converted_opportunity_id, converted_at::text,
@@ -51,22 +68,52 @@ const leadSelect = `
 
 function values(input: LeadInput) {
   return [
-    input.status, input.contact_name, input.company_name, input.email, input.phone, input.website,
-    input.source, input.email_subject, input.email_excerpt, input.email_message_id, input.email_thread_id,
-    input.requirement_notes, input.ai_digest, input.office_space_required, input.next_lease_expiry,
-    input.required_area_sqft, input.required_capacity_pax, input.preferred_location,
-    input.assigned_owner, input.virtual_staff, input.qualification_score, input.qualification_reason,
-    input.last_email_at, input.next_follow_up_date,
+    input.status,
+    input.contact_name,
+    input.company_name,
+    input.email,
+    input.phone,
+    input.website,
+    normalizeLeadSource(input.source),
+    input.email_subject,
+    input.email_excerpt,
+    input.email_message_id,
+    input.email_thread_id,
+    input.requirement_notes,
+    input.ai_digest,
+    input.office_space_required,
+    input.next_lease_expiry,
+    input.required_area_sqft,
+    input.required_capacity_pax,
+    input.preferred_location,
+    normalizeCategoryPreference(input.property_category_preference),
+    normalizeSpaceFormPreference(input.property_type_preference),
+    input.assigned_owner,
+    input.virtual_staff,
+    input.qualification_score,
+    input.qualification_reason,
+    input.last_email_at,
+    input.next_follow_up_date,
   ];
 }
 
+function normalizeLeadRow(row: Lead): Lead {
+  return {
+    ...row,
+    source: normalizeLeadSource(row.source),
+    property_category_preference: normalizeCategoryPreference(row.property_category_preference),
+    property_type_preference: normalizeSpaceFormPreference(row.property_type_preference),
+  };
+}
+
 export async function listLeads(): Promise<Lead[]> {
-  return query<Lead>(`SELECT ${leadSelect} FROM leads ORDER BY updated_at DESC, id DESC`);
+  const rows = await query<Lead>(`SELECT ${leadSelect} FROM leads ORDER BY updated_at DESC, id DESC`);
+  return rows.map(normalizeLeadRow);
 }
 
 export async function getLead(id: number): Promise<Lead | null> {
   const rows = await query<Lead>(`SELECT ${leadSelect} FROM leads WHERE id = $1`, [id]);
-  return rows[0] ?? null;
+  return rows[0] ? normalizeLeadRow(rows[0]) : null;
 }
 
 export async function createLead(input: LeadInput): Promise<number> {
@@ -76,9 +123,10 @@ export async function createLead(input: LeadInput): Promise<number> {
       email_subject, email_excerpt, email_message_id, email_thread_id,
       requirement_notes, ai_digest, office_space_required, next_lease_expiry,
       required_area_sqft, required_capacity_pax, preferred_location,
+      property_category_preference, property_type_preference,
       assigned_owner, virtual_staff, qualification_score, qualification_reason,
       last_email_at, next_follow_up_date
-    ) VALUES (${Array.from({ length: 24 }, (_, i) => `$${i + 1}`).join(", ")}) RETURNING id::text AS id`,
+    ) VALUES (${Array.from({ length: 26 }, (_, i) => `$${i + 1}`).join(", ")}) RETURNING id::text AS id`,
     values(input),
   );
   return Number.parseInt(rows[0]!.id, 10);
@@ -91,18 +139,23 @@ export async function updateLead(id: number, input: LeadInput): Promise<void> {
       email_subject=$9, email_excerpt=$10, email_message_id=$11, email_thread_id=$12,
       requirement_notes=$13, ai_digest=$14, office_space_required=$15, next_lease_expiry=$16,
       required_area_sqft=$17, required_capacity_pax=$18, preferred_location=$19,
-      assigned_owner=$20, virtual_staff=$21, qualification_score=$22, qualification_reason=$23,
-      last_email_at=$24, next_follow_up_date=$25, updated_at=NOW()
+      property_category_preference=$20, property_type_preference=$21,
+      assigned_owner=$22, virtual_staff=$23, qualification_score=$24, qualification_reason=$25,
+      last_email_at=$26, next_follow_up_date=$27, updated_at=NOW()
      WHERE id=$1`,
     [id, ...values(input)],
   );
 }
 
-export async function markLeadConverted(id: number, companyId: number, contactId: number, opportunityId: number): Promise<void> {
+export async function markLeadConverted(
+  id: number,
+  companyId: number,
+  contactId: number,
+  opportunityId: number,
+): Promise<void> {
   await query(
     `UPDATE leads SET status='converted', converted_company_id=$2, converted_contact_id=$3,
        converted_opportunity_id=$4, converted_at=NOW(), updated_at=NOW() WHERE id=$1`,
     [id, companyId, contactId, opportunityId],
   );
 }
-

@@ -51,10 +51,10 @@ export function ContactWorkspaceContextPanel({ data }: { data: ContactDrawerData
             </ul>
           )}
           <Link
-            href={contactWorkspaceHref(contact, "affiliations")}
+            href={contactWorkspaceHref(contact, "company")}
             className="mt-2 inline-block text-xs font-medium text-violet-800 hover:underline"
           >
-            Manage affiliations →
+            Manage company →
           </Link>
         </ContextSection>
         <ContextSection title="Linked deals">

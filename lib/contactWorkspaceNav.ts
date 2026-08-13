@@ -1,3 +1,4 @@
+import { withAdminReturnTo } from "@/lib/adminReturnTo";
 import { contactFullPageHref } from "@/lib/crmDetailNav";
 import type { ContactWorkspaceTabId } from "@/lib/contactWorkspaceTab";
 
@@ -8,13 +9,15 @@ type ContactRef = {
 
 export function contactWorkspaceHref(
   contact: ContactRef,
-  tab: ContactWorkspaceTabId = "profile",
+  tab: ContactWorkspaceTabId = "overview",
   mode?: "edit",
+  returnTo?: string | null,
 ): string {
   const businessId = contact.business_id?.trim() || String(contact.id);
   const href = contactFullPageHref(businessId, {
-    tab: tab === "profile" ? undefined : tab,
+    tab: tab === "overview" ? undefined : tab,
     mode,
   });
-  return href ?? `/admin/contacts/${encodeURIComponent(businessId)}`;
+  const base = href ?? `/admin/contacts/${encodeURIComponent(businessId)}`;
+  return withAdminReturnTo(base, returnTo);
 }

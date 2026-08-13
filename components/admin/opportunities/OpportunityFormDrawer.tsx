@@ -84,7 +84,7 @@ export function OpportunityFormDrawer({
                 contacts={contacts}
               />
               <div className="flex items-center gap-4 border-t border-slate-100 pt-4">
-                <SubmitButton label="Create opportunity" />
+                <SubmitButton label="Create Opportunity" />
                 <button
                   type="button"
                   onClick={onClose}

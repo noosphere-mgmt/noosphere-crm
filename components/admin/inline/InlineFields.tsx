@@ -12,6 +12,14 @@ import {
 } from "@/components/admin/inline/InlineRecordChrome";
 import { connectionsGlassClasses } from "@/lib/connectionsGlassTheme";
 import { formatLabelWithBusinessId } from "@/lib/crmSelectOptions";
+import {
+  DEFAULT_PHONE_AREA_CODE,
+  PHONE_AREA_CODES,
+  formatPhoneDisplay,
+  normalizePhoneAreaCode,
+  telHref,
+  whatsAppHrefFromParts,
+} from "@/lib/phoneAreaCodes";
 
 type SaveFn = (value: unknown) => Promise<{ ok: boolean; error?: string }>;
 
@@ -31,7 +39,11 @@ function useGatedInlineEdit() {
 
 function editableFieldProps(_editHighlight: boolean, beginEdit: () => void) {
   return {
-    onClick: beginEdit,
+    onDoubleClick: (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      beginEdit();
+    },
     onKeyDown: (e: React.KeyboardEvent) => {
       if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
@@ -40,11 +52,17 @@ function editableFieldProps(_editHighlight: boolean, beginEdit: () => void) {
     },
     role: "button" as const,
     tabIndex: 0,
+    title: "Double-click to edit · saves automatically",
+    "aria-label": "Double-click to edit",
   };
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <dt className="whitespace-nowrap text-xs font-medium text-slate-500">{children}</dt>;
+  return (
+    <dt className="whitespace-nowrap text-xs font-medium uppercase tracking-wide text-slate-500">
+      {children}
+    </dt>
+  );
 }
 
 function FieldValue({ children }: { children: React.ReactNode }) {
@@ -220,6 +238,133 @@ export function InlinePhoneField({
           </a>
         ) : (
           displayOrDash(value)
+        )}
+      </FieldValue>
+    </div>
+  );
+}
+
+/** Phone / Mobile / WhatsApp with dialing area code. */
+export function InlineTelWithAreaField({
+  label,
+  areaCode,
+  number,
+  onSaveAreaCode,
+  onSaveNumber,
+  link = "tel",
+}: {
+  label: string;
+  areaCode: string | null | undefined;
+  number: string | null | undefined;
+  onSaveAreaCode: SaveFn;
+  onSaveNumber: SaveFn;
+  link?: "tel" | "whatsapp";
+}) {
+  const { editHighlight, runSave, editing, setEditing, beginEdit } = useGatedInlineEdit();
+  const [draftArea, setDraftArea] = useState(areaCode ?? DEFAULT_PHONE_AREA_CODE);
+  const [draftNumber, setDraftNumber] = useState(number ?? "");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!editing) {
+      setDraftArea(areaCode?.trim() || DEFAULT_PHONE_AREA_CODE);
+      setDraftNumber(number ?? "");
+    }
+  }, [areaCode, number, editing]);
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
+
+  async function commit() {
+    const nextArea = normalizePhoneAreaCode(draftArea);
+    const nextNumber = draftNumber.trim() || null;
+    const prevArea = normalizePhoneAreaCode(areaCode);
+    const prevNumber = (number ?? "").trim() || null;
+    if (nextArea === prevArea && nextNumber === prevNumber) {
+      setEditing(false);
+      return;
+    }
+    const ok = await runSave(async () => {
+      if (nextArea !== prevArea) {
+        const areaResult = await onSaveAreaCode(nextArea);
+        if (!areaResult.ok) return areaResult;
+      }
+      if (nextNumber !== prevNumber) {
+        return onSaveNumber(nextNumber);
+      }
+      return { ok: true };
+    });
+    if (ok) setEditing(false);
+  }
+
+  const display = formatPhoneDisplay(areaCode, number);
+  const href =
+    link === "whatsapp"
+      ? whatsAppHrefFromParts(areaCode, number)
+      : telHref(areaCode, number);
+
+  if (editing) {
+    return (
+      <div className={inlineFieldShellClass(editHighlight, true)}>
+        <FieldLabel>{label}</FieldLabel>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <select
+            value={draftArea}
+            onChange={(e) => setDraftArea(e.target.value)}
+            className={`${inlineSelectClass} w-[7.5rem] shrink-0`}
+            aria-label={`${label} area code`}
+          >
+            {PHONE_AREA_CODES.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.value}
+              </option>
+            ))}
+          </select>
+          <input
+            ref={inputRef}
+            type="tel"
+            value={draftNumber}
+            className={`${inlineInputClass} min-w-0 flex-1`}
+            onChange={(e) => setDraftNumber(e.target.value)}
+            onBlur={() => void commit()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                void commit();
+              }
+              if (e.key === "Escape") {
+                setDraftArea(areaCode?.trim() || DEFAULT_PHONE_AREA_CODE);
+                setDraftNumber(number ?? "");
+                setEditing(false);
+              }
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={inlineFieldShellClass(editHighlight, false)}
+      {...editableFieldProps(editHighlight, beginEdit)}
+    >
+      <FieldLabel>{label}</FieldLabel>
+      <FieldValue>
+        {display && href ? (
+          <a
+            href={href}
+            {...(link === "whatsapp"
+              ? { target: "_blank", rel: "noopener noreferrer" }
+              : {})}
+            onClick={(e) => e.stopPropagation()}
+            className={connectionsGlassClasses.link}
+          >
+            {display}
+          </a>
+        ) : (
+          displayOrDash(display)
         )}
       </FieldValue>
     </div>
@@ -798,11 +943,7 @@ export function InlineCompanyPickerField({
       setEditing(false);
       return;
     }
-    if (!businessId) {
-      setEditing(false);
-      return;
-    }
-    const ok = await runSave(() => onSave(businessId));
+    const ok = await runSave(() => onSave(businessId || null));
     if (ok) setEditing(false);
   }
 
@@ -819,6 +960,20 @@ export function InlineCompanyPickerField({
           autoFocus
         />
         <ul className="mt-1 max-h-40 overflow-y-auto rounded border border-slate-200 bg-white text-sm shadow-sm">
+          <li>
+            <button
+              type="button"
+              className={`block w-full px-2 py-1.5 text-left hover:bg-slate-50 ${
+                !draftBusinessId ? "bg-violet-50 font-medium text-violet-900" : ""
+              }`}
+              onClick={() => {
+                setDraftBusinessId("");
+                void commit("");
+              }}
+            >
+              No Company
+            </button>
+          </li>
           {filtered.length === 0 ? (
             <li className="px-2 py-2 text-slate-500">No matches</li>
           ) : (
@@ -860,7 +1015,7 @@ export function InlineCompanyPickerField({
       {...editableFieldProps(editHighlight, beginEdit)}
     >
       <FieldLabel>{label}</FieldLabel>
-      <FieldValue>{displayOrDash(displayLabel)}</FieldValue>
+      <FieldValue>{displayLabel?.trim() || "No Company"}</FieldValue>
     </div>
   );
 }

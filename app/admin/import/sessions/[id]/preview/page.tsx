@@ -2,9 +2,11 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { ImportActionBadge, SummaryTiles } from "@/components/admin/ImportWorkbench";
+import { runImportEngine } from "@/lib/import/importEngine";
 import { IMPORT_OBJECT_LABELS } from "@/lib/import/types";
 import { formatImportRowNotes } from "@/lib/import/rowNotes";
-import { getImportSession } from "@/lib/repos/importSessions";
+import { resolveImportSessionMetadata } from "@/lib/import/sessionMetadata";
+import { getImportSession, saveSessionPreview } from "@/lib/repos/importSessions";
 import { confirmImportAction } from "../../../actions";
 
 export const dynamic = "force-dynamic";
@@ -13,9 +15,29 @@ type Props = { params: Promise<{ id: string }> };
 
 export default async function ImportPreviewPage({ params }: Props) {
   const { id } = await params;
-  const session = await getImportSession(id);
+  let session = await getImportSession(id);
   if (!session) notFound();
   if (session.status === "committed") redirect("/admin/import/history");
+  if (!session.column_mapping || Object.keys(session.column_mapping).length === 0) {
+    redirect(`/admin/import/sessions/${id}/mapping`);
+  }
+
+  // Always re-run dry-run on preview so stale sessions pick up matcher / adapter fixes.
+  const metadata = resolveImportSessionMetadata({
+    source_system: session.source_system,
+    source_file: session.source_file,
+    source_date: session.source_date,
+    filename: session.filename,
+  });
+  const fresh = await runImportEngine({
+    objectType: session.object_type,
+    parsed: { headers: session.csv_headers, rows: session.parsed_rows },
+    columnMapping: session.column_mapping,
+    mode: "dry_run",
+    sessionMetadata: metadata,
+  });
+  await saveSessionPreview(id, fresh.summary, fresh.rows);
+  session = (await getImportSession(id))!;
   if (!session.preview_summary || !session.preview_rows) {
     redirect(`/admin/import/sessions/${id}/mapping`);
   }
@@ -23,6 +45,7 @@ export default async function ImportPreviewPage({ params }: Props) {
   const confirm = confirmImportAction.bind(null, id);
   const hasErrors = session.preview_summary.error > 0;
   const hasDuplicates = session.preview_summary.duplicate_candidate > 0;
+  const createCount = session.preview_summary.create;
 
   return (
     <AdminShell title={`Preview — ${IMPORT_OBJECT_LABELS[session.object_type]}`}>
@@ -34,8 +57,14 @@ export default async function ImportPreviewPage({ params }: Props) {
         <SummaryTiles summary={session.preview_summary} variant="preview" />
       </div>
 
-      {(hasErrors || hasDuplicates) && (
+      {(hasErrors || hasDuplicates || createCount > 0) && (
         <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          {createCount > 0 ? (
+            <p>
+              {createCount} row{createCount === 1 ? "" : "s"} will be <strong>created</strong>
+              (including rows with an ID that is not in this database yet — the supplied ID is kept).
+            </p>
+          ) : null}
           {hasErrors ? <p>Errors found — enable &quot;Import valid rows only&quot; to skip them on confirm.</p> : null}
           {hasDuplicates ? <p>Duplicate candidate rows match multiple records and will be skipped on confirm.</p> : null}
         </div>

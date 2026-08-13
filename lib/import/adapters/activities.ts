@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { query } from "@/lib/db";
 import { ACTIVITY_TYPES } from "@/lib/activityValues";
-import { allocateNextBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
+import { allocateNextBusinessId, ensureLegacyBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
 import { isPermanentBusinessId } from "@/lib/businessIds";
 import { sqlContactDisplayName } from "@/lib/contactName";
 import { resolveCompanyRefToLegacy } from "@/lib/crmRefResolve";
@@ -283,6 +283,17 @@ export const activitiesImportDefinition: ImportObjectDefinition = {
     delete p.premises_name;
     delete p.building_name_en;
     await genericUpdateRecord("activities", "activity_id", id, p, ctx);
+    const rows = await query<{ id: string }>(
+      `SELECT id::text AS id FROM activities WHERE activity_id = $1`,
+      [String(id)],
+    );
+    const legacyId = Number.parseInt(rows[0]?.id ?? "", 10);
+    if (Number.isFinite(legacyId)) {
+      await ensureLegacyBusinessId("activity", legacyId, {
+        primaryRef: String(id),
+        deprecatedRef: String(id),
+      });
+    }
   },
 
   async exportRows() {

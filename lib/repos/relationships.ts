@@ -1,14 +1,11 @@
 import { query, withTransaction, type DbClient } from "@/lib/db";
 import { sqlContactDisplayName } from "@/lib/contactName";
 import {
-  creationTypeToReverseType,
   entityIdString,
-  isCreationRelationshipType,
   isEntityType,
   isRelationshipStatus,
   isRelationshipType,
   reverseRelationshipType,
-  type CreationRelationshipType,
   type EntityRelationshipRow,
   type EntityType,
   type RelationshipStatus,
@@ -35,7 +32,7 @@ export type RelationshipInput = {
   from_entity_id: string;
   to_entity_type: EntityType;
   to_entity_id: string;
-  relationship_type: CreationRelationshipType;
+  relationship_type: RelationshipType;
   status?: RelationshipStatus;
   start_date?: string | null;
   end_date?: string | null;
@@ -166,7 +163,11 @@ export async function createRelationship(input: RelationshipInput): Promise<stri
   if (!isEntityType(input.from_entity_type) || !isEntityType(input.to_entity_type)) {
     throw new Error("Invalid entity type");
   }
-  if (!isCreationRelationshipType(input.relationship_type)) {
+  if (!isRelationshipType(input.relationship_type)) {
+    throw new Error("Invalid relationship type");
+  }
+  const reverseType = reverseRelationshipType(input.relationship_type);
+  if (!reverseType) {
     throw new Error("Invalid relationship type");
   }
   const status = input.status ?? "Active";
@@ -179,8 +180,6 @@ export async function createRelationship(input: RelationshipInput): Promise<stri
   ) {
     throw new Error("Cannot relate an entity to itself");
   }
-
-  const reverseType = creationTypeToReverseType(input.relationship_type);
 
   return withTransaction(async (client) => {
     const forwardId = await insertRelationshipRow(client, {

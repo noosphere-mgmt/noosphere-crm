@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { FormEditingContext } from "@/components/admin/ModuleActionBar";
+import { FormEditingContext, ModuleStickyEditBar } from "@/components/admin/ModuleActionBar";
 import { OpportunityOverviewFields } from "@/components/admin/opportunities/OpportunityOverviewFields";
 import { OpportunityCurrentPosition } from "@/components/admin/opportunities/OpportunityCurrentPosition";
 import { updateOpportunityAction } from "@/app/admin/opportunities/actions";
@@ -14,30 +14,33 @@ export function OpportunityOverviewTab({
   initialEditMode,
   lastActivityDate,
   proposalsEnabled = false,
+  listReturnTo,
 }: {
   data: OpportunityDetailData;
   initialEditMode?: boolean;
   lastActivityDate?: string | null;
   proposalsEnabled?: boolean;
+  /** Listing/source page to preserve across edit ↔ view on this workspace. */
+  listReturnTo?: string | null;
 }) {
   const { opportunity, companies, contacts } = data;
   const router = useRouter();
   const update = updateOpportunityAction.bind(null, opportunity.id);
   const formId = `opportunity-detail-${opportunity.id}`;
-  const editHref = opportunityWorkspaceHref(opportunity, "overview", "edit");
-  const returnTo = useMemo(
-    () => opportunityWorkspaceHref(opportunity, "overview"),
-    [opportunity],
+  const editHref = opportunityWorkspaceHref(opportunity, "overview", "edit", listReturnTo);
+  const viewHref = useMemo(
+    () => opportunityWorkspaceHref(opportunity, "overview", undefined, listReturnTo),
+    [opportunity, listReturnTo],
   );
 
   async function action(formData: FormData) {
-    formData.set("return_to", returnTo);
+    formData.set("return_to", viewHref);
     return update(formData);
   }
 
   return (
     <FormEditingContext.Provider value={initialEditMode ?? false}>
-      <div>
+      <div className={initialEditMode ? "pt-14" : undefined}>
         <form
           id={formId}
           action={action}
@@ -58,6 +61,9 @@ export function OpportunityOverviewTab({
             }
           />
         </form>
+        {initialEditMode ? (
+          <ModuleStickyEditBar formId={formId} onCancel={() => router.push(viewHref)} />
+        ) : null}
       </div>
     </FormEditingContext.Provider>
   );

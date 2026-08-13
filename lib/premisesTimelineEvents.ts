@@ -10,6 +10,7 @@ export type PremisesTimelineEvent = {
   title: string;
   detail?: string | null;
   opportunityId?: number;
+  activity?: ActivityListRow;
 };
 
 function eventDate(iso: string | null | undefined): string {
@@ -29,6 +30,7 @@ export function buildPremisesTimelineEvents(
       date: eventDate(a.activity_date),
       title: a.activity_type,
       detail: a.subject ?? a.notes,
+      activity: a,
     });
   }
 

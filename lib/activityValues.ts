@@ -1,6 +1,7 @@
 /** Types shown when creating or editing an activity. */
 export const ACTIVITY_FORM_TYPES = [
   "Call",
+  "Email",
   "WhatsApp",
   "WeChat",
   "Meeting",
@@ -27,6 +28,7 @@ export type ActivityType = (typeof ACTIVITY_TYPES)[number];
 
 export const MOBILE_QUICK_ACTIVITY_TYPES = [
   "Call",
+  "Email",
   "WhatsApp",
   "WeChat",
   "Meeting",

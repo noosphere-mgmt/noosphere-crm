@@ -150,19 +150,42 @@ async function lookupOpportunityId(raw: string): Promise<number | null> {
 }
 
 async function lookupOpportunityIdByName(name: string, companyId?: number | null): Promise<number | null> {
-  const params: unknown[] = [name.trim().toLowerCase()];
+  const trimmed = name.normalize("NFC").trim().replace(/\s+/g, " ");
+  if (!trimmed) return null;
+  const normalized = trimmed.toLowerCase();
+  const params: unknown[] = [normalized, trimmed];
   let companyClause = "";
   if (companyId != null) {
-    companyClause = " AND company_id::text = $2::text";
-    params.push(companyId);
+    companyClause = " AND company_id::text = $3::text";
+    params.push(String(companyId));
   }
-  const rows = await query<{ id: string }>(
+
+  // Prefer exact client_name (Chinese-safe), then free-text company_name on the opportunity.
+  const byClient = await query<{ id: string }>(
     `SELECT id::text FROM opportunities
-     WHERE lower(trim(client_name)) = $1${companyClause}
-     ORDER BY id ASC`,
+     WHERE (
+         lower(trim(both from client_name)) = $1
+         OR trim(both from client_name) = $2
+       )${companyClause}
+     ORDER BY updated_at DESC NULLS LAST, id DESC`,
     params,
   );
-  if (rows.length === 1) return Number.parseInt(rows[0]!.id, 10);
+  if (byClient.length === 1) return Number.parseInt(byClient[0]!.id, 10);
+  if (byClient.length > 1) {
+    // Same display name used on multiple deals — take the newest so import can proceed.
+    return Number.parseInt(byClient[0]!.id, 10);
+  }
+
+  const byCompanyName = await query<{ id: string }>(
+    `SELECT id::text FROM opportunities
+     WHERE (
+         lower(trim(both from coalesce(company_name, ''))) = $1
+         OR trim(both from coalesce(company_name, '')) = $2
+       )${companyClause}
+     ORDER BY updated_at DESC NULLS LAST, id DESC`,
+    params,
+  );
+  if (byCompanyName.length >= 1) return Number.parseInt(byCompanyName[0]!.id, 10);
   return null;
 }
 
@@ -699,7 +722,7 @@ export async function resolveContactIdOrName(
   return emptyReferenceResult();
 }
 
-/** Prefer opportunity ID; fall back to opportunity_name lookup when ID blank. */
+/** Prefer opportunity ID; fall back to opportunity_name (incl. Chinese) when ID blank or unresolved. */
 export async function resolveOpportunityIdOrName(
   idField: string,
   nameField: string,
@@ -712,7 +735,14 @@ export async function resolveOpportunityIdOrName(
 ): Promise<ReferenceValidationResult> {
   const hasId = fieldSupplied(idField, suppliedFields, writable);
   const hasName = suppliedFields.has(nameField);
-  if (!hasId && !hasName) return emptyReferenceResult();
+  if (!hasId && !hasName) {
+    if (mandatory && !existing) {
+      const result = emptyReferenceResult();
+      result.errors.push(`${idField} or ${nameField} is required`);
+      return result;
+    }
+    return emptyReferenceResult();
+  }
 
   const idRaw = pickRaw(idField, values, suppliedFields, existing, writable);
   const nameRaw = suppliedFields.has(nameField) ? values[nameField] : undefined;
@@ -725,16 +755,46 @@ export async function resolveOpportunityIdOrName(
     ));
 
   if (idTrimmed) {
-    const byId = await resolveOpportunityReference(idField, idTrimmed, mandatory);
-    if (byId.errors.length > 0) return byId;
+    const byId = await resolveOpportunityReference(idField, idTrimmed, false);
+    if (byId.writablePatches[idField] != null) {
+      if (nameTrimmed) {
+        const byName = await lookupOpportunityIdByName(nameTrimmed, companyScope);
+        const resolvedId = byId.writablePatches[idField];
+        if (byName != null && resolvedId != null && byName !== resolvedId) {
+          byId.warnings.push(`${nameField} "${nameTrimmed}" does not match ${idField} ${resolvedId}`);
+        }
+      }
+      return byId;
+    }
+
+    // ID column may contain a Chinese/English opportunity name, or a stale M… id.
+    const idAsName = await lookupOpportunityIdByName(idTrimmed, companyScope);
+    if (idAsName != null) {
+      const result = emptyReferenceResult();
+      result.writablePatches[idField] = idAsName;
+      result.warnings.push(`${idField} "${idTrimmed}" matched by opportunity name`);
+      return result;
+    }
+
     if (nameTrimmed) {
       const byName = await lookupOpportunityIdByName(nameTrimmed, companyScope);
-      const resolvedId = byId.writablePatches[idField];
-      if (byName != null && resolvedId != null && byName !== resolvedId) {
-        byId.warnings.push(`${nameField} "${nameTrimmed}" does not match ${idField} ${resolvedId}`);
+      if (byName != null) {
+        const result = emptyReferenceResult();
+        result.writablePatches[idField] = byName;
+        result.warnings.push(`${idField} "${idTrimmed}" not found; used ${nameField} instead`);
+        return result;
       }
     }
-    return byId;
+
+    if (mandatory) {
+      const result = emptyReferenceResult();
+      result.errors.push(`${idField} ${idTrimmed} not found`);
+      return result;
+    }
+    const result = emptyReferenceResult();
+    result.writablePatches[idField] = null;
+    result.warnings.push(optionalRelationshipWarning(idField));
+    return result;
   }
 
   if (nameTrimmed) {

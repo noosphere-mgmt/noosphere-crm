@@ -1,3 +1,4 @@
+import { withAdminReturnTo } from "@/lib/adminReturnTo";
 import { opportunityFullPageHref } from "@/lib/crmDetailNav";
 import { opportunityDetailHref } from "@/lib/opportunityDetailNav";
 import type { OpportunityWorkspaceTabId } from "@/lib/opportunityDetailTab";
@@ -12,9 +13,10 @@ export function opportunityWorkspaceHref(
   opportunity: OpportunityRef,
   tab: OpportunityWorkspaceTabId = "overview",
   mode?: "edit",
+  returnTo?: string | null,
 ): string {
   const businessId = opportunity.business_id ?? opportunity.v1_opportunity_id ?? null;
   const fromBusinessId = opportunityFullPageHref(businessId, { tab, mode });
-  if (fromBusinessId) return fromBusinessId;
-  return opportunityDetailHref(opportunity.id, tab, mode, businessId);
+  const base = fromBusinessId ?? opportunityDetailHref(opportunity.id, tab, mode, businessId);
+  return withAdminReturnTo(base, returnTo);
 }

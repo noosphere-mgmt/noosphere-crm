@@ -3,7 +3,10 @@ import {
   OPPORTUNITY_STATUSES,
 } from "@/lib/opportunityStatusModel";
 import { formatAreaSqft } from "@/lib/formatCurrency";
-import { OPPORTUNITY_FUNDING_STATUSES, OPPORTUNITY_SALES_ROLES } from "@/lib/opportunityValues";
+import {
+  OPPORTUNITY_FUNDING_STATUSES,
+  normalizeOpportunitySalesRole,
+} from "@/lib/opportunityValues";
 import type {
   Opportunity,
   OpportunityFundingStatus,
@@ -16,8 +19,7 @@ export function parseOpportunityStatus(v: string): OpportunityStatus {
 }
 
 export function parseOpportunitySalesRole(v: FormDataEntryValue | null): OpportunitySalesRole {
-  const s = String(v ?? "").trim();
-  return (OPPORTUNITY_SALES_ROLES as readonly string[]).includes(s) ? (s as OpportunitySalesRole) : "to_lease";
+  return normalizeOpportunitySalesRole(String(v ?? ""));
 }
 
 export function parseOpportunityFundingStatus(v: FormDataEntryValue | null): OpportunityFundingStatus | null {

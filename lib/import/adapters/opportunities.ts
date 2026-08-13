@@ -1,5 +1,5 @@
 import { query } from "@/lib/db";
-import { allocateNextBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
+import { allocateNextBusinessId, ensureLegacyBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
 import { isPermanentBusinessId } from "@/lib/businessIds";
 import { sqlContactDisplayName } from "@/lib/contactName";
 import {
@@ -9,6 +9,10 @@ import {
 import { normalizeOpportunityStatus } from "@/lib/opportunityStatusModel";
 import { normalizeOpportunitySource, OPPORTUNITY_SOURCES } from "@/lib/opportunitySourceValues";
 import { OPPORTUNITY_STATUSES } from "@/lib/opportunityStatusModel";
+import {
+  normalizeOpportunitySalesRole,
+  OPPORTUNITY_SALES_ROLES,
+} from "@/lib/opportunityValues";
 import { resolveCompanyRefToLegacy, resolveOpportunityRefToLegacy } from "@/lib/crmRefResolve";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord, withExportMatchIds } from "../adapterUtils";
 import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
@@ -21,94 +25,101 @@ import {
 import type { ImportFieldDef, ImportObjectDefinition } from "../objectRegistry";
 import type { ExistingRecord } from "../types";
 
+/** Column order follows Opportunity UI (create + detail), then legacy import-only keys. */
 const FIELD_KEYS = [
+  // Identity
   "opportunity_id",
   "external_ref",
+  // Referrer & Admin
+  "referrer_company_id",
+  "referrer_company_name_en",
+  "referrer_contact_id",
+  "referrer_contact_name",
+  "relationship_owner",
+  // Opportunity
   "opportunity_name",
-  "lead_type",
-  "sales_type",
-  "sales_role",
-  "usage_type",
-  "status",
   "company_id",
   "company_name_en",
   "assigned_contact_id",
   "assigned_contact_name",
   "opportunity_source",
-  "district",
+  "sales_role",
+  "status",
+  "lost_reason",
+  // Requirement
   "property_category_preference",
   "property_type_preference",
-  "workspace_type",
-  "required_capacity_pax",
+  "district",
   "required_area_sqft",
-  "budget_min",
+  "required_capacity_pax",
   "budget_max",
+  "budget_min",
   "expected_close_date",
-  "lost_reason",
-  "relationship_owner",
-  "referrer_company_id",
-  "referrer_company_name_en",
-  "referrer_contact_id",
-  "referrer_contact_name",
-  "desks",
-  "area_sqft",
-  "budget",
-  "target_yield",
-  "funding_status",
-  "est_start_date",
   "move_in_date",
   "lease_term",
+  "target_yield",
+  "funding_status",
   "requirement_summary",
-  "internal_remarks",
+  // Situation + Notes
   "waiting_for",
   "next_action",
   "next_action_date",
+  "internal_remarks",
+  // Legacy / removed-from-UI (importable, hidden from template/export)
+  "lead_type",
+  "sales_type",
+  "usage_type",
+  "workspace_type",
+  "desks",
+  "area_sqft",
+  "budget",
+  "est_start_date",
 ] as const;
 
 const SELECT = `
   o.id::text AS legacy_id,
   ${sqlExportOpportunityId("o.id")} AS opportunity_id,
   o.external_ref,
+  ${sqlExportCompanyId("o.referrer_company_id")} AS referrer_company_id,
+  rc.company_name AS referrer_company_name_en,
+  CASE WHEN o.referrer_contact_id IS NULL THEN NULL ELSE ${sqlExportContactId("o.referrer_contact_id")} END AS referrer_contact_id,
+  ${sqlContactDisplayName("rct")} AS referrer_contact_name,
+  o.relationship_owner,
   o.client_name AS opportunity_name,
-  o.lead_type,
-  o.property_type AS sales_type,
-  o.sales_role,
-  o.property_type AS usage_type,
-  o.status,
   ${sqlExportCompanyId("o.company_id")} AS company_id,
   c.company_name AS company_name_en,
   CASE WHEN o.primary_contact_id IS NULL THEN NULL
        ELSE ${sqlExportContactId("o.primary_contact_id")} END AS assigned_contact_id,
   ${sqlContactDisplayName("ct")} AS assigned_contact_name,
   o.lead_source AS opportunity_source,
-  o.district_preference AS district,
+  o.sales_role,
+  o.status,
+  o.lost_reason,
   o.property_category_preference,
   o.property_type_preference,
-  o.workspace_type,
-  o.required_capacity_pax,
+  o.district_preference AS district,
   o.required_area_sqft::text AS required_area_sqft,
-  o.budget_min::text AS budget_min,
+  o.required_capacity_pax,
   o.budget_max::text AS budget_max,
+  o.budget_min::text AS budget_min,
   o.expected_close_date::text AS expected_close_date,
-  o.lost_reason,
-  o.relationship_owner,
-  ${sqlExportCompanyId("o.referrer_company_id")} AS referrer_company_id,
-  rc.company_name AS referrer_company_name_en,
-  CASE WHEN o.referrer_contact_id IS NULL THEN NULL ELSE ${sqlExportContactId("o.referrer_contact_id")} END AS referrer_contact_id,
-  ${sqlContactDisplayName("rct")} AS referrer_contact_name,
+  o.move_in_date::text AS move_in_date,
+  o.lease_term,
+  o.target_yield,
+  o.funding_status,
+  o.requirement_summary,
+  o.waiting_for,
+  o.next_action,
+  o.next_action_date::text AS next_action_date,
+  o.remarks AS internal_remarks,
+  o.lead_type,
+  o.property_type AS sales_type,
+  o.property_type AS usage_type,
+  o.workspace_type,
   o.required_capacity_pax AS desks,
   o.required_area_sqft::text AS area_sqft,
   o.budget_max::text AS budget,
-  o.target_yield,
-  o.funding_status,
-  o.expected_close_date::text AS est_start_date,
-  o.move_in_date::text AS move_in_date,
-  o.lease_term,
-  o.requirement_summary,
-  o.remarks AS internal_remarks,
-  o.waiting_for,
-  o.next_action,
-  o.next_action_date::text AS next_action_date
+  o.expected_close_date::text AS est_start_date
 `;
 
 const FROM = `
@@ -150,10 +161,14 @@ function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
   if ("waiting_for" in values) p.waiting_for = values.waiting_for;
   if ("next_action" in values) p.next_action = values.next_action;
   if ("next_action_date" in values) p.next_action_date = values.next_action_date;
+  if ("sales_role" in values) {
+    p.sales_role = normalizeOpportunitySalesRole(
+      values.sales_role == null ? "" : String(values.sales_role),
+    );
+  }
   for (const k of [
     "external_ref",
     "lead_type",
-    "sales_role",
     "company_id",
     "workspace_type",
     "target_yield",
@@ -176,10 +191,65 @@ async function load(where: string, params: unknown[]): Promise<ExistingRecord[]>
   return rows.map((row) => rowToRecord(row, Number.parseInt(String(row.legacy_id), 10), FIELD_KEYS));
 }
 
+const FIELD_LABELS: Partial<Record<(typeof FIELD_KEYS)[number], string>> = {
+  opportunity_id: "Opportunity ID",
+  external_ref: "External Ref",
+  referrer_company_id: "Referrer Company",
+  referrer_company_name_en: "Referrer Company Name",
+  referrer_contact_id: "Referrer Contact",
+  referrer_contact_name: "Referrer Contact Name",
+  relationship_owner: "Relationship Owner",
+  opportunity_name: "Opportunity Name",
+  company_id: "Company",
+  company_name_en: "Company Name",
+  assigned_contact_id: "Contact",
+  assigned_contact_name: "Contact Name",
+  opportunity_source: "Lead/Opp Source",
+  sales_role: "Sales Role",
+  status: "Status",
+  lost_reason: "Outcome Reason",
+  property_category_preference: "Required Type",
+  property_type_preference: "Required Subtype",
+  district: "District",
+  required_area_sqft: "Area (Sq Ft)",
+  required_capacity_pax: "Capacity",
+  budget_max: "Budget (HKD)",
+  budget_min: "Budget Min (HKD)",
+  expected_close_date: "Expected Close",
+  move_in_date: "Move-In Date",
+  lease_term: "Lease Term",
+  target_yield: "Target Yield (%)",
+  funding_status: "Funding Status",
+  requirement_summary: "Requirement Summary",
+  waiting_for: "Waiting For",
+  next_action: "Next Action",
+  next_action_date: "Next Action Date",
+  internal_remarks: "Internal Remarks",
+};
+
 function opportunityFieldDef(key: (typeof FIELD_KEYS)[number]): ImportFieldDef {
-  const base = { key, label: key };
+  const base = { key, label: FIELD_LABELS[key] ?? key };
+  // Legacy / removed-from-UI columns — keep importable, hide from template/export.
+  if (
+    [
+      "lead_type",
+      "sales_type",
+      "usage_type",
+      "workspace_type",
+      "desks",
+      "area_sqft",
+      "budget",
+      "est_start_date",
+    ].includes(key)
+  ) {
+    return {
+      ...base,
+      type: key.includes("date") ? "date" : ["desks", "area_sqft", "budget"].includes(key) ? "number" : "string",
+      exportHidden: true,
+    };
+  }
   if (key === "opportunity_id") {
-    return { ...base, type: "string", matchOnly: true, aliases: ["id"] };
+    return { ...base, type: "string", matchOnly: true, aliases: ["id", "business_id"] };
   }
   if (key === "company_name_en") {
     return { ...base, type: "string", lookupOnly: true, aliases: ["company_name"] };
@@ -191,16 +261,46 @@ function opportunityFieldDef(key: (typeof FIELD_KEYS)[number]): ImportFieldDef {
     return { ...base, type: "string", lookupOnly: true };
   }
   if (key === "opportunity_name") {
-    return { ...base, type: "string", requiredOnCreate: true };
+    return { ...base, type: "string", requiredOnCreate: true, aliases: ["client_name", "name"] };
+  }
+  if (key === "opportunity_source") {
+    return {
+      ...base,
+      type: "enum",
+      enumValues: [...OPPORTUNITY_SOURCES],
+      defaultValue: "direct",
+      aliases: ["lead_source"],
+    };
+  }
+  if (key === "district") {
+    return { ...base, type: "string", aliases: ["district_preference"] };
+  }
+  if (key === "property_category_preference") {
+    return { ...base, type: "string", aliases: ["required_type", "asset_class"], defaultValue: "commercial" };
+  }
+  if (key === "property_type_preference") {
+    return { ...base, type: "string", aliases: ["required_subtype", "product_subtype", "space_form"] };
+  }
+  if (key === "internal_remarks") {
+    return { ...base, type: "string", aliases: ["remarks", "notes"] };
   }
   if (key === "assigned_contact_id") {
     return { ...base, type: "string", aliases: ["contact_id", "primary_contact_id"] };
   }
   if (key === "status") return { ...base, type: "enum", enumValues: [...OPPORTUNITY_STATUSES] };
-  if (key === "opportunity_source") return { ...base, type: "enum", enumValues: [...OPPORTUNITY_SOURCES], defaultValue: "direct" };
+  if (key === "sales_role") {
+    return {
+      ...base,
+      type: "enum",
+      enumValues: [...OPPORTUNITY_SALES_ROLES],
+      defaultValue: "to_lease",
+      aliases: ["prof_service"],
+    };
+  }
   if (key.includes("date")) return { ...base, type: "date" };
-  if (["desks", "area_sqft", "budget", "required_capacity_pax", "required_area_sqft", "budget_min", "budget_max"].includes(key)) return { ...base, type: "number" };
-  if (["sales_type", "usage_type", "desks", "area_sqft", "budget", "est_start_date"].includes(key)) return { ...base, type: key.includes("date") ? "date" : (["desks", "area_sqft", "budget"].includes(key) ? "number" : "string"), exportHidden: true };
+  if (["required_capacity_pax", "required_area_sqft", "budget_min", "budget_max"].includes(key)) {
+    return { ...base, type: "number" };
+  }
   return { ...base, type: "string" };
 }
 
@@ -234,6 +334,7 @@ export const opportunitiesImportDefinition: ImportObjectDefinition = {
     const parts = splitNaturalKeyParts(key, 2);
     if (!parts) return [];
     const [name, companyId] = parts;
+    const trimmedName = (name ?? "").normalize("NFC").trim().replace(/\s+/g, " ");
     const trimmedCompany = companyId ?? "";
     let companyIdNum: number | null = null;
     if (trimmedCompany) {
@@ -242,9 +343,12 @@ export const opportunitiesImportDefinition: ImportObjectDefinition = {
     }
     const rows = await query<{ id: string }>(
       `SELECT id::text FROM opportunities
-       WHERE lower(trim(client_name)) = $1
+       WHERE (
+           lower(trim(both from client_name)) = lower($1)
+           OR trim(both from client_name) = $1
+         )
          AND ($2 = '' OR company_id = $3::bigint)`,
-      [name, trimmedCompany, companyIdNum ?? 0],
+      [trimmedName, trimmedCompany, companyIdNum ?? 0],
     );
     if (rows.length === 0) return [];
     return load(`o.id = ANY($1::bigint[])`, [rows.map((r) => Number.parseInt(r.id, 10))]);
@@ -308,6 +412,10 @@ export const opportunitiesImportDefinition: ImportObjectDefinition = {
 
   async createRecord(values, ctx) {
     const v = applySessionMetadata(dbPatch(values), ctx);
+    const suppliedOpportunityId = String(values.opportunity_id ?? "").trim();
+    const businessId = isPermanentBusinessId("opportunity", suppliedOpportunityId)
+      ? suppliedOpportunityId
+      : await allocateNextBusinessId("opportunity");
     const rows = await query<{ id: string }>(
       `INSERT INTO opportunities (
          client_name, lead_type, sales_role, property_type, status,
@@ -315,8 +423,9 @@ export const opportunitiesImportDefinition: ImportObjectDefinition = {
          property_category_preference, property_type_preference,
          workspace_type, required_capacity_pax, required_area_sqft, budget_max,
          target_yield, funding_status, expected_close_date, move_in_date,
-         lease_term, requirement_summary, remarks, external_ref, import_run_id
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
+         lease_term, requirement_summary, remarks, external_ref, import_run_id,
+         business_id
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25)
        RETURNING id::text`,
       [
         v.client_name ?? values.opportunity_name ?? "",
@@ -343,14 +452,10 @@ export const opportunitiesImportDefinition: ImportObjectDefinition = {
         v.remarks ?? null,
         v.external_ref ?? null,
         v.import_run_id ?? null,
+        businessId,
       ],
     );
     const id = Number.parseInt(rows[0]!.id, 10);
-    const suppliedOpportunityId = String(values.opportunity_id ?? "").trim();
-    const businessId = isPermanentBusinessId("opportunity", suppliedOpportunityId)
-      ? suppliedOpportunityId
-      : await allocateNextBusinessId("opportunity");
-    await query(`UPDATE opportunities SET business_id = $1 WHERE id = $2`, [businessId, id]);
     await registerBusinessId({
       entityType: "opportunity",
       businessId,
@@ -366,7 +471,9 @@ export const opportunitiesImportDefinition: ImportObjectDefinition = {
   },
 
   async updateRecord(id, patch, ctx) {
-    await genericUpdateRecord("opportunities", "id", id, dbPatch(patch), ctx);
+    const legacyId = typeof id === "number" ? id : Number.parseInt(String(id), 10);
+    await genericUpdateRecord("opportunities", "id", legacyId, dbPatch(patch), ctx);
+    await ensureLegacyBusinessId("opportunity", legacyId);
   },
 
   async exportRows() {

@@ -7,6 +7,7 @@ import { COVERAGE_OPTIONS } from "@/lib/connectionsValues";
 import { suggestDisplayName } from "@/lib/contactName";
 import { COMPANY_ROLE_LABELS, COMPANY_ROLES, PREFERRED_LANGUAGES } from "@/lib/lookups";
 import { toLegacyCompanySelectOptions, resolveCompanySelectValue } from "@/lib/crmSelectOptions";
+import { DEFAULT_PHONE_AREA_CODE, PHONE_AREA_CODES } from "@/lib/phoneAreaCodes";
 import type { CompanyOption } from "@/lib/repos/companies";
 import type { CompanyRole, Contact } from "@/lib/types/entities";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
@@ -19,6 +20,66 @@ type Props = {
 };
 
 const gridClass = "grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3";
+
+function TelWithAreaFormFields({
+  label,
+  areaName,
+  numberName,
+  defaultArea,
+  defaultNumber,
+}: {
+  label: string;
+  areaName: string;
+  numberName: string;
+  defaultArea?: string | null;
+  defaultNumber?: string | null;
+}) {
+  const editing = useFormEditing();
+  const area = defaultArea?.trim() || DEFAULT_PHONE_AREA_CODE;
+  const number = defaultNumber ?? "";
+
+  if (!editing) {
+    const display = number.trim()
+      ? `${area} ${number.trim()}`
+      : null;
+    return (
+      <div className="block text-sm font-medium text-slate-700">
+        <span className="mb-1 block">{label}</span>
+        <p className="rounded-lg border border-transparent bg-transparent px-0 py-2 text-sm font-normal text-slate-900">
+          {display || "—"}
+        </p>
+        <input type="hidden" name={areaName} value={area} />
+        <input type="hidden" name={numberName} value={number} />
+      </div>
+    );
+  }
+
+  return (
+    <label className="block text-sm font-medium text-slate-700">
+      <span className="mb-1 block">{label}</span>
+      <div className="flex gap-2">
+        <select
+          name={areaName}
+          defaultValue={area}
+          className="w-[7.5rem] shrink-0 rounded-lg border border-slate-300 bg-white px-2 py-2 text-sm font-normal text-slate-900"
+          aria-label={`${label} area code`}
+        >
+          {PHONE_AREA_CODES.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.value}
+            </option>
+          ))}
+        </select>
+        <input
+          type="tel"
+          name={numberName}
+          defaultValue={number}
+          className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900"
+        />
+      </div>
+    </label>
+  );
+}
 
 function ContactRoleSelect({ defaults }: { defaults?: Contact }) {
   const editing = useFormEditing();
@@ -140,7 +201,7 @@ export function ContactFormFields({ defaults, companies, fixedCompanyId, layout 
         label="Company"
         name="company_id"
         defaultValue={selectedCompanyValue}
-        placeholder="— No company —"
+        placeholder="No Company"
         options={companyOptions.map((c) => ({
           value: c.value,
           label: c.label,
@@ -202,8 +263,27 @@ export function ContactFormFields({ defaults, companies, fixedCompanyId, layout 
   const contactRow = (
     <div className={gridClass}>
       <FormField label="Email" name="email" type="email" defaultValue={defaults?.email ?? ""} />
-      <FormField label="Phone" name="phone" defaultValue={defaults?.phone ?? ""} />
-      <FormField label="WhatsApp" name="whatsapp" defaultValue={defaults?.whatsapp ?? ""} />
+      <TelWithAreaFormFields
+        label="Phone"
+        areaName="phone_area_code"
+        numberName="phone"
+        defaultArea={defaults?.phone_area_code}
+        defaultNumber={defaults?.phone}
+      />
+      <TelWithAreaFormFields
+        label="Mobile"
+        areaName="mobile_area_code"
+        numberName="mobile"
+        defaultArea={defaults?.mobile_area_code}
+        defaultNumber={defaults?.mobile}
+      />
+      <TelWithAreaFormFields
+        label="WhatsApp"
+        areaName="whatsapp_area_code"
+        numberName="whatsapp"
+        defaultArea={defaults?.whatsapp_area_code}
+        defaultNumber={defaults?.whatsapp}
+      />
     </div>
   );
 

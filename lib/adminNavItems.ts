@@ -20,7 +20,7 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   { href: "/admin/leads", label: "Leads", module: "opportunities" },
   { href: "/admin/opportunities", label: "Opportunities", module: "opportunities", bottomNav: true },
   { href: "/admin/properties", label: "Properties", module: "properties", bottomNav: true },
-  { href: "/admin/companies", label: "Connections", module: "connections", bottomNav: true },
+  { href: "/admin/contacts", label: "Connections", module: "connections", bottomNav: true },
   { href: "/admin/activities", label: "Activities", module: "activities", bottomNav: true },
 ];
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { deleteOpportunityFromDetailAction } from "@/app/admin/opportunities/actions";
-import { IconCheck, IconPen, IconTrash, IconX } from "@/components/admin/ModuleActionIcons";
+import { IconTrash, IconX } from "@/components/admin/ModuleActionIcons";
 import { moduleActionButtonClass, moduleEditButtonClass } from "@/components/admin/ModuleActionBar";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
@@ -61,7 +61,7 @@ export function OpportunityDetailHeader({
               aria-label="Save"
               title="Save"
             >
-              <IconCheck />
+              Save
             </button>
           ) : activeTab === "overview" && !editMode ? (
             <Link
@@ -73,9 +73,7 @@ export function OpportunityDetailHeader({
               className={moduleEditButtonClass("opportunities")}
               aria-label="Edit"
               title="Edit"
-            >
-              <IconPen />
-            </Link>
+            >Edit</Link>
           ) : null}
           <form action={remove}>
             <button type="submit" className={moduleActionButtonClass.delete} aria-label="Delete" title="Delete">
@@ -85,7 +83,7 @@ export function OpportunityDetailHeader({
         </div>
         <Link
           href="/admin/opportunities"
-          className={moduleActionButtonClass.cancel}
+          className={moduleActionButtonClass.close}
           aria-label="Close"
           title="Close"
         >

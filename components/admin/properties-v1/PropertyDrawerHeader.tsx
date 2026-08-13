@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { IconPen, IconX } from "@/components/admin/ModuleActionIcons";
+import { IconX } from "@/components/admin/ModuleActionIcons";
 import { moduleEditButtonClass } from "@/components/admin/ModuleActionBar";
 import { InlineSaveStatus } from "@/components/admin/inline/InlineRecordChrome";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
@@ -28,7 +28,7 @@ export function PropertyDrawerHeader({
     <div className="sticky top-0 z-10 shrink-0 border-b border-slate-200 bg-white px-4 py-4 sm:px-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs text-slate-500">Review — click a field to edit</p>
+          <p className="text-xs text-slate-500">Review — double-click a field to edit · saves automatically</p>
           <h2 className="mt-0.5 text-lg font-semibold tracking-tight text-slate-900">{title}</h2>
           <RecordBusinessId id={businessId} className="mt-0.5 block" />
           {subtitle ? <p className="mt-1 text-sm text-slate-600">{subtitle}</p> : null}
@@ -41,9 +41,7 @@ export function PropertyDrawerHeader({
               className={moduleEditButtonClass("properties")}
               aria-label="Edit on full page"
               title="Edit on full page"
-            >
-              <IconPen />
-            </Link>
+            >Edit</Link>
           ) : null}
           {fullPage ? (
             <Link

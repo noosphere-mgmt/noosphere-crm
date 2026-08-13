@@ -38,40 +38,42 @@ export function analyseOpportunityRequirement(text: string): RequirementSuggesti
   };
 
   if (/bank account|incorporat|company secretar|銀行戶口|银行账户|公司註冊|公司注册/.test(lower)) {
-    push("sales_role", "Transaction", "prof_service");
+    push("sales_role", "Sales Role", "others");
   } else if (/sell|sale|disposal|dispose|出售|放售/.test(lower)) {
-    push("sales_role", "Transaction", "to_sell");
+    push("sales_role", "Sales Role", "to_sell");
   } else if (/buy|purchase|acquisition|acquire|買入|购买|收購|收购/.test(lower)) {
-    push("sales_role", "Transaction", "to_buy");
+    push("sales_role", "Sales Role", "to_buy");
+  } else if (/to let|landlord|業主|业主|放租/.test(lower)) {
+    push("sales_role", "Sales Role", "to_let");
   } else if (/lease|rent|rental|租|月租/.test(lower)) {
-    push("sales_role", "Transaction", "to_lease");
+    push("sales_role", "Sales Role", "to_lease");
   }
 
   if (/serviced office|服務式辦公|服务式办公/.test(lower)) {
-    push("property_category_preference", "Category", "commercial");
-    push("property_type_preference", "Type", "serviced_office");
+    push("property_category_preference", "Required Type", "commercial");
+    push("property_type_preference", "Required Subtype", "serviced_office");
   } else if (/sublet|sub-?lease|shared office|分租|共享辦公|共享办公/.test(lower)) {
-    push("property_category_preference", "Category", "commercial");
-    push("property_type_preference", "Type", "shared_sublet");
+    push("property_category_preference", "Required Type", "commercial");
+    push("property_type_preference", "Required Subtype", "shared_sublet_office");
   } else if (/shop|retail|店舖|商舖|商铺|零售/.test(lower)) {
-    push("property_category_preference", "Category", "commercial");
-    push("property_type_preference", "Type", "shop_retail");
+    push("property_category_preference", "Required Type", "commercial");
+    push("property_type_preference", "Required Subtype", "shop_retail");
   } else if (/industrial|factory|工業|工业|廠房|厂房/.test(lower)) {
-    push("property_category_preference", "Category", "industrial");
-    push("property_type_preference", "Type", "industrial_unit");
+    push("property_category_preference", "Required Type", "industrial");
+    push("property_type_preference", "Required Subtype", "industrial_unit");
   } else if (/residential|flat|apartment|住宅|單位|单位/.test(lower)) {
-    push("property_category_preference", "Category", "residential");
-    push("property_type_preference", "Type", /serviced/.test(lower) ? "serviced_unit" : "flat", "Medium");
+    push("property_category_preference", "Required Type", "residential");
+    push("property_type_preference", "Required Subtype", /serviced/.test(lower) ? "serviced_unit" : "flat", "Medium");
   } else if (/office|commercial|辦公|办公|寫字樓|写字楼/.test(lower)) {
-    push("property_category_preference", "Category", "commercial");
-    push("property_type_preference", "Type", "conventional_office", "Medium");
+    push("property_category_preference", "Required Type", "commercial");
+    push("property_type_preference", "Required Subtype", "conventional_office", "Medium");
   }
 
   const matchedDistricts = DISTRICTS.filter((district) => district.aliases.some((alias) => lower.includes(alias))).map((district) => district.label);
   if (matchedDistricts.length > 0) push("district_preference", "Location", matchedDistricts.join(", "));
 
   const area = firstNumber(text, [/(\d[\d,]*(?:\.\d+)?)\s*(?:sq\.?\s*ft|sqft|平方呎|平方英尺)/i]);
-  if (area != null) push("required_area_sqft", "Area (sq ft)", area);
+  if (area != null) push("required_area_sqft", "Area (Sq Ft)", area);
   const capacity = firstNumber(text, [/(\d+)\s*(?:pax|people|persons?|staff|employees?|人|位)/i]);
   if (capacity != null) push("required_capacity_pax", "Capacity", capacity);
   const budget = firstNumber(text, [/(?:hk\$|hkd|budget|預算|预算)\s*[:：]?\s*\$?\s*(\d[\d,]*(?:\.\d+)?)/i]);
@@ -82,10 +84,13 @@ export function analyseOpportunityRequirement(text: string): RequirementSuggesti
 
 export function requirementSuggestionDisplayValue(item: RequirementSuggestion): string {
   const labels: Record<string, string> = {
-    to_lease: "Lease", to_buy: "Buy / Acquisition", to_sell: "Sell / Disposal", prof_service: "Corporate Service",
+    to_lease: "To Lease", to_let: "To Let", to_buy: "To Buy", to_sell: "To Sell", others: "Others",
+    prof_service: "Others",
     commercial: "Commercial", residential: "Residential", industrial: "Industrial",
-    conventional_office: "Conventional Office", serviced_office: "Serviced Office", shared_sublet: "Shared / Sublet",
-    shop_retail: "Shop / Retail", industrial_unit: "Industrial Unit", flat: "Flat", serviced_unit: "Serviced Unit",
+    conventional_office: "Conventional Office", serviced_office: "Serviced Office",
+    shared_sublet_office: "Shared / Sublet Office", shared_sublet: "Shared / Sublet Office",
+    shop_retail: "Shop / Retail", industrial_unit: "Industrial Unit", flat: "Flat",
+    serviced_unit: "Serviced Unit", shared_flat: "Shared Flat", land: "Land", other: "Other",
   };
   return labels[String(item.value)] ?? String(item.value);
 }

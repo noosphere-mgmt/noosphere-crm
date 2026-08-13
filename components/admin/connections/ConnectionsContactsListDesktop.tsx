@@ -1,53 +1,30 @@
 "use client";
 
-import Link from "next/link";
+import { useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { duplicateContactAction } from "@/app/admin/contacts/actions";
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
+import { SortableTableHeader } from "@/components/admin/SortableTableHeader";
 import type { ConnectionsContactsListState } from "@/components/admin/connections/useConnectionsContactsList";
 import { contactDrawerHref } from "@/lib/connectionsDrawerNav";
+import { companyFullPageHref } from "@/lib/crmDetailNav";
 import { formatCoverage, formatDateLabel } from "@/lib/connectionsDisplay";
 import { getContactLabel } from "@/lib/contactName";
 import { connectionsGlassClasses } from "@/lib/connectionsGlassTheme";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
-
-function SortableHeader({
-  label,
-  sortKey,
-  activeKey,
-  sortDir,
-  onSort,
-  className,
-}: {
-  label: string;
-  sortKey: ConnectionsContactsListState["sortKey"];
-  activeKey: ConnectionsContactsListState["sortKey"];
-  sortDir: ConnectionsContactsListState["sortDir"];
-  onSort: (key: ConnectionsContactsListState["sortKey"]) => void;
-  className?: string;
-}) {
-  const active = activeKey === sortKey;
-  return (
-    <th className={`px-3 py-1.5 align-top font-medium ${className ?? ""}`}>
-      <button
-        type="button"
-        onClick={() => onSort(sortKey)}
-        className="inline-flex items-center gap-1 text-left hover:text-slate-900"
-      >
-        <span>{label}</span>
-        {active ? <span className="text-slate-500">{sortDir === "asc" ? "↑" : "↓"}</span> : null}
-      </button>
-    </th>
-  );
-}
+import { AdminEntityLink } from "@/components/admin/AdminEntityLink";
 
 export function ConnectionsContactsListDesktop({
   state,
   onOpenContact,
-  onOpenCompany,
+  onOpenCompany: _onOpenCompany,
 }: {
   state: ConnectionsContactsListState;
   onOpenContact: (id: number | string) => void;
   onOpenCompany: (id: number | string) => void;
 }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const {
     rows,
     searchParams,
@@ -61,6 +38,17 @@ export function ConnectionsContactsListDesktop({
     allDisplayedSelected,
     handleSort,
   } = state;
+
+  function onDuplicate(contactId: number) {
+    startTransition(async () => {
+      const result = await duplicateContactAction(contactId);
+      if (!result.ok) {
+        window.alert(result.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
 
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
@@ -76,10 +64,10 @@ export function ConnectionsContactsListDesktop({
                 className="rounded border-slate-300"
               />
             </th>
-            <SortableHeader label="Name" sortKey="name" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-            <SortableHeader label="Company" sortKey="company" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+            <SortableTableHeader label="Name" sortKey="name" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+            <SortableTableHeader label="Company" sortKey="company" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <th className="px-3 py-1.5 align-top font-medium">Open opps</th>
-            <SortableHeader
+            <SortableTableHeader
               label="Coverage"
               sortKey="coverage"
               activeKey={sortKey}
@@ -88,8 +76,8 @@ export function ConnectionsContactsListDesktop({
               className="w-[220px]"
             />
             <th className="px-3 py-1.5 align-top font-medium">Primary</th>
-            <SortableHeader label="Updated" sortKey="updated" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-            <th className="w-24 px-3 py-1.5 align-top font-medium">Actions</th>
+            <SortableTableHeader label="Updated" sortKey="updated" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+            <th className="w-28 px-3 py-1.5 align-top font-medium">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -120,26 +108,31 @@ export function ConnectionsContactsListDesktop({
                     />
                   </td>
                   <td className="px-3 py-1.5 font-medium">
-                    <Link
-                      href={contactDrawerHref("/admin/contacts", searchParams, row.id, "overview")}
+                    <AdminEntityLink
+                      href={contactDrawerHref(
+                        "/admin/contacts",
+                        searchParams,
+                        row.business_id ?? row.v1_contact_id ?? row.id,
+                      )}
                       className={`inline-block text-left font-semibold underline-offset-2 hover:underline ${connectionsGlassClasses.link}`}
                     >
                       {getContactLabel(row)}
-                    </Link>
+                    </AdminEntityLink>
                     <RecordBusinessId id={row.business_id ?? row.v1_contact_id} className="mt-0.5 block" />
                   </td>
                   <td className="px-3 py-1.5 text-slate-700">
-                    {row.company_id != null ? (
-                      <button
-                        type="button"
-                        onClick={() => onOpenCompany(row.company_id!)}
-                        className={`text-left ${connectionsGlassClasses.link}`}
+                    <div className="flex flex-col gap-0.5">
+                      <AdminEntityLink
+                        href={companyFullPageHref(row.company_business_id ?? row.company_id)}
+                        className={`text-left underline-offset-2 hover:underline ${connectionsGlassClasses.link}`}
+                        fallback={<span className="text-slate-400">—</span>}
                       >
-                        {row.company_name ?? `#${row.company_id}`}
-                      </button>
-                    ) : (
-                      <span className="text-slate-400">—</span>
-                    )}
+                        {row.company_name ?? (row.company_id != null ? `#${row.company_id}` : null)}
+                      </AdminEntityLink>
+                      {row.company_name_zh ? (
+                        <span className="text-xs text-slate-500">{row.company_name_zh}</span>
+                      ) : null}
+                    </div>
                   </td>
                   <td className="px-3 py-1.5 text-slate-700">{row.open_opportunities ?? 0}</td>
                   <td className="px-3 py-1.5 text-slate-700">
@@ -152,6 +145,7 @@ export function ConnectionsContactsListDesktop({
                       module="connections"
                       viewHref={contactDrawerHref("/admin/contacts", searchParams, row.id, "overview")}
                       editHref={contactDrawerHref("/admin/contacts", searchParams, row.id, "overview", "edit")}
+                      onDuplicate={isPending ? undefined : () => onDuplicate(row.id)}
                     />
                   </td>
                 </tr>

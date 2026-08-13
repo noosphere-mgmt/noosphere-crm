@@ -15,11 +15,15 @@ import type {
   Contact,
   Opportunity,
   OpportunityLeadType,
-  OpportunitySalesRole,
   RelationshipStrength,
 } from "@/lib/types/entities";
 import { normalizeOpportunitySource } from "@/lib/opportunitySourceValues";
-import { OPPORTUNITY_SALES_ROLES } from "@/lib/opportunityValues";
+import {
+  isLeaseLikeSalesRole,
+  isOtherSalesRole,
+  isSaleCaseSalesRole,
+  normalizeOpportunitySalesRole,
+} from "@/lib/opportunityValues";
 
 function normalizeCompanyRoles(roles: CompanyRole[]): CompanyRole[] {
   return roles.map((role) => {
@@ -65,7 +69,11 @@ export function contactToInput(contact: Contact): ContactInput {
     title: contact.title,
     email: contact.email,
     phone: contact.phone,
+    phone_area_code: contact.phone_area_code ?? null,
+    mobile: contact.mobile ?? null,
+    mobile_area_code: contact.mobile_area_code ?? null,
     whatsapp: contact.whatsapp,
+    whatsapp_area_code: contact.whatsapp_area_code ?? null,
     wechat: contact.wechat,
     preferred_language: contact.preferred_language,
     contact_role: contact.contact_role ?? [],
@@ -159,7 +167,11 @@ export function applyContactPatch(
     case "title":
     case "email":
     case "phone":
+    case "phone_area_code":
+    case "mobile":
+    case "mobile_area_code":
     case "whatsapp":
+    case "whatsapp_area_code":
     case "wechat":
     case "preferred_language":
     case "locate_at":
@@ -295,7 +307,7 @@ export function applyOpportunityPatch(
     case "expected_close_date": {
       const date = value ? String(value).trim() || null : null;
       input.expected_close_date = date;
-      if (input.sales_role === "to_lease") {
+      if (isLeaseLikeSalesRole(input.sales_role)) {
         input.move_in_date = date;
       }
       break;
@@ -303,7 +315,7 @@ export function applyOpportunityPatch(
     case "move_in_date": {
       const date = value ? String(value).trim() || null : null;
       input.move_in_date = date;
-      if (input.sales_role === "to_lease") {
+      if (isLeaseLikeSalesRole(input.sales_role)) {
         input.expected_close_date = date;
       }
       break;
@@ -336,11 +348,8 @@ export function applyOpportunityPatch(
         : null;
       break;
     case "sales_role": {
-      const role = String(value ?? "").trim();
-      input.sales_role = (OPPORTUNITY_SALES_ROLES as readonly string[]).includes(role)
-        ? (role as OpportunitySalesRole)
-        : input.sales_role;
-      if (input.sales_role === "prof_service") {
+      input.sales_role = normalizeOpportunitySalesRole(String(value ?? ""));
+      if (isOtherSalesRole(input.sales_role)) {
         input.lease_term = null;
         input.move_in_date = null;
         input.required_capacity_pax = null;
@@ -354,11 +363,11 @@ export function applyOpportunityPatch(
         input.property_type_preference = null;
         input.target_yield = null;
         input.funding_status = null;
-      } else if (input.sales_role === "to_buy" || input.sales_role === "to_sell") {
+      } else if (isSaleCaseSalesRole(input.sales_role)) {
         input.lease_term = null;
         input.move_in_date = null;
         input.required_capacity_pax = null;
-      } else if (input.sales_role === "to_lease") {
+      } else if (isLeaseLikeSalesRole(input.sales_role)) {
         input.target_yield = null;
         input.funding_status = null;
       }

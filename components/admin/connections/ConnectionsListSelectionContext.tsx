@@ -6,6 +6,7 @@ type ConnectionsListSelectionContextValue = {
   selected: Set<string>;
   toggleOne: (id: string) => void;
   toggleAll: (ids: string[], selectAll: boolean) => void;
+  clearSelection: () => void;
   selectedCount: number;
   someSelected: boolean;
 };
@@ -20,6 +21,7 @@ export function ConnectionsListSelectionProvider({ children }: { children: React
       selected,
       selectedCount: selected.size,
       someSelected: selected.size > 0,
+      clearSelection: () => setSelected(new Set()),
       toggleOne: (id: string) => {
         setSelected((prev) => {
           const next = new Set(prev);

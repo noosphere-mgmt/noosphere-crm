@@ -10,13 +10,14 @@ import {
   type ConnectionCompanyListRow,
 } from "@/lib/connectionsDisplay";
 import {
-  companyMatchesGlobalSearch,
   companyMatchesRole,
+  companyMatchesSearchWithContacts,
   EMPTY_CONNECTIONS_QUICK_FILTERS,
   matchesQuickFilters,
+  parseConnectionsRoleFilter,
 } from "@/lib/connectionsList";
 import { companyBusinessExportId } from "@/lib/exportBusinessIds";
-import type { CompanyRole } from "@/lib/types/entities";
+import type { Contact } from "@/lib/types/entities";
 
 type SortKey = "company" | "contact" | "role" | "coverage" | "opportunities" | "updated";
 type SortDir = "asc" | "desc";
@@ -30,9 +31,12 @@ function compareNum(a: number, b: number, dir: SortDir): number {
   return dir === "asc" ? a - b : b - a;
 }
 
-export function useConnectionsCompaniesList(rows: ConnectionCompanyListRow[]) {
+export function useConnectionsCompaniesList(
+  rows: ConnectionCompanyListRow[],
+  contacts: Contact[] = [],
+) {
   const searchParams = useSearchParams();
-  const roleFilter = (searchParams.get("role") as CompanyRole | null) || null;
+  const roleFilter = parseConnectionsRoleFilter(searchParams.get("role"));
   const { selected, toggleOne, toggleAll, selectedCount } = useConnectionsListSelection();
 
   const [sortKey, setSortKey] = useState<SortKey>("company");
@@ -49,11 +53,26 @@ export function useConnectionsCompaniesList(rows: ConnectionCompanyListRow[]) {
     [rows],
   );
 
+  const contactsByCompanyId = useMemo(() => {
+    const map = new Map<number, Contact[]>();
+    for (const contact of contacts) {
+      if (contact.company_id == null) continue;
+      const list = map.get(contact.company_id) ?? [];
+      list.push(contact);
+      map.set(contact.company_id, list);
+    }
+    return map;
+  }, [contacts]);
+
   const displayedRows = useMemo(() => {
+    if (roleFilter === "individual") return [];
+
     const filtered = rows.filter((row) => {
       if (!companyMatchesRole(row.roles, roleFilter)) return false;
       if (!matchesQuickFilters(row, quickFilters)) return false;
-      if (!companyMatchesGlobalSearch(row, searchQuery)) return false;
+      if (!companyMatchesSearchWithContacts(row, contactsByCompanyId.get(row.id), searchQuery)) {
+        return false;
+      }
       return true;
     });
 
@@ -75,7 +94,7 @@ export function useConnectionsCompaniesList(rows: ConnectionCompanyListRow[]) {
           return 0;
       }
     });
-  }, [rows, quickFilters, roleFilter, searchQuery, sortKey, sortDir]);
+  }, [rows, contactsByCompanyId, quickFilters, roleFilter, searchQuery, sortKey, sortDir]);
 
   const selectionIds = useMemo(
     () => displayedRows.map((r) => String(r.id)),
@@ -109,6 +128,7 @@ export function useConnectionsCompaniesList(rows: ConnectionCompanyListRow[]) {
   return {
     rows,
     searchParams,
+    roleFilter,
     selected,
     toggleOne,
     toggleAll,

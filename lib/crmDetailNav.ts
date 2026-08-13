@@ -80,3 +80,10 @@ export function activityFullPageHref(
   if (!id) return null;
   return withDetailQs(`/admin/activities/${encodeURIComponent(id)}`, opts);
 }
+
+/** /admin/leads?lead=123 — leads use list selection, not a dedicated workspace route. */
+export function leadFullPageHref(leadId: string | number | null | undefined): string | null {
+  const id = encodeRef(leadId);
+  if (!id) return null;
+  return `/admin/leads?lead=${encodeURIComponent(id)}`;
+}

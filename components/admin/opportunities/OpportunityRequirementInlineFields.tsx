@@ -6,25 +6,64 @@ import {
   InlineTextAreaField,
   InlineTextField,
 } from "@/components/admin/inline/InlineFields";
-import { opportunityPropertyType } from "@/lib/opportunityFormParsing";
 import {
   OPPORTUNITY_FUNDING_STATUSES,
   OPPORTUNITY_FUNDING_STATUS_LABELS,
-  isProfServiceSalesRole,
+  isOtherSalesRole,
+  isSaleCaseSalesRole,
   type OpportunitySalesRole,
 } from "@/lib/opportunityValues";
-import { V1_PROPERTY_TYPES } from "@/lib/v1ListValues";
 import {
   OPPORTUNITY_CATEGORY_OPTIONS,
-  OPPORTUNITY_SPACE_FORM_OPTIONS,
   primaryCategoryPreference,
   primarySpaceFormPreference,
 } from "@/lib/opportunityPreferences";
+import {
+  REQUIREMENT_SUBTYPE_OPTIONS,
+  type RequirementPrimaryType,
+} from "@/lib/opportunityRequirementTypes";
 import type { Opportunity } from "@/lib/types/entities";
 
 type SaveFn = (field: string) => (value: unknown) => Promise<{ ok: boolean; error?: string }>;
 
-const propertyOptions = V1_PROPERTY_TYPES.map((t) => ({ value: t, label: t }));
+function RequiredTypeSubtypeInline({
+  opportunity,
+  save,
+}: {
+  opportunity: Opportunity;
+  save: SaveFn;
+}) {
+  const requiredType = (primaryCategoryPreference(opportunity.property_category_preference) ??
+    "") as RequirementPrimaryType | "";
+  const subtypeOptions = requiredType ? (REQUIREMENT_SUBTYPE_OPTIONS[requiredType] ?? []) : [];
+
+  return (
+    <>
+      <InlineSelectField
+        label="Required Type"
+        value={requiredType}
+        options={[{ value: "", label: "—" }, ...OPPORTUNITY_CATEGORY_OPTIONS]}
+        onSave={async (value) => {
+          const result = await save("property_category_preference")(value);
+          if (!result.ok) return result;
+          const next = String(value ?? "") as RequirementPrimaryType | "";
+          const options = next ? (REQUIREMENT_SUBTYPE_OPTIONS[next] ?? []) : [];
+          const current = primarySpaceFormPreference(opportunity.property_type_preference);
+          if (current && !options.some((opt) => opt.value === current)) {
+            return save("property_type_preference")("");
+          }
+          return result;
+        }}
+      />
+      <InlineSelectField
+        label="Required Subtype"
+        value={primarySpaceFormPreference(opportunity.property_type_preference)}
+        options={[{ value: "", label: "—" }, ...subtypeOptions]}
+        onSave={save("property_type_preference")}
+      />
+    </>
+  );
+}
 
 function LeaseRequirementInline({
   opportunity,
@@ -35,24 +74,7 @@ function LeaseRequirementInline({
 }) {
   return (
     <>
-      <InlineSelectField
-        label="Property category"
-        value={primaryCategoryPreference(opportunity.property_category_preference)}
-        options={[{ value: "", label: "Any" }, ...OPPORTUNITY_CATEGORY_OPTIONS]}
-        onSave={save("property_category_preference")}
-      />
-      <InlineSelectField
-        label="Space form"
-        value={primarySpaceFormPreference(opportunity.property_type_preference)}
-        options={[{ value: "", label: "Any" }, ...OPPORTUNITY_SPACE_FORM_OPTIONS]}
-        onSave={save("property_type_preference")}
-      />
-      <InlineSelectField
-        label="Building property type"
-        value={opportunityPropertyType(opportunity)}
-        options={propertyOptions}
-        onSave={save("property_type")}
-      />
+      <RequiredTypeSubtypeInline opportunity={opportunity} save={save} />
       <InlineTextField
         label="District"
         value={opportunity.district_preference}
@@ -77,18 +99,18 @@ function LeaseRequirementInline({
         type="number"
       />
       <InlineDateField
-        label="Est. start date"
+        label="Est. Start Date"
         value={opportunity.expected_close_date}
         onSave={save("expected_close_date")}
       />
       <InlineTextField
-        label="Lease term"
+        label="Lease Term"
         value={opportunity.lease_term}
         onSave={save("lease_term")}
       />
       <div className="col-span-full">
         <InlineTextAreaField
-          label="Requirement summary"
+          label="Requirement Summary"
           value={opportunity.requirement_summary}
           onSave={save("requirement_summary")}
           compact
@@ -102,30 +124,18 @@ function LeaseRequirementInline({
 function BuyRequirementInline({
   opportunity,
   save,
+  salesRole,
 }: {
   opportunity: Opportunity;
   save: SaveFn;
+  salesRole: OpportunitySalesRole;
 }) {
+  const isBuy = salesRole === "to_buy";
+  const isSaleCase = isSaleCaseSalesRole(salesRole);
+
   return (
     <>
-      <InlineSelectField
-        label="Property category"
-        value={primaryCategoryPreference(opportunity.property_category_preference)}
-        options={[{ value: "", label: "Any" }, ...OPPORTUNITY_CATEGORY_OPTIONS]}
-        onSave={save("property_category_preference")}
-      />
-      <InlineSelectField
-        label="Space form"
-        value={primarySpaceFormPreference(opportunity.property_type_preference)}
-        options={[{ value: "", label: "Any" }, ...OPPORTUNITY_SPACE_FORM_OPTIONS]}
-        onSave={save("property_type_preference")}
-      />
-      <InlineSelectField
-        label="Building property type"
-        value={opportunityPropertyType(opportunity)}
-        options={propertyOptions}
-        onSave={save("property_type")}
-      />
+      <RequiredTypeSubtypeInline opportunity={opportunity} save={save} />
       <InlineTextField
         label="District"
         value={opportunity.district_preference}
@@ -137,29 +147,33 @@ function BuyRequirementInline({
         onSave={save("budget_max")}
         type="number"
       />
+      {isSaleCase ? (
+        <InlineTextField
+          label="Target Yield (%)"
+          value={opportunity.target_yield}
+          onSave={save("target_yield")}
+        />
+      ) : null}
       <InlineTextField
-        label="Target yield (%)"
-        value={opportunity.target_yield}
-        onSave={save("target_yield")}
-      />
-      <InlineTextField
-        label="Target area (sq ft)"
+        label="Target Area (Sq Ft)"
         value={opportunity.required_area_sqft}
         onSave={save("required_area_sqft")}
         type="number"
       />
-      <InlineSelectField
-        label="Funding status"
-        value={opportunity.funding_status}
-        options={OPPORTUNITY_FUNDING_STATUSES.map((s) => ({
-          value: s,
-          label: OPPORTUNITY_FUNDING_STATUS_LABELS[s],
-        }))}
-        onSave={save("funding_status")}
-      />
+      {isBuy ? (
+        <InlineSelectField
+          label="Funding Status"
+          value={opportunity.funding_status}
+          options={OPPORTUNITY_FUNDING_STATUSES.map((s) => ({
+            value: s,
+            label: OPPORTUNITY_FUNDING_STATUS_LABELS[s],
+          }))}
+          onSave={save("funding_status")}
+        />
+      ) : null}
       <div className="col-span-full">
         <InlineTextAreaField
-          label="Requirement summary"
+          label="Requirement Summary"
           value={opportunity.requirement_summary}
           onSave={save("requirement_summary")}
           compact
@@ -179,11 +193,11 @@ export function OpportunityRequirementInlineFields({
   save: SaveFn;
   salesRole?: OpportunitySalesRole;
 }) {
-  if (isProfServiceSalesRole(salesRole)) {
+  if (isOtherSalesRole(salesRole)) {
     return (
       <div className="col-span-full">
         <InlineTextAreaField
-          label="Requirement summary"
+          label="Requirement Summary"
           value={opportunity.requirement_summary}
           onSave={save("requirement_summary")}
           compact
@@ -193,8 +207,8 @@ export function OpportunityRequirementInlineFields({
     );
   }
 
-  return salesRole === "to_buy" || salesRole === "to_sell" ? (
-    <BuyRequirementInline opportunity={opportunity} save={save} />
+  return isSaleCaseSalesRole(salesRole) ? (
+    <BuyRequirementInline opportunity={opportunity} save={save} salesRole={salesRole} />
   ) : (
     <LeaseRequirementInline opportunity={opportunity} save={save} />
   );

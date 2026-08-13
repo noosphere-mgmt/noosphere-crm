@@ -1,14 +1,18 @@
 "use client";
 
-import Link from "next/link";
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
+import { SortableTableHeader } from "@/components/admin/SortableTableHeader";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import type { OpportunitiesListState } from "@/components/admin/opportunities/useOpportunitiesList";
+import { AdminEntityLink } from "@/components/admin/AdminEntityLink";
+import { companyFullPageHref, contactFullPageHref } from "@/lib/crmDetailNav";
 import { OPPORTUNITY_STATUS_LABELS } from "@/lib/lookups";
+import { buildOpportunitiesReturnTo } from "@/lib/opportunitiesDrawerNav";
 import { opportunityWorkspaceHref } from "@/lib/opportunityWorkspaceNav";
 import { opportunityStatusChip } from "@/lib/opportunityStatusTheme";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import type { Opportunity } from "@/lib/types/entities";
+import { useSearchParams } from "next/navigation";
 
 function formatDateLabel(value: string | null | undefined): string {
   if (!value) return "—";
@@ -23,36 +27,6 @@ const STATUS_CHANCE: Record<Opportunity["status"], { percent: number; label: str
   closed_won: { percent: 100, label: "Won" },
   closed_lost: { percent: 0, label: "Lost" },
 };
-
-function SortableHeader({
-  label,
-  sortKey,
-  activeKey,
-  sortDir,
-  onSort,
-  className,
-}: {
-  label: string;
-  sortKey: OpportunitiesListState["sortKey"];
-  activeKey: OpportunitiesListState["sortKey"];
-  sortDir: OpportunitiesListState["sortDir"];
-  onSort: (key: OpportunitiesListState["sortKey"]) => void;
-  className?: string;
-}) {
-  const active = activeKey === sortKey;
-  return (
-    <th className={`px-3 py-1.5 align-top font-medium ${className ?? ""}`}>
-      <button
-        type="button"
-        onClick={() => onSort(sortKey)}
-        className="inline-flex items-center gap-1 text-left hover:text-slate-900"
-      >
-        <span>{label}</span>
-        {active ? <span className="text-slate-500">{sortDir === "asc" ? "↑" : "↓"}</span> : null}
-      </button>
-    </th>
-  );
-}
 
 export function OpportunitiesListDesktop({
   state,
@@ -74,6 +48,8 @@ export function OpportunitiesListDesktop({
     handleSort,
   } = state;
   const theme = moduleAccentClasses("opportunities");
+  const searchParams = useSearchParams();
+  const listReturnTo = buildOpportunitiesReturnTo(searchParams);
   const colCount = 8;
 
   return (
@@ -90,12 +66,12 @@ export function OpportunitiesListDesktop({
                 className="rounded border-slate-300"
               />
             </th>
-            <SortableHeader label="Opportunity" sortKey="opportunity" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-            <SortableHeader label="Company" sortKey="company" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-            <SortableHeader label="Contact" sortKey="contact" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-            <SortableHeader label="Expected close · chance" sortKey="expected_close" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-            <SortableHeader label="Status" sortKey="status" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-            <SortableHeader label="Updated" sortKey="updated" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+            <SortableTableHeader label="Opportunity" sortKey="opportunity" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+            <SortableTableHeader label="Company" sortKey="company" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+            <SortableTableHeader label="Contact" sortKey="contact" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+            <SortableTableHeader label="Expected Close · Chance" sortKey="expected_close" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+            <SortableTableHeader label="Status" sortKey="status" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+            <SortableTableHeader label="Updated" sortKey="updated" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <th className="w-24 px-3 py-1.5 align-top font-medium">Actions</th>
           </tr>
         </thead>
@@ -125,18 +101,34 @@ export function OpportunitiesListDesktop({
                   />
                 </td>
                 <td className="max-w-[14rem] px-3 py-1.5">
-                  <Link
-                    href={opportunityWorkspaceHref(row, "overview")}
+                  <AdminEntityLink
+                    href={opportunityWorkspaceHref(row, "overview", undefined, listReturnTo)}
                     className={`block truncate text-left ${theme.link}`}
-                    title={row.client_name}
                   >
-                    {row.client_name}
-                    {row.district_preference ? ` – ${row.district_preference.split(/[,;/|]/)[0]?.trim()}` : ""}
-                  </Link>
+                    <span title={row.client_name}>
+                      {row.client_name}
+                      {row.district_preference ? ` – ${row.district_preference.split(/[,;/|]/)[0]?.trim()}` : ""}
+                    </span>
+                  </AdminEntityLink>
                   <RecordBusinessId id={row.business_id ?? row.v1_opportunity_id} className="mt-0.5 block" />
                 </td>
-                <td className="px-3 py-1.5 text-slate-700">{row.linked_company_name ?? "—"}</td>
-                <td className="px-3 py-1.5 text-slate-700">{row.primary_contact_name ?? "—"}</td>
+                <td className="px-3 py-1.5 text-slate-700">
+                  <AdminEntityLink
+                    href={companyFullPageHref(row.linked_company_business_id ?? row.company_id)}
+                    className={`${theme.link} underline-offset-2 hover:underline`}
+                    fallback={row.linked_company_name ?? "No Company"}
+                  >
+                    {row.linked_company_name}
+                  </AdminEntityLink>
+                </td>
+                <td className="px-3 py-1.5 text-slate-700">
+                  <AdminEntityLink
+                    href={contactFullPageHref(row.primary_contact_business_id ?? row.primary_contact_id)}
+                    className={`${theme.link} underline-offset-2 hover:underline`}
+                  >
+                    {row.primary_contact_name}
+                  </AdminEntityLink>
+                </td>
                 <td className="px-3 py-1.5 text-slate-700">
                   <p className="tabular-nums">{formatDateLabel(row.expected_close_date)}</p>
                   <p className="mt-0.5 text-[11px] text-slate-500">
@@ -151,7 +143,7 @@ export function OpportunitiesListDesktop({
                   <ModuleRowActions
                     module="opportunities"
                     onView={() => onOpenWorkspace(row)}
-                    editHref={opportunityWorkspaceHref(row, "overview", "edit")}
+                    editHref={opportunityWorkspaceHref(row, "overview", "edit", listReturnTo)}
                   />
                 </td>
               </tr>

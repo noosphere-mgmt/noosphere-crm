@@ -18,16 +18,16 @@ export function ModulePageHeader({
 
   return (
     <header
-      className={`mb-4 rounded-xl border border-slate-200 bg-white shadow-sm ${theme.headerBar} ${
-        hasTabs ? "" : "min-h-[88px]"
+      className={`mb-3 rounded-xl border border-slate-200 bg-white shadow-sm ${theme.headerBar} ${
+        hasTabs ? "" : "min-h-[72px]"
       }`}
     >
       <div
-        className={`flex flex-col gap-3 px-4 py-4 sm:px-6 sm:py-6 lg:flex-row lg:items-center lg:justify-between ${
-          hasTabs ? "" : "min-h-[88px]"
+        className={`flex flex-col gap-2 px-4 py-3 sm:px-5 sm:py-3 lg:flex-row lg:items-center lg:justify-between ${
+          hasTabs ? "" : "min-h-[72px]"
         }`}
       >
-        <div className={`flex min-w-0 flex-col ${hasTabs ? "gap-2" : "justify-center"}`}>
+        <div className={`flex min-w-0 flex-col ${hasTabs ? "gap-1.5" : "justify-center"}`}>
           <h1 className="text-xl font-semibold tracking-tight text-slate-900">{title}</h1>
           {tabs}
         </div>

@@ -304,6 +304,22 @@ export async function resolveOpportunityRef(raw: unknown): Promise<ResolvedOppor
     return { legacyId: Number.parseInt(byExternalRef[0].id, 10) };
   }
 
+  // Allow Chinese/English opportunity names in opportunity_id cells.
+  const trimmedName = s.normalize("NFC").trim().replace(/\s+/g, " ");
+  const byName = await query<{ id: string }>(
+    `SELECT id::text AS id FROM opportunities
+     WHERE lower(trim(both from client_name)) = lower($1)
+        OR trim(both from client_name) = $1
+        OR lower(trim(both from coalesce(company_name, ''))) = lower($1)
+        OR trim(both from coalesce(company_name, '')) = $1
+     ORDER BY updated_at DESC NULLS LAST, id DESC
+     LIMIT 2`,
+    [trimmedName],
+  );
+  if (byName[0]?.id) {
+    return { legacyId: Number.parseInt(byName[0].id, 10) };
+  }
+
   return { legacyId: null, warning: `Unresolved opportunity ref: ${s}` };
 }
 

@@ -3,10 +3,9 @@
 import { revalidatePath } from "next/cache";
 import {
   entityIdString,
-  isCreationRelationshipType,
+  isAddableRelationshipType,
   isEntityType,
   isRelationshipStatus,
-  type CreationRelationshipType,
   type EntityType,
   type RelationshipStatus,
   type RelationshipType,
@@ -76,7 +75,7 @@ export async function addEntityRelationshipAction(
   if (!isEntityType(relatedType) || !relatedId) {
     return { ok: false, error: "Select a related party" };
   }
-  if (!isCreationRelationshipType(relationshipType)) {
+  if (!isAddableRelationshipType(relationshipType)) {
     return { ok: false, error: "Select a relationship type" };
   }
 
@@ -86,7 +85,7 @@ export async function addEntityRelationshipAction(
       from_entity_id: entityIdString(entityId),
       to_entity_type: relatedType,
       to_entity_id: relatedId,
-      relationship_type: relationshipType as CreationRelationshipType,
+      relationship_type: relationshipType,
       status,
       remarks: parseOptionalString(formData.get("remarks")),
     });
@@ -112,7 +111,7 @@ export async function updateEntityRelationshipAction(
   const status = String(formData.get("status") ?? "").trim() as RelationshipStatus;
   if (relationshipType != null) {
     const type = String(relationshipType).trim();
-    if (!isCreationRelationshipType(type)) return { ok: false, error: "Invalid relationship type" };
+    if (!isAddableRelationshipType(type)) return { ok: false, error: "Invalid relationship type" };
   }
   if (!isRelationshipStatus(status)) return { ok: false, error: "Invalid status" };
 

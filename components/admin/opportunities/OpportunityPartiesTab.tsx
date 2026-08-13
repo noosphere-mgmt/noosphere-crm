@@ -11,6 +11,7 @@ import {
 import { FormField, TextAreaField } from "@/components/admin/AdminFormFields";
 import { ContactFormDrawer } from "@/components/admin/connections/ContactFormDrawer";
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
+import { AdminEntityLink } from "@/components/admin/AdminEntityLink";
 import { OpportunityPartyContactSelect } from "@/components/admin/opportunities/OpportunityPartyContactSelect";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import { companyFullPageHref, contactFullPageHref } from "@/lib/crmDetailNav";
@@ -138,15 +139,15 @@ export function OpportunityPartiesTab({ data }: { data: OpportunityDetailData })
           {showFees ? (
             <div className="grid gap-3 rounded-lg border border-violet-100 bg-white p-3 sm:col-span-2 sm:grid-cols-2 lg:col-span-3 lg:grid-cols-5">
               <label className="block text-sm">
-                <span className="text-xs font-medium uppercase text-slate-500">Collect status</span>
+                <span className="text-xs font-medium uppercase text-slate-500">Collect Status</span>
                 <select name="collect_fee_status" defaultValue={party?.collect_fee_status ?? "expected"} className={selectClass}>
                   {FEE_STATUSES.map((s) => <option key={s} value={s}>{FEE_STATUS_LABELS[s]}</option>)}
                 </select>
               </label>
-              <FormField label="Collect amount" name="collect_fee_amount" type="number" defaultValue={party?.collect_fee_amount ?? ""} />
+              <FormField label="Collect Amount" name="collect_fee_amount" type="number" defaultValue={party?.collect_fee_amount ?? ""} />
               <FormField label="Collect %" name="collect_fee_percent" type="number" defaultValue={party?.collect_fee_percent ?? ""} />
-              <FormField label="Pay out amount" name="paid_out_fee_amount" type="number" defaultValue={party?.paid_out_fee_amount ?? ""} />
-              <FormField label="Pay out %" name="paid_out_fee_percent" type="number" defaultValue={party?.paid_out_fee_percent ?? ""} />
+              <FormField label="Pay Out Amount" name="paid_out_fee_amount" type="number" defaultValue={party?.paid_out_fee_amount ?? ""} />
+              <FormField label="Pay Out %" name="paid_out_fee_percent" type="number" defaultValue={party?.paid_out_fee_percent ?? ""} />
             </div>
           ) : party ? (
             <>
@@ -214,8 +215,32 @@ export function OpportunityPartiesTab({ data }: { data: OpportunityDetailData })
         <div className="hidden items-center text-slate-300 sm:flex" aria-hidden>→</div>
         <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 px-4 py-3">
           <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">Client</p>
-          <p className="mt-1 text-sm font-semibold text-slate-900">{opportunity.primary_contact_name ?? opportunity.client_name}</p>
-          {opportunity.linked_company_name ? <p className="text-xs text-slate-600">{opportunity.linked_company_name}</p> : null}
+          <p className="mt-1 text-sm font-semibold text-slate-900">
+            {opportunity.primary_contact_name ? (
+              <AdminEntityLink
+                href={contactFullPageHref(
+                  opportunity.primary_contact_business_id ?? opportunity.primary_contact_id,
+                )}
+                className="underline-offset-2 hover:underline"
+              >
+                {opportunity.primary_contact_name}
+              </AdminEntityLink>
+            ) : (
+              opportunity.client_name
+            )}
+          </p>
+          {opportunity.linked_company_name ? (
+            <p className="text-xs text-slate-600">
+              <AdminEntityLink
+                href={companyFullPageHref(
+                  opportunity.linked_company_business_id ?? opportunity.company_id,
+                )}
+                className="underline-offset-2 hover:underline"
+              >
+                {opportunity.linked_company_name}
+              </AdminEntityLink>
+            </p>
+          ) : null}
         </div>
         <div className="hidden items-center text-slate-300 sm:flex" aria-hidden>→</div>
         <div className="rounded-xl border border-sky-200 bg-sky-50/50 px-4 py-3">

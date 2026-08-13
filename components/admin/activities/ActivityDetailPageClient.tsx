@@ -7,11 +7,17 @@ import {
   ActivityFormDrawer,
   type ActivityFormDefaults,
 } from "@/components/admin/activities/ActivityFormDrawer";
-import { IconPen, IconX } from "@/components/admin/ModuleActionIcons";
+import { IconX } from "@/components/admin/ModuleActionIcons";
 import { moduleEditButtonClass } from "@/components/admin/ModuleActionBar";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
+import { AdminEntityLink } from "@/components/admin/AdminEntityLink";
 import { formatActivityDate, formatActivityPremisesListCell } from "@/lib/activitiesDisplay";
-import { activityFullPageHref } from "@/lib/crmDetailNav";
+import {
+  activityFullPageHref,
+  companyFullPageHref,
+  contactFullPageHref,
+  opportunityFullPageHref,
+} from "@/lib/crmDetailNav";
 import type { ActivityListRow } from "@/lib/repos/activities";
 
 export function ActivityDetailPageClient({ activity }: { activity: ActivityListRow }) {
@@ -59,7 +65,7 @@ export function ActivityDetailPageClient({ activity }: { activity: ActivityListR
             aria-label="Edit"
             title="Edit"
           >
-            <IconPen />
+            Edit
           </button>
           <Link href="/admin/activities" className="inline-flex rounded-lg p-2 text-slate-400 hover:bg-slate-100" aria-label="Close">
             <IconX />
@@ -71,15 +77,29 @@ export function ActivityDetailPageClient({ activity }: { activity: ActivityListR
         <dl className="grid gap-4 sm:grid-cols-2">
           <div>
             <dt className="text-xs text-slate-500">Company</dt>
-            <dd className="text-sm text-slate-900">{activity.company_name ?? "—"}</dd>
+            <dd className="text-sm text-slate-900">
+              <AdminEntityLink href={companyFullPageHref(activity.company_business_id ?? activity.company_id)}>
+                {activity.company_name}
+              </AdminEntityLink>
+            </dd>
           </div>
           <div>
             <dt className="text-xs text-slate-500">Contact</dt>
-            <dd className="text-sm text-slate-900">{activity.contact_name ?? "—"}</dd>
+            <dd className="text-sm text-slate-900">
+              <AdminEntityLink href={contactFullPageHref(activity.contact_business_id ?? activity.contact_id)}>
+                {activity.contact_name}
+              </AdminEntityLink>
+            </dd>
           </div>
           <div>
             <dt className="text-xs text-slate-500">Opportunity</dt>
-            <dd className="text-sm text-slate-900">{activity.opportunity_name ?? "—"}</dd>
+            <dd className="text-sm text-slate-900">
+              <AdminEntityLink
+                href={opportunityFullPageHref(activity.opportunity_business_id ?? activity.opportunity_id)}
+              >
+                {activity.opportunity_name}
+              </AdminEntityLink>
+            </dd>
           </div>
           <div>
             <dt className="text-xs text-slate-500">Premises</dt>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { IconPen, IconX } from "@/components/admin/ModuleActionIcons";
+import { IconX } from "@/components/admin/ModuleActionIcons";
 import { moduleEditButtonClass } from "@/components/admin/ModuleActionBar";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
@@ -95,9 +95,7 @@ export function PremisesWorkspaceHeader({
               className={moduleEditButtonClass("properties")}
               aria-label="Edit premises"
               title="Edit premises"
-            >
-              <IconPen />
-            </Link>
+            >Edit</Link>
             <Link
               href={returnTo}
               className="inline-flex rounded-lg p-2 text-slate-400 hover:bg-slate-100"

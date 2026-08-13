@@ -25,11 +25,9 @@ export function ConnectionsModuleToolbar({
   createLabel: string;
 }) {
   const pathname = usePathname();
-  const isCompanies =
-    pathname === "/admin/connections" ||
-    pathname === "/admin/companies" ||
-    pathname.startsWith("/admin/companies/");
   const isContacts = pathname === "/admin/contacts" || pathname.startsWith("/admin/contacts/");
+  const isCompanies =
+    pathname === "/admin/companies" || pathname.startsWith("/admin/companies/");
   const isChannelTree = pathname === "/admin/connections/channel-tree";
 
   const createButtonClass =
@@ -43,11 +41,11 @@ export function ConnectionsModuleToolbar({
         aria-label="Connections sections"
         className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto"
       >
-        <Link href="/admin/companies" className={connectionsMobileTabClass(isCompanies)}>
-          Companies
-        </Link>
         <Link href="/admin/contacts" className={connectionsMobileTabClass(isContacts)}>
           Contacts
+        </Link>
+        <Link href="/admin/companies" className={connectionsMobileTabClass(isCompanies)}>
+          Companies
         </Link>
         <Link href="/admin/connections/channel-tree" className={connectionsMobileTabClass(isChannelTree)}>
           Channel Tree

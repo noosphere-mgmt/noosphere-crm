@@ -1,5 +1,5 @@
 import { query } from "@/lib/db";
-import { allocateNextBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
+import { allocateNextBusinessId, ensureLegacyBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
 import { isActivityType } from "@/lib/activityValues";
 import { normalizePremisesIds, resolvePremisesRefToId } from "@/lib/crmRefResolve";
 import {
@@ -256,13 +256,14 @@ export async function syncActivityPremises(activityId: string, premisesIds: stri
 export async function createActivity(input: ActivityInput): Promise<string> {
   const premisesId = await resolveOptionalPremisesIdForDb(input.premises_id);
   const v = parseActivityInput({ ...input, premises_id: premisesId });
+  const businessId = await allocateNextBusinessId("activity");
   const rows = await query<{ activity_id: string; id: string }>(
     `INSERT INTO activities (
        activity_id, activity_date, activity_time, activity_type, subject, notes,
-       company_id, contact_id, premises_id, opportunity_id, owner, activity_group_id
+       company_id, contact_id, premises_id, opportunity_id, owner, activity_group_id, business_id
      ) VALUES (
        'act_' || replace(gen_random_uuid()::text, '-', ''),
-       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+       $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
      )
      RETURNING activity_id, id::text AS id`,
     [
@@ -277,12 +278,11 @@ export async function createActivity(input: ActivityInput): Promise<string> {
       v.opportunityId,
       v.owner,
       input.activity_group_id?.trim() || null,
+      businessId,
     ],
   );
   const activityId = rows[0]!.activity_id;
   const legacyId = Number.parseInt(rows[0]!.id, 10);
-  const businessId = await allocateNextBusinessId("activity");
-  await query(`UPDATE activities SET business_id = $1 WHERE activity_id = $2`, [businessId, activityId]);
   await registerBusinessId({
     entityType: "activity",
     businessId,
@@ -388,6 +388,17 @@ export async function updateActivity(activityId: string, input: ActivityInput): 
       v.owner,
     ],
   );
+  const rows = await query<{ id: string }>(
+    `SELECT id::text AS id FROM activities WHERE activity_id = $1`,
+    [activityId],
+  );
+  const legacyId = Number.parseInt(rows[0]?.id ?? "", 10);
+  if (Number.isFinite(legacyId)) {
+    await ensureLegacyBusinessId("activity", legacyId, {
+      primaryRef: activityId,
+      deprecatedRef: activityId,
+    });
+  }
 }
 
 export async function deleteActivity(activityId: string): Promise<void> {
@@ -451,20 +462,20 @@ export type ActivityLinkSearchHit = {
 
 export async function searchActivityCompanies(q: string, limit = 15): Promise<ActivityLinkSearchHit[]> {
   const term = q.trim();
-  const companyLabelSql = `c.company_name || ' (' || COALESCE(cv.business_id, c.business_id) || ')'`;
+  const companyIdSql = `COALESCE(NULLIF(trim(cv.business_id), ''), NULLIF(trim(c.business_id), ''), c.id::text)`;
+  const companyLabelSql = `c.company_name || ' (' || ${companyIdSql} || ')'`;
   const companyFrom = `
     FROM companies c
     LEFT JOIN companies_v1 cv ON cv.legacy_company_id = c.id
   `;
-  const businessIdFilter = `COALESCE(cv.business_id, c.business_id) IS NOT NULL`;
   if (!term) {
     return query<ActivityLinkSearchHit>(
       `SELECT 'company'::text AS entity_type,
-              COALESCE(cv.business_id, c.business_id) AS entity_id,
+              ${companyIdSql} AS entity_id,
               ${companyLabelSql} AS label,
               NULL::text AS subtitle
        ${companyFrom}
-       WHERE c.is_active = TRUE AND ${businessIdFilter}
+       WHERE c.is_active = TRUE
        ORDER BY c.company_name ASC
        LIMIT $1`,
       [limit],
@@ -472,33 +483,38 @@ export async function searchActivityCompanies(q: string, limit = 15): Promise<Ac
   }
   return query<ActivityLinkSearchHit>(
     `SELECT 'company'::text AS entity_type,
-            COALESCE(cv.business_id, c.business_id) AS entity_id,
+            ${companyIdSql} AS entity_id,
             ${companyLabelSql} AS label,
             NULL::text AS subtitle
      ${companyFrom}
-     WHERE c.is_active = TRUE AND ${businessIdFilter} AND c.company_name ILIKE $1
+     WHERE c.is_active = TRUE
+       AND (c.company_name ILIKE $1
+         OR c.company_name_zh ILIKE $1
+         OR c.company_name_cn ILIKE $1
+         OR COALESCE(cv.business_id, c.business_id) ILIKE $1
+         OR c.id::text = $2)
      ORDER BY c.company_name ASC
-     LIMIT $2`,
-    [`%${term}%`, limit],
+     LIMIT $3`,
+    [`%${term}%`, term, limit],
   );
 }
 
 export async function searchActivityContacts(q: string, limit = 15): Promise<ActivityLinkSearchHit[]> {
   const term = q.trim();
-  const contactLabelSql = `COALESCE(ct.display_name, ct.contact_name) || ' (' || ct.business_id || ')'`;
+  const contactIdSql = `COALESCE(NULLIF(trim(ct.business_id), ''), ct.id::text)`;
+  const contactLabelSql = `COALESCE(ct.display_name, ct.contact_name) || ' (' || ${contactIdSql} || ')'`;
   const contactFrom = `
     FROM contacts ct
     JOIN companies co ON co.id::text = ct.company_id::text
   `;
-  const businessIdFilter = `ct.business_id IS NOT NULL`;
   if (!term) {
     return query<ActivityLinkSearchHit>(
       `SELECT 'contact'::text AS entity_type,
-              ct.business_id AS entity_id,
+              ${contactIdSql} AS entity_id,
               ${contactLabelSql} AS label,
               co.company_name AS subtitle
        ${contactFrom}
-       WHERE ct.is_active = TRUE AND ${businessIdFilter}
+       WHERE ct.is_active = TRUE
        ORDER BY COALESCE(ct.display_name, ct.contact_name) ASC
        LIMIT $1`,
       [limit],
@@ -506,34 +522,40 @@ export async function searchActivityContacts(q: string, limit = 15): Promise<Act
   }
   return query<ActivityLinkSearchHit>(
     `SELECT 'contact'::text AS entity_type,
-            ct.business_id AS entity_id,
+            ${contactIdSql} AS entity_id,
             ${contactLabelSql} AS label,
             co.company_name AS subtitle
      ${contactFrom}
-     WHERE ct.is_active = TRUE AND ${businessIdFilter}
-       AND (COALESCE(ct.display_name, ct.contact_name) ILIKE $1 OR co.company_name ILIKE $1)
+     WHERE ct.is_active = TRUE
+       AND (COALESCE(ct.display_name, ct.contact_name) ILIKE $1
+         OR ct.chinese_name ILIKE $1
+         OR co.company_name ILIKE $1
+         OR co.company_name_zh ILIKE $1
+         OR co.company_name_cn ILIKE $1
+         OR ct.business_id ILIKE $1
+         OR ct.id::text = $2)
      ORDER BY COALESCE(ct.display_name, ct.contact_name) ASC
-     LIMIT $2`,
-    [`%${term}%`, limit],
+     LIMIT $3`,
+    [`%${term}%`, term, limit],
   );
 }
 
-export async function searchActivityOpportunities(q: string, limit = 15): Promise<ActivityLinkSearchHit[]> {
+export async function searchActivityOpportunities(q: string, limit = 40): Promise<ActivityLinkSearchHit[]> {
   const term = q.trim();
-  const opportunityLabelSql = `o.client_name || ' (' || o.business_id || ')'`;
+  const opportunityIdSql = `COALESCE(NULLIF(trim(o.business_id), ''), o.id::text)`;
+  const opportunityLabelSql = `COALESCE(NULLIF(trim(o.client_name), ''), 'Opportunity') || ' (' || ${opportunityIdSql} || ')'`;
+  const opportunitySubtitleSql = `COALESCE(NULLIF(trim(c.company_name_zh), ''), NULLIF(trim(c.company_name_cn), ''), c.company_name, o.company_name)`;
   const opportunityFrom = `
     FROM opportunities o
     LEFT JOIN companies c ON c.id::text = o.company_id::text
   `;
-  const businessIdFilter = `o.business_id IS NOT NULL`;
   if (!term) {
     return query<ActivityLinkSearchHit>(
       `SELECT 'opportunity'::text AS entity_type,
-              o.business_id AS entity_id,
+              ${opportunityIdSql} AS entity_id,
               ${opportunityLabelSql} AS label,
-              c.company_name AS subtitle
+              ${opportunitySubtitleSql} AS subtitle
        ${opportunityFrom}
-       WHERE ${businessIdFilter}
        ORDER BY o.updated_at DESC NULLS LAST, o.id DESC
        LIMIT $1`,
       [limit],
@@ -541,15 +563,27 @@ export async function searchActivityOpportunities(q: string, limit = 15): Promis
   }
   return query<ActivityLinkSearchHit>(
     `SELECT 'opportunity'::text AS entity_type,
-            o.business_id AS entity_id,
+            ${opportunityIdSql} AS entity_id,
             ${opportunityLabelSql} AS label,
-            c.company_name AS subtitle
+            ${opportunitySubtitleSql} AS subtitle
      ${opportunityFrom}
-     WHERE ${businessIdFilter}
-       AND (o.client_name ILIKE $1 OR c.company_name ILIKE $1)
-     ORDER BY o.updated_at DESC NULLS LAST, o.id DESC
-     LIMIT $2`,
-    [`%${term}%`, limit],
+     WHERE o.client_name ILIKE $1
+        OR o.company_name ILIKE $1
+        OR c.company_name ILIKE $1
+        OR c.company_name_zh ILIKE $1
+        OR c.company_name_cn ILIKE $1
+        OR NULLIF(trim(o.business_id), '') ILIKE $1
+        OR o.id::text = $2
+     ORDER BY
+       CASE
+         WHEN o.client_name ILIKE $1 THEN 0
+         WHEN c.company_name_zh ILIKE $1 OR c.company_name_cn ILIKE $1 THEN 1
+         ELSE 2
+       END,
+       o.updated_at DESC NULLS LAST,
+       o.id DESC
+     LIMIT $3`,
+    [`%${term}%`, term, limit],
   );
 }
 

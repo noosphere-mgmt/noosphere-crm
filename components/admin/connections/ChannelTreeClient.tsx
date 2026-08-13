@@ -3,17 +3,28 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ConnectionsModuleHeader } from "@/components/admin/connections/ConnectionsModuleHeader";
+import { opportunityWorkspaceHref } from "@/lib/opportunityWorkspaceNav";
 import type { ChannelEntity, ChannelOpportunity, ChannelTreeData } from "@/lib/repos/channelTree";
 import type { Contact } from "@/lib/types/entities";
 
 type DisplayNode = ChannelEntity & { member?: boolean };
+
+const CHANNEL_TREE_RETURN_TO = "/admin/connections/channel-tree";
 
 function isActive(status: string): boolean {
   return status !== "closed_won" && status !== "closed_lost";
 }
 
 function opportunityHref(opportunity: ChannelOpportunity): string {
-  return `/admin/opportunities/${encodeURIComponent(opportunity.business_id ?? String(opportunity.id))}`;
+  return opportunityWorkspaceHref(
+    {
+      id: opportunity.id,
+      business_id: opportunity.business_id,
+    },
+    "overview",
+    undefined,
+    CHANNEL_TREE_RETURN_TO,
+  );
 }
 
 function entityHref(entity: ChannelEntity): string {

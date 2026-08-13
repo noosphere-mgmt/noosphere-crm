@@ -13,7 +13,7 @@ export function ListingRecordCount({
 }) {
   return (
     <div
-      className="mb-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm text-slate-600"
+      className="mb-2 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm text-slate-600"
       aria-live="polite"
     >
       <p>

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import {
   createContact,
   deleteContact,
+  duplicateContact,
   bulkDeleteContacts,
   getContact,
   updateContact,
@@ -54,7 +55,11 @@ async function contactInputFromForm(formData: FormData) {
     title: parseOptionalString(formData.get("title")),
     email: parseOptionalString(formData.get("email")),
     phone: parseOptionalString(formData.get("phone")),
+    phone_area_code: parseOptionalString(formData.get("phone_area_code")),
+    mobile: parseOptionalString(formData.get("mobile")),
+    mobile_area_code: parseOptionalString(formData.get("mobile_area_code")),
     whatsapp: parseOptionalString(formData.get("whatsapp")),
+    whatsapp_area_code: parseOptionalString(formData.get("whatsapp_area_code")),
     wechat: parseOptionalString(formData.get("wechat")),
     preferred_language: parseOptionalString(formData.get("preferred_language")),
     contact_role: contactRole,
@@ -98,6 +103,18 @@ export async function createContactAction(formData: FormData) {
 }
 
 export async function updateContactAction(id: number, formData: FormData) {
+  const existing = await getContact(id);
+  if (!existing) throw new Error("Contact not found");
+
+  // Workspace edit form omits some CRM timing fields — preserve stored values when absent.
+  const preserveWhenAbsent: Array<[string, unknown]> = [
+    ["last_contact_date", existing.last_contact_date],
+    ["next_follow_up_date", existing.next_follow_up_date],
+  ];
+  for (const [field, value] of preserveWhenAbsent) {
+    if (!formData.has(field)) formData.set(field, value == null ? "" : String(value).slice(0, 10));
+  }
+
   const input = await contactInputFromForm(formData);
   await updateContact(id, input);
   if (input.company_id != null) {
@@ -127,7 +144,58 @@ export async function bulkDeleteContactsAction(formData: FormData) {
   if (ids.length === 0) return;
   await bulkDeleteContacts(ids);
   revalidatePath("/admin/contacts");
+  revalidatePath("/admin/companies");
+  const returnTo = String(formData.get("return_to") ?? "").trim();
+  if (returnTo.startsWith("/admin/")) redirect(returnTo);
   redirect("/admin/contacts");
+}
+
+export type ContactBulkActionResult =
+  | { ok: true; created_count: number; contact_id?: number }
+  | { ok: false; error: string };
+
+async function syncDuplicatedContactAffiliation(newId: number): Promise<void> {
+  const created = await getContact(newId);
+  if (created?.company_id == null) return;
+  await syncContactPrimaryAffiliation(newId, {
+    company_id: created.company_id,
+    job_title: created.title,
+    is_primary: true,
+  });
+}
+
+export async function duplicateContactAction(contactId: number): Promise<ContactBulkActionResult> {
+  try {
+    const newId = await duplicateContact(contactId);
+    await syncDuplicatedContactAffiliation(newId);
+    revalidateContactPaths((await getContact(newId))?.company_id);
+    return { ok: true, created_count: 1, contact_id: newId };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to duplicate contact" };
+  }
+}
+
+export async function bulkDuplicateContactsAction(formData: FormData): Promise<ContactBulkActionResult> {
+  try {
+    const ids = String(formData.get("contact_ids") ?? "")
+      .split(",")
+      .map((s) => Number.parseInt(s.trim(), 10))
+      .filter((n) => Number.isFinite(n) && n > 0);
+    if (ids.length === 0) return { ok: false, error: "No contacts selected" };
+
+    const created: number[] = [];
+    for (const id of ids) {
+      const newId = await duplicateContact(id);
+      await syncDuplicatedContactAffiliation(newId);
+      created.push(newId);
+    }
+
+    revalidatePath("/admin/contacts");
+    revalidatePath("/admin/companies");
+    return { ok: true, created_count: created.length, contact_id: created[0] };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to copy contacts" };
+  }
 }
 
 export async function patchContactFieldAction(

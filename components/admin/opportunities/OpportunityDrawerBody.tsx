@@ -41,7 +41,7 @@ export function OpportunityDrawerBody({ data }: { data: OpportunityDrawerData })
       <EntityActivitiesTab
         activities={data.activities}
         defaults={{
-          opportunity_business_id: opportunity.business_id ?? null,
+          opportunity_business_id: opportunity.business_id?.trim() || String(opportunity.id),
           opportunity_name: opportunity.client_name,
           company_business_id: resolveCompanySelectValue(data.companies, opportunity.company_id) || null,
           company_name: opportunity.linked_company_name,

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { FormEditingContext, ModuleActionBar } from "@/components/admin/ModuleActionBar";
+import { FormEditingContext, ModuleActionBar, ModuleStickyEditBar } from "@/components/admin/ModuleActionBar";
 
 export function EditableRecordForm({
   formId,
@@ -31,7 +31,7 @@ export function EditableRecordForm({
 
   return (
     <FormEditingContext.Provider value={editMode}>
-      <form id={formId} action={action} className={className}>
+      <form id={formId} action={action} className={`${className ?? ""}${editMode ? " pt-14" : ""}`}>
         <div className="mb-4 flex items-start justify-between gap-4">
           {header ? <div className="min-w-0 flex-1">{header}</div> : null}
           <ModuleActionBar
@@ -43,6 +43,9 @@ export function EditableRecordForm({
           />
         </div>
         {children}
+        {editMode ? (
+          <ModuleStickyEditBar onCancel={handleCancel} formId={formId} deleteAction={deleteAction} />
+        ) : null}
       </form>
     </FormEditingContext.Provider>
   );

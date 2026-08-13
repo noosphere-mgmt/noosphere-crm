@@ -20,7 +20,14 @@ export function getTemplateForObject(objectType: ImportObjectType): string {
     if (f.type === "number") return "";
     if (f.key === "relationship_type") return "Refers";
     if (f.key === "from_entity_type" || f.key === "to_entity_type") return "contact";
-    if (f.key === "status") return "Active";
+    if (f.key === "status") {
+      if (objectType === "opportunities") return "qualifying";
+      if (objectType === "leads") return "new";
+      return "Active";
+    }
+    if (f.key === "source" && objectType === "leads") return "direct";
+    if (f.key === "sales_role") return "to_lease";
+    if (f.key === "property_category_preference") return "commercial";
     if (f.key === "country") return "Hong Kong";
     if (f.key === "city") return "Hong Kong";
     return "";

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { IconPen, IconX } from "@/components/admin/ModuleActionIcons";
+import { IconX } from "@/components/admin/ModuleActionIcons";
 import { moduleEditButtonClass } from "@/components/admin/ModuleActionBar";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
@@ -51,7 +51,7 @@ export function BuildingWorkspaceHeader({
             <p className="mt-2 text-sm text-slate-400">Address will appear when location fields are filled.</p>
           )}
           <p className="mt-1 text-xs text-slate-500">
-            {premisesCount} premises · Click a field to edit inline
+            {premisesCount} premises · Double-click a field to edit · saves automatically
           </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {property.grade ? <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-800">{property.grade}</span> : null}
@@ -78,9 +78,7 @@ export function BuildingWorkspaceHeader({
             className={moduleEditButtonClass("properties")}
             aria-label="Edit building"
             title="Edit building"
-          >
-            <IconPen />
-          </Link>
+          >Edit</Link>
           <Link
             href="/admin/properties"
             className="inline-flex rounded-lg p-2 text-slate-400 hover:bg-slate-100"

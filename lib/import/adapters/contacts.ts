@@ -1,5 +1,5 @@
 import { query } from "@/lib/db";
-import { allocateNextBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
+import { allocateNextBusinessId, ensureLegacyBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
 import { isPermanentBusinessId } from "@/lib/businessIds";
 import { resolveContactName, sqlContactDisplayName, syncContactDerivedNames } from "@/lib/contactName";
 import { resolveCompanyRefToLegacy, resolveContactRefToLegacy } from "@/lib/crmRefResolve";
@@ -26,8 +26,12 @@ const FIELD_KEYS = [
   "coverage",
   "locate_at",
   "preferred_language",
+  "phone",
+  "phone_area_code",
   "mobile",
+  "mobile_area_code",
   "whatsapp",
+  "whatsapp_area_code",
   "wechat",
   "email",
   "country",
@@ -52,8 +56,9 @@ const SELECT = `
   array_to_string(ct.coverage, '; ') AS coverage,
   ct.locate_at,
   ct.preferred_language,
-  ct.phone AS mobile,
-  ct.whatsapp, ct.wechat, ct.email,
+  ct.phone, ct.phone_area_code,
+  ct.mobile, ct.mobile_area_code,
+  ct.whatsapp, ct.whatsapp_area_code, ct.wechat, ct.email,
   NULL::text AS country,
   NULL::text AS city,
   ct.is_primary,
@@ -67,7 +72,6 @@ const FROM = `contacts ct LEFT JOIN companies c ON ${sqlJoinLegacyCompany("c", "
 
 function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
   const p: Record<string, unknown> = {};
-  if ("mobile" in values) p.phone = values.mobile;
   if ("remarks" in values) p.notes = values.remarks;
   if ("contact_role" in values) {
     const raw = String(values.contact_role ?? "");
@@ -97,7 +101,12 @@ function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
     "title",
     "locate_at",
     "preferred_language",
+    "phone",
+    "phone_area_code",
+    "mobile",
+    "mobile_area_code",
     "whatsapp",
+    "whatsapp_area_code",
     "wechat",
     "email",
     "is_primary",
@@ -136,7 +145,20 @@ function contactFieldDef(key: (typeof FIELD_KEYS)[number]): ImportFieldDef {
     return { ...base, type: "string", label: "Locate at", aliases: ["locate at", "location"] };
   }
   if (key === "mobile") {
-    return { ...base, type: "string", aliases: ["phone"] };
+    return { ...base, type: "string" };
+  }
+  if (key === "phone") {
+    return { ...base, type: "string", aliases: ["office_phone", "office phone"] };
+  }
+  if (
+    key === "phone_area_code" ||
+    key === "mobile_area_code" ||
+    key === "whatsapp_area_code"
+  ) {
+    return { ...base, type: "string" };
+  }
+  if (key === "remarks") {
+    return { ...base, type: "string", aliases: ["notes"] };
   }
   if (key === "chinese_name") {
     return { ...base, type: "string", aliases: ["chinese name", "中文名", "chinese"] };
@@ -251,12 +273,17 @@ export const contactsImportDefinition: ImportObjectDefinition = {
     });
     const displayName = resolveContactName(synced) || null;
     const companyId = await requireCompanyId(v.company_id);
+    const suppliedContactId = String(values.contact_id ?? "").trim();
+    const businessId = isPermanentBusinessId("contact", suppliedContactId)
+      ? suppliedContactId
+      : await allocateNextBusinessId("contact");
     const rows = await query<{ id: string }>(
       `INSERT INTO contacts (
          company_id, first_name, last_name, chinese_name, display_name, contact_name,
-         title, phone, whatsapp, wechat, email, preferred_language,
-         contact_role, coverage, locate_at, notes, external_ref, import_run_id
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+         title, phone, phone_area_code, mobile, mobile_area_code,
+         whatsapp, whatsapp_area_code, wechat, email, preferred_language,
+         contact_role, coverage, locate_at, notes, external_ref, import_run_id, business_id
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
        RETURNING id::text`,
       [
         companyId,
@@ -267,7 +294,11 @@ export const contactsImportDefinition: ImportObjectDefinition = {
         displayName,
         v.title ?? null,
         v.phone ?? null,
+        v.phone_area_code ?? null,
+        v.mobile ?? null,
+        v.mobile_area_code ?? null,
         v.whatsapp ?? null,
+        v.whatsapp_area_code ?? null,
         v.wechat ?? null,
         v.email ?? null,
         v.preferred_language ?? null,
@@ -277,14 +308,10 @@ export const contactsImportDefinition: ImportObjectDefinition = {
         v.notes ?? null,
         v.external_ref ?? null,
         v.import_run_id ?? null,
+        businessId,
       ],
     );
     const id = Number.parseInt(rows[0]!.id, 10);
-    const suppliedContactId = String(values.contact_id ?? "").trim();
-    const businessId = isPermanentBusinessId("contact", suppliedContactId)
-      ? suppliedContactId
-      : await allocateNextBusinessId("contact");
-    await query(`UPDATE contacts SET business_id = $1 WHERE id = $2`, [businessId, id]);
     await registerBusinessId({
       entityType: "contact",
       businessId,
@@ -301,6 +328,7 @@ export const contactsImportDefinition: ImportObjectDefinition = {
     const legacyId = await resolveContactRecordId(id);
     if (legacyId == null) throw new Error(`contact_id ${id} not found`);
     await genericUpdateRecord("contacts", "id", legacyId, dbPatch(patch), ctx);
+    await ensureLegacyBusinessId("contact", legacyId);
   },
 
   async exportRows() {

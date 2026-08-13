@@ -1,7 +1,8 @@
 "use client";
 
 import { useTransition } from "react";
-import { bulkDeleteContactsAction } from "@/app/admin/contacts/actions";
+import { useRouter } from "next/navigation";
+import { bulkDeleteContactsAction, bulkDuplicateContactsAction } from "@/app/admin/contacts/actions";
 import { ModuleListingBulkActions } from "@/components/admin/ModuleBulkActionButtons";
 import { ConnectionsModuleHeader } from "@/components/admin/connections/ConnectionsModuleHeader";
 import { useConnectionsListSelection } from "@/components/admin/connections/ConnectionsListSelectionContext";
@@ -14,8 +15,9 @@ export function ConnectionsContactsListHeaderDesktop({
   onNewContact: () => void;
   exportSelectedIds: string[];
 }) {
+  const router = useRouter();
   const theme = moduleAccentClasses("connections");
-  const { someSelected, selectedCount, selected } = useConnectionsListSelection();
+  const { someSelected, selectedCount, selected, clearSelection } = useConnectionsListSelection();
   const [isPending, startTransition] = useTransition();
 
   const selectedIds = exportSelectedIds;
@@ -27,6 +29,21 @@ export function ConnectionsContactsListHeaderDesktop({
     formData.set("contact_ids", [...selected].join(","));
     startTransition(() => {
       void bulkDeleteContactsAction(formData);
+    });
+  }
+
+  function onBulkCopy() {
+    if (!someSelected) return;
+    const formData = new FormData();
+    formData.set("contact_ids", [...selected].join(","));
+    startTransition(async () => {
+      const result = await bulkDuplicateContactsAction(formData);
+      if (!result.ok) {
+        window.alert(result.error);
+        return;
+      }
+      clearSelection();
+      router.refresh();
     });
   }
 
@@ -42,6 +59,8 @@ export function ConnectionsContactsListHeaderDesktop({
             selectedIds={selectedIds}
             isPending={isPending}
             onDelete={onBulkDelete}
+            onCopy={onBulkCopy}
+            copyTitle="Copy selected"
           />
           <button type="button" onClick={onNewContact} className={theme.primaryButton}>
             New

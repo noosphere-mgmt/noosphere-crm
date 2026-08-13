@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { updatePremisesV1Action } from "@/app/admin/properties/actions";
-import { FormEditingContext, ModuleActionBar } from "@/components/admin/ModuleActionBar";
+import { FormEditingContext, ModuleStickyEditBar } from "@/components/admin/ModuleActionBar";
 import { AdvisoryWorkspaceShell } from "@/components/admin/workspace/AdvisoryWorkspaceShell";
 import { InlineEditProvider } from "@/components/admin/inline/InlineEditProvider";
 import { PropertyDrawer, type PropertyDrawerMode } from "@/components/admin/properties-v1/PropertyDrawer";
@@ -96,10 +96,7 @@ export function PremisesWorkspacePageClient({
   if (editMode) {
     return (
       <InlineEditProvider resetKey={premises.premises_id}>
-        <div className="space-y-3 pb-20">
-          <div className="sticky top-0 z-20 flex justify-end border-b border-slate-200 bg-[var(--admin-bg,#f8fafc)] py-2">
-            <ModuleActionBar mode="edit" formId={formId} onCancel={() => router.push(viewHref, { scroll: false })} module="properties" />
-          </div>
+        <div className="space-y-3 pt-14">
           <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
             <FormEditingContext.Provider value={true}>
               <PremisesV1EditForm
@@ -112,9 +109,10 @@ export function PremisesWorkspacePageClient({
               />
             </FormEditingContext.Provider>
           </div>
-          <div className="fixed bottom-4 right-4 z-40 rounded-xl border border-slate-200 bg-white/95 p-2 shadow-xl backdrop-blur">
-            <ModuleActionBar mode="edit" formId={formId} onCancel={() => router.push(viewHref, { scroll: false })} module="properties" />
-          </div>
+          <ModuleStickyEditBar
+            formId={formId}
+            onCancel={() => router.push(viewHref, { scroll: false })}
+          />
         </div>
       </InlineEditProvider>
     );

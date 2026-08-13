@@ -1,12 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ActivityFormDrawer } from "@/components/admin/activities/ActivityFormDrawer";
+import { ActivityReviewDrawer } from "@/components/admin/activities/ActivityReviewDrawer";
 import { EntityActivitiesTab } from "@/components/admin/activities/EntityActivitiesTab";
 import { buildUnifiedTimelineEvents } from "@/lib/opportunityTimelineEvents";
 import { opportunityWorkspaceHref } from "@/lib/opportunityWorkspaceNav";
 import { resolveCompanySelectValue, resolveContactSelectValue } from "@/lib/crmSelectOptions";
 import type { OpportunityDetailData } from "@/lib/repos/opportunityDetail";
+import type { ActivityListRow } from "@/lib/repos/activities";
 
 function eventIcon(kind: string): string {
   if (kind === "proposal_sent") return "📤";
@@ -16,10 +20,22 @@ function eventIcon(kind: string): string {
 }
 
 export function OpportunityUnifiedTimeline({ data }: { data: OpportunityDetailData }) {
+  const router = useRouter();
   const events = useMemo(
     () => buildUnifiedTimelineEvents(data.activities, data.proposals),
     [data.activities, data.proposals],
   );
+  const [viewing, setViewing] = useState<ActivityListRow | null>(null);
+  const [editing, setEditing] = useState<ActivityListRow | null>(null);
+  const activityDefaults = {
+    opportunity_business_id:
+      data.opportunity.business_id?.trim() || String(data.opportunity.id),
+    opportunity_name: data.opportunity.client_name,
+    company_business_id: resolveCompanySelectValue(data.companies, data.opportunity.company_id) || null,
+    company_name: data.opportunity.linked_company_name,
+    contact_business_id: resolveContactSelectValue(data.contacts, data.opportunity.primary_contact_id) || null,
+    contact_name: data.opportunity.primary_contact_name,
+  };
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] lg:items-start">
@@ -48,14 +64,24 @@ export function OpportunityUnifiedTimeline({ data }: { data: OpportunityDetailDa
                 </span>
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <p className="text-sm font-semibold text-slate-900">{ev.title}</p>
+                    {ev.kind === "activity" && ev.activity ? (
+                      <button
+                        type="button"
+                        onClick={() => setViewing(ev.activity!)}
+                        className="cursor-pointer text-left text-sm font-semibold text-slate-900 underline-offset-2 hover:underline"
+                      >
+                        {ev.title}
+                      </button>
+                    ) : (
+                      <p className="text-sm font-semibold text-slate-900">{ev.title}</p>
+                    )}
                     <time className="text-xs tabular-nums text-slate-500">{ev.date || "—"}</time>
                   </div>
                   {ev.staff ? (
                     <p className="mt-0.5 text-xs font-medium text-slate-500">{ev.staff}</p>
                   ) : null}
                   {ev.detail ? (
-                    <p className="mt-2 text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">{ev.detail}</p>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">{ev.detail}</p>
                   ) : null}
                   {ev.kind.startsWith("proposal") && ev.proposalId ? (
                     <Link
@@ -82,16 +108,31 @@ export function OpportunityUnifiedTimeline({ data }: { data: OpportunityDetailDa
           showList={false}
           formPresentation="inline"
           alwaysShowForm
-          defaults={{
-            opportunity_business_id: data.opportunity.business_id ?? null,
-            opportunity_name: data.opportunity.client_name,
-            company_business_id: resolveCompanySelectValue(data.companies, data.opportunity.company_id) || null,
-            company_name: data.opportunity.linked_company_name,
-            contact_business_id: resolveContactSelectValue(data.contacts, data.opportunity.primary_contact_id) || null,
-            contact_name: data.opportunity.primary_contact_name,
-          }}
+          defaults={activityDefaults}
         />
       </section>
+
+      {viewing ? (
+        <ActivityReviewDrawer
+          activity={viewing}
+          onClose={() => setViewing(null)}
+          onEdit={() => {
+            setEditing(viewing);
+            setViewing(null);
+          }}
+        />
+      ) : null}
+
+      <ActivityFormDrawer
+        open={Boolean(editing)}
+        onClose={() => setEditing(null)}
+        activity={editing}
+        defaults={activityDefaults}
+        onSaved={() => {
+          setEditing(null);
+          router.refresh();
+        }}
+      />
     </div>
   );
 }

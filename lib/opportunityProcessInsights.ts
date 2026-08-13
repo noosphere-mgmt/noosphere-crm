@@ -3,6 +3,7 @@ import { OPPORTUNITY_STATUS_LABELS } from "@/lib/opportunityStatusModel";
 import { buildUnifiedTimelineEvents } from "@/lib/opportunityTimelineEvents";
 import { deriveNextAction } from "@/lib/opportunityWorkspaceDesk";
 import { opportunityWorkspaceHref } from "@/lib/opportunityWorkspaceNav";
+import { isOtherSalesRole } from "@/lib/opportunityValues";
 import type { OpportunityDetailData } from "@/lib/repos/opportunityDetail";
 
 export type ProcessInsight = {
@@ -105,7 +106,7 @@ export function buildOpportunityProcessInsights(
     });
   }
 
-  if (proposedPremises.length === 0 && opportunity.sales_role !== "prof_service") {
+  if (proposedPremises.length === 0 && !isOtherSalesRole(opportunity.sales_role)) {
     insights.push({
       id: "no-options",
       text: "No properties proposed yet — process is still at requirement / matching.",

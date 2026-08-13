@@ -106,11 +106,11 @@ export function sqlExportPremiseId(idExpr: string): string {
   )`;
 }
 
-/** Export permanent opportunity business ID (M100001). */
+/** Export permanent opportunity business ID (M100001). Blank when missing — backfill before export. */
 export function sqlExportOpportunityId(idExpr: string): string {
   return `COALESCE(
-    (SELECT opportunity_lookup.business_id FROM opportunities opportunity_lookup WHERE opportunity_lookup.business_id = ${idExpr}::text LIMIT 1),
-    (SELECT opportunity_lookup.business_id FROM opportunities opportunity_lookup WHERE opportunity_lookup.id::text = ${idExpr}::text LIMIT 1),
+    NULLIF(trim((SELECT opportunity_lookup.business_id FROM opportunities opportunity_lookup WHERE opportunity_lookup.business_id = ${idExpr}::text LIMIT 1)), ''),
+    NULLIF(trim((SELECT opportunity_lookup.business_id FROM opportunities opportunity_lookup WHERE opportunity_lookup.id::text = ${idExpr}::text LIMIT 1)), ''),
     (SELECT x.business_id FROM business_id_crosswalk x
       WHERE x.entity_type = 'opportunity'
         AND (x.primary_ref = ${idExpr}::text OR x.deprecated_ref = ${idExpr}::text OR x.legacy_numeric::text = ${idExpr}::text)

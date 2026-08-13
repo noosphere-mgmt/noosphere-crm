@@ -1,5 +1,5 @@
 import { query } from "@/lib/db";
-import { allocateNextBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
+import { allocateNextBusinessId, ensureLegacyBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
 import { isPermanentBusinessId } from "@/lib/businessIds";
 import { sqlContactDisplayName } from "@/lib/contactName";
 import { resolveCompanyRefToLegacy, resolveContactRefToLegacy } from "@/lib/crmRefResolve";
@@ -197,12 +197,16 @@ export const companiesImportDefinition: ImportObjectDefinition = {
   async createRecord(values, ctx) {
     const v = applySessionMetadata(dbPatch(values), ctx);
     const roles = (v.roles as CompanyRole[] | undefined)?.length ? v.roles : ["client"];
+    const suppliedCompanyId = String(values.company_id ?? "").trim();
+    const businessId = isPermanentBusinessId("company", suppliedCompanyId)
+      ? suppliedCompanyId
+      : await allocateNextBusinessId("company");
     const rows = await query<{ id: string }>(
       `INSERT INTO companies (
          company_name, company_name_zh, company_name_cn, roles, coverage,
          country, city, district, website, phone, email, industry, source,
-         notes, primary_contact_id, external_ref, import_run_id
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+         notes, primary_contact_id, external_ref, import_run_id, business_id
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
        RETURNING id::text`,
       [
         v.company_name ?? values.company_name_en ?? "",
@@ -222,14 +226,10 @@ export const companiesImportDefinition: ImportObjectDefinition = {
         v.primary_contact_id ?? null,
         v.external_ref ?? null,
         v.import_run_id ?? null,
+        businessId,
       ],
     );
     const id = Number.parseInt(rows[0]!.id, 10);
-    const suppliedCompanyId = String(values.company_id ?? "").trim();
-    const businessId = isPermanentBusinessId("company", suppliedCompanyId)
-      ? suppliedCompanyId
-      : await allocateNextBusinessId("company");
-    await query(`UPDATE companies SET business_id = $1 WHERE id = $2`, [businessId, id]);
     await registerBusinessId({
       entityType: "company",
       businessId,
@@ -252,6 +252,7 @@ export const companiesImportDefinition: ImportObjectDefinition = {
     const legacyId = await resolveCompanyRecordId(id);
     if (legacyId == null) throw new Error(`company_id ${id} not found`);
     await genericUpdateRecord("companies", "id", legacyId, dbPatch(patch), ctx);
+    await ensureLegacyBusinessId("company", legacyId);
   },
 
   async exportRows() {

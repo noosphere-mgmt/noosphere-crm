@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { query } from "@/lib/db";
-import { allocateNextBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
+import { allocateNextBusinessId, ensureLegacyBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
 import { CONNECTION_COMPANY_ROLES } from "@/lib/connectionsValues";
 import { syncLegacyCompanyToV1 } from "@/lib/repos/companiesV1";
 import type { Company, CompanyRole, RelationshipStrength } from "@/lib/types/entities";
@@ -154,20 +154,19 @@ export async function getCompany(id: number): Promise<Company | null> {
 }
 
 export async function createCompany(input: CompanyInput): Promise<number> {
+  const businessId = await allocateNextBusinessId("company");
   const rows = await query<{ id: string }>(
     `INSERT INTO companies (
        company_name, company_name_zh, company_name_cn, roles, coverage, country, city, district,
        website, phone, email,
        industry, source, relationship_owner,
        last_contact_date, last_meeting_date, next_follow_up_date,
-       relationship_strength, notes, is_active
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+       relationship_strength, notes, is_active, business_id
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
      RETURNING id::text AS id`,
-    companyValues(input),
+    [...companyValues(input), businessId],
   );
   const id = Number.parseInt(rows[0]!.id, 10);
-  const businessId = await allocateNextBusinessId("company");
-  await query(`UPDATE companies SET business_id = $1 WHERE id = $2`, [businessId, id]);
   await registerBusinessId({
     entityType: "company",
     businessId,
@@ -195,6 +194,7 @@ export async function updateCompany(id: number, input: CompanyInput): Promise<vo
      WHERE id = $1`,
     [id, ...companyValues(input)],
   );
+  await ensureLegacyBusinessId("company", id);
 }
 
 export async function deleteCompany(id: number): Promise<void> {

@@ -12,10 +12,10 @@ import { shouldShowConnectionsDrawer } from "@/lib/connectionsDrawerMatch";
 import {
   buildContactsReturnTo,
   companyDrawerHref,
-  connectionsCompanyNavHref,
   connectionsContactNavHref,
 } from "@/lib/connectionsDrawerNav";
 import { isV1CompanyRef } from "@/lib/entityRefGuards";
+import type { ConnectionCompanyListRow } from "@/lib/connectionsDisplay";
 import type { Contact } from "@/lib/types/entities";
 import type { ContactDrawerData } from "@/lib/repos/connectionsDrawer";
 
@@ -24,12 +24,14 @@ type CompanyOption = { id: number; company_name: string };
 export function ConnectionsContactsPageClient({
   rows,
   companies,
+  companyOptions,
   selectedContact,
   drawerQuery,
   drawerError,
 }: {
   rows: Contact[];
-  companies: CompanyOption[];
+  companies: ConnectionCompanyListRow[];
+  companyOptions: CompanyOption[];
   selectedContact: ContactDrawerData | null;
   drawerQuery?: string | null;
   drawerError?: string | null;
@@ -81,18 +83,19 @@ export function ConnectionsContactsPageClient({
     [router, searchParams],
   );
 
-  const openCompany = useCallback(
-    (id: number | string) => {
-      router.push(connectionsCompanyNavHref(new URLSearchParams(), id));
+  const openCreateDrawer = useCallback(
+    (companyId?: number) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("new", "1");
+      if (companyId != null && Number.isFinite(companyId)) {
+        params.set("company_id", String(companyId));
+      } else {
+        params.delete("company_id");
+      }
+      router.push(`/admin/contacts?${params.toString()}`);
     },
-    [router],
+    [router, searchParams],
   );
-
-  const openCreateDrawer = useCallback(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("new", "1");
-    router.push(`/admin/contacts?${params.toString()}`);
-  }, [router, searchParams]);
 
   const closeCreateDrawer = useCallback(() => {
     const params = new URLSearchParams(searchParams.toString());
@@ -110,8 +113,8 @@ export function ConnectionsContactsPageClient({
       <ModuleListingExportProvider>
         <ConnectionsContactsListClient
           rows={rows}
+          companies={companies}
           onOpenContact={openContact}
-          onOpenCompany={openCompany}
           onNewContact={openCreateDrawer}
         />
         <ContactDrawer data={drawerData} onClose={closeDrawer} />
@@ -128,7 +131,7 @@ export function ConnectionsContactsPageClient({
         <ContactFormDrawer
           open={createOpen}
           onClose={closeCreateDrawer}
-          companies={companies}
+          companies={companyOptions}
           fixedCompanyId={Number.isFinite(fixedCompanyId) ? fixedCompanyId : undefined}
           returnTo="/admin/contacts"
         />

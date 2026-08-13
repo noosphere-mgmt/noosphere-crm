@@ -1,6 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import { InlineEditProvider } from "@/components/admin/inline/InlineEditProvider";
 import { AdvisoryWorkspaceShell } from "@/components/admin/workspace/AdvisoryWorkspaceShell";
 import { OpportunityDocumentsTab } from "@/components/admin/opportunities/OpportunityDocumentsTab";
 import { OpportunityOverviewTab } from "@/components/admin/opportunities/OpportunityOverviewTab";
@@ -17,9 +18,11 @@ import type { OpportunityDetailData } from "@/lib/repos/opportunityDetail";
 export function OpportunityWorkspacePageClient({
   data,
   proposalsEnabled = false,
+  returnTo = "/admin/opportunities",
 }: {
   data: OpportunityDetailData;
   proposalsEnabled?: boolean;
+  returnTo?: string;
 }) {
   const searchParams = useSearchParams();
   const tab = getOpportunityTab({ tab: searchParams.get("tab") });
@@ -35,6 +38,7 @@ export function OpportunityWorkspacePageClient({
             data={data}
             initialEditMode={editMode}
             proposalsEnabled={proposalsEnabled}
+            listReturnTo={returnTo}
           />
         );
       case "parties":
@@ -58,19 +62,22 @@ export function OpportunityWorkspacePageClient({
   }
 
   return (
-    <AdvisoryWorkspaceShell
-      header={
-        <OpportunityWorkspaceHeader
-          data={data}
-          activeTab={tab}
-          editMode={editMode}
-        />
-      }
-      tabs={<OpportunityWorkspaceTabs opportunity={data.opportunity} />}
-      showAssistToggle={false}
-    >
-      {renderTab()}
-    </AdvisoryWorkspaceShell>
+    <InlineEditProvider resetKey={data.opportunity.id}>
+      <AdvisoryWorkspaceShell
+        header={
+          <OpportunityWorkspaceHeader
+            data={data}
+            activeTab={tab}
+            editMode={editMode}
+            returnTo={returnTo}
+          />
+        }
+        tabs={<OpportunityWorkspaceTabs opportunity={data.opportunity} returnTo={returnTo} />}
+        showAssistToggle={false}
+      >
+        {renderTab()}
+      </AdvisoryWorkspaceShell>
+    </InlineEditProvider>
   );
 }
 
