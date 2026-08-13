@@ -35,7 +35,7 @@ export function ContactWorkspaceHeader({
             id: primaryAff?.company_id ?? contact.company_id!,
             business_id: primaryAff?.company_business_id ?? contact.company_business_id,
           },
-          "profile",
+          "overview",
           undefined,
           // From company review, return to this contact page.
           contactWorkspaceHref(contact, "overview", undefined, returnTo),

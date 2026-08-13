@@ -94,6 +94,42 @@ export function PremisesWorkspacePageClient({
   }
 
   if (editMode) {
+    // Relationships tab already has inline add/edit; keep the user there instead of
+    // dumping them into the full premise form where links used to sit under Commission.
+    if (tab === "relationships") {
+      return (
+        <InlineEditProvider resetKey={premises.premises_id}>
+          <AdvisoryWorkspaceShell
+            header={
+              <PremisesWorkspaceHeader
+                premises={premises}
+                propertyOptions={propertyOptions}
+                lastActivityDate={data.lastActivityDate}
+                onOpenBuilding={building ? () => {
+                  setBuildingDrawerMode("view");
+                  setBuildingDrawerOpen(true);
+                } : undefined}
+                returnTo={returnTo}
+                editHref={premisesWorkspaceHref(premises, "relationships", "edit", returnTo)}
+              />
+            }
+            tabs={<PremisesWorkspaceTabs premises={premises} counts={counts} returnTo={returnTo} />}
+            contextPanel={<PremisesWorkspaceContextPanel premises={premises} drawerData={data} returnTo={returnTo} />}
+            showAssistToggle={false}
+          >
+            <PremisesRelationshipsTab
+              premises={premises}
+              companyLabels={companyLabels}
+              contactLabels={contactLabels}
+              companies={asCompanyV1Options(companies)}
+              contacts={safeContacts}
+              onAddRelationship={() => undefined}
+            />
+          </AdvisoryWorkspaceShell>
+        </InlineEditProvider>
+      );
+    }
+
     return (
       <InlineEditProvider resetKey={premises.premises_id}>
         <div className="space-y-3 pt-14">
@@ -177,6 +213,12 @@ export function PremisesWorkspacePageClient({
               setBuildingDrawerOpen(true);
             } : undefined}
             returnTo={returnTo}
+            editHref={premisesWorkspaceHref(
+              premises,
+              tab === "relationships" ? "relationships" : "overview",
+              "edit",
+              returnTo,
+            )}
           />
         }
         tabs={<PremisesWorkspaceTabs premises={premises} counts={counts} returnTo={returnTo} />}

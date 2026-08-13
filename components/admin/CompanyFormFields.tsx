@@ -39,6 +39,13 @@ export function CompanyFormFields({ defaults }: Props) {
         <FormField label="Country" name="country" defaultValue={defaults?.country ?? "Hong Kong"} />
         <FormField label="City" name="city" defaultValue={defaults?.city ?? "Hong Kong"} />
         <FormField label="District" name="district" defaultValue={defaults?.district ?? ""} />
+        <div className="sm:col-span-2">
+          <FormField
+            label="Office address"
+            name="office_address"
+            defaultValue={defaults?.office_address ?? ""}
+          />
+        </div>
       </div>
 
       <fieldset className="rounded-lg border border-slate-200 p-4">

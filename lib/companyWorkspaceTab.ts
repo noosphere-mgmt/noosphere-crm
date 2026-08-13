@@ -1,26 +1,28 @@
 export const COMPANY_WORKSPACE_TABS = [
-  { id: "profile", label: "Profile" },
+  { id: "overview", label: "Overview" },
   { id: "contacts", label: "Contacts" },
-  { id: "deals", label: "Deals" },
-  { id: "supply", label: "Supply" },
+  { id: "relationships", label: "Relationships" },
+  { id: "opportunities", label: "Opportunities" },
   { id: "activities", label: "Activities" },
-  { id: "fees", label: "Fees" },
+  { id: "premises", label: "Properties" },
 ] as const;
 
 export type CompanyWorkspaceTabId = (typeof COMPANY_WORKSPACE_TABS)[number]["id"];
 
-/** Map legacy drawer/detail tab ids to workspace tabs. */
+/** Map legacy drawer/detail / renamed workspace tab ids. */
 export function normalizeCompanyWorkspaceTab(tab?: string | null): CompanyWorkspaceTabId {
   const t = tab?.trim();
-  if (t === "profile" || t === "overview") return "profile";
+  if (t === "overview" || t === "profile") return "overview";
   if (t === "contacts") return "contacts";
-  if (t === "deals" || t === "opportunities") return "deals";
-  if (t === "supply" || t === "premises" || t === "relationships") return "supply";
+  if (t === "relationships") return "relationships";
+  if (t === "opportunities" || t === "deals") return "opportunities";
+  if (t === "premises" || t === "supply" || t === "properties") return "premises";
   if (t === "activities" || t === "timeline") return "activities";
-  if (t === "fees") return "fees";
+  // Fees removed from company workspace; old bookmarks land on Overview.
+  if (t === "fees") return "overview";
   // Preserve old bookmarks while consolidating dated notes into Activities.
   if (t === "notes") return "activities";
-  return "profile";
+  return "overview";
 }
 
 export function getCompanyWorkspaceTab(searchParams: { tab?: string | null }): CompanyWorkspaceTabId {

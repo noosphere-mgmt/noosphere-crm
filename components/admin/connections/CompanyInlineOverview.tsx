@@ -146,6 +146,11 @@ export function CompanyInlineOverview({
         <InlineTextField label="Country" value={company.country} onSave={save("country")} />
         <InlineTextField label="City" value={company.city} onSave={save("city")} />
         <InlineTextField label="District" value={company.district} onSave={save("district")} />
+        <InlineTextField
+          label="Office address"
+          value={company.office_address}
+          onSave={save("office_address")}
+        />
         <InlineTextField label="Phone" value={company.phone} onSave={save("phone")} />
         <InlineTextField label="Email" value={company.email} type="email" onSave={save("email")} />
         <InlineTextField label="Website" value={company.website} type="url" onSave={save("website")} />

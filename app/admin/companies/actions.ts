@@ -42,6 +42,7 @@ function companyInputFromForm(formData: FormData) {
     country: parseOptionalString(formData.get("country")) ?? "Hong Kong",
     city: parseOptionalString(formData.get("city")) ?? "Hong Kong",
     district: parseOptionalString(formData.get("district")),
+    office_address: parseOptionalString(formData.get("office_address")),
     website: parseOptionalString(formData.get("website")),
     phone: parseOptionalString(formData.get("phone")),
     email: parseOptionalString(formData.get("email")),

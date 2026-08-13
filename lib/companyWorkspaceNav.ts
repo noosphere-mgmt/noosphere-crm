@@ -9,13 +9,13 @@ type CompanyRef = {
 
 export function companyWorkspaceHref(
   company: CompanyRef,
-  tab: CompanyWorkspaceTabId = "profile",
+  tab: CompanyWorkspaceTabId = "overview",
   mode?: "edit",
   returnTo?: string | null,
 ): string {
   const businessId = company.business_id?.trim() || String(company.id);
   const href = companyFullPageHref(businessId, {
-    tab: tab === "profile" ? undefined : tab,
+    tab: tab === "overview" ? undefined : tab,
     mode,
   });
   const base = href ?? `/admin/companies/${encodeURIComponent(businessId)}`;

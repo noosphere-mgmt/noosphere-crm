@@ -32,6 +32,8 @@ export function PremisesFiltersBarMobile(props: PremisesFiltersBarProps) {
     isPending,
     search,
     setSearch,
+    onSearchFocus,
+    onSearchBlur,
     filtersOpen,
     setFiltersOpen,
     patch,
@@ -49,11 +51,14 @@ export function PremisesFiltersBarMobile(props: PremisesFiltersBarProps) {
 
   const searchInput = (
     <input
-      type="search"
+      type="text"
       value={search}
       onChange={(e) => setSearch(e.target.value)}
+      onFocus={onSearchFocus}
+      onBlur={onSearchBlur}
       placeholder="Search buildings & premises — names, address, notes…"
       aria-label="Search buildings and premises"
+      autoComplete="off"
       className={theme.searchInput}
     />
   );

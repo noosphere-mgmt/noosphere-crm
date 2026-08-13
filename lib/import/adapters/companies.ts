@@ -24,6 +24,7 @@ const FIELD_KEYS = [
   "country",
   "city",
   "district",
+  "office_address",
   "industry",
   "source",
   "website",
@@ -49,7 +50,7 @@ const SELECT = `
   co.company_name_cn,
   array_to_string(co.roles, '; ') AS role,
   array_to_string(co.coverage, '; ') AS coverage,
-  co.country, co.city, co.district,
+  co.country, co.city, co.district, co.office_address,
   co.industry, co.source, co.website, co.phone, co.email,
   CASE WHEN co.primary_contact_id IS NULL THEN NULL
        ELSE ${sqlExportContactId("co.primary_contact_id")} END AS primary_contact_id,
@@ -94,7 +95,7 @@ function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
       .filter(Boolean);
   }
   if ("remarks" in values) p.notes = values.remarks;
-  for (const k of ["external_ref", "country", "city", "district", "industry", "source", "website", "phone", "email", "primary_contact_id", "relationship_owner", "last_contact_date", "last_meeting_date", "next_follow_up_date", "relationship_strength", "is_active"] as const) {
+  for (const k of ["external_ref", "country", "city", "district", "office_address", "industry", "source", "website", "phone", "email", "primary_contact_id", "relationship_owner", "last_contact_date", "last_meeting_date", "next_follow_up_date", "relationship_strength", "is_active"] as const) {
     if (k in values) p[k] = values[k];
   }
   return p;
@@ -127,6 +128,7 @@ export const companiesImportDefinition: ImportObjectDefinition = {
     { key: "country", label: "country", type: "string" },
     { key: "city", label: "city", type: "string" },
     { key: "district", label: "district", type: "string" },
+    { key: "office_address", label: "office_address", type: "string" },
     { key: "industry", label: "industry", type: "string" },
     { key: "source", label: "source", type: "string" },
     { key: "website", label: "website", type: "string" },
@@ -204,9 +206,9 @@ export const companiesImportDefinition: ImportObjectDefinition = {
     const rows = await query<{ id: string }>(
       `INSERT INTO companies (
          company_name, company_name_zh, company_name_cn, roles, coverage,
-         country, city, district, website, phone, email, industry, source,
+         country, city, district, office_address, website, phone, email, industry, source,
          notes, primary_contact_id, external_ref, import_run_id, business_id
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
        RETURNING id::text`,
       [
         v.company_name ?? values.company_name_en ?? "",
@@ -217,6 +219,7 @@ export const companiesImportDefinition: ImportObjectDefinition = {
         v.country ?? null,
         v.city ?? null,
         v.district ?? null,
+        v.office_address ?? null,
         v.website ?? null,
         v.phone ?? null,
         v.email ?? null,

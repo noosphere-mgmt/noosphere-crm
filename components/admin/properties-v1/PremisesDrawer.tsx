@@ -542,17 +542,23 @@ function PremisesEditForm({
           ) : null}
 
           <Card title="Commission">
-            <div className="mb-4 border-b border-slate-200 pb-4">
-              <textarea className={inputClass} name="commission_remarks" defaultValue={premises.commission_remarks ?? ""} rows={2} aria-label="Commission" />
-              <input type="hidden" name="expected_commission" value={premises.expected_commission ?? ""} />
-              <input type="hidden" name="payout_commission" value={premises.payout_commission ?? ""} />
+            <textarea className={inputClass} name="commission_remarks" defaultValue={premises.commission_remarks ?? ""} rows={2} aria-label="Commission" />
+            <input type="hidden" name="expected_commission" value={premises.expected_commission ?? ""} />
+            <input type="hidden" name="payout_commission" value={premises.payout_commission ?? ""} />
+          </Card>
+
+          <Card title="Relationships">
+            <p className="mb-3 text-sm text-slate-600">
+              Operator, owner, landlord, tenant, source, and other company/contact links for this premise.
+            </p>
+            <div id="premises-relationships-editor">
+              <PremisesRelationshipsEditor
+                key={`${premises.premises_id}:${premises.updated_at}`}
+                premises={premises}
+                companyOptions={companyOptions}
+                contacts={contacts}
+              />
             </div>
-            <PremisesRelationshipsEditor
-              key={`${premises.premises_id}:${premises.updated_at}`}
-              premises={premises}
-              companyOptions={companyOptions}
-              contacts={contacts}
-            />
           </Card>
 
           <input type="hidden" name="discovery_status" value={premises.discovery_status ?? ""} />

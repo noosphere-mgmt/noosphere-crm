@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import type { PremisesFlatFilters } from "@/lib/repos/premisesV1";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 
@@ -48,35 +48,46 @@ export function usePremisesFiltersBar({ filters, cities, districts }: PremisesFi
   const theme = moduleAccentClasses("properties");
   const router = useRouter();
   const searchParams = useSearchParams();
+  const searchParamsRef = useRef(searchParams);
+  searchParamsRef.current = searchParams;
   const [isPending, startTransition] = useTransition();
   const [search, setSearch] = useState(filters.q ?? "");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const searchFocusedRef = useRef(false);
+  const lastPushedQRef = useRef((filters.q ?? "").trim());
 
+  // Sync from URL only for external changes (back/forward/reset), never while typing.
   useEffect(() => {
+    const urlQ = (filters.q ?? "").trim();
+    if (searchFocusedRef.current) return;
+    if (urlQ === lastPushedQRef.current) return;
+    lastPushedQRef.current = urlQ;
     setSearch(filters.q ?? "");
   }, [filters.q]);
 
   const apply = useCallback(
     (next: PremisesFlatFilters) => {
-      const params = filtersToParams(next, searchParams);
+      const params = filtersToParams(next, searchParamsRef.current);
       const qs = params.toString();
       startTransition(() => {
         router.replace(qs ? `/admin/properties?${qs}` : "/admin/properties");
       });
     },
-    [router, searchParams],
+    [router],
   );
 
   useEffect(() => {
     const trimmed = search.trim();
-    const current = (searchParams.get("q") ?? "").trim();
-    if (trimmed === current) return;
+    if (trimmed === lastPushedQRef.current) return;
 
     const timer = window.setTimeout(() => {
-      const params = new URLSearchParams(searchParams.toString());
+      const next = search.trim();
+      if (next === lastPushedQRef.current) return;
+      lastPushedQRef.current = next;
+      const params = new URLSearchParams(searchParamsRef.current.toString());
       params.delete("premises");
       params.delete("mode");
-      if (trimmed) params.set("q", trimmed);
+      if (next) params.set("q", next);
       else params.delete("q");
       const qs = params.toString();
       startTransition(() => {
@@ -85,18 +96,32 @@ export function usePremisesFiltersBar({ filters, cities, districts }: PremisesFi
     }, 300);
 
     return () => window.clearTimeout(timer);
-  }, [search, searchParams, router]);
+  }, [search, router]);
 
   function patch(partial: Partial<PremisesFlatFilters>) {
     apply({ ...filters, ...partial });
   }
 
   function resetAll() {
+    searchFocusedRef.current = false;
+    lastPushedQRef.current = "";
     setSearch("");
     startTransition(() => {
       router.replace("/admin/properties");
     });
   }
+
+  const onSearchFocus = () => {
+    searchFocusedRef.current = true;
+  };
+
+  const onSearchBlur = () => {
+    searchFocusedRef.current = false;
+    const urlQ = (filters.q ?? "").trim();
+    if (urlQ !== lastPushedQRef.current && urlQ === search.trim()) {
+      lastPushedQRef.current = urlQ;
+    }
+  };
 
   const hasActiveFilters = Boolean(
     filters.q ||
@@ -139,6 +164,8 @@ export function usePremisesFiltersBar({ filters, cities, districts }: PremisesFi
     isPending,
     search,
     setSearch,
+    onSearchFocus,
+    onSearchBlur,
     filtersOpen,
     setFiltersOpen,
     patch,

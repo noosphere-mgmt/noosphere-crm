@@ -47,7 +47,7 @@ export function CompanyRelationshipStrip({
       <StripCell label="Location" value={district} />
       <StripCell label="Contacts" value={contacts} />
       <StripCell label="Open opportunities" value={openDeals} />
-      <StripCell label="Supply" value={supply} />
+      <StripCell label="Properties" value={supply} />
     </dl>
   );
 }

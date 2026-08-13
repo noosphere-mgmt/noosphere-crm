@@ -43,6 +43,7 @@ export function companyToInput(company: Company): CompanyInput {
     country: company.country ?? "Hong Kong",
     city: company.city ?? "Hong Kong",
     district: company.district,
+    office_address: company.office_address,
     website: company.website,
     phone: company.phone,
     email: company.email,
@@ -112,6 +113,9 @@ export function applyCompanyPatch(
       break;
     case "district":
       input.district = value ? String(value).trim() || null : null;
+      break;
+    case "office_address":
+      input.office_address = value ? String(value).trim() || null : null;
       break;
     case "roles":
       input.roles = Array.isArray(value) ? (value as CompanyRole[]) : input.roles;

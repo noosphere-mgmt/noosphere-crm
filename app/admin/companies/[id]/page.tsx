@@ -5,7 +5,6 @@ import { CompanyWorkspacePageClient } from "@/components/admin/connections/Compa
 import { sanitizeAdminReturnTo } from "@/lib/adminReturnTo";
 import { resolveLegacyCompanyIdFromQuery } from "@/lib/companyDrawerResolve";
 import { getCompanyDrawerData } from "@/lib/repos/connectionsDrawer";
-import { listCompanyFeeDealRows } from "@/lib/repos/connectionOpportunities";
 
 export const dynamic = "force-dynamic";
 
@@ -24,14 +23,11 @@ export default async function CompanyDetailPage({ params, searchParams }: Props)
   const data = await getCompanyDrawerData(legacyCompanyId);
   if (!data) notFound();
 
-  const feeRows = await listCompanyFeeDealRows(legacyCompanyId).catch(() => []);
-
   return (
     <AdminShell title="" wide module="connections" hideHeader>
       <Suspense fallback={<div className="h-64 animate-pulse rounded-xl bg-slate-100" />}>
         <CompanyWorkspacePageClient
           data={data}
-          feeRows={feeRows}
           editMode={sp.mode === "edit"}
           returnTo={returnTo}
         />

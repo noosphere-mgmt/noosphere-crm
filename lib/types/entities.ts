@@ -194,6 +194,7 @@ export type Company = {
   country: string;
   city: string;
   district: string | null;
+  office_address: string | null;
   website: string | null;
   phone: string | null;
   email: string | null;

@@ -20,8 +20,20 @@ import {
 import { BUILDING_TITLES } from "@/lib/lookups";
 
 export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
-  const { theme, filters, cities, districts, isPending, search, setSearch, patch, resetAll, hasActiveFilters } =
-    usePremisesFiltersBar(props);
+  const {
+    theme,
+    filters,
+    cities,
+    districts,
+    isPending,
+    search,
+    setSearch,
+    onSearchFocus,
+    onSearchBlur,
+    patch,
+    resetAll,
+    hasActiveFilters,
+  } = usePremisesFiltersBar(props);
   const [pricePaxMthMax, setPricePaxMthMax] = useState(filters.price_pax_mth_max ?? "");
   useEffect(() => {
     setPricePaxMthMax(filters.price_pax_mth_max ?? "");
@@ -32,11 +44,14 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
 
   const searchInput = (
     <input
-      type="search"
+      type="text"
       value={search}
       onChange={(e) => setSearch(e.target.value)}
+      onFocus={onSearchFocus}
+      onBlur={onSearchBlur}
       placeholder="Search buildings & premises — names, address, notes, floor/unit, operator…"
       aria-label="Search buildings and premises"
+      autoComplete="off"
       className={theme.searchInput}
     />
   );

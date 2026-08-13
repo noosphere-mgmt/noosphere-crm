@@ -66,7 +66,7 @@ export function CompanyWorkspaceHeader({
             Log activity
           </Link>
           <Link
-            href={companyWorkspaceHref(company, "profile", "edit", returnTo)}
+            href={companyWorkspaceHref(company, "overview", "edit", returnTo)}
             className={moduleEditButtonClass("connections")}
             aria-label="Edit company"
             title="Edit company"

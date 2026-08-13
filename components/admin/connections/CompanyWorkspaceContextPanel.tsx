@@ -5,7 +5,6 @@ import { formatActivityDate, formatActivityNotesPreview } from "@/lib/activities
 import { opportunityDetailHref } from "@/lib/opportunityDetailNav";
 import { companyWorkspaceHref } from "@/lib/companyWorkspaceNav";
 import type { CompanyDrawerData } from "@/lib/repos/connectionsDrawer";
-import type { CompanyFeeDealRow } from "@/lib/repos/connectionOpportunities";
 
 function ContextSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -18,26 +17,23 @@ function ContextSection({ title, children }: { title: string; children: React.Re
 
 export function CompanyWorkspaceContextPanel({
   data,
-  feeRows,
 }: {
   data: CompanyDrawerData;
-  feeRows: CompanyFeeDealRow[];
 }) {
   const { company, opportunities, crmSummary, timeline } = data;
   const recentDeals = opportunities.slice(0, 4);
   const recentActivities = timeline.slice(0, 5);
-  const openFeeLines = feeRows.filter((r) => (r.collect_fee_status ?? "expected") === "expected").length;
 
   return (
     <div className="flex h-full flex-col text-sm">
       <div className="border-b border-slate-200 px-4 py-3">
         <h2 className="text-sm font-semibold text-slate-900">Relationship context</h2>
-        <p className="mt-0.5 text-xs text-slate-500">Opportunities, supply, fees, and activity</p>
+        <p className="mt-0.5 text-xs text-slate-500">Opportunities, properties, and activity</p>
       </div>
       <div className="flex-1 overflow-y-auto">
         <ContextSection title="Open opportunities">
           {recentDeals.length === 0 ? (
-            <p className="text-xs text-slate-500">No linked deals.</p>
+            <p className="text-xs text-slate-500">No linked opportunities.</p>
           ) : (
             <ul className="space-y-2">
               {recentDeals.map((row) => (
@@ -54,33 +50,21 @@ export function CompanyWorkspaceContextPanel({
             </ul>
           )}
           <Link
-            href={companyWorkspaceHref(company, "deals")}
+            href={companyWorkspaceHref(company, "opportunities")}
             className="mt-2 inline-block text-xs font-medium text-violet-800 hover:underline"
           >
-            All deals →
+            All opportunities →
           </Link>
         </ContextSection>
-        <ContextSection title="Supply">
+        <ContextSection title="Properties">
           <p className="text-xs text-slate-600">
             {crmSummary.premises} premises · {crmSummary.properties} buildings
           </p>
           <Link
-            href={companyWorkspaceHref(company, "supply")}
+            href={companyWorkspaceHref(company, "premises")}
             className="mt-2 inline-block text-xs font-medium text-blue-800 hover:underline"
           >
-            View supply →
-          </Link>
-        </ContextSection>
-        <ContextSection title="Fees">
-          <p className="text-xs text-slate-600">
-            {feeRows.length} party line{feeRows.length === 1 ? "" : "s"}
-            {openFeeLines > 0 ? ` · ${openFeeLines} expected` : ""}
-          </p>
-          <Link
-            href={companyWorkspaceHref(company, "fees")}
-            className="mt-2 inline-block text-xs font-medium text-slate-700 hover:underline"
-          >
-            Fee detail →
+            View properties →
           </Link>
         </ContextSection>
         <ContextSection title="Recent activity">
@@ -102,11 +86,6 @@ export function CompanyWorkspaceContextPanel({
             </ul>
           )}
         </ContextSection>
-      </div>
-      <div className="border-t border-slate-200 px-4 py-3">
-        <p className="text-xs text-slate-400">
-          Referral tracking reserved for a future phase. Party roles on deals remain extensible.
-        </p>
       </div>
     </div>
   );

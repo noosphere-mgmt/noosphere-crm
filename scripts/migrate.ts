@@ -325,6 +325,10 @@ async function main(): Promise<void> {
   await query(migratePhase74);
   console.log("Phase 74 serviced/shared office package pricing applied.");
 
+  const migratePhase75 = await readSql("schema-migrate-phase75-company-office-address.sql");
+  await query(migratePhase75);
+  console.log("Phase 75 company office address applied.");
+
   const crosswalkCompanies = await query<{ n: string }>(
     `SELECT COUNT(*)::text AS n FROM business_id_crosswalk WHERE entity_type = 'company'`,
   );

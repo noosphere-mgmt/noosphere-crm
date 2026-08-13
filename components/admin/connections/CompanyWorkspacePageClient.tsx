@@ -5,11 +5,13 @@ import { updateCompanyAction } from "@/app/admin/companies/actions";
 import { AdvisoryWorkspaceShell } from "@/components/admin/workspace/AdvisoryWorkspaceShell";
 import { EntityActivityWorkspace } from "@/components/admin/activities/EntityActivityWorkspace";
 import { CompanyContactsTabClient } from "@/components/admin/connections/CompanyContactsTabClient";
-import { CompanyFeesTab } from "@/components/admin/connections/CompanyFeesTab";
 import { CompanyInlineOverview } from "@/components/admin/connections/CompanyInlineOverview";
+import { CompanyRelationshipStrip } from "@/components/admin/connections/CompanyRelationshipStrip";
 import { CompanySupplyTab } from "@/components/admin/connections/CompanySupplyTab";
+import { CompanyWorkspaceContextPanel } from "@/components/admin/connections/CompanyWorkspaceContextPanel";
 import { CompanyWorkspaceHeader } from "@/components/admin/connections/CompanyWorkspaceHeader";
 import { CompanyWorkspaceTabs } from "@/components/admin/connections/CompanyWorkspaceTabs";
+import { EntityRelationshipsTab } from "@/components/admin/connections/EntityRelationshipsTab";
 import { LinkedOpportunitiesTable } from "@/components/admin/connections/LinkedOpportunitiesTable";
 import { FormEditingContext, ModuleStickyEditBar } from "@/components/admin/ModuleActionBar";
 import { CompanyFormFields } from "@/components/admin/CompanyFormFields";
@@ -18,16 +20,13 @@ import type { CompanyDetailTabId } from "@/lib/companyDetailTab";
 import { getCompanyWorkspaceTab, type CompanyWorkspaceTabId } from "@/lib/companyWorkspaceTab";
 import { companyWorkspaceHref } from "@/lib/companyWorkspaceNav";
 import type { CompanyDrawerData } from "@/lib/repos/connectionsDrawer";
-import type { CompanyFeeDealRow } from "@/lib/repos/connectionOpportunities";
 
 export function CompanyWorkspacePageClient({
   data,
-  feeRows,
   editMode,
   returnTo = "/admin/companies",
 }: {
   data: CompanyDrawerData;
-  feeRows: CompanyFeeDealRow[];
   editMode: boolean;
   returnTo?: string;
 }) {
@@ -41,21 +40,22 @@ export function CompanyWorkspacePageClient({
 
   function workspaceTabHref(legacyTab: CompanyDetailTabId): string {
     const map: Partial<Record<CompanyDetailTabId, CompanyWorkspaceTabId>> = {
-      overview: "profile",
+      overview: "overview",
       contacts: "contacts",
-      opportunities: "deals",
-      premises: "supply",
+      relationships: "relationships",
+      opportunities: "opportunities",
+      premises: "premises",
       activities: "activities",
-      relationships: "supply",
-      notes: "profile",
+      notes: "overview",
     };
-    return companyWorkspaceHref(company, map[legacyTab] ?? "profile", undefined, returnTo);
+    return companyWorkspaceHref(company, map[legacyTab] ?? "overview", undefined, returnTo);
   }
 
   const counts = {
     contacts: data.contacts.length,
-    deals: data.opportunities.length,
-    supply: data.spaces.length,
+    relationships: data.relationships.length,
+    opportunities: data.opportunities.length,
+    premises: data.linkedProperties.length,
   };
 
   if (editMode) {
@@ -80,7 +80,7 @@ export function CompanyWorkspacePageClient({
 
   function renderTab() {
     switch (tab) {
-      case "profile":
+      case "overview":
         return (
           <CompanyInlineOverview
             company={company}
@@ -101,7 +101,17 @@ export function CompanyWorkspacePageClient({
             listReturnTo={returnTo}
           />
         );
-      case "deals":
+      case "relationships":
+        return (
+          <EntityRelationshipsTab
+            entityType="company"
+            entityId={company.id}
+            entityName={company.company_name}
+            relationships={data.relationships}
+            basePath="/admin/companies"
+          />
+        );
+      case "opportunities":
         return (
           <LinkedOpportunitiesTable
             rows={data.opportunities}
@@ -109,8 +119,8 @@ export function CompanyWorkspacePageClient({
             newOpportunityHref={`/admin/opportunities?new=1&company_id=${company.id}`}
           />
         );
-      case "supply":
-        return <CompanySupplyTab companyId={company.id} spaces={data.spaces} />;
+      case "premises":
+        return <CompanySupplyTab companyId={company.id} rows={data.linkedProperties} />;
       case "activities":
         return (
           <EntityActivityWorkspace
@@ -121,8 +131,6 @@ export function CompanyWorkspacePageClient({
             }}
           />
         );
-      case "fees":
-        return <CompanyFeesTab rows={feeRows} />;
       default:
         return null;
     }
@@ -138,8 +146,12 @@ export function CompanyWorkspacePageClient({
             returnTo={returnTo}
           />
         }
+        requirementStrip={
+          <CompanyRelationshipStrip company={company} crmSummary={data.crmSummary} />
+        }
         tabs={<CompanyWorkspaceTabs company={company} counts={counts} returnTo={returnTo} />}
-        showAssistToggle={false}
+        contextPanel={<CompanyWorkspaceContextPanel data={data} />}
+        showAssistToggle
       >
         {renderTab()}
       </AdvisoryWorkspaceShell>

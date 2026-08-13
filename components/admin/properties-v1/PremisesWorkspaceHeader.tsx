@@ -19,12 +19,15 @@ export function PremisesWorkspaceHeader({
   lastActivityDate,
   onOpenBuilding,
   returnTo,
+  editHref,
 }: {
   premises: PremisesV1;
   propertyOptions: PropertyV1SelectOption[];
   lastActivityDate?: string | null;
   onOpenBuilding?: () => void;
   returnTo: string;
+  /** When omitted, Edit opens overview edit mode. */
+  editHref?: string;
 }) {
   const theme = moduleAccentClasses("properties");
   const businessId = premises.business_id;
@@ -91,7 +94,7 @@ export function PremisesWorkspaceHeader({
               Log activity
             </Link>
             <Link
-              href={premisesWorkspaceHref(premises, "overview", "edit", returnTo)}
+              href={editHref ?? premisesWorkspaceHref(premises, "overview", "edit", returnTo)}
               className={moduleEditButtonClass("properties")}
               aria-label="Edit premises"
               title="Edit premises"

@@ -14,6 +14,10 @@ import {
 } from "@/lib/repos/connectionOpportunities";
 import { getContact, listContacts } from "@/lib/repos/contacts";
 import { getCompanyCrmSummary, type CompanyCrmSummary } from "@/lib/repos/companyCrmSummary";
+import {
+  listCompanyLinkedProperties,
+  type CompanyLinkedPropertyRow,
+} from "@/lib/repos/companyLinkedProperties";
 import { getContactCrmSummary, type ContactCrmSummary } from "@/lib/repos/contactCrmSummary";
 import { lookupV1CompanyId } from "@/lib/companyDrawerResolve";
 import { lookupV1ContactId, resolveLegacyCompanyIdFromContactRef } from "@/lib/contactDrawerResolve";
@@ -30,7 +34,9 @@ export type CompanyDrawerData = {
   contacts: Contact[];
   opportunities: LinkedOpportunityRow[];
   relationships: EntityRelationshipRow[];
+  /** @deprecated Prefer linkedProperties — legacy assets table. */
   spaces: Asset[];
+  linkedProperties: CompanyLinkedPropertyRow[];
   timeline: ActivityListRow[];
   companies: CompanyOption[];
   crmSummary: CompanyCrmSummary;
@@ -56,20 +62,43 @@ export async function getCompanyDrawerData(id: number): Promise<CompanyDrawerDat
   const company = await getCompany(id);
   if (!company) return null;
 
-  const [contacts, opportunities, relationships, spaces, timeline, companies, crmSummary, lastActivityDate, v1CompanyId] =
-    await Promise.all([
-      listContacts(id),
-      listLinkedOpportunitiesForCompany(id),
-      listEntityRelationships("company", id),
-      listAssetsForCompany(id),
-      listCompanyTimeline(id).catch(() => [] as ActivityListRow[]),
-      listCompanyOptions(),
-      getCompanyCrmSummary(id),
-      getLastActivityDateForCompany(id).catch(() => null),
-      lookupV1CompanyId(id),
-    ]);
+  const [
+    contacts,
+    opportunities,
+    relationships,
+    spaces,
+    linkedProperties,
+    timeline,
+    companies,
+    crmSummary,
+    lastActivityDate,
+    v1CompanyId,
+  ] = await Promise.all([
+    listContacts(id),
+    listLinkedOpportunitiesForCompany(id),
+    listEntityRelationships("company", id),
+    listAssetsForCompany(id).catch(() => [] as Asset[]),
+    listCompanyLinkedProperties(id).catch(() => [] as CompanyLinkedPropertyRow[]),
+    listCompanyTimeline(id).catch(() => [] as ActivityListRow[]),
+    listCompanyOptions(),
+    getCompanyCrmSummary(id),
+    getLastActivityDateForCompany(id).catch(() => null),
+    lookupV1CompanyId(id),
+  ]);
 
-  return { company, v1CompanyId, contacts, opportunities, relationships, spaces, timeline, companies, crmSummary, lastActivityDate };
+  return {
+    company,
+    v1CompanyId,
+    contacts,
+    opportunities,
+    relationships,
+    spaces,
+    linkedProperties,
+    timeline,
+    companies,
+    crmSummary,
+    lastActivityDate,
+  };
 }
 
 export async function getContactDrawerData(id: number | string): Promise<ContactDrawerData | null> {

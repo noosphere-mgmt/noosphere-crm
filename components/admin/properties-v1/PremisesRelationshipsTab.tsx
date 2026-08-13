@@ -238,6 +238,19 @@ function PremisesRelationshipsManager({
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-slate-600">Use Edit on a row to change role, company, or contact.</p>
+        {!adding ? (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={startAdd}
+            className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            + Add relationship
+          </button>
+        ) : null}
+      </div>
       <div className="overflow-x-auto rounded-lg border border-white/80 bg-white/70">
         <table className="min-w-full text-sm">
           <thead className="bg-blue-50/80 text-left text-xs text-slate-500">
@@ -246,14 +259,14 @@ function PremisesRelationshipsManager({
               <th className="px-3 py-2 font-medium">Company</th>
               <th className="px-3 py-2 font-medium">Contact</th>
               <th className="px-3 py-2 font-medium">Remarks</th>
-              <th className="w-24 px-3 py-2 font-medium">Actions</th>
+              <th className="sticky right-0 w-36 bg-blue-50/95 px-3 py-2 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
             {visibleRows.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
-                  No relationships recorded.
+                  No relationships recorded. Use + Add relationship to create one.
                 </td>
               </tr>
             ) : (
@@ -301,12 +314,21 @@ function PremisesRelationshipsManager({
                       {formatPremisesRelationshipContactLabel(contactLabels, line.contact_id)}
                     </td>
                     <td className="max-w-[12rem] px-3 py-2 whitespace-pre-wrap text-slate-700">{display(line.remarks)}</td>
-                    <td className="px-3 py-2">
-                      <ModuleRowActions
-                        module="properties"
-                        onEdit={() => startEdit(index)}
-                        onDelete={() => handleDelete(index)}
-                      />
+                    <td className="sticky right-0 bg-white/95 px-3 py-2">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          disabled={pending}
+                          onClick={() => startEdit(index)}
+                          className="rounded-md px-2 py-1 text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+                        >
+                          Edit
+                        </button>
+                        <ModuleRowActions
+                          module="properties"
+                          onDelete={() => handleDelete(index)}
+                        />
+                      </div>
                     </td>
                   </tr>
                 ),
@@ -348,16 +370,7 @@ function PremisesRelationshipsManager({
             </button>
           </div>
         </div>
-      ) : (
-        <button
-          type="button"
-          disabled={pending}
-          onClick={startAdd}
-          className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-        >
-          + Add relationship
-        </button>
-      )}
+      ) : null}
 
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
     </div>
@@ -384,12 +397,11 @@ export function PremisesRelationshipsTab({
     return { ok: result.ok, error: result.ok ? undefined : result.error };
   };
   return (
-    <PremisesSectionCard title="Parties">
+    <PremisesSectionCard title="Relationships">
       <section className="mb-4 border-b border-slate-200 pb-4">
         <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Commission</h3>
         <InlineTextAreaField label="Terms" value={premises.commission_remarks} compact onSave={save("commission_remarks")} />
       </section>
-      <p className="mb-3 text-sm text-slate-600">Companies and contacts linked to this premises.</p>
       <PremisesRelationshipsManager
         premises={premises}
         companies={companies}

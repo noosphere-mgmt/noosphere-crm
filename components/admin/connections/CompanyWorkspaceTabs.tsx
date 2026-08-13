@@ -7,7 +7,7 @@ import { companyWorkspaceHref } from "@/lib/companyWorkspaceNav";
 import type { Company } from "@/lib/types/entities";
 
 const tabClasses = {
-  profile: {
+  overview: {
     active: "border-violet-600 bg-violet-600 text-white",
     idle: "border-violet-200 bg-violet-50 text-violet-800 hover:bg-violet-100",
   },
@@ -15,21 +15,21 @@ const tabClasses = {
     active: "border-blue-600 bg-blue-600 text-white",
     idle: "border-blue-200 bg-blue-50 text-blue-800 hover:bg-blue-100",
   },
-  deals: {
+  relationships: {
+    active: "border-indigo-600 bg-indigo-600 text-white",
+    idle: "border-indigo-200 bg-indigo-50 text-indigo-800 hover:bg-indigo-100",
+  },
+  opportunities: {
     active: "border-emerald-600 bg-emerald-600 text-white",
     idle: "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100",
-  },
-  supply: {
-    active: "border-amber-500 bg-amber-500 text-white",
-    idle: "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100",
   },
   activities: {
     active: "border-rose-500 bg-rose-500 text-white",
     idle: "border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100",
   },
-  fees: {
-    active: "border-slate-700 bg-slate-700 text-white",
-    idle: "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100",
+  premises: {
+    active: "border-amber-500 bg-amber-500 text-white",
+    idle: "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100",
   },
 } as const;
 
@@ -39,7 +39,12 @@ export function CompanyWorkspaceTabs({
   returnTo,
 }: {
   company: Company;
-  counts?: { contacts?: number; deals?: number; supply?: number };
+  counts?: {
+    contacts?: number;
+    relationships?: number;
+    opportunities?: number;
+    premises?: number;
+  };
   returnTo?: string | null;
 }) {
   const searchParams = useSearchParams();
@@ -53,15 +58,20 @@ export function CompanyWorkspaceTabs({
         const count =
           tab.id === "contacts"
             ? counts?.contacts ?? 0
-            : tab.id === "deals"
-              ? counts?.deals ?? 0
-              : tab.id === "supply"
-                ? counts?.supply ?? 0
-                : 0;
-        const label =
-          count > 0 && (tab.id === "contacts" || tab.id === "deals" || tab.id === "supply")
-            ? `${tab.label} (${count})`
-            : tab.label;
+            : tab.id === "relationships"
+              ? counts?.relationships ?? 0
+              : tab.id === "opportunities"
+                ? counts?.opportunities ?? 0
+                : tab.id === "premises"
+                  ? counts?.premises ?? 0
+                  : 0;
+        const showCount =
+          count > 0 &&
+          (tab.id === "contacts" ||
+            tab.id === "relationships" ||
+            tab.id === "opportunities" ||
+            tab.id === "premises");
+        const label = showCount ? `${tab.label} (${count})` : tab.label;
         return (
           <Link
             key={tab.id}

@@ -5,7 +5,7 @@ import { OPEN_OPPORTUNITY_STATUS_SQL } from "@/lib/openOpportunityStatus";
 
 const companySelect = `
   c.id, c.company_name, c.company_name_zh, c.company_name_cn, c.roles,
-  c.coverage, c.country, c.city, c.district,
+  c.coverage, c.country, c.city, c.district, c.office_address,
   c.website, c.phone, c.email,
   c.industry, c.source, c.relationship_owner,
   c.last_contact_date::text, c.last_meeting_date::text, c.next_follow_up_date::text,

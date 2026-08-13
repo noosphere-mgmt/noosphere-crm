@@ -7,7 +7,7 @@ import type { Company, CompanyRole, RelationshipStrength } from "@/lib/types/ent
 
 const companySelect = `
   id, company_name, company_name_zh, company_name_cn, roles,
-  coverage, country, city, district,
+  coverage, country, city, district, office_address,
   website, phone, email,
   industry, source, relationship_owner,
   last_contact_date::text, last_meeting_date::text, next_follow_up_date::text,
@@ -18,7 +18,7 @@ const companySelect = `
 /** Qualified select for JOINs (e.g. id_map_v1 also has created_at). */
 const companySelectQualified = `
   companies.id, companies.company_name, companies.company_name_zh, companies.company_name_cn, companies.roles,
-  companies.coverage, companies.country, companies.city, companies.district,
+  companies.coverage, companies.country, companies.city, companies.district, companies.office_address,
   companies.website, companies.phone, companies.email,
   companies.industry, companies.source, companies.relationship_owner,
   companies.last_contact_date::text AS last_contact_date,
@@ -37,6 +37,7 @@ export type CompanyInput = {
   country?: string;
   city?: string;
   district?: string | null;
+  office_address?: string | null;
   website?: string | null;
   phone?: string | null;
   email?: string | null;
@@ -73,6 +74,7 @@ function companyValues(input: CompanyInput) {
     input.country?.trim() || "Hong Kong",
     input.city?.trim() || "Hong Kong",
     input.district?.trim() || null,
+    input.office_address?.trim() || null,
     input.website?.trim() || null,
     input.phone?.trim() || null,
     input.email?.trim() || null,
@@ -158,11 +160,11 @@ export async function createCompany(input: CompanyInput): Promise<number> {
   const rows = await query<{ id: string }>(
     `INSERT INTO companies (
        company_name, company_name_zh, company_name_cn, roles, coverage, country, city, district,
-       website, phone, email,
+       office_address, website, phone, email,
        industry, source, relationship_owner,
        last_contact_date, last_meeting_date, next_follow_up_date,
        relationship_strength, notes, is_active, business_id
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
      RETURNING id::text AS id`,
     [...companyValues(input), businessId],
   );
@@ -186,11 +188,11 @@ export async function updateCompany(id: number, input: CompanyInput): Promise<vo
   await query(
     `UPDATE companies SET
        company_name = $2, company_name_zh = $3, company_name_cn = $4, roles = $5,
-       coverage = $6, country = $7, city = $8, district = $9,
-       website = $10, phone = $11,
-       email = $12, industry = $13, source = $14, relationship_owner = $15,
-       last_contact_date = $16, last_meeting_date = $17, next_follow_up_date = $18,
-       relationship_strength = $19, notes = $20, is_active = $21
+       coverage = $6, country = $7, city = $8, district = $9, office_address = $10,
+       website = $11, phone = $12,
+       email = $13, industry = $14, source = $15, relationship_owner = $16,
+       last_contact_date = $17, last_meeting_date = $18, next_follow_up_date = $19,
+       relationship_strength = $20, notes = $21, is_active = $22
      WHERE id = $1`,
     [id, ...companyValues(input)],
   );

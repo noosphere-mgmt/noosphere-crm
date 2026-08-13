@@ -16,7 +16,8 @@ export function getCompanyTab(searchParams: { tab?: string }): CompanyDetailTabI
   if (tab === "notes") return "activities";
   if (tab === "profile") return "overview";
   if (tab === "deals") return "opportunities";
-  if (tab === "supply" || tab === "fees") return "premises";
+  if (tab === "supply") return "premises";
+  if (tab === "fees") return "overview";
   if (
     tab === "contacts" ||
     tab === "relationships" ||

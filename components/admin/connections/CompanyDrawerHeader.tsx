@@ -22,8 +22,8 @@ export function CompanyDrawerHeader({
   onClose: () => void;
 }) {
   const companyRef = { id: companyId, business_id: businessId };
-  const fullPage = companyWorkspaceHref(companyRef, "profile", undefined, "/admin/companies");
-  const fullEdit = companyWorkspaceHref(companyRef, "profile", "edit", "/admin/companies");
+  const fullPage = companyWorkspaceHref(companyRef, "overview", undefined, "/admin/companies");
+  const fullEdit = companyWorkspaceHref(companyRef, "overview", "edit", "/admin/companies");
 
   return (
     <div className="sticky top-0 z-10 shrink-0 border-b border-slate-200 bg-white px-5 py-4">
