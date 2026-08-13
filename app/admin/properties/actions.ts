@@ -6,7 +6,12 @@ import {
   parseRelationshipLines,
 } from "@/lib/premisesRelationships";
 import { buildPremisesRelationshipLinesPatch } from "@/lib/premisesRelationshipPatch";
-import { isPackageOperatingModel, parseYesNo } from "@/lib/premisesCommercial";
+import {
+  formatPackageOffers,
+  isPackageOperatingModel,
+  isServicedOrSharedOffice,
+  parseYesNo,
+} from "@/lib/premisesCommercial";
 import { applyPremisesFieldPatch } from "@/lib/premisesFieldPatch";
 import { composePropertyFullAddresses } from "@/lib/composeAddress";
 import { rethrowNextNavigation } from "@/lib/nextNavigation";
@@ -135,7 +140,10 @@ async function parsePremisesV1Form(formData: FormData): Promise<PremisesV1Patch>
   );
 
   const operatingModel = s(formData.get("operating_model"));
-  const packageFees = isPackageOperatingModel(operatingModel);
+  const productSubtype = s(formData.get("product_subtype"));
+  const packageFees =
+    isPackageOperatingModel(operatingModel) ||
+    isServicedOrSharedOffice({ product_subtype: productSubtype, operating_model: operatingModel });
   const propertyType = s(formData.get("property_type"));
   const viewTypes = formData.getAll("view_type").map(String).filter(Boolean);
   const inventoryStatus = s(formData.get("inventory_status"));
@@ -161,7 +169,7 @@ async function parsePremisesV1Form(formData: FormData): Promise<PremisesV1Patch>
       parsePropertyCategory(formData.get("property_category")) ?? derived.property_category,
     asset_class: s(formData.get("asset_class")),
     asset_scope: s(formData.get("asset_scope")),
-    product_subtype: s(formData.get("product_subtype")),
+    product_subtype: productSubtype,
     whole_asset_type: s(formData.get("whole_asset_type")),
     market_mode: s(formData.get("market_mode")),
     occupancy_status: s(formData.get("occupancy_status")),
@@ -197,8 +205,20 @@ async function parsePremisesV1Form(formData: FormData): Promise<PremisesV1Patch>
     offer_type: s(formData.get("offer_type")),
     offer_status: s(formData.get("offer_status")),
     capacity_pax: nInt(formData.get("capacity_pax")),
-    offers_unique_address: parseYesNo(formData.get("offers_unique_address")),
-    offers_stamp_duty: parseYesNo(formData.get("offers_stamp_duty")),
+    // Checkbox fields: checked posts "Yes"; unchecked omits the key → treat as No when package UI is shown.
+    offers_unique_address: packageFees
+      ? formData.get("offers_unique_address") === "Yes"
+        ? "Yes"
+        : "No"
+      : parseYesNo(formData.get("offers_unique_address")),
+    offers_stamp_duty: packageFees
+      ? formData.get("offers_stamp_duty") === "Yes"
+        ? "Yes"
+        : "No"
+      : parseYesNo(formData.get("offers_stamp_duty")),
+    package_offers: packageFees
+      ? formatPackageOffers(formData.getAll("package_offers").map(String))
+      : s(formData.get("package_offers")),
     price_pax_mth_unique_address: nDec(formData.get("price_pax_mth_unique_address")),
     price_pax_yr_unique_address: nDec(formData.get("price_pax_yr_unique_address")),
     price_pax_mth_workstation: nDec(formData.get("price_pax_mth_workstation")),
@@ -208,6 +228,7 @@ async function parsePremisesV1Form(formData: FormData): Promise<PremisesV1Patch>
     price_pax_mth_room_internal: nDec(formData.get("price_pax_mth_room_internal")),
     price_pax_yr_room_internal: nDec(formData.get("price_pax_yr_room_internal")),
     monthly_rent: nDec(formData.get("monthly_rent")),
+    annual_rent: nDec(formData.get("annual_rent")),
     rent_psf: nDec(formData.get("rent_psf")),
     deposit_months: s(formData.get("deposit_months")),
     rent_free_period: s(formData.get("rent_free_period")),

@@ -1,4 +1,5 @@
 import {
+  formatPackageOffers,
   isPackageOperatingModel,
   parseYesNo,
   SERVICED_OFFICE_PRICE_TIERS,
@@ -165,6 +166,9 @@ export function applyPremisesFieldPatch(
     case "monthly_rent":
       patch.monthly_rent = numOrNull(value);
       break;
+    case "annual_rent":
+      patch.annual_rent = numOrNull(value);
+      break;
     case "rent_psf":
       patch.rent_psf = numOrNull(value);
       break;
@@ -221,6 +225,13 @@ export function applyPremisesFieldPatch(
       patch[field] = yn;
       break;
     }
+    case "package_offers":
+      if (Array.isArray(value)) {
+        patch.package_offers = formatPackageOffers(value.map(String));
+      } else {
+        patch.package_offers = formatPackageOffers(String(value ?? "").split(/[,;|]/));
+      }
+      break;
     case "deposit_months":
     case "rent_free_period":
     case "expected_commission":

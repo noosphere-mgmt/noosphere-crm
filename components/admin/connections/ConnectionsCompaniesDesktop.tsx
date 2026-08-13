@@ -7,6 +7,12 @@ import { bulkDeleteContactsAction, bulkDuplicateContactsAction, duplicateContact
 import { AdminEntityLink } from "@/components/admin/AdminEntityLink";
 import { ModuleListingBulkActions } from "@/components/admin/ModuleBulkActionButtons";
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
+import {
+  SortableTableHeader,
+  compareSortText,
+  nextSortState,
+  type SortDir,
+} from "@/components/admin/SortableTableHeader";
 import { ConnectionsRelationshipTypeFilters } from "@/components/admin/connections/ConnectionsRelationshipTypeFilters";
 import { ConnectionsModuleHeader } from "@/components/admin/connections/ConnectionsModuleHeader";
 import { ConnectionsSearchToolbarDesktop } from "@/components/admin/connections/ConnectionsSearchToolbarDesktop";
@@ -31,6 +37,18 @@ import { contactBusinessExportId } from "@/lib/exportBusinessIds";
 import type { Contact } from "@/lib/types/entities";
 
 type CompanySelection = "all" | "individual" | number;
+type ContactSortKey =
+  | "name"
+  | "company"
+  | "role"
+  | "coverage"
+  | "last_contact"
+  | "opportunities";
+
+function compareSortNum(a: number, b: number, dir: SortDir): number {
+  const cmp = a - b;
+  return dir === "asc" ? cmp : -cmp;
+}
 
 const selectedRowClass = "bg-[#F5F3FF] font-semibold text-[#5B21B6] ring-1 ring-[#DDD6FE]";
 const selectedSoftRowClass = "bg-[#F5F3FF] text-[#5B21B6] ring-1 ring-[#DDD6FE]";
@@ -61,6 +79,8 @@ export function ConnectionsCompaniesDesktop({
   const [selection, setSelection] = useState<CompanySelection>("all");
   const [companyColumnSearch, setCompanyColumnSearch] = useState("");
   const [selectedContacts, setSelectedContacts] = useState<Set<string>>(new Set());
+  const [contactSortKey, setContactSortKey] = useState<ContactSortKey>("name");
+  const [contactSortDir, setContactSortDir] = useState<SortDir>("asc");
   const [contactBulkPending, startContactBulk] = useTransition();
   const previousRoleFilter = useRef(state.roleFilter);
   const individualContacts = useMemo(() => {
@@ -148,13 +168,48 @@ export function ConnectionsCompaniesDesktop({
     }
 
     const q = state.searchQuery.trim();
-    if (!q) return base;
+    const filtered = !q
+      ? base
+      : base.filter((contact) => {
+          if (contactMatchesGlobalSearch(contact, q)) return true;
+          if (contact.company_id == null) return false;
+          const company = companiesById.get(contact.company_id);
+          return company ? companyMatchesGlobalSearch(company, q) : false;
+        });
 
-    return base.filter((contact) => {
-      if (contactMatchesGlobalSearch(contact, q)) return true;
-      if (contact.company_id == null) return false;
-      const company = companiesById.get(contact.company_id);
-      return company ? companyMatchesGlobalSearch(company, q) : false;
+    return [...filtered].sort((a, b) => {
+      switch (contactSortKey) {
+        case "name":
+          return compareSortText(getContactLabel(a), getContactLabel(b), contactSortDir);
+        case "company":
+          return compareSortText(a.company_name, b.company_name, contactSortDir);
+        case "role":
+          return compareSortText(
+            formatCompanyRoles(a.contact_role),
+            formatCompanyRoles(b.contact_role),
+            contactSortDir,
+          );
+        case "coverage":
+          return compareSortText(
+            formatCoverage(a.coverage),
+            formatCoverage(b.coverage),
+            contactSortDir,
+          );
+        case "last_contact":
+          return compareSortText(
+            a.last_activity_date ?? a.last_contact_date,
+            b.last_activity_date ?? b.last_contact_date,
+            contactSortDir,
+          );
+        case "opportunities":
+          return compareSortNum(
+            a.open_opportunities ?? 0,
+            b.open_opportunities ?? 0,
+            contactSortDir,
+          );
+        default:
+          return 0;
+      }
     });
   }, [
     selection,
@@ -165,7 +220,17 @@ export function ConnectionsCompaniesDesktop({
     companiesById,
     hasCheckedCompanies,
     checkedCompanyIds,
+    contactSortKey,
+    contactSortDir,
   ]);
+
+  function handleContactSort(key: ContactSortKey) {
+    const next = nextSortState(contactSortKey, contactSortDir, key, (k) =>
+      k === "last_contact" || k === "opportunities" ? "desc" : "asc",
+    );
+    setContactSortKey(next.sortKey);
+    setContactSortDir(next.sortDir);
+  }
 
   const contactSelectionIds = useMemo(
     () => visibleContacts.map((contact) => String(contact.id)),
@@ -523,12 +588,56 @@ export function ConnectionsCompaniesDesktop({
                       disabled={visibleContacts.length === 0}
                     />
                   </th>
-                  <th className="px-4 py-3 font-medium">Contact</th>
-                  {selection === "all" ? <th className="px-4 py-3 font-medium">Company</th> : null}
-                  <th className="px-4 py-3 font-medium">Role</th>
-                  <th className="px-4 py-3 font-medium">Coverage</th>
-                  <th className="px-4 py-3 font-medium">Last contact</th>
-                  <th className="px-4 py-3 font-medium">Open opportunities</th>
+                  <SortableTableHeader
+                    label="Contact"
+                    sortKey="name"
+                    activeKey={contactSortKey}
+                    sortDir={contactSortDir}
+                    onSort={handleContactSort}
+                    className="px-4 py-3"
+                  />
+                  {selection === "all" ? (
+                    <SortableTableHeader
+                      label="Company"
+                      sortKey="company"
+                      activeKey={contactSortKey}
+                      sortDir={contactSortDir}
+                      onSort={handleContactSort}
+                      className="px-4 py-3"
+                    />
+                  ) : null}
+                  <SortableTableHeader
+                    label="Role"
+                    sortKey="role"
+                    activeKey={contactSortKey}
+                    sortDir={contactSortDir}
+                    onSort={handleContactSort}
+                    className="px-4 py-3"
+                  />
+                  <SortableTableHeader
+                    label="Coverage"
+                    sortKey="coverage"
+                    activeKey={contactSortKey}
+                    sortDir={contactSortDir}
+                    onSort={handleContactSort}
+                    className="px-4 py-3"
+                  />
+                  <SortableTableHeader
+                    label="Last contact"
+                    sortKey="last_contact"
+                    activeKey={contactSortKey}
+                    sortDir={contactSortDir}
+                    onSort={handleContactSort}
+                    className="px-4 py-3"
+                  />
+                  <SortableTableHeader
+                    label="Open opportunities"
+                    sortKey="opportunities"
+                    activeKey={contactSortKey}
+                    sortDir={contactSortDir}
+                    onSort={handleContactSort}
+                    className="px-4 py-3"
+                  />
                   <th className="w-24 px-4 py-3 font-medium">Actions</th>
                 </tr>
               </thead>

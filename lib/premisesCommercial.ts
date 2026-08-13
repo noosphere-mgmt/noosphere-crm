@@ -10,10 +10,15 @@ const PACKAGE_OPERATING_MODELS = new Set([
 
 export const YES_NO_OPTIONS = ["Yes", "No"] as const;
 
+/** Offers for serviced / shared office premises. */
+export const SERVICED_OFFICE_OFFERS = ["Private Rooms", "Open Desk", "Virtual Address"] as const;
+export type ServicedOfficeOffer = (typeof SERVICED_OFFICE_OFFERS)[number];
+
+/** @deprecated Kept for legacy DB columns / migration compatibility. */
 export const SERVICED_OFFICE_PRICE_TIERS = [
   {
     key: "unique_address",
-    label: "Unique Address",
+    label: "Virtual Address",
     mthField: "price_pax_mth_unique_address",
     yrField: "price_pax_yr_unique_address",
   },
@@ -41,6 +46,25 @@ export type ServicedOfficePriceTierKey = (typeof SERVICED_OFFICE_PRICE_TIERS)[nu
 export type ServicedOfficePriceField =
   | (typeof SERVICED_OFFICE_PRICE_TIERS)[number]["mthField"]
   | (typeof SERVICED_OFFICE_PRICE_TIERS)[number]["yrField"];
+
+export function parsePackageOffers(raw: string | null | undefined): ServicedOfficeOffer[] {
+  if (!raw?.trim()) return [];
+  const allowed = new Set<string>(SERVICED_OFFICE_OFFERS);
+  return raw
+    .split(/[,;|]/)
+    .map((s) => s.trim())
+    .filter((s): s is ServicedOfficeOffer => allowed.has(s));
+}
+
+export function formatPackageOffers(values: readonly string[]): string | null {
+  const allowed = new Set<string>(SERVICED_OFFICE_OFFERS);
+  const joined = values.map((v) => v.trim()).filter((v) => allowed.has(v)).join(", ");
+  return joined || null;
+}
+
+export function isServicedOfficeOffer(value: string | null | undefined): value is ServicedOfficeOffer {
+  return (SERVICED_OFFICE_OFFERS as readonly string[]).includes((value ?? "").trim());
+}
 
 export function isPackageOperatingModel(operatingModel: string | null | undefined): boolean {
   return PACKAGE_OPERATING_MODELS.has((operatingModel ?? "").trim());

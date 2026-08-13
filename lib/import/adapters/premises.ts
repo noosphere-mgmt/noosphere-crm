@@ -47,6 +47,9 @@ const FIELD_KEYS = [
   "desks",
   "capacity_pax",
   "no_of_rooms",
+  "offers_unique_address",
+  "offers_stamp_duty",
+  "package_offers",
   "gross_area_sqft",
   "gross_area_sqm",
   "net_area_sqft",
@@ -54,6 +57,7 @@ const FIELD_KEYS = [
   "asking_price",
   "asking_price_psf",
   "package_monthly_fee",
+  "annual_rent",
   "rent_psf",
   "management_fee",
   "management_fee_psf",
@@ -104,6 +108,10 @@ const SELECT = `
   pm.workstation_count AS desks,
   pm.capacity_pax,
   pm.no_of_rooms,
+  pm.offers_unique_address,
+  pm.offers_stamp_duty,
+  pm.package_offers,
+  pm.annual_rent::text AS annual_rent,
   pm.gross_area_sqft::text AS gross_area_sqft,
   pm.gross_area_sqm::text AS gross_area_sqm,
   pm.net_area_sqft::text AS net_area_sqft,
@@ -160,6 +168,9 @@ const PREMISES_DB_COLUMNS = new Set([
   "workstation_count",
   "capacity_pax",
   "no_of_rooms",
+  "offers_unique_address",
+  "offers_stamp_duty",
+  "package_offers",
   "gross_area_sqft",
   "gross_area_sqm",
   "net_area_sqft",
@@ -167,6 +178,7 @@ const PREMISES_DB_COLUMNS = new Set([
   "asking_sale_price",
   "sale_price_psf",
   "monthly_rent",
+  "annual_rent",
   "rent_psf",
   "management_fee",
   "management_fee_psf",
@@ -305,6 +317,19 @@ function premiseFieldDef(key: (typeof FIELD_KEYS)[number]): ImportFieldDef {
   }
   if (key === "listing_remarks") return { ...base, type: "string", aliases: ["lease_terms"] };
   if (key === "commission_remarks") return { ...base, type: "string", aliases: ["commission"] };
+  if (key === "offers_unique_address") {
+    return { ...base, type: "enum", enumValues: ["Yes", "No"], aliases: ["unique_address", "virtual_address"] };
+  }
+  if (key === "offers_stamp_duty") {
+    return { ...base, type: "enum", enumValues: ["Yes", "No"], aliases: ["stamp_duty"] };
+  }
+  if (key === "package_offers") {
+    return {
+      ...base,
+      type: "string",
+      aliases: ["offers"],
+    };
+  }
   if (key.includes("date")) return { ...base, type: "date" };
   if (
     key.includes("area") ||

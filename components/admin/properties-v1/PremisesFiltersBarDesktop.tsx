@@ -6,7 +6,7 @@ import {
   type PremisesFiltersBarProps,
 } from "@/components/admin/properties-v1/usePremisesFiltersBar";
 import {
-  SERVICED_OFFICE_PRICE_TIERS,
+  SERVICED_OFFICE_OFFERS,
   YES_NO_OPTIONS,
 } from "@/lib/premisesCommercial";
 import {
@@ -34,10 +34,10 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
     resetAll,
     hasActiveFilters,
   } = usePremisesFiltersBar(props);
-  const [pricePaxMthMax, setPricePaxMthMax] = useState(filters.price_pax_mth_max ?? "");
+  const [monthlyRentMax, setMonthlyRentMax] = useState(filters.monthly_rent_max ?? "");
   useEffect(() => {
-    setPricePaxMthMax(filters.price_pax_mth_max ?? "");
-  }, [filters.price_pax_mth_max]);
+    setMonthlyRentMax(filters.monthly_rent_max ?? "");
+  }, [filters.monthly_rent_max]);
   const subtypeOptions = filters.asset_class && filters.asset_class in PREMISES_PRODUCT_SUBTYPES
     ? PREMISES_PRODUCT_SUBTYPES[filters.asset_class as keyof typeof PREMISES_PRODUCT_SUBTYPES]
     : Object.values(PREMISES_PRODUCT_SUBTYPES).flat();
@@ -225,15 +225,15 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
         </select>
 
         <select
-          aria-label="Package product"
-          value={filters.package_product ?? ""}
-          onChange={(e) => patch({ package_product: e.target.value || undefined })}
+          aria-label="Offers"
+          value={filters.package_offers ?? ""}
+          onChange={(e) => patch({ package_offers: e.target.value || undefined })}
           className={theme.searchSelect}
         >
-          <option value="">Package product</option>
-          {SERVICED_OFFICE_PRICE_TIERS.map((t) => (
-            <option key={t.key} value={t.key}>
-              {t.label}
+          <option value="">Offers</option>
+          {SERVICED_OFFICE_OFFERS.map((offer) => (
+            <option key={offer} value={offer}>
+              {offer}
             </option>
           ))}
         </select>
@@ -243,16 +243,16 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
           min={0}
           step="1"
           inputMode="decimal"
-          aria-label="Max price per pax per month"
-          placeholder="Max $/pax/mth"
-          value={pricePaxMthMax}
-          onChange={(e) => setPricePaxMthMax(e.target.value)}
+          aria-label="Max monthly rent"
+          placeholder="Max monthly rent"
+          value={monthlyRentMax}
+          onChange={(e) => setMonthlyRentMax(e.target.value)}
           onBlur={() =>
-            patch({ price_pax_mth_max: pricePaxMthMax.trim() || undefined })
+            patch({ monthly_rent_max: monthlyRentMax.trim() || undefined })
           }
           onKeyDown={(e) => {
             if (e.key === "Enter") {
-              patch({ price_pax_mth_max: pricePaxMthMax.trim() || undefined });
+              patch({ monthly_rent_max: monthlyRentMax.trim() || undefined });
             }
           }}
           className={theme.searchSelect}

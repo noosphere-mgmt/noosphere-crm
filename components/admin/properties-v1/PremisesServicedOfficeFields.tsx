@@ -1,15 +1,40 @@
 "use client";
 
-import { InlineSelectField, InlineTextField } from "@/components/admin/inline/InlineFields";
+import { InlineMultiSelectField, InlineTextField } from "@/components/admin/inline/InlineFields";
 import { PremisesSectionCard } from "@/components/admin/properties-v1/premisesDrawerUi";
 import {
   isServicedOrSharedOffice,
-  SERVICED_OFFICE_PRICE_TIERS,
-  YES_NO_OPTIONS,
+  parsePackageOffers,
+  SERVICED_OFFICE_OFFERS,
 } from "@/lib/premisesCommercial";
 import type { PremisesV1 } from "@/lib/repos/premisesV1";
 
 type SaveFn = (field: string) => (value: unknown) => Promise<{ ok: boolean; error?: string }>;
+
+function YesNoCheckbox({
+  label,
+  value,
+  onSave,
+}: {
+  label: string;
+  value: string | null | undefined;
+  onSave: (value: unknown) => Promise<{ ok: boolean; error?: string }>;
+}) {
+  const checked = value === "Yes";
+  return (
+    <label className="inline-flex min-h-[3.25rem] cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white/70 px-3 py-2 text-sm font-medium text-slate-800">
+      <input
+        type="checkbox"
+        className="rounded border-slate-300"
+        checked={checked}
+        onChange={(e) => {
+          void onSave(e.target.checked ? "Yes" : "No");
+        }}
+      />
+      {label}
+    </label>
+  );
+}
 
 export function PremisesServicedOfficeFields({
   premises,
@@ -22,58 +47,38 @@ export function PremisesServicedOfficeFields({
 
   return (
     <PremisesSectionCard title="Serviced / shared office" className="!p-3">
-      <p className="mb-2 text-xs text-slate-500">
-        Unique address = dedicated room number per company. Stamp duty = available for stamp duty registration.
-      </p>
-      <div className="mb-3 grid grid-cols-2 gap-2.5">
-        <InlineSelectField
-          label="Unique Address?"
-          value={premises.offers_unique_address}
-          options={YES_NO_OPTIONS.map((value) => ({ value, label: value }))}
-          onSave={save("offers_unique_address")}
+      <div className="mb-3 grid grid-cols-1 items-stretch gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+        <InlineMultiSelectField
+          label="Offers"
+          values={parsePackageOffers(premises.package_offers)}
+          options={[...SERVICED_OFFICE_OFFERS]}
+          onSave={save("package_offers")}
+          colSpan={1}
         />
-        <InlineSelectField
-          label="Stamp Duty?"
+        <YesNoCheckbox
+          label="Stamp Duty"
           value={premises.offers_stamp_duty}
-          options={YES_NO_OPTIONS.map((value) => ({ value, label: value }))}
           onSave={save("offers_stamp_duty")}
         />
+        <YesNoCheckbox
+          label="Unique Address"
+          value={premises.offers_unique_address}
+          onSave={save("offers_unique_address")}
+        />
       </div>
-      <div className="overflow-x-auto rounded-lg border border-slate-200">
-        <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-            <tr>
-              <th className="px-3 py-2">Product</th>
-              <th className="px-3 py-2">Price/pax/mth</th>
-              <th className="px-3 py-2">Price/pax/yr</th>
-            </tr>
-          </thead>
-          <tbody>
-            {SERVICED_OFFICE_PRICE_TIERS.map((tier) => (
-              <tr key={tier.key} className="border-t border-slate-100">
-                <td className="px-3 py-2 font-medium text-slate-800">{tier.label}</td>
-                <td className="px-3 py-1.5">
-                  <InlineTextField
-                    label={`${tier.label} price/pax/mth`}
-                    hideLabel
-                    value={premises[tier.mthField]}
-                    type="number"
-                    onSave={save(tier.mthField)}
-                  />
-                </td>
-                <td className="px-3 py-1.5">
-                  <InlineTextField
-                    label={`${tier.label} price/pax/yr`}
-                    hideLabel
-                    value={premises[tier.yrField]}
-                    type="number"
-                    onSave={save(tier.yrField)}
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="grid grid-cols-2 gap-2.5">
+        <InlineTextField
+          label="Monthly Rent"
+          value={premises.monthly_rent}
+          type="number"
+          onSave={save("monthly_rent")}
+        />
+        <InlineTextField
+          label="Annual Rent"
+          value={premises.annual_rent}
+          type="number"
+          onSave={save("annual_rent")}
+        />
       </div>
     </PremisesSectionCard>
   );

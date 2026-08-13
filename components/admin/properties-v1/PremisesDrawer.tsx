@@ -54,10 +54,12 @@ import {
 } from "@/lib/premisesClientData";
 import {
   isPackageOperatingModel,
+  isServicedOrSharedOffice,
   monthlyRentFieldLabel,
   packageFeesNote,
+  parsePackageOffers,
+  SERVICED_OFFICE_OFFERS,
   SERVICED_OFFICE_PRICE_TIERS,
-  YES_NO_OPTIONS,
 } from "@/lib/premisesCommercial";
 import { normalizeListingIntent } from "@/lib/premisesListing";
 import { parseSpaceForm } from "@/lib/premisesClassification";
@@ -278,7 +280,9 @@ function PremisesEditForm({
         : "Conventional";
   const rentLabel = monthlyRentFieldLabel(legacyOperatingModel);
   const feesNote = packageFeesNote(legacyOperatingModel);
-  const packageFees = isPackageOperatingModel(legacyOperatingModel);
+  const packageFees =
+    isPackageOperatingModel(legacyOperatingModel) ||
+    isServicedOrSharedOffice({ product_subtype: productSubtype, operating_model: legacyOperatingModel });
   const legacyListingIntent = marketMode === "lease_or_sale" ? "both" : marketMode === "lease" || marketMode === "sale" ? marketMode : "";
   const legacyInventoryStatus = marketMode === "sale" ? "For Sale" : marketMode === "lease" || marketMode === "lease_or_sale" ? "For Lease" : "";
   const officeProduct = ["conventional_office", "serviced_office", "shared_sublet_office"].includes(productSubtype);
@@ -415,76 +419,68 @@ function PremisesEditForm({
               {officeProduct ? <Field label="Capacity (pax)" name="capacity_pax" type="number" defaultValue={premises.capacity_pax?.toString() ?? ""} /> : null}
               {!officeProduct ? <input type="hidden" name="capacity_pax" value={premises.capacity_pax?.toString() ?? ""} /> : null}
               <ViewTypeMultiSelect defaultValue={premises.view_type} />
-              <div className="sm:col-span-2">
-                <Area label="Premises remarks" name="remarks" defaultValue={premises.remarks} rows={3} />
-              </div>
             </div>
           </Card>
 
           {packageFees ? (
             <Card title="Serviced / shared office">
-              <p className="mb-3 text-xs text-slate-500">
-                Unique address = dedicated room number per company. Stamp duty = available for stamp duty registration.
-              </p>
-              <div className="mb-4 grid gap-4 sm:grid-cols-2">
-                <SelectField
-                  label="Unique Address?"
-                  name="offers_unique_address"
-                  defaultValue={premises.offers_unique_address ?? ""}
-                  placeholder="— Select —"
-                  options={[...YES_NO_OPTIONS]}
-                />
-                <SelectField
-                  label="Stamp Duty?"
-                  name="offers_stamp_duty"
-                  defaultValue={premises.offers_stamp_duty ?? ""}
-                  placeholder="— Select —"
-                  options={[...YES_NO_OPTIONS]}
-                />
-              </div>
-              <div className="overflow-x-auto rounded-lg border border-slate-200">
-                <table className="min-w-full text-sm">
-                  <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    <tr>
-                      <th className="px-3 py-2">Product</th>
-                      <th className="px-3 py-2">Price/pax/mth</th>
-                      <th className="px-3 py-2">Price/pax/yr</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {SERVICED_OFFICE_PRICE_TIERS.map((tier) => (
-                      <tr key={tier.key} className="border-t border-slate-100">
-                        <td className="px-3 py-2 font-medium text-slate-800">{tier.label}</td>
-                        <td className="px-3 py-1.5">
-                          <input
-                            className={inputClass}
-                            name={tier.mthField}
-                            type="number"
-                            step="0.01"
-                            defaultValue={premises[tier.mthField] ?? ""}
-                            aria-label={`${tier.label} price/pax/mth`}
-                          />
-                        </td>
-                        <td className="px-3 py-1.5">
-                          <input
-                            className={inputClass}
-                            name={tier.yrField}
-                            type="number"
-                            step="0.01"
-                            defaultValue={premises[tier.yrField] ?? ""}
-                            aria-label={`${tier.label} price/pax/yr`}
-                          />
-                        </td>
-                      </tr>
+              <div className="mb-4 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-start">
+                <fieldset className="block text-sm font-medium text-slate-700">
+                  <span className="mb-1 block">Offers</span>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    {SERVICED_OFFICE_OFFERS.map((offer) => (
+                      <label
+                        key={offer}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700"
+                      >
+                        <input
+                          type="checkbox"
+                          name="package_offers"
+                          value={offer}
+                          defaultChecked={parsePackageOffers(premises.package_offers).includes(offer)}
+                          className="rounded border-slate-300"
+                        />
+                        {offer}
+                      </label>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                </fieldset>
+                <label className="inline-flex items-center gap-2 pt-7 text-sm font-medium text-slate-700">
+                  <input
+                    type="checkbox"
+                    name="offers_stamp_duty"
+                    value="Yes"
+                    defaultChecked={premises.offers_stamp_duty === "Yes"}
+                    className="rounded border-slate-300"
+                  />
+                  Stamp Duty
+                </label>
+                <label className="inline-flex items-center gap-2 pt-7 text-sm font-medium text-slate-700">
+                  <input
+                    type="checkbox"
+                    name="offers_unique_address"
+                    value="Yes"
+                    defaultChecked={premises.offers_unique_address === "Yes"}
+                    className="rounded border-slate-300"
+                  />
+                  Unique Address
+                </label>
               </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Monthly Rent" name="monthly_rent" type="number" defaultValue={premises.monthly_rent} />
+                <Field label="Annual Rent" name="annual_rent" type="number" defaultValue={premises.annual_rent} />
+              </div>
+              {SERVICED_OFFICE_PRICE_TIERS.flatMap((tier) => [
+                <input key={tier.mthField} type="hidden" name={tier.mthField} value={premises[tier.mthField] ?? ""} />,
+                <input key={tier.yrField} type="hidden" name={tier.yrField} value={premises[tier.yrField] ?? ""} />,
+              ])}
             </Card>
           ) : (
             <>
               <input type="hidden" name="offers_unique_address" value={premises.offers_unique_address ?? ""} />
               <input type="hidden" name="offers_stamp_duty" value={premises.offers_stamp_duty ?? ""} />
+              <input type="hidden" name="package_offers" value={premises.package_offers ?? ""} />
+              <input type="hidden" name="annual_rent" value={premises.annual_rent ?? ""} />
               {SERVICED_OFFICE_PRICE_TIERS.flatMap((tier) => [
                 <input key={tier.mthField} type="hidden" name={tier.mthField} value={premises[tier.mthField] ?? ""} />,
                 <input key={tier.yrField} type="hidden" name={tier.yrField} value={premises[tier.yrField] ?? ""} />,
@@ -496,7 +492,9 @@ function PremisesEditForm({
           <Card title="Lease terms">
             <div className="grid gap-4 sm:grid-cols-2">
               <SelectField label="Currency" name="currency" defaultValue={premises.currency ?? "HKD"} options={[...V1_CURRENCIES]} />
-              <Field label={rentLabel} name="monthly_rent" type="number" defaultValue={premises.monthly_rent} />
+              {!packageFees ? (
+                <Field label={rentLabel} name="monthly_rent" type="number" defaultValue={premises.monthly_rent} />
+              ) : null}
               <Field label="Rent PSF" name="rent_psf" type="number" defaultValue={premises.rent_psf} />
               <Field
                 label="Management fee"
@@ -521,13 +519,21 @@ function PremisesEditForm({
               <Field label="Contract term (months)" name="contract_term_months" type="number" defaultValue={premises.contract_term_months?.toString() ?? ""} />
               <Field label="Available date" name="available_date" type="date" defaultValue={premises.available_date?.slice(0, 10) ?? ""} />
               <div className="sm:col-span-2">
+                <Area label="Premises remarks" name="remarks" defaultValue={premises.remarks} rows={3} />
+              </div>
+              <div className="sm:col-span-2">
                 <Area label="Listing remarks" name="listing_remarks" defaultValue={premises.listing_remarks} rows={3} />
               </div>
             </div>
             {feesNote ? <p className="mt-3 text-xs text-slate-500">{feesNote}</p> : null}
           </Card>
           ) : null}
-          {!showLeaseTerms ? <input type="hidden" name="listing_remarks" value={premises.listing_remarks ?? ""} /> : null}
+          {!showLeaseTerms ? (
+            <input type="hidden" name="listing_remarks" value={premises.listing_remarks ?? ""} />
+          ) : null}
+          {!showLeaseTerms && !showSaleTerms ? (
+            <input type="hidden" name="remarks" value={premises.remarks ?? ""} />
+          ) : null}
 
           {showSaleTerms ? (
           <Card title="Sale terms">
@@ -537,6 +543,11 @@ function PremisesEditForm({
               <Field label="Asking sale price PSF" name="sale_price_psf" type="number" defaultValue={premises.sale_price_psf} />
               <Field label="Negotiated sale price" name="negotiable_sale_price" type="number" defaultValue={premises.negotiable_sale_price} />
               <Field label="Negotiated sale price PSF" name="negotiable_sale_price_psf" type="number" defaultValue={premises.negotiable_sale_price_psf} />
+              {!showLeaseTerms ? (
+                <div className="sm:col-span-2">
+                  <Area label="Premises remarks" name="remarks" defaultValue={premises.remarks} rows={3} />
+                </div>
+              ) : null}
             </div>
           </Card>
           ) : null}

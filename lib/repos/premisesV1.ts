@@ -7,11 +7,6 @@ import {
 } from "@/lib/propertyV1DbCoerce";
 import { allocateNextBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
 import { isPermanentBusinessId } from "@/lib/businessIds";
-import {
-  isServicedOfficePriceTierKey,
-  servicedOfficePriceTierColumn,
-  SERVICED_OFFICE_PRICE_TIERS,
-} from "@/lib/premisesCommercial";
 import { normalizePremisesRelationshipLines } from "@/lib/premisesRelationships";
 import type { PremisesRelationshipLine } from "@/lib/v1ListValues";
 
@@ -83,6 +78,7 @@ export type PremisesV1 = {
   capacity_pax: number | null;
   offers_unique_address: string | null;
   offers_stamp_duty: string | null;
+  package_offers: string | null;
   price_pax_mth_unique_address: string | null;
   price_pax_yr_unique_address: string | null;
   price_pax_mth_workstation: string | null;
@@ -92,6 +88,7 @@ export type PremisesV1 = {
   price_pax_mth_room_internal: string | null;
   price_pax_yr_room_internal: string | null;
   monthly_rent: string | null;
+  annual_rent: string | null;
   rent_psf: string | null;
   deposit_months: string | null;
   rent_free_period: string | null;
@@ -145,6 +142,7 @@ const select = `
   offer_type, offer_status,
   capacity_pax,
   offers_unique_address, offers_stamp_duty,
+  package_offers,
   price_pax_mth_unique_address::text AS price_pax_mth_unique_address,
   price_pax_yr_unique_address::text AS price_pax_yr_unique_address,
   price_pax_mth_workstation::text AS price_pax_mth_workstation,
@@ -154,6 +152,7 @@ const select = `
   price_pax_mth_room_internal::text AS price_pax_mth_room_internal,
   price_pax_yr_room_internal::text AS price_pax_yr_room_internal,
   monthly_rent::text AS monthly_rent,
+  annual_rent::text AS annual_rent,
   rent_psf::text AS rent_psf,
   deposit_months,
   rent_free_period,
@@ -229,6 +228,7 @@ export type PremisesV1Patch = Partial<
     | "management_fee_psf"
     | "government_rates"
     | "monthly_rent"
+    | "annual_rent"
     | "rent_psf"
     | "price_pax_mth_unique_address"
     | "price_pax_yr_unique_address"
@@ -252,6 +252,7 @@ export type PremisesV1Patch = Partial<
     management_fee_psf?: number | null;
     government_rates?: number | null;
     monthly_rent?: number | null;
+    annual_rent?: number | null;
     rent_psf?: number | null;
     price_pax_mth_unique_address?: number | null;
     price_pax_yr_unique_address?: number | null;
@@ -373,6 +374,7 @@ export function emptyPremisesV1(propertyId: string): PremisesV1 {
     capacity_pax: null,
     offers_unique_address: null,
     offers_stamp_duty: null,
+    package_offers: null,
     price_pax_mth_unique_address: null,
     price_pax_yr_unique_address: null,
     price_pax_mth_workstation: null,
@@ -382,6 +384,7 @@ export function emptyPremisesV1(propertyId: string): PremisesV1 {
     price_pax_mth_room_internal: null,
     price_pax_yr_room_internal: null,
     monthly_rent: null,
+    annual_rent: null,
     rent_psf: null,
     deposit_months: null,
     rent_free_period: null,
@@ -460,6 +463,7 @@ export async function duplicatePremisesV1(premisesId: string): Promise<string> {
     management_fee_psf,
     government_rates,
     monthly_rent,
+    annual_rent,
     rent_psf,
     price_pax_mth_unique_address,
     price_pax_yr_unique_address,
@@ -489,6 +493,7 @@ export async function duplicatePremisesV1(premisesId: string): Promise<string> {
     management_fee_psf: asNum(management_fee_psf),
     government_rates: asNum(government_rates),
     monthly_rent: asNum(monthly_rent),
+    annual_rent: asNum(annual_rent),
     rent_psf: asNum(rent_psf),
     price_pax_mth_unique_address: asNum(price_pax_mth_unique_address),
     price_pax_yr_unique_address: asNum(price_pax_yr_unique_address),
@@ -525,10 +530,10 @@ export type PremisesFlatFilters = {
   listing_status?: string;
   offers_unique_address?: string;
   offers_stamp_duty?: string;
-  /** unique_address | workstation | room_window | room_internal — premises with that tier priced */
-  package_product?: string;
-  /** Max Price/pax/mth for the selected package product (or any tier if none selected) */
-  price_pax_mth_max?: string;
+  /** Private Rooms | Open Desk | Virtual Address */
+  package_offers?: string;
+  /** Max monthly rent for serviced / shared office */
+  monthly_rent_max?: string;
 };
 
 export type PremisesFlatRow = {
@@ -652,27 +657,15 @@ function premisesFlatWhere(filters: PremisesFlatFilters): { where: string; param
     clauses.push(`p.offers_stamp_duty = $${i++}`);
     params.push(filters.offers_stamp_duty);
   }
-  if (filters.package_product && isServicedOfficePriceTierKey(filters.package_product)) {
-    const mthCol = servicedOfficePriceTierColumn(filters.package_product, "mth");
-    const yrCol = servicedOfficePriceTierColumn(filters.package_product, "yr");
-    clauses.push(`(p.${mthCol} IS NOT NULL OR p.${yrCol} IS NOT NULL)`);
+  if (filters.package_offers) {
+    clauses.push(`p.package_offers ILIKE $${i++}`);
+    params.push(`%${filters.package_offers}%`);
   }
-  if (filters.price_pax_mth_max) {
-    const max = Number.parseFloat(filters.price_pax_mth_max);
+  if (filters.monthly_rent_max) {
+    const max = Number.parseFloat(filters.monthly_rent_max);
     if (Number.isFinite(max)) {
-      if (filters.package_product && isServicedOfficePriceTierKey(filters.package_product)) {
-        const mthCol = servicedOfficePriceTierColumn(filters.package_product, "mth");
-        clauses.push(`p.${mthCol} IS NOT NULL AND p.${mthCol} <= $${i++}`);
-        params.push(max);
-      } else {
-        const ors = SERVICED_OFFICE_PRICE_TIERS.map((tier) => {
-          const clause = `(p.${tier.mthField} IS NOT NULL AND p.${tier.mthField} <= $${i})`;
-          return clause;
-        });
-        params.push(max);
-        i++;
-        clauses.push(`(${ors.join(" OR ")})`);
-      }
+      clauses.push(`p.monthly_rent IS NOT NULL AND p.monthly_rent <= $${i++}`);
+      params.push(max);
     }
   }
   if (filters.q) {
@@ -834,6 +827,7 @@ export async function listPremisesFullFiltered(filters: PremisesFlatFilters = {}
        p.offer_type, p.offer_status,
        p.capacity_pax,
        p.offers_unique_address, p.offers_stamp_duty,
+       p.package_offers,
        p.price_pax_mth_unique_address::text AS price_pax_mth_unique_address,
        p.price_pax_yr_unique_address::text AS price_pax_yr_unique_address,
        p.price_pax_mth_workstation::text AS price_pax_mth_workstation,
@@ -843,6 +837,7 @@ export async function listPremisesFullFiltered(filters: PremisesFlatFilters = {}
        p.price_pax_mth_room_internal::text AS price_pax_mth_room_internal,
        p.price_pax_yr_room_internal::text AS price_pax_yr_room_internal,
        p.monthly_rent::text AS monthly_rent,
+       p.annual_rent::text AS annual_rent,
        p.rent_psf::text AS rent_psf,
        p.deposit_months,
        p.rent_free_period,
@@ -909,6 +904,7 @@ export async function getPremisesListItemByRef(raw: string): Promise<PremisesLis
        p.offer_type, p.offer_status,
        p.capacity_pax,
        p.offers_unique_address, p.offers_stamp_duty,
+       p.package_offers,
        p.price_pax_mth_unique_address::text AS price_pax_mth_unique_address,
        p.price_pax_yr_unique_address::text AS price_pax_yr_unique_address,
        p.price_pax_mth_workstation::text AS price_pax_mth_workstation,
@@ -918,6 +914,7 @@ export async function getPremisesListItemByRef(raw: string): Promise<PremisesLis
        p.price_pax_mth_room_internal::text AS price_pax_mth_room_internal,
        p.price_pax_yr_room_internal::text AS price_pax_yr_room_internal,
        p.monthly_rent::text AS monthly_rent,
+       p.annual_rent::text AS annual_rent,
        p.rent_psf::text AS rent_psf,
        p.deposit_months,
        p.rent_free_period,

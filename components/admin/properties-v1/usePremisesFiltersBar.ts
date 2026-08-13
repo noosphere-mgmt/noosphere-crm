@@ -38,8 +38,8 @@ function filtersToParams(filters: PremisesFlatFilters, existing: URLSearchParams
   setOrDelete("listing_status", filters.listing_status);
   setOrDelete("offers_unique_address", filters.offers_unique_address);
   setOrDelete("offers_stamp_duty", filters.offers_stamp_duty);
-  setOrDelete("package_product", filters.package_product);
-  setOrDelete("price_pax_mth_max", filters.price_pax_mth_max);
+  setOrDelete("package_offers", filters.package_offers);
+  setOrDelete("monthly_rent_max", filters.monthly_rent_max);
 
   return params;
 }
@@ -136,8 +136,8 @@ export function usePremisesFiltersBar({ filters, cities, districts }: PremisesFi
       filters.listing_status ||
       filters.offers_unique_address ||
       filters.offers_stamp_duty ||
-      filters.package_product ||
-      filters.price_pax_mth_max,
+      filters.package_offers ||
+      filters.monthly_rent_max,
   );
 
   const activeFilterCount = [
@@ -152,8 +152,8 @@ export function usePremisesFiltersBar({ filters, cities, districts }: PremisesFi
     filters.listing_status,
     filters.offers_unique_address,
     filters.offers_stamp_duty,
-    filters.package_product,
-    filters.price_pax_mth_max,
+    filters.package_offers,
+    filters.monthly_rent_max,
   ].filter(Boolean).length;
 
   return {

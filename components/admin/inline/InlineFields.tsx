@@ -806,7 +806,7 @@ export function InlineMultiSelectField({
   const display =
     values.length > 0
       ? values.map((v) => optionLabel?.(v) ?? v).join(", ")
-      : "";
+      : null;
 
   const spanClass =
     colSpan === 3 ? "col-span-full" : colSpan === 2 ? "sm:col-span-2" : "";
@@ -887,7 +887,7 @@ export function InlineMultiSelectField({
       {...editableFieldProps(editHighlight, beginEdit)}
     >
       <FieldLabel>{label}</FieldLabel>
-      <FieldValue>{display}</FieldValue>
+      <FieldValue>{displayOrDash(display)}</FieldValue>
     </div>
   );
 }

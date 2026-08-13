@@ -117,9 +117,8 @@ export function PremisesInlineOverview({
           <InlineTextField label="Gross Area (sq.m.)" value={grossSqm} type="number" onSave={(value) => saveArea("gross", "sqm", value)} />
           <InlineTextField label="Net Area (sq.m.)" value={netSqm} type="number" onSave={(value) => saveArea("net", "sqm", value)} />
           <InlineTextField label="Capacity (pax)" value={premises.capacity_pax?.toString() ?? null} type="number" onSave={save("capacity_pax")} />
-          <div className="col-span-2 grid grid-cols-2 gap-2.5 sm:col-span-3">
+          <div className="col-span-2 sm:col-span-3">
             <InlineTextField label="Source URL" value={premises.source_url} onSave={save("source_url")} />
-            <InlineTextAreaField label="Premises remarks" value={premises.remarks} onSave={save("remarks")} singleColumn />
           </div>
         </div>
       </PremisesSectionCard>
