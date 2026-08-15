@@ -101,7 +101,7 @@ export function PremisesSelectorModal({
   return (
     <>
       <button type="button" className="fixed inset-0 z-40 bg-slate-900/20" aria-label="Close" onClick={onClose} />
-      <div className="fixed inset-x-4 top-[10vh] z-50 mx-auto flex max-h-[80vh] w-full max-w-3xl flex-col rounded-xl border border-slate-200 bg-white shadow-xl">
+      <div className="fixed inset-x-2 bottom-[calc(3.75rem+env(safe-area-inset-bottom))] top-2 z-50 mx-auto flex w-auto max-w-3xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl sm:inset-x-4 sm:bottom-auto sm:top-[10vh] sm:max-h-[80vh]">
         <div className="border-b border-slate-200 px-4 py-3">
           <h3 className="text-base font-semibold text-slate-900">
             {tab === "search" ? "Search All Premises" : "Suggested Matching Premises"}
@@ -144,15 +144,15 @@ export function PremisesSelectorModal({
             </p>
           )}
         </div>
-        <div className="flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-auto">
           {tab === "search" ? (
             <table className="min-w-full text-sm">
               <thead className="sticky top-0 bg-slate-50 text-left text-slate-600">
                 <tr>
                   <th className="w-10 px-3 py-2" />
                   <th className="px-3 py-2 font-medium">Premise Name (English)</th>
-                  <th className="px-3 py-2 font-medium">Operator</th>
-                  <th className="px-3 py-2 font-medium">Area</th>
+                  <th className="hidden px-3 py-2 font-medium sm:table-cell">Operator</th>
+                  <th className="hidden px-3 py-2 font-medium sm:table-cell">Area</th>
                   <th className="px-3 py-2 font-medium">Price</th>
                 </tr>
               </thead>
@@ -174,9 +174,12 @@ export function PremisesSelectorModal({
                           className="rounded border-slate-300"
                         />
                       </td>
-                      <td className="px-3 py-2 text-slate-900">{formatPremisesName(row.building_name, row.floor, row.unit)}</td>
-                      <td className="px-3 py-2 text-slate-700">{row.operator_name ?? "—"}</td>
-                      <td className="px-3 py-2 text-slate-700">
+                      <td className="min-w-0 px-3 py-2 text-slate-900">
+                        <p className="break-words font-medium">{formatPremisesName(row.building_name, row.floor, row.unit)}</p>
+                        <p className="mt-0.5 text-xs text-slate-500 sm:hidden">{[row.operator_name, row.gross_area_sqft ? `${row.gross_area_sqft} sq ft` : null].filter(Boolean).join(" · ")}</p>
+                      </td>
+                      <td className="hidden px-3 py-2 text-slate-700 sm:table-cell">{row.operator_name ?? "—"}</td>
+                      <td className="hidden px-3 py-2 text-slate-700 sm:table-cell">
                         {row.gross_area_sqft ? `${row.gross_area_sqft} sq ft` : "—"}
                       </td>
                       <td className="px-3 py-2 text-slate-700">
@@ -198,8 +201,8 @@ export function PremisesSelectorModal({
                   <th className="w-10 px-3 py-2" />
                   <th className="px-3 py-2 font-medium">Score</th>
                   <th className="px-3 py-2 font-medium">Building</th>
-                  <th className="px-3 py-2 font-medium">Space</th>
-                  <th className="px-3 py-2 font-medium">Category</th>
+                  <th className="hidden px-3 py-2 font-medium sm:table-cell">Space</th>
+                  <th className="hidden px-3 py-2 font-medium sm:table-cell">Category</th>
                   <th className="px-3 py-2 font-medium">Price</th>
                   <th className="w-20 px-3 py-2" />
                 </tr>
@@ -225,9 +228,12 @@ export function PremisesSelectorModal({
                           />
                         </td>
                         <td className="px-3 py-2 font-semibold text-emerald-800">{row.match_score}</td>
-                        <td className="px-3 py-2 text-slate-900">{row.building_name ?? "—"}</td>
-                        <td className="px-3 py-2 text-slate-700">{row.display_label}</td>
-                        <td className="px-3 py-2 text-slate-700">
+                        <td className="min-w-0 px-3 py-2 text-slate-900">
+                          <p className="break-words font-medium">{row.building_name ?? "—"}</p>
+                          <p className="mt-0.5 text-xs text-slate-500 sm:hidden">{[row.display_label, row.property_category, row.space_form].filter(Boolean).join(" · ")}</p>
+                        </td>
+                        <td className="hidden px-3 py-2 text-slate-700 sm:table-cell">{row.display_label}</td>
+                        <td className="hidden px-3 py-2 text-slate-700 sm:table-cell">
                           {[row.property_category, row.space_form].filter(Boolean).join(" · ") || "—"}
                         </td>
                         <td className="px-3 py-2 text-slate-700">
@@ -255,7 +261,7 @@ export function PremisesSelectorModal({
             </table>
           )}
         </div>
-        <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-4 py-3">
+        <div className="sticky bottom-0 flex shrink-0 items-center justify-end gap-2 border-t border-slate-200 bg-white px-4 py-3">
           <button type="button" onClick={onClose} className="rounded-lg px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100">
             Cancel
           </button>

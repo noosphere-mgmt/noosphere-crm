@@ -79,6 +79,9 @@ export const PREMISES_AVAILABILITY_STATUSES = [
   { value: "withdrawn", label: "Withdrawn" },
 ] as const;
 
+/** Centre operator operating state (serviced / shared office centres). */
+export const PREMISES_CENTRE_STATUSES = ["Active", "Full", "Moved"] as const;
+
 export const PREMISES_DISCOVERY_STATUSES = [
   { value: "lead_rumour", label: "Lead / Rumour" },
   { value: "identified", label: "Identified" },

@@ -8,12 +8,13 @@ import { listContactV1Options } from "@/lib/repos/contactsV1";
 import { listPremisesForPropertyV1 } from "@/lib/repos/premisesV1";
 import { getPropertyV1, listPropertyV1SelectOptions } from "@/lib/repos/propertiesV1";
 import type { ActivityListRow } from "@/lib/repos/activities";
+import { sanitizeAdminReturnTo } from "@/lib/adminReturnTo";
 
 export const dynamic = "force-dynamic";
 
 type Props = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ mode?: string; tab?: string; premises?: string }>;
+  searchParams: Promise<{ mode?: string; tab?: string; premises?: string; returnTo?: string }>;
 };
 
 async function listBuildingActivities(premisesIds: string[]): Promise<ActivityListRow[]> {
@@ -37,6 +38,7 @@ async function listBuildingActivities(premisesIds: string[]): Promise<ActivityLi
 export default async function BuildingDetailPage({ params, searchParams }: Props) {
   const { id: idRaw } = await params;
   const sp = await searchParams;
+  const returnTo = sanitizeAdminReturnTo(sp.returnTo, "/admin/properties");
   const property = await getPropertyV1(idRaw.trim());
   if (!property) notFound();
 
@@ -60,6 +62,7 @@ export default async function BuildingDetailPage({ params, searchParams }: Props
           propertyOptions={propertyOptions}
           activities={activities}
           editMode={sp.mode === "edit"}
+          returnTo={returnTo}
         />
       </Suspense>
     </AdminShell>

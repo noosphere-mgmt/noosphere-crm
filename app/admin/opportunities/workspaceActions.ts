@@ -22,6 +22,7 @@ import {
   deleteOpportunityParty,
   updateOpportunityParty,
 } from "@/lib/repos/opportunityParties";
+import { upsertOpportunityCommission } from "@/lib/repos/opportunityCommission";
 import type {
   FeeStatus,
   ProposedPremisesPreference,
@@ -209,6 +210,22 @@ export async function updateOpportunityPartyAction(partyId: number, formData: Fo
 
 export async function deleteOpportunityPartyAction(opportunityId: number, partyId: number) {
   await deleteOpportunityParty(partyId);
+  revalidateOpportunity(opportunityId);
+}
+
+export async function saveOpportunityCommissionAction(opportunityId: number, formData: FormData) {
+  const payoutCompanyId = await normalizeOptionalLegacyCompanyId(formData.get("payout_company_id"));
+  const payoutContactId = await normalizeOptionalLegacyContactId(formData.get("payout_contact_id"));
+  await upsertOpportunityCommission(opportunityId, {
+    fee_from_seller: parseOptionalDecimal(formData.get("fee_from_seller"))?.toString() ?? null,
+    fee_from_buyer: parseOptionalDecimal(formData.get("fee_from_buyer"))?.toString() ?? null,
+    fee_from_operator_landlord: parseOptionalDecimal(formData.get("fee_from_operator_landlord"))?.toString() ?? null,
+    fee_from_tenant: parseOptionalDecimal(formData.get("fee_from_tenant"))?.toString() ?? null,
+    payout_amount: parseOptionalDecimal(formData.get("payout_amount"))?.toString() ?? null,
+    payout_company_id: payoutCompanyId,
+    payout_contact_id: payoutContactId,
+    remarks: parseOptionalString(formData.get("remarks")),
+  });
   revalidateOpportunity(opportunityId);
 }
 

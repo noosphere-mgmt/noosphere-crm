@@ -98,7 +98,7 @@ async function clearPrimaryForCompany(companyId: number | null | undefined, exce
 export async function listContacts(companyId?: number): Promise<Contact[]> {
   if (companyId != null) {
   return query<Contact>(
-    `SELECT ${contactSelect}, co.company_name, co.company_name_zh, co.country AS company_country, co.city AS company_city,
+    `SELECT ${contactSelect}, co.company_name, co.company_name_zh, co.company_name_cn, co.country AS company_country, co.city AS company_city,
             COALESCE(co.business_id, cv.business_id) AS company_business_id,
             COALESCE(c.business_id, cm.business_id) AS business_id,
             cm.contact_id AS v1_contact_id
@@ -112,7 +112,7 @@ export async function listContacts(companyId?: number): Promise<Contact[]> {
   );
   }
   return query<Contact>(
-    `SELECT ${contactSelect}, co.company_name, co.company_name_zh, co.country AS company_country, co.city AS company_city,
+    `SELECT ${contactSelect}, co.company_name, co.company_name_zh, co.company_name_cn, co.country AS company_country, co.city AS company_city,
             COALESCE(co.business_id, cv.business_id) AS company_business_id,
             COALESCE(opp.open_opportunities, 0)::int AS open_opportunities,
             COALESCE(c.business_id, cm.business_id) AS business_id,
@@ -164,7 +164,7 @@ export async function getContact(id: number | string): Promise<Contact | null> {
   if (legacyId == null) return null;
 
   const rows = await query<Contact>(
-    `SELECT ${contactSelect}, co.company_name, co.company_name_zh, co.country AS company_country, co.city AS company_city,
+    `SELECT ${contactSelect}, co.company_name, co.company_name_zh, co.company_name_cn, co.country AS company_country, co.city AS company_city,
             COALESCE(c.business_id, cm.business_id) AS business_id,
             cm.contact_id AS v1_contact_id
      FROM contacts c

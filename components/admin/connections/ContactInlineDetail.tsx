@@ -86,7 +86,7 @@ export function ContactInlineDetail({
 
   const body = (
     <div className="flex w-full min-w-0 flex-col gap-3">
-      <DrawerOverviewCard title="Details" columns={3} dense={false} className="w-full">
+      <DrawerOverviewCard title="Details" columns={3} mobileColumns={2} dense={false} className="w-full">
         <InlineTextField label="First Name" value={contact.first_name} onSave={save("first_name")} />
         <InlineTextField label="Last Name" value={contact.last_name} onSave={save("last_name")} />
         <InlineTextField label="Chinese Name" value={contact.chinese_name} onSave={save("chinese_name")} />
@@ -144,7 +144,7 @@ export function ContactInlineDetail({
         ) : null}
       </DrawerOverviewCard>
 
-      <div className="grid w-full min-w-0 grid-cols-2 items-stretch gap-3">
+      <div className="grid w-full min-w-0 grid-cols-1 items-stretch gap-3 md:grid-cols-2">
         <DrawerOverviewCard title="Contact Channels" columns={2} dense={false} matchHeight className="w-full min-w-0">
           <InlineTelWithAreaField
             label="Phone"

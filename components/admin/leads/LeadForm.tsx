@@ -15,6 +15,7 @@ import {
   normalizeLeadSource,
 } from "@/lib/leadValues";
 import type { Lead } from "@/lib/repos/leads";
+import { CrmStaffSelect } from "@/components/admin/CrmStaffSelect";
 
 const fieldClass =
   "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-100";
@@ -293,16 +294,8 @@ export function LeadForm({
           </FormBox>
 
           <FormBox title="Ownership">
-            <Field
-              label={leadFieldLabel("assigned_owner")}
-              name="assigned_owner"
-              defaultValue={defaults.assigned_owner}
-            />
-            <Field
-              label={leadFieldLabel("virtual_staff")}
-              name="virtual_staff"
-              defaultValue={defaults.virtual_staff}
-            />
+            <CrmStaffSelect label={leadFieldLabel("assigned_owner")} name="assigned_owner" defaultValue={defaults.assigned_owner} defaultToPrimary={!lead} className={fieldClass} />
+            <CrmStaffSelect label={leadFieldLabel("virtual_staff")} name="virtual_staff" defaultValue={defaults.virtual_staff} filter="virtual" defaultToPrimary={!lead} className={fieldClass} />
             <Field
               label={leadFieldLabel("qualification_score")}
               name="qualification_score"

@@ -75,11 +75,42 @@ export function DashboardDesktop({ data }: { data: DashboardViewData }) {
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">AI-powered CRM</p>
           <h1 className="mt-1 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">Noosphere Intelligence</h1>
-          <p className="mt-1 text-xs text-slate-500 sm:text-sm">Turn relationships, property intelligence and opportunities into action.</p>
+          <p className="mt-1 hidden text-xs text-slate-500 sm:block sm:text-sm">Turn relationships, property intelligence and opportunities into action.</p>
         </div>
       </div>
 
-      <section className="overflow-hidden rounded-2xl border border-violet-200 bg-gradient-to-r from-violet-50 via-white to-emerald-50 shadow-sm">
+      <details className="group overflow-hidden rounded-2xl border border-violet-200 bg-gradient-to-r from-violet-50 via-white to-emerald-50 shadow-sm sm:hidden">
+        <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 [&::-webkit-details-marker]:hidden">
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-violet-600 text-sm text-white">✦</span>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-sm font-semibold text-slate-900">AI Copilot</h2>
+            <p className="text-[11px] text-slate-500">3 recommended movements</p>
+          </div>
+          <span className="text-sm font-semibold text-violet-700 group-open:rotate-180" aria-hidden>⌄</span>
+        </summary>
+        <div className="divide-y divide-violet-100 border-t border-violet-100">
+          <Link href={priorityOpportunity ? dealWorkspaceHref({ id: priorityOpportunity.opportunity_id }) : "/admin/leads"} className="block bg-rose-50/45 px-3 py-2.5 active:bg-rose-50">
+            <p className="text-[9px] font-bold uppercase tracking-wide text-rose-600">Priority action</p>
+            <p className="mt-0.5 line-clamp-2 text-xs font-medium leading-snug text-slate-800">
+              {priorityOpportunity ? `Re-engage ${priorityOpportunity.opportunity_name}; no meaningful activity for ${formatDays(priorityOpportunity.days_since_activity)}.` : "No overdue follow-up. Review new leads and create the next opportunity."}
+            </p>
+          </Link>
+          <Link href={busiestOpenStage ? pipelineStageHref(busiestOpenStage.stage) : "/admin/opportunities"} className="block bg-sky-50/45 px-3 py-2.5 active:bg-sky-50">
+            <p className="text-[9px] font-bold uppercase tracking-wide text-sky-600">Pipeline movement</p>
+            <p className="mt-0.5 line-clamp-2 text-xs font-medium leading-snug text-slate-800">
+              {busiestOpenStage && busiestOpenStage.count > 0 ? `${formatCount(busiestOpenStage.count)} opportunities are in ${busiestOpenStage.stage.label}. Progress the strongest case.` : "The active pipeline is light. Qualify existing leads."}
+            </p>
+          </Link>
+          <Link href={strongestReferrer ? referrerPerformanceHref(strongestReferrer) : "/admin/connections/channel-tree"} className="block bg-emerald-50/45 px-3 py-2.5 active:bg-emerald-50">
+            <p className="text-[9px] font-bold uppercase tracking-wide text-emerald-600">Channel action</p>
+            <p className="mt-0.5 line-clamp-2 text-xs font-medium leading-snug text-slate-800">
+              {strongestReferrer ? `${strongestReferrer.party_name} has referred ${formatCount(strongestReferrer.total_opps)} opportunities. Reconnect for the next introduction.` : "Reconnect with a trusted partner and request an introduction."}
+            </p>
+          </Link>
+        </div>
+      </details>
+
+      <section className="hidden overflow-hidden rounded-2xl border border-violet-200 bg-gradient-to-r from-violet-50 via-white to-emerald-50 shadow-sm sm:block">
         <div className="flex items-center gap-2 border-b border-violet-100 px-4 py-2.5">
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-violet-600 text-sm text-white">✦</span>
           <div>

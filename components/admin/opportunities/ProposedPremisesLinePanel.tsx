@@ -73,7 +73,7 @@ export function ProposedPremisesLinePanel({
   return (
     <>
       <button type="button" className="fixed inset-0 z-40 bg-slate-900/10" aria-label="Close" onClick={onClose} />
-      <aside className="fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-slate-200 bg-slate-50 shadow-xl lg:w-[min(720px,48vw)]">
+      <aside className="fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-slate-200 bg-slate-50 shadow-xl max-md:bottom-[calc(3.5rem+env(safe-area-inset-bottom))] lg:w-[min(720px,48vw)]">
         <div className="sticky top-0 z-10 shrink-0 border-b border-slate-200 bg-white px-4 py-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">

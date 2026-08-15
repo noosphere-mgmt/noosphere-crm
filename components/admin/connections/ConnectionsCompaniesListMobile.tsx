@@ -12,9 +12,6 @@ import { formatCompanyRoles, formatCoverage } from "@/lib/connectionsDisplay";
 import { companyFullPageHref } from "@/lib/crmDetailNav";
 import { contactDrawerHref } from "@/lib/connectionsDrawerNav";
 import { connectionsGlassClasses } from "@/lib/connectionsGlassTheme";
-import { MobileCardMeta, MobileCardTitle } from "@/components/admin/mobile/MobileCard";
-import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
-import { MobileContactActions } from "@/components/admin/mobile/MobileContactActions";
 import { AdminEntityLink } from "@/components/admin/AdminEntityLink";
 
 export function ConnectionsCompaniesListMobile({
@@ -35,7 +32,7 @@ export function ConnectionsCompaniesListMobile({
 
   return (
     <MobileSwipeDeleteGroup>
-      <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <div className="space-y-2">
         {displayedRows.length === 0 ? (
           <p className="px-4 py-6 text-center text-sm text-slate-500">
             {rows.length === 0 ? "No companies yet." : "No companies match your search."}
@@ -59,33 +56,33 @@ export function ConnectionsCompaniesListMobile({
                 disabled={isDeleting}
                 deleteLabel={`Delete ${row.company_name}`}
                 onDelete={() => deleteCompanyRow(row.id)}
-                className="border-b border-slate-100 last:border-b-0"
+                className="rounded-xl border border-l-4 border-[#E3DCD4] border-l-[#B29A82] bg-white shadow-[0_4px_14px_rgba(126,104,83,0.10)]"
               >
-                <div className="px-3 py-3">
-                  <AdminEntityLink href={href} className={`block font-semibold ${connectionsGlassClasses.link}`}>
-                    <MobileCardTitle>{row.company_name}</MobileCardTitle>
-                    {row.company_name_zh ? (
-                      <span className="mt-0.5 block text-xs font-normal text-slate-500">{row.company_name_zh}</span>
-                    ) : null}
-                    <RecordBusinessId id={row.business_id ?? row.v1_company_id} className="mt-0.5 block" />
-                  </AdminEntityLink>
-                  <MobileCardMeta>
-                    {formatCompanyRoles(row.roles)} · {row.open_opportunities ?? 0} open opps
-                  </MobileCardMeta>
-                  <MobileCardMeta>
-                    <AdminEntityLink
-                      href={contactHref}
-                      className={`${connectionsGlassClasses.link} underline-offset-2 hover:underline`}
-                      fallback="No primary contact"
-                    >
-                      {row.primary_contact_name}
+                <div className="bg-white px-3 py-3">
+                  <div className="flex min-w-0 items-start justify-between gap-3">
+                    <AdminEntityLink href={href} className="min-w-0 flex-1">
+                      <p className="break-words font-semibold text-[#6F5947]">{row.company_name}</p>
+                      {row.company_name_zh ? (
+                        <span className="mt-0.5 block text-xs font-medium text-[#806B59]">{row.company_name_zh}</span>
+                      ) : null}
                     </AdminEntityLink>
-                    {row.coverage?.length ? ` · ${formatCoverage(row.coverage)}` : ""}
-                  </MobileCardMeta>
-                  <MobileContactActions
-                    phone={row.primary_contact_phone}
-                    email={row.primary_contact_email}
-                  />
+                    <span className="shrink-0 rounded-full bg-[#ECE3D9] px-2 py-1 text-[11px] font-semibold text-[#6F5947]">
+                      {row.open_opportunities ?? 0} open
+                    </span>
+                  </div>
+                  <div className="mt-2 flex min-w-0 items-end justify-between gap-3 text-xs text-slate-600">
+                    <div className="min-w-0">
+                      <AdminEntityLink
+                        href={contactHref}
+                        className={`${connectionsGlassClasses.link} block truncate underline-offset-2 hover:underline`}
+                        fallback="No primary contact"
+                      >
+                        {row.primary_contact_name}
+                      </AdminEntityLink>
+                      {row.coverage?.length ? <p className="mt-0.5 truncate text-slate-500">{formatCoverage(row.coverage)}</p> : null}
+                    </div>
+                    <span className="shrink-0 text-right text-slate-500">{formatCompanyRoles(row.roles)}</span>
+                  </div>
                 </div>
               </MobileSwipeToDeleteRow>
             );

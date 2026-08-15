@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { CancelLink, FormField, SubmitButton, TextAreaField } from "@/components/admin/AdminFormFields";
 import {
   ASSET_TYPES,
@@ -62,12 +61,6 @@ export function QuickAddPropertyForm({
 
   return (
     <form action={action} className="max-w-3xl space-y-6">
-      <p className="text-sm text-slate-600">
-        <Link href="/admin/glossary" className="font-medium text-slate-900 underline">
-          Building → Property → Listing terms
-        </Link>
-      </p>
-
       <fieldset className={sectionClass}>
         <legend className={`${legendClass} mb-3`}>1. Building</legend>
         <ModeToggle name="building_mode" value={buildingMode} onChange={setBuildingMode} />

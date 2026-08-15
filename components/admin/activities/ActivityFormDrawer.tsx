@@ -9,6 +9,7 @@ import { IconX } from "@/components/admin/ModuleActionIcons";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import { ACTIVITY_FORM_TYPES, isActivityFormType, isSiteTourActivityType, type SiteTourCheckpointMode } from "@/lib/activityValues";
 import type { ActivityLinkSearchHit, ActivityListRow } from "@/lib/repos/activities";
+import { CrmStaffSelect } from "@/components/admin/CrmStaffSelect";
 
 export type ActivityFormDefaults = {
   activity_date?: string;
@@ -23,6 +24,7 @@ export type ActivityFormDefaults = {
   opportunity_name?: string | null;
   premises_business_id?: string | null;
   premises_label?: string | null;
+  owner?: string | null;
 };
 
 const fieldClass =
@@ -31,7 +33,7 @@ const labelClass = "mb-1 block text-xs font-medium text-slate-600";
 
 const overlayClass = "fixed inset-0 z-40 bg-slate-900/10 transition-opacity";
 const panelClass =
-  "fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-slate-200 bg-white shadow-xl lg:w-[min(640px,44vw)]";
+  "fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-slate-200 bg-white shadow-xl max-md:bottom-[calc(3.5rem+env(safe-area-inset-bottom))] lg:w-[min(640px,44vw)]";
 
 function hitFromDefaults(
   entityType: ActivityLinkSearchHit["entity_type"],
@@ -70,6 +72,7 @@ export function ActivityFormDrawer({
   const [activityTime, setActivityTime] = useState("");
   const [activityType, setActivityType] = useState("Call");
   const [notes, setNotes] = useState("");
+  const [owner, setOwner] = useState("");
   const [company, setCompany] = useState<ActivityLinkSearchHit | null>(null);
   const [contact, setContact] = useState<ActivityLinkSearchHit | null>(null);
   const [opportunity, setOpportunity] = useState<ActivityLinkSearchHit | null>(null);
@@ -84,6 +87,7 @@ export function ActivityFormDrawer({
     setActivityTime(d?.activity_time ?? "");
     setActivityType(d?.activity_type ?? defaults?.activity_type ?? "Call");
     setNotes(d?.notes ?? "");
+    setOwner(d?.owner ?? "");
     setCompany(
       hitFromDefaults(
         "company",
@@ -147,6 +151,7 @@ export function ActivityFormDrawer({
     fd.set("activity_time", activityTime);
     fd.set("activity_type", activityType);
     fd.set("notes", notes);
+    fd.set("owner", owner);
     if (company) fd.set("company_id", company.entity_id);
     if (contact) fd.set("contact_id", contact.entity_id);
     const opportunityId =
@@ -255,6 +260,10 @@ export function ActivityFormDrawer({
                 ) : null}
               </select>
             </label>
+          </section>
+
+          <section>
+            <CrmStaffSelect label="Activity Owner" name="owner_display" defaultValue={owner} defaultToPrimary={!activity} onChange={setOwner} className={fieldClass} />
           </section>
 
           <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">

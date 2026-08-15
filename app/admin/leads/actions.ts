@@ -12,6 +12,7 @@ import {
   normalizeCategoryPreference,
   normalizeSpaceFormPreference,
 } from "@/lib/opportunityPreferences";
+import { getDefaultCrmOwnerName } from "@/lib/repos/crmUsers";
 
 const STATUSES = new Set<LeadStatus>(["new", "reviewing", "qualified", "converted", "nurture", "disqualified", "duplicate"]);
 
@@ -78,13 +79,16 @@ function leadInput(formData: FormData): LeadInput {
 }
 
 export async function createLeadAction(formData: FormData) {
-  const id = await createLead(leadInput(formData));
+  const input = leadInput(formData);
+  input.assigned_owner ??= await getDefaultCrmOwnerName();
+  const id = await createLead(input);
   revalidatePath("/admin/leads");
   redirect(`/admin/leads?lead=${id}`);
 }
 
 export async function updateLeadAction(id: number, formData: FormData) {
-  await updateLead(id, leadInput(formData));
+  const input = leadInput(formData);
+  await updateLead(id, input);
   revalidatePath("/admin/leads");
   redirect(`/admin/leads?lead=${id}`);
 }

@@ -22,7 +22,7 @@ function resolveScope(raw: unknown): ExportScope | null {
   return null;
 }
 
-/** Export all rows (Import Workbench). */
+/** Export all rows from Data Management. */
 export async function GET(_req: Request, { params }: Props) {
   const { objectType: raw } = await params;
   const objectType = resolveObjectType(raw);

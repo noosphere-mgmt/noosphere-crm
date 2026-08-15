@@ -34,6 +34,7 @@ import {
 import type { CompanyOption } from "@/lib/repos/companies";
 import type { ContactOption } from "@/lib/repos/contacts";
 import type { Opportunity } from "@/lib/types/entities";
+import { CrmStaffSelect } from "@/components/admin/CrmStaffSelect";
 
 const compactGrid = "grid grid-cols-2 gap-x-3 gap-y-2.5";
 
@@ -290,11 +291,7 @@ export function OpportunityOverviewFields({
                   ))}
                 </select>
               </label>
-              <FormField
-                label="Owner"
-                name="relationship_owner"
-                defaultValue={opportunity.relationship_owner ?? ""}
-              />
+              <CrmStaffSelect label="Owner" name="relationship_owner" defaultValue={opportunity.relationship_owner} />
               {closed ? (
                 <OutcomeReasonField
                   label={outcomeReasonLabel}

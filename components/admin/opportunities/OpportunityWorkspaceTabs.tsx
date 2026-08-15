@@ -15,7 +15,7 @@ const TAB_TONES = {
   parties: { active: "border-violet-600 bg-violet-600 text-white", idle: "border-violet-200 bg-violet-50 text-violet-800 hover:bg-violet-100" },
   proposed: { active: "border-emerald-600 bg-emerald-600 text-white", idle: "border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100" },
   timeline: { active: "border-amber-500 bg-amber-500 text-white", idle: "border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100" },
-  documents: { active: "border-rose-500 bg-rose-500 text-white", idle: "border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100" },
+  documents: { active: "border-[#9b8b88] bg-[#9b8b88] text-white", idle: "border-[#d8cfcc] bg-[#f4f0ee] text-[#695d5a] hover:bg-[#e9e1de]" },
 } as const;
 
 export function OpportunityWorkspaceTabs({

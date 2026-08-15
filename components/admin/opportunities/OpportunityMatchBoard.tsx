@@ -236,7 +236,30 @@ export function OpportunityMatchBoard({
             {rows.length} premises · click a row for detail
           </p>
         </div>
-        <div className="overflow-x-auto border-t border-slate-100">
+        <div className="space-y-2 border-t border-slate-100 p-3 md:hidden">
+          {rows.map((row) => {
+            const pid = row.premises_id!;
+            return (
+              <article key={`mobile-${pid}`} className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="break-words text-sm font-semibold text-slate-900">{row.building_name ?? row.display_label}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">{[row.building_district, row.display_label].filter(Boolean).join(" · ")}</p>
+                  </div>
+                  <MatchScoreBadge score={row.match_score} />
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600">
+                  <span>{row.area_sqft ? `${row.area_sqft} sq ft` : "Area —"}</span>
+                  <span className="text-right">{row.asking_rent ? `${formatMoney(row.asking_rent)}/mo` : row.asking_sale_price ? formatMoney(row.asking_sale_price) : "Price —"}</span>
+                </div>
+                <button type="button" disabled={pending && addingId === pid} onClick={() => handleAdd(pid)} className={`${theme.primaryButton} mt-3 w-full text-sm disabled:opacity-50`}>
+                  {pending && addingId === pid ? "Adding…" : "Add premises"}
+                </button>
+              </article>
+            );
+          })}
+        </div>
+        <div className="hidden overflow-x-auto border-t border-slate-100 md:block">
           <table className="min-w-full text-sm">
             <thead className="bg-slate-50/80 text-left text-xs uppercase tracking-wide text-slate-400">
               <tr>
@@ -325,7 +348,7 @@ export function OpportunityMatchBoard({
             aria-label="Close premise detail"
             onClick={() => setSelectedId(null)}
           />
-          <aside className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-white shadow-2xl ring-1 ring-slate-200">
+          <aside className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] top-0 z-50 flex w-full flex-col bg-white shadow-2xl ring-1 ring-slate-200 md:inset-y-0 md:left-auto md:max-w-md">
             <MatchDetailPanel
               row={selected}
               onClose={() => setSelectedId(null)}

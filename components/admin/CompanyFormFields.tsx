@@ -11,6 +11,7 @@ import {
 } from "@/lib/lookups";
 import type { Company, CompanyRole, RelationshipStrength } from "@/lib/types/entities";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
+import { CrmStaffSelect } from "@/components/admin/CrmStaffSelect";
 
 const selectClass = "mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm";
 
@@ -75,7 +76,7 @@ export function CompanyFormFields({ defaults }: Props) {
         <FormField label="Email" name="email" type="email" defaultValue={defaults?.email ?? ""} />
         <FormField label="Industry" name="industry" defaultValue={defaults?.industry ?? ""} />
         <FormField label="Source" name="source" defaultValue={defaults?.source ?? ""} />
-        <FormField label="Relationship owner" name="relationship_owner" defaultValue={defaults?.relationship_owner ?? ""} />
+        <CrmStaffSelect label="Relationship owner" name="relationship_owner" defaultValue={defaults?.relationship_owner} defaultToPrimary={!defaults} disabled={!editing} />
         <label className="block">
           <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Last Contact</span>
           <p className="mt-0.5 text-sm text-slate-900">{defaults?.last_contact_date?.slice(0, 10) ?? "—"}</p>

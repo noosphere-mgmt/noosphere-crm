@@ -13,7 +13,7 @@ type CompanyOption = { id: number; company_name: string };
 
 const overlayClass = "fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-[1px]";
 const panelClass =
-  "fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-slate-200 bg-white shadow-2xl sm:max-w-2xl lg:max-w-4xl";
+  "fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-slate-200 bg-white shadow-2xl max-md:bottom-[calc(3.5rem+env(safe-area-inset-bottom))] sm:max-w-2xl lg:max-w-4xl";
 
 export function OpportunityFormDrawer({
   open,

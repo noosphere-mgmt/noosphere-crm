@@ -70,7 +70,14 @@ export function ConnectionsCompaniesListDesktop({
               onSort={handleSort}
               className="w-[220px]"
             />
-            <SortableTableHeader label="Open Opps" sortKey="opportunities" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+            <SortableTableHeader
+              label="OpenOpps"
+              sortKey="opportunities"
+              activeKey={sortKey}
+              sortDir={sortDir}
+              onSort={handleSort}
+              className="w-24 text-center [&>button]:justify-center [&>button]:text-center [&>button>span:first-child]:flex-none"
+            />
             <SortableTableHeader label="Updated" sortKey="updated" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <th className="w-24 px-3 py-1.5 align-top font-medium">Actions</th>
           </tr>
@@ -105,14 +112,16 @@ export function ConnectionsCompaniesListDesktop({
                   <td className="px-3 py-1.5">
                     <AdminEntityLink
                       href={companyFullPageHref(row.business_id ?? row.v1_company_id ?? row.id)}
-                      className={`block w-full cursor-pointer text-left font-medium ${connectionsGlassClasses.link}`}
+                      className={`block w-full cursor-pointer text-left text-sm font-semibold ${connectionsGlassClasses.link}`}
                     >
                       {row.company_name}
                     </AdminEntityLink>
-                    {row.company_name_zh ? (
-                      <span className="mt-0.5 block text-xs text-slate-500">{row.company_name_zh}</span>
-                    ) : null}
-                    <RecordBusinessId id={row.business_id ?? row.v1_company_id} className="mt-0.5 block" />
+                    <div className="mt-0.5 flex min-w-0 items-baseline gap-2">
+                      {row.company_name_zh ? (
+                        <span className="min-w-0 truncate text-xs text-slate-500">{row.company_name_zh}</span>
+                      ) : null}
+                      <RecordBusinessId id={row.business_id ?? row.v1_company_id} className="shrink-0" />
+                    </div>
                   </td>
                   <td className="px-3 py-1.5 text-slate-700">
                     <AdminEntityLink
@@ -136,7 +145,9 @@ export function ConnectionsCompaniesListDesktop({
                       {formatCoverage(row.coverage)}
                     </div>
                   </td>
-                  <td className="px-3 py-1.5 text-slate-700">{row.open_opportunities ?? 0}</td>
+                  <td className="w-24 px-2 py-1.5 text-center tabular-nums text-slate-700">
+                    {row.open_opportunities ?? 0}
+                  </td>
                   <td className="px-3 py-1.5 text-slate-700">{formatDateLabel(row.updated_at)}</td>
                   <td className="px-3 py-1.5">
                     <ModuleRowActions

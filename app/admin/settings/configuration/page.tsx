@@ -1,6 +1,7 @@
 import { AdminShell } from "@/components/admin/AdminShell";
 import { saveEmailConfigAction } from "@/app/admin/settings/configuration/actions";
 import { getEmailConfig } from "@/lib/repos/emailConfig";
+import { CrmStaffSelect } from "@/components/admin/CrmStaffSelect";
 
 export const dynamic = "force-dynamic";
 const input = "w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100";
@@ -34,7 +35,7 @@ export default async function ConfigurationPage({ searchParams }: { searchParams
 
       <section className="rounded-xl border border-slate-200 bg-white p-5">
         <h2 className="text-lg font-semibold text-slate-900">Lead processing defaults</h2>
-        <div className="mt-4 grid gap-3 md:grid-cols-3"><Field label="Default Lead owner" name="default_lead_owner" value={config.default_lead_owner} /><Field label="Default virtual staff" name="default_virtual_staff" value={config.default_virtual_staff} /><Field label="Initial sync period (days)" name="sync_days" type="number" value={config.sync_days} /></div>
+        <div className="mt-4 grid gap-3 md:grid-cols-3"><CrmStaffSelect label="Default Lead owner" name="default_lead_owner" defaultValue={config.default_lead_owner} defaultToPrimary className={input} /><CrmStaffSelect label="Default virtual staff" name="default_virtual_staff" defaultValue={config.default_virtual_staff} filter="virtual" defaultToPrimary className={input} /><Field label="Initial sync period (days)" name="sync_days" type="number" value={config.sync_days} /></div>
         <div className="mt-4 flex flex-wrap gap-5 text-sm text-slate-700"><label className="flex items-center gap-2"><input type="checkbox" name="draft_only" defaultChecked={config.draft_only} /> Draft replies only</label><label className="flex items-center gap-2"><input type="checkbox" name="sync_enabled" defaultChecked={config.sync_enabled} disabled={!passwordConfigured} /> Enable synchronisation</label></div>
       </section>
 
@@ -46,4 +47,3 @@ export default async function ConfigurationPage({ searchParams }: { searchParams
     </form>
   </AdminShell>;
 }
-

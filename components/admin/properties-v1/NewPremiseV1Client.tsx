@@ -39,6 +39,7 @@ function emptyPremisesV1(propertyId: string): PremisesV1 {
     market_mode: "lease",
     occupancy_status: "unknown",
     availability_status: "available",
+    centre_status: "Active",
     discovery_status: "identified",
     access_status: "no_contact",
     source_type: "direct",

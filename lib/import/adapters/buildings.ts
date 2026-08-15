@@ -210,22 +210,39 @@ export const buildingsImportDefinition: ImportObjectDefinition = {
   fields: [
     { key: "building_id", label: "building_id", type: "string", matchOnly: true, aliases: ["property_id"] },
     { key: "external_ref", label: "external_ref", type: "string" },
-    { key: "building_name_en", label: "building_name_en", type: "string", requiredOnCreate: true, aliases: ["name_en"] },
-    { key: "building_name_zh", label: "building_name_zh", type: "string" },
-    { key: "building_name_cn", label: "building_name_cn", type: "string" },
+    {
+      key: "building_name_en",
+      label: "building_name_en",
+      type: "string",
+      requiredOnCreate: true,
+      aliases: ["name_en", "bldg_name_en", "building name", "building name (en)", "name"],
+    },
+    { key: "building_name_zh", label: "building_name_zh", type: "string", aliases: ["bldg_name_zh"] },
+    { key: "building_name_cn", label: "building_name_cn", type: "string", aliases: ["bldg_name_cn"] },
     { key: "building_type", label: "building_type", type: "string", aliases: ["category"] },
     { key: "country", label: "country", type: "string", defaultValue: "Hong Kong" },
-    { key: "city", label: "city", type: "string", defaultValue: "Hong Kong" },
+    {
+      key: "city",
+      label: "city",
+      type: "string",
+      defaultValue: "Hong Kong",
+      aliases: ["city_en", "city (en)"],
+    },
     { key: "city_zh", label: "city_zh", type: "string" },
     { key: "city_cn", label: "city_cn", type: "string" },
-    { key: "district", label: "district", type: "string", requiredOnCreate: true },
-    { key: "district_zh", label: "district_zh", type: "string" },
-    { key: "district_cn", label: "district_cn", type: "string" },
+    {
+      key: "district",
+      label: "district",
+      type: "string",
+      aliases: ["district_en", "district (en)", "district en"],
+    },
+    { key: "district_zh", label: "district_zh", type: "string", aliases: ["district (zh)"] },
+    { key: "district_cn", label: "district_cn", type: "string", aliases: ["district (cn)"] },
     { key: "street_name_en", label: "street_name_en", type: "string", aliases: ["street_name", "street", "street name", "street name (en)", "street (en)"] },
     { key: "street_name_zh", label: "street_name_zh", type: "string", aliases: ["street_zh", "street name (zh)", "street (zh)", "街道"] },
     { key: "street_name_cn", label: "street_name_cn", type: "string", aliases: ["street_cn", "street name (cn)", "street (cn)"] },
     { key: "street_no", label: "street_no", type: "string", aliases: ["street_number", "street no", "street no.", "street number"] },
-    { key: "address", label: "address", type: "string" },
+    { key: "address", label: "address", type: "string", aliases: ["full_address_en", "full_address", "full address"] },
     { key: "address_zh", label: "address_zh", type: "string", aliases: ["full_address_zh"] },
     { key: "address_cn", label: "address_cn", type: "string", aliases: ["full_address_cn"] },
     { key: "grade", label: "grade", type: "string" },
@@ -237,9 +254,9 @@ export const buildingsImportDefinition: ImportObjectDefinition = {
     { key: "owner_company_id", label: "owner_company_id", type: "string" },
     { key: "owner_company_name_en", label: "owner_company_name_en", type: "string", lookupOnly: true },
     { key: "year_built", label: "year_built", type: "number", integer: true },
-    { key: "no_of_floors", label: "no_of_floors", type: "number", integer: true, aliases: ["total_floors"] },
-    { key: "building_area_sqft", label: "building_area_sqft", type: "number" },
-    { key: "building_area_sqm", label: "building_area_sqm", type: "number" },
+    { key: "no_of_floors", label: "no_of_floors", type: "number", integer: true, aliases: ["total_floors", "floor_count"] },
+    { key: "building_area_sqft", label: "building_area_sqft", type: "number", aliases: ["bldg_area_sqft"] },
+    { key: "building_area_sqm", label: "building_area_sqm", type: "number", aliases: ["bldg_area_sqm"] },
     { key: "mtr_station", label: "mtr_station", type: "string" },
     { key: "walking_minutes", label: "walking_minutes", type: "number", integer: true },
     { key: "lot_number", label: "lot_number", type: "string" },
@@ -249,9 +266,14 @@ export const buildingsImportDefinition: ImportObjectDefinition = {
     { key: "plot_ratio", label: "plot_ratio", type: "number" },
     { key: "site_area_sqft", label: "site_area_sqft", type: "number" },
     { key: "site_area_sqm", label: "site_area_sqm", type: "number" },
-    { key: "building_description_en", label: "building_description_en", type: "string", aliases: ["building_introduction", "description"] },
-    { key: "building_description_zh", label: "building_description_zh", type: "string" },
-    { key: "building_description_cn", label: "building_description_cn", type: "string" },
+    {
+      key: "building_description_en",
+      label: "building_description_en",
+      type: "string",
+      aliases: ["building_introduction", "description", "bldg_desc"],
+    },
+    { key: "building_description_zh", label: "building_description_zh", type: "string", aliases: ["bldg_desc_zh"] },
+    { key: "building_description_cn", label: "building_description_cn", type: "string", aliases: ["bldg_desc_cn"] },
     { key: "location_advantages_en", label: "location_advantages_en", type: "string" },
     { key: "location_advantages_zh", label: "location_advantages_zh", type: "string" },
     { key: "location_advantages_cn", label: "location_advantages_cn", type: "string" },
@@ -262,7 +284,7 @@ export const buildingsImportDefinition: ImportObjectDefinition = {
     { key: "proposal_highlights_zh", label: "proposal_highlights_zh", type: "string" },
     { key: "proposal_highlights_cn", label: "proposal_highlights_cn", type: "string" },
     { key: "building_relationships", label: "building_relationships", type: "json" },
-    { key: "remarks", label: "remarks", type: "string" },
+    { key: "remarks", label: "remarks", type: "string", aliases: ["building_remarks", "notes"] },
     { key: "last_verified_date", label: "last_verified_date", type: "date" },
   ],
 
@@ -334,9 +356,12 @@ export const buildingsImportDefinition: ImportObjectDefinition = {
     const v = applySessionMetadata(values, ctx);
     const patch = dbPatch(v);
     if (!patch.bldg_name_en) patch.bldg_name_en = v.building_name_en;
-    if (!patch.district_en) patch.district_en = v.district ?? "";
+    if (!patch.district_en) patch.district_en = v.district;
     if (!patch.city_en) patch.city_en = v.city ?? "Hong Kong";
     if (!patch.country) patch.country = v.country ?? "Hong Kong";
+    const nameEn = String(patch.bldg_name_en ?? "").trim();
+    if (!nameEn) throw new Error("building_name_en is required on create");
+    const districtEn = String(patch.district_en ?? "").trim() || null;
     // building_id in CSV is the canonical B###### identity — never use it as property_id.
     const suppliedBuildingId = String(v.building_id ?? "").trim();
     const propertyId =
@@ -352,8 +377,8 @@ export const buildingsImportDefinition: ImportObjectDefinition = {
       [
         propertyId,
         businessId,
-        patch.bldg_name_en ?? "",
-        patch.district_en ?? "",
+        nameEn,
+        districtEn,
         patch.city_en ?? "Hong Kong",
         patch.country ?? "Hong Kong",
       ],

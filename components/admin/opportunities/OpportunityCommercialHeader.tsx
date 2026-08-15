@@ -165,7 +165,7 @@ export function OpportunityCommercialHeader({ opportunity }: { opportunity: Oppo
           : null;
 
   return (
-    <section className="min-w-[20rem] sm:min-w-[28rem]">
+    <section className="w-full min-w-0 sm:w-auto sm:min-w-[28rem]">
       <dl className="grid grid-cols-3 gap-1.5">
         <Metric
           label="Status"

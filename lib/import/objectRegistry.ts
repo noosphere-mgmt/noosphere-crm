@@ -92,6 +92,7 @@ export function listMappingFieldOptions(objectType: ImportObjectType) {
     label: f.label,
     matchOnly: f.matchOnly ?? false,
     lookupOnly: f.lookupOnly ?? false,
+    requiredOnCreate: f.requiredOnCreate ?? false,
   }));
 }
 

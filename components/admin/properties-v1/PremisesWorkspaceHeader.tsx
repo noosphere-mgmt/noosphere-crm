@@ -53,6 +53,9 @@ export function PremisesWorkspaceHeader({
       <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
+            <span className="mb-1 w-fit rounded-full bg-[#DCEBED] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#356C73] sm:hidden">
+              Premise
+            </span>
             <Link href={returnTo} className={`inline-flex items-center rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold ${theme.link}`}>
               ← Back to premises list
             </Link>

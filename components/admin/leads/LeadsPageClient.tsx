@@ -25,6 +25,7 @@ import type { Lead, LeadStatus } from "@/lib/repos/leads";
 import type { CompanyOption } from "@/lib/repos/companies";
 import type { ContactOption } from "@/lib/repos/contacts";
 import { AdminEntityLink } from "@/components/admin/AdminEntityLink";
+import { CrmStaffSelect } from "@/components/admin/CrmStaffSelect";
 import {
   companyFullPageHref,
   contactFullPageHref,
@@ -557,15 +558,7 @@ export function LeadsPageClient({
                       ))}
                     </select>
                   </label>
-                  <label className="block">
-                    <span className={labelClass}>Opportunity Owner</span>
-                    <input
-                      name="opportunity_owner"
-                      defaultValue={selectedLead.assigned_owner ?? ""}
-                      placeholder="Defaults to the Lead Owner"
-                      className={`w-full ${fieldClass}`}
-                    />
-                  </label>
+                  <CrmStaffSelect label="Opportunity Owner" name="opportunity_owner" defaultValue={selectedLead.assigned_owner} defaultToPrimary className={`w-full ${fieldClass}`} />
                   <div className="sm:col-span-2">
                     <button
                       type="submit"

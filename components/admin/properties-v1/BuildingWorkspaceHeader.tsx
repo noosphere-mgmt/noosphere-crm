@@ -27,9 +27,11 @@ function propertyAddressLine(property: PropertyV1): string | null {
 export function BuildingWorkspaceHeader({
   property,
   premisesCount,
+  returnTo,
 }: {
   property: PropertyV1;
   premisesCount: number;
+  returnTo: string;
 }) {
   const theme = moduleAccentClasses("properties");
   const address = propertyAddressLine(property);
@@ -38,8 +40,11 @@ export function BuildingWorkspaceHeader({
     <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <Link href="/admin/properties" className={`text-xs font-medium ${theme.link}`}>
-            ← All Premises
+          <span className="mb-1 w-fit rounded-full bg-[#E3EAE0] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#506753] sm:hidden">
+            Building
+          </span>
+          <Link href={returnTo} className={`text-xs font-medium ${theme.link}`}>
+            ← Back
           </Link>
           <h1 className="mt-1 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
             {propertyTitle(property)}
@@ -50,9 +55,7 @@ export function BuildingWorkspaceHeader({
           ) : (
             <p className="mt-2 text-sm text-slate-400">Address will appear when location fields are filled.</p>
           )}
-          <p className="mt-1 text-xs text-slate-500">
-            {premisesCount} premises · Double-click a field to edit · saves automatically
-          </p>
+          <p className="mt-1 text-xs text-slate-500">{premisesCount} premises</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {property.grade ? <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-800">{property.grade}</span> : null}
             {property.title ? <span className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-800">{property.title}</span> : null}
@@ -67,20 +70,20 @@ export function BuildingWorkspaceHeader({
             + Premises
           </Link>
           <Link
-            href={buildingWorkspaceHref(property, "activities")}
+            href={buildingWorkspaceHref(property, "activities", undefined, returnTo)}
             className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
             Log activity
           </Link>
           <Link
-            href={buildingWorkspaceHref(property, "overview", "edit")}
+            href={buildingWorkspaceHref(property, "overview", "edit", returnTo)}
             scroll={false}
             className={moduleEditButtonClass("properties")}
             aria-label="Edit building"
             title="Edit building"
           >Edit</Link>
           <Link
-            href="/admin/properties"
+            href={returnTo}
             className="inline-flex rounded-lg p-2 text-slate-400 hover:bg-slate-100"
             aria-label="Close"
             title="Close"

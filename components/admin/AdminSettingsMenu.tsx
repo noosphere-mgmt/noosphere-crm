@@ -24,22 +24,21 @@ export function AdminSettingsMenu() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${
+        className={`flex h-11 w-11 cursor-pointer items-center justify-center rounded-xl text-sm font-medium transition ${
           active || open
             ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/80"
             : "text-slate-600 hover:bg-white/70 hover:text-slate-900"
         }`}
         aria-expanded={open}
         aria-haspopup="menu"
-        aria-label="Menu"
+        aria-label="Settings"
       >
         <span aria-hidden className="text-xl leading-none sm:hidden">
           ☰
         </span>
-        <span aria-hidden className="hidden text-base leading-none sm:inline">
+        <span aria-hidden className="hidden text-2xl leading-none sm:inline">
           ⚙
         </span>
-        <span className="hidden sm:inline">Settings</span>
       </button>
       {open ? (
         <div

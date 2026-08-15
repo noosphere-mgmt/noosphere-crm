@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { ContactDetailBody } from "@/components/admin/connections/ContactDetailBody";
 import { ContactDetailTabs } from "@/components/admin/connections/ContactDetailTabs";
 import {
@@ -22,9 +22,16 @@ export function ContactDrawer({
   onClose: () => void;
 }) {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   if (!data) return null;
 
   const { contact } = data;
+  const returnParams = new URLSearchParams(searchParams.toString());
+  returnParams.delete("contact");
+  returnParams.delete("tab");
+  returnParams.delete("mode");
+  const returnQuery = returnParams.toString();
+  const returnTo = returnQuery ? `${pathname}?${returnQuery}` : pathname;
 
   return (
     <>
@@ -40,6 +47,7 @@ export function ContactDrawer({
             title={getContactLabel(contact)}
             subtitle={contact.company_name ?? undefined}
             businessId={contact.business_id}
+            returnTo={returnTo}
             onClose={onClose}
           />
           <div className="shrink-0 bg-white px-4 pt-2">

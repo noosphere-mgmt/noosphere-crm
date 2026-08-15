@@ -11,6 +11,7 @@ import {
 } from "@/lib/premisesCommercial";
 import {
   PREMISES_ASSET_CLASSES,
+  PREMISES_CENTRE_STATUSES,
   PREMISES_PRODUCT_SUBTYPES,
   V1_FIT_OUT_CONDITIONS,
   V1_LISTING_INTENTS,
@@ -35,9 +36,13 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
     hasActiveFilters,
   } = usePremisesFiltersBar(props);
   const [monthlyRentMax, setMonthlyRentMax] = useState(filters.monthly_rent_max ?? "");
+  const [operatorFilter, setOperatorFilter] = useState(filters.operator ?? "");
   useEffect(() => {
     setMonthlyRentMax(filters.monthly_rent_max ?? "");
   }, [filters.monthly_rent_max]);
+  useEffect(() => {
+    setOperatorFilter(filters.operator ?? "");
+  }, [filters.operator]);
   const subtypeOptions = filters.asset_class && filters.asset_class in PREMISES_PRODUCT_SUBTYPES
     ? PREMISES_PRODUCT_SUBTYPES[filters.asset_class as keyof typeof PREMISES_PRODUCT_SUBTYPES]
     : Object.values(PREMISES_PRODUCT_SUBTYPES).flat();
@@ -195,6 +200,35 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
             </option>
           ))}
         </select>
+
+        <select
+          aria-label="Centre status"
+          value={filters.centre_status ?? ""}
+          onChange={(e) => patch({ centre_status: e.target.value || undefined })}
+          className={theme.searchSelect}
+        >
+          <option value="">Centre status</option>
+          {PREMISES_CENTRE_STATUSES.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </select>
+
+        <input
+          type="search"
+          aria-label="Operator"
+          placeholder="Operator"
+          value={operatorFilter}
+          onChange={(e) => setOperatorFilter(e.target.value)}
+          onBlur={() => patch({ operator: operatorFilter.trim() || undefined })}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              patch({ operator: operatorFilter.trim() || undefined });
+            }
+          }}
+          className={theme.searchSelect}
+        />
 
         <select
           aria-label="Unique Address"

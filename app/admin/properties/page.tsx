@@ -32,6 +32,8 @@ type Props = {
     view_type?: string;
     listing_intent?: string;
     listing_status?: string;
+    centre_status?: string;
+    operator?: string;
     offers_unique_address?: string;
     offers_stamp_duty?: string;
     package_offers?: string;
@@ -57,6 +59,8 @@ export default async function AllPremisesPage({ searchParams }: Props) {
     view_type: sp.view_type?.trim() || undefined,
     listing_intent: sp.listing_intent?.trim() || undefined,
     listing_status: sp.listing_status?.trim() || undefined,
+    centre_status: sp.centre_status?.trim() || undefined,
+    operator: sp.operator?.trim() || undefined,
     offers_unique_address: sp.offers_unique_address?.trim() || undefined,
     offers_stamp_duty: sp.offers_stamp_duty?.trim() || undefined,
     package_offers: sp.package_offers?.trim() || undefined,

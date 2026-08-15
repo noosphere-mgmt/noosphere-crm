@@ -8,7 +8,7 @@ import { SortableTableHeader } from "@/components/admin/SortableTableHeader";
 import type { ConnectionsContactsListState } from "@/components/admin/connections/useConnectionsContactsList";
 import { contactDrawerHref } from "@/lib/connectionsDrawerNav";
 import { companyFullPageHref } from "@/lib/crmDetailNav";
-import { formatCoverage, formatDateLabel } from "@/lib/connectionsDisplay";
+import { formatDateLabel } from "@/lib/connectionsDisplay";
 import { getContactLabel } from "@/lib/contactName";
 import { connectionsGlassClasses } from "@/lib/connectionsGlassTheme";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
@@ -66,15 +66,7 @@ export function ConnectionsContactsListDesktop({
             </th>
             <SortableTableHeader label="Name" sortKey="name" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <SortableTableHeader label="Company" sortKey="company" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-            <th className="px-3 py-1.5 align-top font-medium">Open opps</th>
-            <SortableTableHeader
-              label="Coverage"
-              sortKey="coverage"
-              activeKey={sortKey}
-              sortDir={sortDir}
-              onSort={handleSort}
-              className="w-[220px]"
-            />
+            <th className="w-24 px-2 py-1.5 text-center align-top font-medium">OpenOpp</th>
             <th className="px-3 py-1.5 align-top font-medium">Primary</th>
             <SortableTableHeader label="Updated" sortKey="updated" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <th className="w-28 px-3 py-1.5 align-top font-medium">Actions</th>
@@ -83,13 +75,13 @@ export function ConnectionsContactsListDesktop({
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
+              <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
                 No contacts yet.
               </td>
             </tr>
           ) : displayedRows.length === 0 ? (
             <tr>
-              <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
+              <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
                 No contacts match your search.
               </td>
             </tr>
@@ -129,14 +121,18 @@ export function ConnectionsContactsListDesktop({
                       >
                         {row.company_name ?? (row.company_id != null ? `#${row.company_id}` : null)}
                       </AdminEntityLink>
-                      {row.company_name_zh ? (
-                        <span className="text-xs text-slate-500">{row.company_name_zh}</span>
-                      ) : null}
+                      <div className="mt-0.5 flex min-w-0 items-baseline gap-2">
+                        {row.company_name_zh ? (
+                          <span className="min-w-0 truncate text-xs leading-4 text-slate-500">
+                            {row.company_name_zh}
+                          </span>
+                        ) : null}
+                        <RecordBusinessId id={row.company_business_id} className="shrink-0" />
+                      </div>
                     </div>
                   </td>
-                  <td className="px-3 py-1.5 text-slate-700">{row.open_opportunities ?? 0}</td>
-                  <td className="px-3 py-1.5 text-slate-700">
-                    <div className="w-[220px] max-w-[220px] truncate">{formatCoverage(row.coverage)}</div>
+                  <td className="w-24 px-2 py-1.5 text-center tabular-nums text-slate-700">
+                    {row.open_opportunities ?? 0}
                   </td>
                   <td className="px-3 py-1.5 text-slate-700">{row.is_primary ? "Yes" : "—"}</td>
                   <td className="px-3 py-1.5 text-slate-700">{formatDateLabel(row.updated_at)}</td>

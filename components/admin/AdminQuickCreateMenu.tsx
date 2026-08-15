@@ -50,9 +50,10 @@ export function AdminQuickCreateMenu() {
         aria-haspopup="menu"
         aria-label="Create"
         title="Create"
-        className="inline-flex cursor-pointer items-center rounded-md px-2 py-1.5 text-sm font-semibold text-blue-600 transition hover:bg-blue-50 hover:text-blue-700"
+        className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-xl font-semibold text-blue-600 transition hover:bg-blue-50 hover:text-blue-700 lg:h-auto lg:w-auto lg:px-2 lg:py-1.5 lg:text-sm"
       >
-        Create
+        <span className="lg:hidden" aria-hidden>+</span>
+        <span className="hidden lg:inline">Create</span>
       </button>
 
       {open ? (

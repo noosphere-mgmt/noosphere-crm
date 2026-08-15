@@ -8,19 +8,15 @@ import {
   deleteOpportunityPartyAction,
   updateOpportunityPartyAction,
 } from "@/app/admin/opportunities/workspaceActions";
-import { FormField, TextAreaField } from "@/components/admin/AdminFormFields";
+import { TextAreaField } from "@/components/admin/AdminFormFields";
 import { ContactFormDrawer } from "@/components/admin/connections/ContactFormDrawer";
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
 import { AdminEntityLink } from "@/components/admin/AdminEntityLink";
 import { OpportunityPartyContactSelect } from "@/components/admin/opportunities/OpportunityPartyContactSelect";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import { companyFullPageHref, contactFullPageHref } from "@/lib/crmDetailNav";
-import {
-  FEE_STATUSES,
-  FEE_STATUS_LABELS,
-  OPPORTUNITY_PARTY_ROLES,
-} from "@/lib/opportunityValues";
-import { formatPartyFeeCell, partyRoleLabel } from "@/lib/opportunityPartiesDisplay";
+import { OPPORTUNITY_PARTY_ROLES } from "@/lib/opportunityValues";
+import { partyRoleLabel } from "@/lib/opportunityPartiesDisplay";
 import { toLegacyCompanySelectOptions, toLegacyContactSelectOptions, resolveCompanySelectValue, resolveContactSelectValue } from "@/lib/crmSelectOptions";
 import type { CompanyOption } from "@/lib/repos/companies";
 import type { OpportunityDetailData } from "@/lib/repos/opportunityDetail";
@@ -59,10 +55,6 @@ export function OpportunityPartiesTab({ data }: { data: OpportunityDetailData })
     const [companyId, setCompanyId] = useState(
       resolveCompanySelectValue(companies as CompanyOption[], party?.company_id),
     );
-    const [showFees, setShowFees] = useState(Boolean(
-      party?.collect_fee_amount || party?.collect_fee_percent || party?.paid_out_fee_amount || party?.paid_out_fee_percent ||
-      (party?.collect_fee_status && party.collect_fee_status !== "expected"),
-    ));
     const action =
       party != null
         ? updateOpportunityPartyAction.bind(null, party.id)
@@ -131,25 +123,7 @@ export function OpportunityPartiesTab({ data }: { data: OpportunityDetailData })
               ))}
             </select>
           </label>
-          <div className="flex items-end">
-            <button type="button" onClick={() => setShowFees((open) => !open)} className="mb-0.5 rounded-lg border border-violet-200 bg-white px-3 py-1.5 text-sm font-medium text-violet-800 hover:bg-violet-50">
-              {showFees ? "Hide fee arrangement" : "+ Fee arrangement"}
-            </button>
-          </div>
-          {showFees ? (
-            <div className="grid gap-3 rounded-lg border border-violet-100 bg-white p-3 sm:col-span-2 sm:grid-cols-2 lg:col-span-3 lg:grid-cols-5">
-              <label className="block text-sm">
-                <span className="text-xs font-medium uppercase text-slate-500">Collect Status</span>
-                <select name="collect_fee_status" defaultValue={party?.collect_fee_status ?? "expected"} className={selectClass}>
-                  {FEE_STATUSES.map((s) => <option key={s} value={s}>{FEE_STATUS_LABELS[s]}</option>)}
-                </select>
-              </label>
-              <FormField label="Collect Amount" name="collect_fee_amount" type="number" defaultValue={party?.collect_fee_amount ?? ""} />
-              <FormField label="Collect %" name="collect_fee_percent" type="number" defaultValue={party?.collect_fee_percent ?? ""} />
-              <FormField label="Pay Out Amount" name="paid_out_fee_amount" type="number" defaultValue={party?.paid_out_fee_amount ?? ""} />
-              <FormField label="Pay Out %" name="paid_out_fee_percent" type="number" defaultValue={party?.paid_out_fee_percent ?? ""} />
-            </div>
-          ) : party ? (
+          {party ? (
             <>
               <input type="hidden" name="collect_fee_status" value={party.collect_fee_status ?? "expected"} />
               <input type="hidden" name="collect_fee_amount" value={party.collect_fee_amount ?? ""} />
@@ -257,8 +231,6 @@ export function OpportunityPartiesTab({ data }: { data: OpportunityDetailData })
               <th className="px-3 py-1.5 font-medium">Company</th>
               <th className="px-3 py-1.5 font-medium">Contact</th>
               <th className="px-3 py-1.5 font-medium">Role</th>
-              <th className="px-3 py-1.5 font-medium">Collect fee</th>
-              <th className="px-3 py-1.5 font-medium">Paid out fee</th>
               <th className="px-3 py-1.5 font-medium">Remarks</th>
               <th className="w-24 px-3 py-1.5 font-medium">Actions</th>
             </tr>
@@ -266,7 +238,7 @@ export function OpportunityPartiesTab({ data }: { data: OpportunityDetailData })
           <tbody>
             {parties.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
                   No parties linked to this opportunity yet.
                 </td>
               </tr>
@@ -282,12 +254,6 @@ export function OpportunityPartiesTab({ data }: { data: OpportunityDetailData })
                     return href ? <Link href={href} className="text-violet-900 hover:underline">{party.contact_name ?? "View contact"}</Link> : party.contact_name ?? "—";
                   })()}</td>
                   <td className="px-3 py-1.5 text-slate-700">{partyRoleLabel(party.role)}</td>
-                  <td className="px-3 py-1.5 text-slate-700">
-                    {formatPartyFeeCell(party.collect_fee_amount, party.collect_fee_percent)}
-                  </td>
-                  <td className="px-3 py-1.5 text-slate-700">
-                    {formatPartyFeeCell(party.paid_out_fee_amount, party.paid_out_fee_percent)}
-                  </td>
                   <td className="max-w-[10rem] truncate px-3 py-1.5 text-slate-600" title={party.remarks ?? ""}>
                     {party.remarks ?? "—"}
                   </td>

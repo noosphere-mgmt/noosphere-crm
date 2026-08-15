@@ -1,4 +1,5 @@
-const selectClass = "mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm";
+const selectClass =
+  "mt-1 w-full min-w-[16rem] max-w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm";
 
 const ACTION_STYLES: Record<string, string> = {
   create: "bg-emerald-100 text-emerald-900",
@@ -67,7 +68,13 @@ export function MappingSelect({
   defaultValue,
 }: {
   header: string;
-  fieldOptions: Array<{ key: string; label: string; matchOnly?: boolean }>;
+  fieldOptions: Array<{
+    key: string;
+    label: string;
+    matchOnly?: boolean;
+    lookupOnly?: boolean;
+    requiredOnCreate?: boolean;
+  }>;
   defaultValue: string;
 }) {
   return (
@@ -75,7 +82,10 @@ export function MappingSelect({
       <option value="__skip__">— Skip —</option>
       {fieldOptions.map((f) => (
         <option key={f.key} value={f.key}>
-          {f.label}{f.matchOnly ? " (match)" : ""}
+          {f.label}
+          {f.requiredOnCreate ? " (required)" : ""}
+          {f.lookupOnly ? " (lookup)" : ""}
+          {f.matchOnly ? " (match)" : ""}
         </option>
       ))}
     </select>

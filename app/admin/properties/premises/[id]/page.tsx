@@ -7,6 +7,7 @@ import { listContactV1Options } from "@/lib/repos/contactsV1";
 import { getPremisesDrawerData } from "@/lib/repos/premisesDrawer";
 import { resolvePremisesV1Id, getPremisesV1, listPremisesForPropertyV1 } from "@/lib/repos/premisesV1";
 import { getPropertyV1, listPropertyV1SelectOptions } from "@/lib/repos/propertiesV1";
+import { sanitizeAdminReturnTo } from "@/lib/adminReturnTo";
 
 export const dynamic = "force-dynamic";
 
@@ -18,9 +19,7 @@ type Props = {
 export default async function PremisesDetailPage({ params, searchParams }: Props) {
   const { id: idRaw } = await params;
   const sp = await searchParams;
-  const returnTo = sp.returnTo?.startsWith("/admin/properties")
-    ? sp.returnTo
-    : "/admin/properties";
+  const returnTo = sanitizeAdminReturnTo(sp.returnTo, "/admin/properties");
   const premisesId = (await resolvePremisesV1Id(idRaw.trim())) ?? idRaw.trim();
   const premises = await getPremisesV1(premisesId);
   if (!premises) notFound();

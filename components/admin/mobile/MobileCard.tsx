@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 export const mobileCardClass =
-  "w-full rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition active:bg-slate-50";
+  "min-w-0 w-full overflow-hidden rounded-xl border border-slate-200 bg-white p-3 text-left shadow-sm transition active:bg-slate-50 sm:p-4";
 
 export function MobileCard({
   children,
@@ -49,9 +49,9 @@ export function MobileCompactCard({
 }
 
 export function MobileCardMeta({ children }: { children: ReactNode }) {
-  return <p className="mt-1 text-sm text-slate-600">{children}</p>;
+  return <p className="mt-1 min-w-0 break-words text-xs leading-relaxed text-slate-600 sm:text-sm">{children}</p>;
 }
 
 export function MobileCardTitle({ children }: { children: ReactNode }) {
-  return <p className="font-semibold text-slate-900">{children}</p>;
+  return <p className="min-w-0 break-words font-semibold text-slate-900">{children}</p>;
 }

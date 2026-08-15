@@ -36,7 +36,9 @@ export function ConnectionsModuleToolbar({
 
   return (
     <div className="mb-2 flex items-center gap-1.5">
-      <span className={`shrink-0 text-sm font-bold ${theme.navActiveTitle}`}>Connections</span>
+      <span className={`shrink-0 text-sm font-bold ${theme.navActiveTitle}`}>
+        {isContacts ? "Contacts" : isCompanies ? "Companies" : "Channel Tree"}
+      </span>
       <nav
         aria-label="Connections sections"
         className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto"

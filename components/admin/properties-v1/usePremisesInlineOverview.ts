@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { patchPremisesFieldAction } from "@/app/admin/properties/actions";
 import { controllingParty } from "@/components/admin/properties-v1/premisesInlineOverviewShared";
 import { toCompanyV1SelectOptions, coerceCompanyIdToSelectValue } from "@/lib/companyV1Display";
@@ -31,6 +31,7 @@ export function usePremisesInlineOverview(
   drawerBasePath = "/admin/properties",
 ) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const currency = premises.currency ?? "HKD";
   const rentLabel = monthlyRentFieldLabel(premises.operating_model);
   const feesNote = packageFeesNote(premises.operating_model);
@@ -53,9 +54,10 @@ export function usePremisesInlineOverview(
   const save = useCallback(
     (field: string) => async (value: unknown) => {
       const result = await patchPremisesFieldAction(premises.premises_id, field, JSON.stringify(value));
+      if (result.ok) router.refresh();
       return { ok: result.ok, error: result.ok ? undefined : result.error };
     },
-    [premises.premises_id],
+    [premises.premises_id, router],
   );
 
   function tabHref(tab: PremisesDetailTabId) {

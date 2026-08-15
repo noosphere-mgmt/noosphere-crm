@@ -41,6 +41,8 @@ export type PremisesV1 = {
   market_mode?: string | null;
   occupancy_status?: string | null;
   availability_status?: string | null;
+  /** Centre operator state: Active | Full | Moved */
+  centre_status?: string | null;
   discovery_status?: string | null;
   access_status?: string | null;
   source_type?: string | null;
@@ -122,7 +124,7 @@ const select = `
   property_name_cn, property_name_cn_is_custom,
   property_type, centre_type,
   property_category, asset_class, asset_scope, product_subtype, whole_asset_type,
-  market_mode, occupancy_status, availability_status, discovery_status, access_status,
+  market_mode, occupancy_status, availability_status, centre_status, discovery_status, access_status,
   source_type, address_confidence, last_verified_at::text AS last_verified_at,
   space_form, listing_intent,
   inventory_status, ownership_type,
@@ -273,7 +275,7 @@ export type PremisesV1Patch = Partial<
 
 export async function updatePremisesV1(premisesId: string, patch: PremisesV1Patch): Promise<void> {
   const coerced = await coercePremisesV1PatchForDb(patch);
-  const entries = Object.entries(coerced).filter(([, v]) => v !== undefined);
+  const entries = Object.entries(coerced).filter(([key, v]) => key !== "updated_at" && v !== undefined);
   if (entries.length === 0) return;
   const sets: string[] = [];
   const params: unknown[] = [premisesId];
@@ -284,7 +286,7 @@ export async function updatePremisesV1(premisesId: string, patch: PremisesV1Patc
     i++;
   }
   try {
-    await query(`UPDATE premises_v1 SET ${sets.join(", ")} WHERE premises_id = $1`, params);
+    await query(`UPDATE premises_v1 SET ${sets.join(", ")}, updated_at = NOW() WHERE premises_id = $1`, params);
   } catch (err) {
     const debug = formatSqlParamDebug(describeV1UpdateParams("premises_id", premisesId, coerced));
     const message = err instanceof Error ? err.message : String(err);
@@ -337,6 +339,7 @@ export function emptyPremisesV1(propertyId: string): PremisesV1 {
     market_mode: "lease",
     occupancy_status: "unknown",
     availability_status: "available",
+    centre_status: "Active",
     discovery_status: "identified",
     access_status: "no_contact",
     source_type: "direct",
@@ -528,6 +531,8 @@ export type PremisesFlatFilters = {
   view_type?: string;
   listing_intent?: string;
   listing_status?: string;
+  centre_status?: string;
+  operator?: string;
   offers_unique_address?: string;
   offers_stamp_duty?: string;
   /** Private Rooms | Open Desk | Virtual Address */
@@ -562,6 +567,21 @@ export type PremisesFlatRow = {
 export async function deletePremisesV1(premisesIds: string[]): Promise<void> {
   if (premisesIds.length === 0) return;
   await query(`DELETE FROM premises_v1 WHERE premises_id = ANY($1::text[])`, [premisesIds]);
+}
+
+export async function bulkUpdatePremisesCentreStatus(
+  premisesIds: string[],
+  centreStatus: string,
+): Promise<number> {
+  if (premisesIds.length === 0) return 0;
+  const rows = await query<{ n: string }>(
+    `UPDATE premises_v1
+     SET centre_status = $2, updated_at = NOW()
+     WHERE premises_id = ANY($1::text[])
+     RETURNING premises_id`,
+    [premisesIds, centreStatus],
+  );
+  return rows.length;
 }
 
 export type PremisesListItem = PremisesV1 & {
@@ -648,6 +668,14 @@ function premisesFlatWhere(filters: PremisesFlatFilters): { where: string; param
   if (filters.listing_status) {
     clauses.push(`p.offer_status = $${i++}`);
     params.push(filters.listing_status);
+  }
+  if (filters.centre_status) {
+    clauses.push(`p.centre_status = $${i++}`);
+    params.push(filters.centre_status);
+  }
+  if (filters.operator) {
+    clauses.push(`c.company_name_en ILIKE $${i++}`);
+    params.push(`%${filters.operator}%`);
   }
   if (filters.offers_unique_address) {
     clauses.push(`p.offers_unique_address = $${i++}`);
@@ -806,7 +834,7 @@ export async function listPremisesFullFiltered(filters: PremisesFlatFilters = {}
        p.property_name_cn, p.property_name_cn_is_custom,
        p.property_type, p.centre_type,
        p.property_category, p.asset_class, p.asset_scope, p.product_subtype, p.whole_asset_type,
-       p.market_mode, p.occupancy_status, p.availability_status,
+       p.market_mode, p.occupancy_status, p.availability_status, p.centre_status,
        p.discovery_status, p.access_status, p.source_type, p.address_confidence,
        p.last_verified_at::text AS last_verified_at,
        p.space_form, p.listing_intent,
@@ -883,7 +911,7 @@ export async function getPremisesListItemByRef(raw: string): Promise<PremisesLis
        p.property_name_cn, p.property_name_cn_is_custom,
        p.property_type, p.centre_type,
        p.property_category, p.asset_class, p.asset_scope, p.product_subtype, p.whole_asset_type,
-       p.market_mode, p.occupancy_status, p.availability_status,
+       p.market_mode, p.occupancy_status, p.availability_status, p.centre_status,
        p.discovery_status, p.access_status, p.source_type, p.address_confidence,
        p.last_verified_at::text AS last_verified_at,
        p.space_form, p.listing_intent,

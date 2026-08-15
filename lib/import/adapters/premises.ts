@@ -18,6 +18,12 @@ const FIELD_KEYS = [
   "external_ref",
   "building_id",
   "building_name_en",
+  "country",
+  "city",
+  "district",
+  "street_name_en",
+  "street_no",
+  "address",
   "operator_company_id",
   "operator_company_name_en",
   "owner_company_id",
@@ -40,6 +46,7 @@ const FIELD_KEYS = [
   "listing_intent",
   "offer_type",
   "listing_status",
+  "centre_status",
   "inventory_source",
   "operating_model",
   "fit_out",
@@ -81,6 +88,12 @@ const SELECT = `
   pm.external_ref,
   b.business_id AS building_id,
   b.bldg_name_en AS building_name_en,
+  b.country,
+  b.city_en AS city,
+  b.district_en AS district,
+  b.street_name_en,
+  b.street_no,
+  b.full_address_en AS address,
   ${sqlExportCompanyId("pm.operator_company_id")} AS operator_company_id,
   opco.company_name_en AS operator_company_name_en,
   ${sqlExportCompanyId("pm.owner_company_id")} AS owner_company_id,
@@ -101,6 +114,7 @@ const SELECT = `
   pm.listing_intent,
   pm.offer_type,
   pm.offer_status AS listing_status,
+  pm.centre_status,
   pm.source_file AS inventory_source,
   pm.operating_model,
   pm.fit_out_condition AS fit_out,
@@ -158,6 +172,7 @@ const PREMISES_DB_COLUMNS = new Set([
   "listing_intent",
   "offer_type",
   "offer_status",
+  "centre_status",
   "source_file",
   "source_type",
   "source_url",
@@ -224,6 +239,12 @@ function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
     "premises_id",
     "building_id",
     "building_name_en",
+    "country",
+    "city",
+    "district",
+    "street_name_en",
+    "street_no",
+    "address",
     "source_system",
     "source_date",
     "source_file",
@@ -283,6 +304,33 @@ function premiseFieldDef(key: (typeof FIELD_KEYS)[number]): ImportFieldDef {
   if (key === "building_name_en" || key === "operator_company_name_en" || key === "owner_company_name_en") {
     return { ...base, type: "string", lookupOnly: true };
   }
+  // Building location — exported for context; not written on premises (lives on building).
+  if (
+    key === "country" ||
+    key === "city" ||
+    key === "district" ||
+    key === "street_name_en" ||
+    key === "street_no" ||
+    key === "address"
+  ) {
+    return {
+      ...base,
+      type: "string",
+      lookupOnly: true,
+      aliases:
+        key === "district"
+          ? ["district_en", "district (en)"]
+          : key === "city"
+            ? ["city_en", "city (en)"]
+            : key === "address"
+              ? ["full_address_en", "full_address"]
+              : key === "street_name_en"
+                ? ["street_name", "street", "street name"]
+                : key === "street_no"
+                  ? ["street_number", "street no"]
+                  : undefined,
+    };
+  }
   if (key === "building_id") {
     return { ...base, type: "string", aliases: ["property_id"] };
   }
@@ -292,6 +340,15 @@ function premiseFieldDef(key: (typeof FIELD_KEYS)[number]): ImportFieldDef {
       type: "enum",
       enumValues: ["lease", "sale", "both"],
       aliases: ["transaction_intent"],
+    };
+  }
+  if (key === "centre_status") {
+    return {
+      ...base,
+      type: "enum",
+      enumValues: ["Active", "Full", "Moved"],
+      defaultValue: "Active",
+      aliases: ["center_status", "operator_status"],
     };
   }
   if (key === "property_category") {

@@ -30,6 +30,18 @@ export function getTemplateForObject(objectType: ImportObjectType): string {
     if (f.key === "property_category_preference") return "commercial";
     if (f.key === "country") return "Hong Kong";
     if (f.key === "city") return "Hong Kong";
+    if (f.key === "district" && (objectType === "buildings" || objectType === "premises")) {
+      return "Central";
+    }
+    if (f.key === "building_name_en" && (objectType === "buildings" || objectType === "premises")) {
+      return "Example Tower";
+    }
+    if (f.key === "street_name_en" && objectType === "premises") return "Queen's Road Central";
+    if (f.key === "street_no" && objectType === "premises") return "1";
+    if (f.key === "address" && objectType === "premises") {
+      return "1 Queen's Road Central, Central, Hong Kong";
+    }
+    if (f.key === "centre_status" && objectType === "premises") return "Active";
     return "";
   });
 
@@ -102,5 +114,6 @@ export function getFieldOptions(objectType: ImportObjectType) {
     label: f.label,
     matchOnly: f.matchOnly ?? false,
     lookupOnly: f.lookupOnly ?? false,
+    requiredOnCreate: f.requiredOnCreate ?? false,
   }));
 }

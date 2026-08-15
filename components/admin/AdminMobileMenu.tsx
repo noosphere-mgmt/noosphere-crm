@@ -9,7 +9,7 @@ const MOBILE_MENU_ITEMS = [
   { label: "Opportunities", href: "/admin/opportunities", colour: "bg-emerald-100 text-emerald-800", mark: "O" },
   { label: "Buildings", href: "/admin/properties/buildings", colour: "bg-blue-100 text-blue-800", mark: "B" },
   { label: "Companies", href: "/admin/companies", colour: "bg-violet-100 text-violet-800", mark: "C" },
-  { label: "Activities", href: "/admin/activities", colour: "bg-rose-100 text-rose-800", mark: "A" },
+  { label: "Channel Tree", href: "/admin/connections/channel-tree", colour: "bg-violet-100 text-violet-800", mark: "T" },
 ] as const;
 
 export function AdminMobileMenu() {

@@ -59,7 +59,7 @@ export function buildOpportunityProcessInsights(
   if (!latest) {
     insights.push({
       id: "no-footprint",
-      text: "No correspondence or process footprint yet — log the first client touch to establish momentum.",
+      text: "No activity yet.",
       tone: "attention",
     });
   } else if (ageDays != null && ageDays > 21) {
@@ -164,7 +164,7 @@ export function buildOpportunityProcessInsights(
 
   const headline = latest
     ? `${OPPORTUNITY_STATUS_LABELS[opportunity.status]}. Latest: ${latest.title} · ${formatDate(latest.date)}.`
-    : `${OPPORTUNITY_STATUS_LABELS[opportunity.status]}. No process footprint recorded yet.`;
+    : OPPORTUNITY_STATUS_LABELS[opportunity.status];
 
   return {
     headline,

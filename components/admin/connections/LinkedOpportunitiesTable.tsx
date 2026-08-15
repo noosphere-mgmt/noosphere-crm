@@ -28,7 +28,24 @@ export function LinkedOpportunitiesTable({
           </Link>
         ) : null}
       </div>
-      <table className="min-w-full text-sm">
+      <div className="space-y-2 p-3 md:hidden">
+        {rows.length === 0 ? (
+          <p className="py-6 text-center text-sm text-slate-500">No linked opportunities.</p>
+        ) : rows.map((row) => {
+          const oppHref = opportunityDetailHref(row.id, "overview", undefined, row.business_id);
+          return (
+            <AdminEntityLink key={`mobile-${row.id}`} href={oppHref} className="block rounded-xl border border-emerald-100 bg-emerald-50/40 p-3">
+              <div className="flex items-start justify-between gap-3">
+                <p className="min-w-0 font-semibold text-emerald-900">{row.client_name}</p>
+                <span className="shrink-0 rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-emerald-800">{OPPORTUNITY_STATUS_LABELS[row.status]}</span>
+              </div>
+              <p className="mt-1 text-xs text-slate-600">{[row.role_label, opportunitySalesRoleLabel(row.sales_role)].filter(Boolean).join(" · ")}</p>
+              <p className="mt-1 text-xs text-slate-500">{formatOpportunityBudget(row.budget_max, row.budget_min)} · {row.updated_at?.slice(0, 10) ?? "—"}</p>
+            </AdminEntityLink>
+          );
+        })}
+      </div>
+      <table className="hidden min-w-full text-sm md:table">
         <thead className="bg-slate-50 text-left text-slate-600">
           <tr>
             <th className="px-3 py-2 font-medium">Opportunity</th>

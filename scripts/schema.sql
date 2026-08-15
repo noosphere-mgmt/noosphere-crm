@@ -4,7 +4,13 @@ BEGIN;
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
-  NEW.updated_at = NOW();
+  -- Do not make an untouched record look newly updated when an idempotent
+  -- migration writes the same values back to the row.
+  IF (to_jsonb(NEW) - 'updated_at') IS DISTINCT FROM (to_jsonb(OLD) - 'updated_at') THEN
+    NEW.updated_at = NOW();
+  ELSE
+    NEW.updated_at = OLD.updated_at;
+  END IF;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

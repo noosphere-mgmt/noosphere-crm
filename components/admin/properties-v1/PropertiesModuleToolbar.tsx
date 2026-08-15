@@ -23,7 +23,9 @@ export function PropertiesModuleToolbar({ trailing }: { trailing?: ReactNode }) 
 
   return (
     <div className="mb-2 flex items-center gap-1.5">
-      <span className={`shrink-0 text-sm font-bold ${theme.navActiveTitle}`}>Properties</span>
+      <span className={`shrink-0 text-sm font-bold ${theme.navActiveTitle}`}>
+        {isBuildings ? "Buildings" : "Premises"}
+      </span>
       <nav
         aria-label="Properties sections"
         className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto"
@@ -32,7 +34,7 @@ export function PropertiesModuleToolbar({ trailing }: { trailing?: ReactNode }) 
           All Premises
         </Link>
         <Link href="/admin/properties/buildings" className={propertiesMobileTabClass(isBuildings)}>
-          All Building
+          All Buildings
         </Link>
       </nav>
       <div className="flex shrink-0 items-center gap-1">

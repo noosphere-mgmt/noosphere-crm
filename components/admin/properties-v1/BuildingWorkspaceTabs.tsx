@@ -28,9 +28,11 @@ const tabClasses = {
 export function BuildingWorkspaceTabs({
   property,
   premisesCount,
+  returnTo,
 }: {
   property: PropertyV1;
   premisesCount: number;
+  returnTo: string;
 }) {
   const searchParams = useSearchParams();
   const active = getBuildingWorkspaceTab({ tab: searchParams.get("tab") });
@@ -39,7 +41,7 @@ export function BuildingWorkspaceTabs({
     <nav className="flex gap-2 pb-1" aria-label="Building workspace sections">
       {BUILDING_WORKSPACE_TABS.map((tab) => {
         const isActive = active === tab.id;
-        const href = buildingWorkspaceHref(property, tab.id);
+        const href = buildingWorkspaceHref(property, tab.id, undefined, returnTo);
         const count = tab.id === "premises" ? premisesCount : 0;
         return (
           <Link

@@ -68,9 +68,6 @@ function PropertyPageHeader({
         ) : (
           <p className="mt-1 text-sm text-slate-400">Address will appear when location fields are filled.</p>
         )}
-        {!fullEditMode ? (
-          <p className="mt-1 text-xs text-slate-500">Double-click a field to edit · saves automatically</p>
-        ) : null}
       </div>
       {tab === "property" && !fullEditMode ? (
         <div className="flex shrink-0 items-center gap-1">

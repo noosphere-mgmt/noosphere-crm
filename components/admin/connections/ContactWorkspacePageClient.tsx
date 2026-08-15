@@ -19,7 +19,7 @@ export function ContactWorkspacePageClient({
   data,
   affiliations,
   editMode,
-  returnTo = "/admin/companies",
+  returnTo = "/admin/contacts",
 }: {
   data: ContactDrawerData;
   affiliations: ContactCompanyAffiliation[];

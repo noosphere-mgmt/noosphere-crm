@@ -17,7 +17,7 @@ type Props = {
 export default async function ContactDetailPage({ params, searchParams }: Props) {
   const { id: idRaw } = await params;
   const sp = await searchParams;
-  const returnTo = sanitizeAdminReturnTo(sp.returnTo, "/admin/companies");
+  const returnTo = sanitizeAdminReturnTo(sp.returnTo, "/admin/contacts");
 
   const precheck = classifyContactQueryParam(idRaw);
   if (precheck?.kind === "company_mismatch") {

@@ -2,13 +2,18 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
-import { bulkDeletePremisesV1Action, bulkDuplicatePremisesV1Action } from "@/app/admin/properties/actions";
+import {
+  bulkDeletePremisesV1Action,
+  bulkDuplicatePremisesV1Action,
+  bulkUpdatePremisesCentreStatusAction,
+} from "@/app/admin/properties/actions";
 import { ModuleListingBulkActions } from "@/components/admin/ModuleBulkActionButtons";
 import { PropertiesModuleHeader } from "@/components/admin/properties-v1/PropertiesModuleHeader";
 import { usePremisesListSelection } from "@/components/admin/properties-v1/PremisesListSelectionContext";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
+import { PREMISES_CENTRE_STATUSES } from "@/lib/v1ListValues";
 
 function buildReturnTo(searchParams: URLSearchParams): string {
   const params = new URLSearchParams(searchParams.toString());
@@ -24,6 +29,7 @@ export function PremisesListHeaderDesktop({ showCreate = true }: { showCreate?: 
   const searchParams = useSearchParams();
   const { someSelected, selectedCount, selected, clearSelection } = usePremisesListSelection();
   const [isPending, startTransition] = useTransition();
+  const [bulkCentreStatus, setBulkCentreStatus] = useState<(typeof PREMISES_CENTRE_STATUSES)[number]>("Full");
 
   const selectedIds = useMemo(() => [...selected], [selected]);
 
@@ -53,10 +59,60 @@ export function PremisesListHeaderDesktop({ showCreate = true }: { showCreate?: 
     });
   }
 
+  function onBulkCentreStatus() {
+    if (!someSelected) return;
+    if (
+      !window.confirm(
+        `Set centre status to “${bulkCentreStatus}” for ${selectedCount} selected premises?`,
+      )
+    ) {
+      return;
+    }
+    const formData = new FormData();
+    formData.set("premises_ids", selectedIds.join(","));
+    formData.set("centre_status", bulkCentreStatus);
+    startTransition(async () => {
+      const result = await bulkUpdatePremisesCentreStatusAction(formData);
+      if (!result.ok) {
+        window.alert(result.error);
+        return;
+      }
+      clearSelection();
+      router.refresh();
+    });
+  }
+
   return (
     <PropertiesModuleHeader
       actions={
         <>
+          {someSelected ? (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <select
+                aria-label="Bulk centre status"
+                value={bulkCentreStatus}
+                onChange={(e) =>
+                  setBulkCentreStatus(e.target.value as (typeof PREMISES_CENTRE_STATUSES)[number])
+                }
+                disabled={isPending}
+                className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800"
+              >
+                {PREMISES_CENTRE_STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={onBulkCentreStatus}
+                className={`${theme.secondaryButton} disabled:cursor-not-allowed disabled:opacity-40`}
+              >
+                Update status
+              </button>
+            </div>
+          ) : null}
           <ModuleListingBulkActions
             module="properties"
             importObjectType="premises"

@@ -57,7 +57,6 @@ const compactPrimaryButton =
 const primaryButton =
   "rounded-lg bg-[#7C3AED] px-3 py-2 text-sm font-semibold text-white hover:bg-[#5B21B6]";
 const accentLabel = "text-xs font-semibold uppercase tracking-wide text-[#7C3AED]";
-const channelBadge = "ml-2 rounded-full bg-[#F5F3FF] px-2 py-0.5 text-[11px] font-semibold text-[#5B21B6]";
 const openIconClass = "mt-2 rounded-md px-2 py-1 text-[#7C3AED] opacity-70 hover:bg-white hover:opacity-100";
 const metaHoverClass = "mt-1 block text-left text-[11px] text-slate-500 hover:text-[#7C3AED]";
 const companyColumnSearchClass = `mt-2 w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-800 placeholder:text-slate-400 ${connectionsGlassClasses.inputFocus} disabled:bg-slate-100 disabled:text-slate-400`;
@@ -357,7 +356,7 @@ export function ConnectionsCompaniesDesktop({
   }
 
   const showNoCompanyRow = state.roleFilter === null || state.roleFilter === "individual";
-  const contactColSpan = selection === "all" ? 8 : 7;
+  const contactColSpan = selection === "all" ? 7 : 6;
 
   return (
     <>
@@ -576,7 +575,7 @@ export function ConnectionsCompaniesDesktop({
 
           <div className={`${ADMIN_LIST_SCROLL_VIEWPORT_CLASS} rounded-xl border border-slate-200 bg-white`}>
             <table className="min-w-full text-sm">
-              <thead className="sticky top-0 z-10 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500 shadow-[inset_0_-1px_0_0_rgb(226,232,240)]">
+              <thead className="sticky top-0 z-10 bg-slate-50 text-left text-sm text-slate-600 shadow-[inset_0_-1px_0_0_rgb(226,232,240)]">
                 <tr>
                   <th className="w-10 px-4 py-3">
                     <input
@@ -615,14 +614,6 @@ export function ConnectionsCompaniesDesktop({
                     className="px-4 py-3"
                   />
                   <SortableTableHeader
-                    label="Coverage"
-                    sortKey="coverage"
-                    activeKey={contactSortKey}
-                    sortDir={contactSortDir}
-                    onSort={handleContactSort}
-                    className="px-4 py-3"
-                  />
-                  <SortableTableHeader
                     label="Last contact"
                     sortKey="last_contact"
                     activeKey={contactSortKey}
@@ -631,12 +622,12 @@ export function ConnectionsCompaniesDesktop({
                     className="px-4 py-3"
                   />
                   <SortableTableHeader
-                    label="Open opportunities"
+                    label="OpenOpps"
                     sortKey="opportunities"
                     activeKey={contactSortKey}
                     sortDir={contactSortDir}
                     onSort={handleContactSort}
-                    className="px-4 py-3"
+                    className="w-24 px-2 py-3 text-center [&>button]:justify-center [&>button]:text-center [&>button>span:first-child]:flex-none"
                   />
                   <th className="w-24 px-4 py-3 font-medium">Actions</th>
                 </tr>
@@ -653,6 +644,14 @@ export function ConnectionsCompaniesDesktop({
                 ) : (
                   visibleContacts.map((contact) => {
                     const contactId = String(contact.id);
+                    const linkedCompany =
+                      contact.company_id != null ? companiesById.get(contact.company_id) ?? null : null;
+                    const companyNameZh =
+                      contact.company_name_zh ??
+                      linkedCompany?.company_name_zh ??
+                      contact.company_name_cn ??
+                      linkedCompany?.company_name_cn ??
+                      null;
                     return (
                       <tr key={contact.id} className="border-t border-slate-100">
                         <td className="px-4 py-3">
@@ -671,7 +670,7 @@ export function ConnectionsCompaniesDesktop({
                               state.searchParams,
                               contact.business_id ?? contact.v1_contact_id ?? contact.id,
                             )}
-                            className={`${connectionsGlassClasses.link} underline-offset-2 hover:underline`}
+                            className={`${connectionsGlassClasses.link} font-semibold underline-offset-2 hover:underline`}
                           >
                             {getContactLabel(contact)}
                           </AdminEntityLink>
@@ -688,29 +687,27 @@ export function ConnectionsCompaniesDesktop({
                                 className={`${connectionsGlassClasses.link} underline-offset-2 hover:underline`}
                                 fallback="No Company"
                               >
-                                {contact.company_name}
+                                {contact.company_name ?? linkedCompany?.company_name}
                               </AdminEntityLink>
-                              {contact.company_name_zh ? (
-                                <span className="text-xs text-slate-500">{contact.company_name_zh}</span>
+                              {companyNameZh ? (
+                                <span className="mt-0.5 block min-w-0 truncate text-xs leading-4 text-slate-500">
+                                  {companyNameZh}
+                                </span>
                               ) : null}
                             </div>
                           </td>
                         ) : null}
                         <td className="px-4 py-3 text-slate-600">
                           <span>{formatCompanyRoles(contact.contact_role) || "—"}</span>
-                          {contact.contact_role.some((role) => role === "referrer" || role === "agency") ? (
-                            <span className={channelBadge}>Channel</span>
-                          ) : null}
                         </td>
-                        <td className="max-w-[14rem] px-4 py-3 text-slate-600">
-                          <span className="line-clamp-2">{formatCoverage(contact.coverage)}</span>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-slate-600">
+                        <td className="px-4 py-3 text-sm text-slate-600">
                           {contact.last_activity_date?.slice(0, 10) ??
                             contact.last_contact_date?.slice(0, 10) ??
                             "—"}
                         </td>
-                        <td className="px-4 py-3 text-slate-600">{contact.open_opportunities ?? 0}</td>
+                        <td className="w-24 px-2 py-3 text-center tabular-nums text-slate-600">
+                          {contact.open_opportunities ?? 0}
+                        </td>
                         <td className="px-4 py-3">
                           <ModuleRowActions
                             module="connections"

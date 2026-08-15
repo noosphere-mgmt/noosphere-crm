@@ -1,4 +1,5 @@
 import { premisesFullPageHref } from "@/lib/crmDetailNav";
+import { withAdminReturnTo } from "@/lib/adminReturnTo";
 import type { PremisesWorkspaceTabId } from "@/lib/premisesWorkspaceTab";
 
 type PremisesRef = {
@@ -15,7 +16,5 @@ export function premisesWorkspaceHref(
   const businessId = premises.business_id?.trim() || premises.premises_id;
   const href = premisesFullPageHref(businessId, { tab: tab === "overview" ? undefined : tab, mode });
   const base = href ?? `/admin/properties/premises/${encodeURIComponent(businessId)}`;
-  if (!returnTo?.startsWith("/admin/properties")) return base;
-  const separator = base.includes("?") ? "&" : "?";
-  return `${base}${separator}returnTo=${encodeURIComponent(returnTo)}`;
+  return withAdminReturnTo(base, returnTo);
 }

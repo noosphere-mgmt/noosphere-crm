@@ -29,19 +29,19 @@ export default async function ImportMappingPage({ params }: Props) {
       </p>
 
       <form action={preview} className="space-y-4">
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <table className="min-w-full text-sm">
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <table className="w-full min-w-[56rem] table-fixed text-sm">
             <thead className="bg-slate-50 text-left text-slate-600">
               <tr>
-                <th className="px-4 py-3 font-medium">CSV column</th>
-                <th className="px-4 py-3 font-medium">System field</th>
-                <th className="px-4 py-3 font-medium">Sample</th>
+                <th className="w-[22%] px-4 py-3 font-medium">CSV column</th>
+                <th className="w-[40%] px-4 py-3 font-medium">System field</th>
+                <th className="w-[38%] px-4 py-3 font-medium">Sample</th>
               </tr>
             </thead>
             <tbody>
               {session.csv_headers.map((header) => (
                 <tr key={header} className="border-t border-slate-100">
-                  <td className="px-4 py-3 font-medium text-slate-900">{header}</td>
+                  <td className="px-4 py-3 font-medium text-slate-900 break-words">{header}</td>
                   <td className="px-4 py-3">
                     <MappingSelect
                       header={header}
@@ -49,7 +49,9 @@ export default async function ImportMappingPage({ params }: Props) {
                       defaultValue={session.column_mapping[header] ?? ""}
                     />
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{sampleRow?.[header] ?? "—"}</td>
+                  <td className="max-w-0 truncate px-4 py-3 text-slate-600" title={String(sampleRow?.[header] ?? "")}>
+                    {sampleRow?.[header] ?? "—"}
+                  </td>
                 </tr>
               ))}
             </tbody>

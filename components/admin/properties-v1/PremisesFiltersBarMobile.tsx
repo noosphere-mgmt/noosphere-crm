@@ -15,6 +15,7 @@ import {
 } from "@/lib/premisesCommercial";
 import {
   PREMISES_ASSET_CLASSES,
+  PREMISES_CENTRE_STATUSES,
   PREMISES_PRODUCT_SUBTYPES,
   V1_FIT_OUT_CONDITIONS,
   V1_LISTING_INTENTS,
@@ -180,6 +181,29 @@ export function PremisesFiltersBarMobile(props: PremisesFiltersBarProps) {
             <option key={t} value={t}>{t}</option>
           ))}
         </select>
+      </MobileFilterField>
+      <MobileFilterField label="Centre status">
+        <select
+          aria-label="Centre status"
+          value={filters.centre_status ?? ""}
+          onChange={(e) => patch({ centre_status: e.target.value || undefined })}
+          className={`${theme.searchSelect} w-full`}
+        >
+          <option value="">All centre statuses</option>
+          {PREMISES_CENTRE_STATUSES.map((t) => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
+      </MobileFilterField>
+      <MobileFilterField label="Operator">
+        <input
+          type="search"
+          aria-label="Operator"
+          placeholder="Operator name"
+          defaultValue={filters.operator ?? ""}
+          onBlur={(e) => patch({ operator: e.target.value.trim() || undefined })}
+          className={`${theme.searchSelect} w-full`}
+        />
       </MobileFilterField>
       <MobileFilterField label="Unique Address?">
         <select

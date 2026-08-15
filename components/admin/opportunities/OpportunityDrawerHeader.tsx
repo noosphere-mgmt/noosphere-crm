@@ -31,8 +31,7 @@ export function OpportunityDrawerHeader({
     <div className="sticky top-0 z-10 shrink-0 border-b border-slate-200 bg-white px-4 py-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs text-slate-500">Review — double-click a field to edit · saves automatically</p>
-          <h2 className="mt-0.5 text-lg font-semibold tracking-tight text-slate-900">
+          <h2 className="text-lg font-semibold tracking-tight text-slate-900">
             {opportunity.client_name}
           </h2>
           <RecordBusinessId id={opportunity.business_id} className="mt-0.5 block" />

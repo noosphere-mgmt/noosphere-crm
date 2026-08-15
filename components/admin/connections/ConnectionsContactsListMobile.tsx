@@ -13,9 +13,6 @@ import { getContactLabel } from "@/lib/contactName";
 import { connectionsGlassClasses } from "@/lib/connectionsGlassTheme";
 import { companyFullPageHref } from "@/lib/crmDetailNav";
 import { contactDrawerHref } from "@/lib/connectionsDrawerNav";
-import { MobileCardMeta, MobileCardTitle } from "@/components/admin/mobile/MobileCard";
-import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
-import { MobileContactActions } from "@/components/admin/mobile/MobileContactActions";
 import { AdminEntityLink } from "@/components/admin/AdminEntityLink";
 
 export function ConnectionsContactsListMobile({
@@ -38,7 +35,7 @@ export function ConnectionsContactsListMobile({
 
   return (
     <MobileSwipeDeleteGroup>
-      <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <div className="space-y-2">
         {displayedRows.length === 0 ? (
           <p className="px-4 py-6 text-center text-sm text-slate-500">
             {rows.length === 0 ? "No contacts yet." : "No contacts match your search."}
@@ -60,18 +57,22 @@ export function ConnectionsContactsListMobile({
                 disabled={isDeleting}
                 deleteLabel={`Delete ${label}`}
                 onDelete={() => deleteContactRow(row.id, label)}
-                className="border-b border-slate-100 last:border-b-0"
+                className="rounded-xl border border-l-4 border-[#DED8E2] border-l-[#9A8EA3] bg-white shadow-[0_4px_14px_rgba(112,98,119,0.11)]"
               >
-                <div className="w-full px-3 py-3 text-left">
-                  <AdminEntityLink
-                    href={contactHref}
-                    className={`block w-full cursor-pointer text-left active:bg-slate-50 ${connectionsGlassClasses.link}`}
-                  >
-                    <MobileCardTitle>{label}</MobileCardTitle>
-                    <RecordBusinessId id={row.business_id ?? row.v1_contact_id} className="mt-0.5 block" />
-                  </AdminEntityLink>
-                  <MobileCardMeta>
-                    <span className="block">
+                <div className="w-full bg-white px-3 py-3 text-left">
+                  <div className="flex min-w-0 items-start justify-between gap-3">
+                    <AdminEntityLink
+                      href={contactHref}
+                      className="min-w-0 flex-1 cursor-pointer text-left active:bg-white/50"
+                    >
+                      <p className="break-words font-semibold text-[#66566D]">{label}</p>
+                    </AdminEntityLink>
+                    <span className="shrink-0 rounded-full bg-[#E9E2EC] px-2 py-1 text-[11px] font-semibold text-[#66566D]">
+                      {row.open_opportunities ?? 0} open
+                    </span>
+                  </div>
+                  <div className="mt-1 flex min-w-0 items-end justify-between gap-3">
+                    <div className="min-w-0 text-xs text-slate-600">
                       <AdminEntityLink
                         href={companyHref}
                         className={`${connectionsGlassClasses.link} underline-offset-2 hover:underline`}
@@ -82,17 +83,15 @@ export function ConnectionsContactsListMobile({
                       {row.company_name_zh ? (
                         <span className="mt-0.5 block text-xs text-slate-500">{row.company_name_zh}</span>
                       ) : null}
-                    </span>
-                    <span>{` · ${row.open_opportunities ?? 0} open opps`}</span>
-                  </MobileCardMeta>
-                  <button
-                    type="button"
-                    onClick={() => onOpenContact(row.id)}
-                    className="w-full cursor-pointer text-left active:bg-slate-50"
-                  >
-                    <MobileCardMeta>Updated {formatDateLabel(row.updated_at)}</MobileCardMeta>
-                  </button>
-                  <MobileContactActions phone={row.phone} whatsapp={row.whatsapp} email={row.email} />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onOpenContact(row.id)}
+                      className="shrink-0 cursor-pointer text-xs tabular-nums text-slate-500 active:text-[#66566D]"
+                    >
+                      {formatDateLabel(row.updated_at)}
+                    </button>
+                  </div>
                 </div>
               </MobileSwipeToDeleteRow>
             );

@@ -246,6 +246,7 @@ export type Contact = {
   updated_at: string;
   company_name?: string | null;
   company_name_zh?: string | null;
+  company_name_cn?: string | null;
   company_country?: string | null;
   company_city?: string | null;
   company_business_id?: string | null;

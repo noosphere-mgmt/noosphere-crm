@@ -16,7 +16,7 @@ export function ContactWorkspaceHeader({
   contact,
   affiliations,
   lastActivityDate,
-  returnTo = "/admin/companies",
+  returnTo = "/admin/contacts",
 }: {
   contact: Contact;
   affiliations: ContactCompanyAffiliation[];
@@ -41,7 +41,7 @@ export function ContactWorkspaceHeader({
           contactWorkspaceHref(contact, "overview", undefined, returnTo),
         )
       : null;
-  const backLabel = adminReturnToLabel(returnTo, "Companies");
+  const backLabel = adminReturnToLabel(returnTo, "Contacts");
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
@@ -66,10 +66,9 @@ export function ContactWorkspaceHeader({
               )}
             </p>
           ) : null}
-          <p className="mt-1 text-xs text-slate-500">
-            {lastActivityDate ? `Last activity ${lastActivityDate.slice(0, 10)} · ` : null}
-            Double-click a field to edit · saves automatically
-          </p>
+          {lastActivityDate ? (
+            <p className="mt-1 text-xs text-slate-500">Last activity {lastActivityDate.slice(0, 10)}</p>
+          ) : null}
           {contact.title ? (
             <div className="mt-2 flex flex-wrap gap-1.5">
               <span className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-800">
@@ -78,7 +77,7 @@ export function ContactWorkspaceHeader({
             </div>
           ) : null}
         </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+        <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:shrink-0">
           <Link
             href={contactWorkspaceHref(contact, "activities", undefined, returnTo)}
             className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"

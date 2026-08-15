@@ -16,6 +16,7 @@ import {
   CANONICAL_LISTING_INTENTS,
   PREMISES_ASSET_CLASSES,
   PREMISES_AVAILABILITY_STATUSES,
+  PREMISES_CENTRE_STATUSES,
   PREMISES_MARKET_MODES,
   PREMISES_PRODUCT_SUBTYPES,
   PREMISES_SOURCE_TYPES,
@@ -341,6 +342,12 @@ function PremisesEditForm({
               </div>
             </fieldset>
             <SelectField label="Listing Status" name="availability_status" defaultValue={premises.availability_status ?? "available"} options={[...PREMISES_AVAILABILITY_STATUSES]} />
+            <SelectField
+              label="Centre status"
+              name="centre_status"
+              defaultValue={premises.centre_status ?? "Active"}
+              options={PREMISES_CENTRE_STATUSES.map((v) => ({ value: v, label: v }))}
+            />
             <input type="hidden" name="current_tenant_company_id" value={premises.current_tenant_company_id ?? ""} />
             <input type="hidden" name="occupancy_status" value={premises.occupancy_status ?? ""} />
             <SelectField label="Source Type" name="source_type" defaultValue={premises.source_type ?? "direct"} options={[...PREMISES_SOURCE_TYPES]} />

@@ -74,8 +74,8 @@ function TopNavLink({
 
 export function AdminTopNav() {
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-[#f4f6f8]/95 backdrop-blur-md">
-      <div className="mx-auto flex max-w-[1800px] items-center gap-4 px-4 py-3 lg:gap-6 lg:px-6">
+    <header className="sticky top-0 z-40 w-full max-w-full border-b border-slate-200/80 bg-[#f4f6f8]/95 backdrop-blur-md">
+      <div className="mx-auto flex max-w-[1800px] items-center gap-2 px-3 py-2.5 sm:px-4 lg:gap-6 lg:px-6 lg:py-3">
         <Link href="/admin" className="shrink-0">
           <p className="text-sm font-bold tracking-tight text-slate-900">NOOSPHERE CRM</p>
         </Link>
@@ -84,7 +84,7 @@ export function AdminTopNav() {
             <TopNavLink key={item.href} href={item.href} label={item.label} module={item.module} />
           ))}
         </nav>
-        <div className="ml-auto lg:ml-0">
+        <div className="ml-auto shrink-0 lg:hidden">
           <AdminQuickCreateMenu />
         </div>
         <div className="hidden lg:block">

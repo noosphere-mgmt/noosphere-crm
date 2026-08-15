@@ -34,16 +34,15 @@ export function CompanyWorkspaceHeader({
           <h1 className="mt-1 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
             {company.company_name}
           </h1>
-          <RecordBusinessId id={company.business_id} className="mt-0.5 block" />
+          <RecordBusinessId id={company.business_id} className="mt-0.5 hidden sm:block" />
           {location ? (
             <p className="mt-2 text-sm text-slate-600">{location}</p>
           ) : (
             <p className="mt-2 text-sm text-slate-400">Location will appear when city/district are filled.</p>
           )}
-          <p className="mt-1 text-xs text-slate-500">
-            {lastActivityDate ? `Last activity ${lastActivityDate.slice(0, 10)} · ` : null}
-            Double-click a field to edit · saves automatically
-          </p>
+          {lastActivityDate ? (
+            <p className="mt-1 text-xs text-slate-500">Last activity {lastActivityDate.slice(0, 10)}</p>
+          ) : null}
           <div className="mt-2 flex flex-wrap gap-1.5">
             {roleLabel ? (
               <span className="rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-800">
@@ -58,7 +57,7 @@ export function CompanyWorkspaceHeader({
             ) : null}
           </div>
         </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+        <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto sm:shrink-0">
           <Link
             href={companyWorkspaceHref(company, "activities", undefined, returnTo)}
             className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"

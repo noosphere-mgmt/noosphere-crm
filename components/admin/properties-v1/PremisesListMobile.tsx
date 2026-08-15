@@ -17,7 +17,6 @@ import {
   formatPremisesName,
   formatPremisesOperatorLandlord,
 } from "@/lib/premisesDisplay";
-import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { premisesDrawerHref } from "@/lib/premisesDrawerNav";
 import {
   resolvePremisesFlatListFilters,
@@ -78,7 +77,7 @@ export function PremisesListMobile(props: PremisesListComponentProps) {
       />
 
       <MobileSwipeDeleteGroup>
-        <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="space-y-2">
           {displayedRows.length === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-slate-500">
               {rows.length === 0 ? "No premises yet." : "No premises match your filters."}
@@ -91,6 +90,7 @@ export function PremisesListMobile(props: PremisesListComponentProps) {
               const metaParts = [
                 row.district_en,
                 party !== "Not assigned" ? party : null,
+                row.centre_status && row.centre_status !== "Active" ? row.centre_status : null,
                 formatAreaSqft(row.gross_area_sqft) !== "—" ? formatAreaSqft(row.gross_area_sqft) : null,
               ].filter(Boolean);
 
@@ -103,19 +103,18 @@ export function PremisesListMobile(props: PremisesListComponentProps) {
                   onDelete={() =>
                     deletePremisesRow(row.premises_id, row.building_name_en, row.floor, row.unit)
                   }
-                  className="border-b border-slate-100 last:border-b-0"
+                  className="rounded-xl border border-l-4 border-[#D8E1ED] border-l-[#839BBE] bg-white shadow-[0_4px_14px_rgba(80,107,145,0.10)]"
                 >
-                  <div className="px-3 py-3">
+                  <div className="bg-white px-3 py-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <button
                           type="button"
                           onClick={() => openView(row.premises_id)}
-                          className="block w-full truncate text-left text-sm font-semibold text-blue-800 underline-offset-2 hover:underline"
+                          className="block w-full truncate text-left text-sm font-semibold text-[#506B91] underline-offset-2 hover:underline active:text-[#405A80]"
                         >
                           {listLabel !== "—" ? listLabel : "Unnamed premise"}
                         </button>
-                        <RecordBusinessId id={row.business_id ?? row.premises_id} className="mt-0.5 block" />
                         {metaParts.length > 0 ? (
                           <MobileCardMeta>{metaParts.join(" · ")}</MobileCardMeta>
                         ) : null}

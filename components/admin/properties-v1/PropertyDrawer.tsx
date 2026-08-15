@@ -17,9 +17,9 @@ import type { PremisesV1 } from "@/lib/repos/premisesV1";
 const overlayViewClass = "fixed inset-0 z-40 bg-slate-900/10 transition-opacity";
 const overlayEditClass = "fixed inset-0 z-40 bg-slate-900/25 backdrop-blur-[1px] transition-opacity";
 const panelViewClass =
-  "fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-slate-200 bg-slate-50 shadow-lg lg:w-[50vw] lg:max-w-3xl";
+  "fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-slate-200 bg-slate-50 shadow-lg max-md:bottom-[calc(3.5rem+env(safe-area-inset-bottom))] lg:w-[50vw] lg:max-w-3xl";
 const panelEditClass =
-  "fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-slate-200 bg-slate-50 shadow-2xl lg:w-[75vw] lg:max-w-6xl";
+  "fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-slate-200 bg-slate-50 shadow-2xl max-md:bottom-[calc(3.5rem+env(safe-area-inset-bottom))] lg:w-[75vw] lg:max-w-6xl";
 
 export type PropertyDrawerMode = "view" | "edit";
 

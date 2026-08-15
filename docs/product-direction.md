@@ -262,6 +262,5 @@ See [import-workbench-iw1.md](./import-workbench-iw1.md) for implemented engine 
 
 - [company-model.md](./company-model.md) — Single table, roles, inventory FKs
 - [property-classification.md](./property-classification.md) — Category & type
-- [brokerage-model.md](./brokerage-model.md) — Glossary (admin `/admin/glossary`)
 - [offer-matching.md](./offer-matching.md) — Matching workflow
 - [import-workbench-iw1.md](./import-workbench-iw1.md) — Import engine (IW-1)

@@ -10,14 +10,19 @@ import type { PropertyV1, PropertyV1SelectOption } from "@/lib/repos/propertiesV
 import type { PremisesV1 } from "@/lib/repos/premisesV1";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
 import type { ContactV1Option } from "@/lib/repos/contactsV1";
-import { formatBuildingGradeShort } from "@/lib/buildingGradeDisplay";
 import { ListingRecordCount } from "@/components/admin/ListingRecordCount";
-import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
-import { MobileCard, MobileCardList, MobileCardMeta, MobileCardTitle } from "@/components/admin/mobile/MobileCard";
+import { MobileCard, MobileCardList, MobileCardMeta } from "@/components/admin/mobile/MobileCard";
 
 export type BuildingLookupRow = Pick<
   PropertyV1,
-  "property_id" | "business_id" | "bldg_name_en" | "district_en" | "inventory_count"
+  | "property_id"
+  | "business_id"
+  | "bldg_name_en"
+  | "bldg_name_zh"
+  | "district_en"
+  | "full_address_en"
+  | "full_address_zh"
+  | "inventory_count"
 > & {
   city_en?: string | null;
   grade?: string | null;
@@ -40,19 +45,29 @@ function BuildingRow({
 }) {
   const name = row.bldg_name_en?.trim() || "Unnamed building";
   const district = row.district_en?.trim() || row.city_en?.trim() || "";
-  const grade = formatBuildingGradeShort(row.grade);
   const count = row.inventory_count ?? 0;
-  const metaParts = [
-    district,
-    grade !== "—" ? grade : null,
-    `${count} premise${count === 1 ? "" : "s"}`,
-  ].filter(Boolean);
+  const location = [...new Set([district, row.city_en?.trim()].filter(Boolean))].join(" · ");
+  const address = row.full_address_en?.trim() || row.full_address_zh?.trim() || location;
+  const cityTone = row.city_en?.trim()
+    ? "border-l-4 border-[#D5DED1] border-l-[#91A88F] bg-white shadow-[0_4px_14px_rgba(105,124,101,0.10)]"
+    : "border-l-4 border-l-[#AAB7A7] bg-white";
 
   return (
-    <MobileCard onClick={() => onOpen(row.property_id)}>
-      <MobileCardTitle>{name}</MobileCardTitle>
-      <RecordBusinessId id={row.business_id ?? row.property_id} className="mt-0.5 block" />
-      <MobileCardMeta>{metaParts.join(" · ")}</MobileCardMeta>
+    <MobileCard onClick={() => onOpen(row.property_id)} className={cityTone}>
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="min-w-0 break-words font-semibold text-[#465B48]">{name}</p>
+          {row.bldg_name_zh?.trim() ? (
+            <p className="mt-0.5 break-words text-sm font-medium text-slate-700">{row.bldg_name_zh.trim()}</p>
+          ) : null}
+          <MobileCardMeta>{address || "Address not recorded"}</MobileCardMeta>
+        </div>
+        <div className="shrink-0 text-right">
+          <span className="inline-flex min-w-12 justify-center rounded-full bg-[#E3EAE0] px-2.5 py-1 text-xs font-bold text-[#506753]">
+            {count} {count === 1 ? "premise" : "premises"}
+          </span>
+        </div>
+      </div>
     </MobileCard>
   );
 }

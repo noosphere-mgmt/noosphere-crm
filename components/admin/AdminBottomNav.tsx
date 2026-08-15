@@ -65,7 +65,10 @@ function NavIcon({ module }: { module: Parameters<typeof moduleAccentClasses>[0]
 
 export function AdminBottomNav() {
   const pathname = usePathname();
-  const items = ADMIN_NAV_ITEMS.filter((item) => item.bottomNav);
+  const items = [
+    ...ADMIN_NAV_ITEMS.filter((item) => item.bottomNav && item.module !== "activities"),
+    { href: "/admin/connections/channel-tree", label: "Channel Tree", module: "connections" as const },
+  ];
 
   return (
     <nav
@@ -75,7 +78,11 @@ export function AdminBottomNav() {
     >
       <div className="mx-auto grid max-w-lg grid-cols-5">
         {items.map((item) => {
-          const active = isAdminNavActive(pathname, item);
+          const active = item.href === "/admin/connections/channel-tree"
+            ? pathname.startsWith(item.href)
+            : item.module === "connections"
+              ? isAdminNavActive(pathname, item) && !pathname.startsWith("/admin/connections/channel-tree")
+              : isAdminNavActive(pathname, item);
           const theme = moduleAccentClasses(item.module);
           return (
             <Link
@@ -86,7 +93,7 @@ export function AdminBottomNav() {
               }`}
             >
               <NavIcon module={item.module} />
-              <span>{item.label}</span>
+              <span className="max-w-full truncate">{item.label}</span>
             </Link>
           );
         })}

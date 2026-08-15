@@ -12,6 +12,7 @@ import { summarizePartyFees, type OpportunityFeeSummary } from "@/lib/opportunit
 import type { Opportunity, OpportunityParty, OpportunityProposal, OpportunityProposedPremises } from "@/lib/types/entities";
 import { listProposalsForOpportunity } from "@/lib/repos/opportunityProposals";
 import { listOpportunityDocuments, type OpportunityDocument } from "@/lib/repos/opportunityDocuments";
+import { getOpportunityCommission, type OpportunityCommission } from "@/lib/repos/opportunityCommission";
 
 export type OpportunityDetailData = {
   opportunity: Opportunity;
@@ -24,13 +25,14 @@ export type OpportunityDetailData = {
   activities: ActivityListRow[];
   lastActivityDate: string | null;
   documents: OpportunityDocument[];
+  commission: OpportunityCommission | null;
 };
 
 export async function getOpportunityDetailData(id: number): Promise<OpportunityDetailData | null> {
   const opportunity = await getOpportunity(id);
   if (!opportunity) return null;
 
-  const [proposedPremises, parties, companies, contacts, activities, lastActivityDate, proposals, documents] =
+  const [proposedPremises, parties, companies, contacts, activities, lastActivityDate, proposals, documents, commission] =
     await Promise.all([
     listProposedPremisesForOpportunity(id),
     listOpportunityParties(id),
@@ -40,9 +42,10 @@ export async function getOpportunityDetailData(id: number): Promise<OpportunityD
     getLastActivityDateForOpportunity(id).catch(() => null),
     listProposalsForOpportunity(id).catch(() => []),
     listOpportunityDocuments(id).catch(() => []),
+    getOpportunityCommission(id).catch(() => null),
   ]);
 
   const feeSummary = summarizePartyFees(parties);
 
-  return { opportunity, proposedPremises, proposals, parties, feeSummary, companies, contacts, activities, lastActivityDate, documents };
+  return { opportunity, proposedPremises, proposals, parties, feeSummary, companies, contacts, activities, lastActivityDate, documents, commission };
 }

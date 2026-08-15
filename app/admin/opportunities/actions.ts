@@ -34,6 +34,7 @@ import {
   isOtherSalesRole,
   isSaleCaseSalesRole,
 } from "@/lib/opportunityValues";
+import { getDefaultCrmOwnerName } from "@/lib/repos/crmUsers";
 
 function parseOptionalDecimal(v: FormDataEntryValue | null): number | null {
   const s = String(v ?? "").trim();
@@ -135,7 +136,9 @@ async function opportunityInputFromForm(formData: FormData) {
 }
 
 export async function createOpportunityAction(formData: FormData) {
-  const id = await createOpportunity(await opportunityInputFromForm(formData));
+  const input = await opportunityInputFromForm(formData);
+  input.relationship_owner ??= await getDefaultCrmOwnerName();
+  const id = await createOpportunity(input);
   revalidatePath("/admin/opportunities");
   revalidatePath("/admin/companies");
   const returnTo = parseOptionalString(formData.get("return_to"));

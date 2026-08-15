@@ -26,13 +26,13 @@ export function AdminShell({
 
   return (
     <AdminChromeProviders>
-      <div className={`min-h-screen ${shellBg} pt-[env(safe-area-inset-top)]`}>
+      <div className={`min-h-screen max-w-full overflow-x-clip ${shellBg} pt-[env(safe-area-inset-top)]`}>
         <Suspense fallback={<div className="h-14 border-b border-slate-200 bg-white" />}>
           <AdminTopNav />
         </Suspense>
 
         <div
-          className={`mx-auto ${maxWidth} px-4 py-4 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:py-6 lg:px-6 lg:pb-6`}
+          className={`mx-auto min-w-0 ${maxWidth} px-3 py-3 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:px-4 md:py-6 lg:px-6 lg:pb-6`}
         >
           {hideHeader ? null : (
             <ModulePageHeader title={title} module={module} actions={actions} />

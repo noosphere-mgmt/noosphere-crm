@@ -6,28 +6,32 @@ import { moduleEditButtonClass } from "@/components/admin/ModuleActionBar";
 import { InlineSaveStatus } from "@/components/admin/inline/InlineRecordChrome";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { contactFullPageHref } from "@/lib/crmDetailNav";
+import { withAdminReturnTo } from "@/lib/adminReturnTo";
 
 export function ConnectionsDrawerHeader({
   title,
   subtitle,
   businessId,
+  returnTo,
   onClose,
 }: {
   title: string;
   subtitle?: string | null;
   businessId?: string | null;
+  returnTo?: string;
   onClose: () => void;
   onEditToggle?: (enabled: boolean) => void;
 }) {
-  const fullPage = contactFullPageHref(businessId);
-  const fullEdit = contactFullPageHref(businessId, { mode: "edit" });
+  const fullPageBase = contactFullPageHref(businessId);
+  const fullEditBase = contactFullPageHref(businessId, { mode: "edit" });
+  const fullPage = fullPageBase ? withAdminReturnTo(fullPageBase, returnTo) : null;
+  const fullEdit = fullEditBase ? withAdminReturnTo(fullEditBase, returnTo) : null;
 
   return (
     <div className="sticky top-0 z-10 shrink-0 border-b border-slate-200 bg-white px-5 py-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs text-slate-500">Review — double-click a field to edit · saves automatically</p>
-          <h2 className="mt-0.5 text-lg font-semibold tracking-tight text-slate-900">{title}</h2>
+          <h2 className="text-lg font-semibold tracking-tight text-slate-900">{title}</h2>
           <RecordBusinessId id={businessId} className="mt-0.5 block" />
           {subtitle ? <p className="mt-1 text-sm text-slate-600">{subtitle}</p> : null}
         </div>

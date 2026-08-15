@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ConnectionsModuleHeader } from "@/components/admin/connections/ConnectionsModuleHeader";
+import { ConnectionsModuleToolbar } from "@/components/admin/connections/ConnectionsModuleToolbar";
+import { companyWorkspaceHref } from "@/lib/companyWorkspaceNav";
+import { contactWorkspaceHref } from "@/lib/contactWorkspaceNav";
 import { opportunityWorkspaceHref } from "@/lib/opportunityWorkspaceNav";
 import type { ChannelEntity, ChannelOpportunity, ChannelTreeData } from "@/lib/repos/channelTree";
 import type { Contact } from "@/lib/types/entities";
@@ -28,8 +31,10 @@ function opportunityHref(opportunity: ChannelOpportunity): string {
 }
 
 function entityHref(entity: ChannelEntity): string {
-  const ref = encodeURIComponent(entity.business_id ?? String(entity.id));
-  return entity.entity_type === "company" ? `/admin/companies?company=${ref}` : `/admin/contacts?contact=${ref}`;
+  const entityRef = { id: entity.id, business_id: entity.business_id };
+  return entity.entity_type === "company"
+    ? companyWorkspaceHref(entityRef, "overview", undefined, CHANNEL_TREE_RETURN_TO)
+    : contactWorkspaceHref(entityRef, "overview", undefined, CHANNEL_TREE_RETURN_TO);
 }
 
 export function ChannelTreeClient({ contacts, tree }: { contacts: Contact[]; tree: ChannelTreeData }) {
@@ -158,9 +163,9 @@ export function ChannelTreeClient({ contacts, tree }: { contacts: Contact[]; tre
     const hasContents = children.length > 0 || directOpportunities.length > 0;
 
     return (
-      <div key={`${node.key}-${depth}`} className={depth > 0 ? "relative ml-6 border-l border-slate-200 pl-5" : ""}>
-        {depth > 0 ? <span className="absolute -left-px top-6 w-4 border-t border-slate-200" /> : null}
-        <div className={`flex flex-wrap items-center justify-between gap-3 py-3 ${depth === 0 ? "bg-emerald-50 px-4" : "bg-white pl-2 pr-4"}`}>
+      <div key={`${node.key}-${depth}`} className={depth > 0 ? "relative ml-3 border-l border-[#D9D2DF] pl-3 sm:ml-6 sm:pl-5" : ""}>
+        {depth > 0 ? <span className="absolute -left-px top-6 w-3 border-t border-[#D9D2DF] sm:w-4" /> : null}
+        <div className={`flex flex-col gap-2 py-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3 sm:py-3 ${depth === 0 ? "border-l-4 border-l-[#8F829B] bg-white px-3 sm:px-4" : "bg-white pl-1 pr-2 sm:pl-2 sm:pr-4"}`}>
           <div className="flex min-w-0 items-start gap-2">
             {hasContents ? (
               <button type="button" onClick={() => toggleNode(node.key)}
@@ -170,25 +175,25 @@ export function ChannelTreeClient({ contacts, tree }: { contacts: Contact[]; tre
               </button>
             ) : <span className="h-6 w-6 shrink-0" />}
             <div className="min-w-0">
-              <Link href={entityHref(node)} className="font-semibold text-slate-900 hover:text-emerald-700">{node.name}</Link>
+              <Link href={entityHref(node)} className="break-words font-semibold text-[#62556A] hover:text-[#807089]">{node.name}</Link>
             <p className="mt-0.5 text-xs text-slate-500">
               {node.member ? "Contact in company" : depth === 0 ? "Channel origin" : `Introduced ${node.entity_type}`}
             </p>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2 text-xs font-semibold">
-            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-700">{countIntroductions(node.key)} introductions</span>
-            <span className="rounded-full bg-blue-50 px-2.5 py-1 text-blue-700">{subtreeOpportunities.length} opportunities</span>
-            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-800">{active} active</span>
-            <span className="rounded-full bg-violet-50 px-2.5 py-1 text-violet-700">{won} won</span>
+          <div className="grid w-full grid-cols-4 gap-1 text-center text-[10px] font-semibold sm:flex sm:w-auto sm:flex-wrap sm:gap-2 sm:text-xs">
+            <span className="rounded-full bg-[#F0EDF2] px-1.5 py-1 text-[#62556A] sm:px-2.5">{countIntroductions(node.key)} <span className="hidden sm:inline">introductions</span><span className="sm:hidden">intro</span></span>
+            <span className="rounded-full bg-[#EDF3F5] px-1.5 py-1 text-[#4F6F75] sm:px-2.5">{subtreeOpportunities.length} <span className="hidden sm:inline">opportunities</span><span className="sm:hidden">opps</span></span>
+            <span className="rounded-full bg-[#EEF3ED] px-1.5 py-1 text-[#506753] sm:px-2.5">{active} active</span>
+            <span className="rounded-full bg-[#F3EEF1] px-1.5 py-1 text-[#775E6D] sm:px-2.5">{won} won</span>
           </div>
         </div>
 
         {!isCollapsed && directOpportunities.length > 0 ? (
-          <div className="ml-5 border-l border-blue-200 bg-blue-50/40 py-1 pl-5">
+          <div className="ml-3 border-l border-[#B9D0D4] bg-[#F4F8F8] py-1 pl-3 sm:ml-5 sm:pl-5">
             {directOpportunities.map((opportunity) => (
               <div key={opportunity.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm">
-                <Link href={opportunityHref(opportunity)} className="font-medium text-blue-800 hover:text-blue-600">Opportunity: {opportunity.client_name}</Link>
+                <Link href={opportunityHref(opportunity)} className="font-medium text-[#356C73] hover:text-[#4F858B]">Opportunity: {opportunity.client_name}</Link>
                 <span className="text-xs capitalize text-slate-500">{opportunity.status.replaceAll("_", " ")}</span>
               </div>
             ))}
@@ -204,24 +209,25 @@ export function ChannelTreeClient({ contacts, tree }: { contacts: Contact[]; tre
 
   return (
     <>
-      <ConnectionsModuleHeader />
+      <div className="md:hidden"><ConnectionsModuleToolbar createLabel="New connection" /></div>
+      <div className="hidden md:block"><ConnectionsModuleHeader /></div>
       <div className="mb-4 rounded-xl border border-slate-200 bg-white p-3">
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           <input type="search" value={query} onChange={(event) => setQuery(event.target.value)}
             placeholder="Search channel, company, contact or opportunity…" aria-label="Search channel tree"
-            className="min-w-[240px] flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100" />
+            className="col-span-2 min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#9A8EA3] focus:ring-2 focus:ring-[#EEE9F0] sm:min-w-[240px]" />
           <button type="button" onClick={() => setCollapsed(new Set())}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:border-emerald-300 hover:text-emerald-700">Expand all</button>
+            className="rounded-lg border border-[#DED8E2] bg-white px-3 py-2 text-sm font-medium text-[#66566D] hover:bg-[#F7F4F7]">Expand all</button>
           <button type="button" onClick={() => setCollapsed(new Set([...model.entities.keys(), ...model.companyMembers.keys()]))}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:border-emerald-300 hover:text-emerald-700">Collapse all</button>
+            className="rounded-lg border border-[#DED8E2] bg-white px-3 py-2 text-sm font-medium text-[#66566D] hover:bg-[#F7F4F7]">Collapse all</button>
         </div>
         <p className="mt-2 px-1 text-xs text-slate-500">Figures include the full branch. An opportunity is counted once even when linked through both a company and a contact.</p>
       </div>
 
       <div className="space-y-4">
         {roots.map((root) => (
-          <section key={root.key} className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-            <div className="min-w-[560px] sm:min-w-[720px]">{renderNode(root, 0, new Set())}</div>
+          <section key={root.key} className="overflow-hidden rounded-xl border border-[#DED8E2] bg-white shadow-[0_4px_14px_rgba(112,98,119,0.09)]">
+            <div className="min-w-0">{renderNode(root, 0, new Set())}</div>
           </section>
         ))}
         {roots.length === 0 ? <p className="rounded-xl bg-white px-4 py-10 text-center text-sm text-slate-500 ring-1 ring-slate-100">No channel relationships match the search.</p> : null}

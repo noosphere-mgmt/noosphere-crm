@@ -21,6 +21,7 @@ import { getCompanyReferenceSummary } from "@/lib/repos/companyReferences";
 import { applyCompanyPatch } from "@/lib/inlineRecordMerge";
 import type { PatchResult } from "@/lib/types/inlineEdit";
 import { createContactAction } from "../contacts/actions";
+import { getDefaultCrmOwnerName } from "@/lib/repos/crmUsers";
 
 function parseOptionalString(v: FormDataEntryValue | null): string | null {
   const s = String(v ?? "").trim();
@@ -60,6 +61,7 @@ function companyInputFromForm(formData: FormData) {
 
 export async function createCompanyAction(formData: FormData) {
   const input = companyInputFromForm(formData);
+  input.relationship_owner ??= await getDefaultCrmOwnerName();
   const id = await createCompany(input);
   await syncLegacyCompanyToV1(id, input.company_name, input.company_name_zh ?? null, input.is_active);
   revalidatePath("/admin/companies");

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FormEditingContext, ModuleStickyEditBar } from "@/components/admin/ModuleActionBar";
 import { OpportunityOverviewFields } from "@/components/admin/opportunities/OpportunityOverviewFields";
 import { OpportunityCurrentPosition } from "@/components/admin/opportunities/OpportunityCurrentPosition";
+import { OpportunityCommissionSection } from "@/components/admin/opportunities/OpportunityCommissionSection";
 import { updateOpportunityAction } from "@/app/admin/opportunities/actions";
 import { opportunityWorkspaceHref } from "@/lib/opportunityWorkspaceNav";
 import type { OpportunityDetailData } from "@/lib/repos/opportunityDetail";
@@ -50,7 +51,6 @@ export function OpportunityOverviewTab({
             if (target.closest("a, button, input, select, textarea")) return;
             router.push(editHref, { scroll: false });
           }}
-          title={initialEditMode ? undefined : "Double-click to edit Overview"}
         >
           <OpportunityOverviewFields
             opportunity={opportunity}
@@ -61,6 +61,7 @@ export function OpportunityOverviewTab({
             }
           />
         </form>
+        {!initialEditMode ? <div className="mt-3 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)_minmax(240px,0.85fr)] lg:gap-3"><div className="lg:col-start-2"><OpportunityCommissionSection data={data} /></div></div> : null}
         {initialEditMode ? (
           <ModuleStickyEditBar formId={formId} onCancel={() => router.push(viewHref)} />
         ) : null}

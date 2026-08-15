@@ -78,6 +78,23 @@ export function formatVerifiedDate(value: string | null | undefined): string {
   return match ? match[1] : trimmed.slice(0, 10);
 }
 
+/** Actual record modification date, shown as YYYY-MM-DD in Hong Kong time. */
+export function formatPremisesUpdatedAt(value: string | null | undefined): string {
+  if (!value?.trim()) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value.slice(0, 10);
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Hong_Kong",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).formatToParts(date);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+  return year && month && day ? `${year}-${month}-${day}` : value.slice(0, 10);
+}
+
 export function isPremisesForSale(status: string | null | undefined): boolean {
   const lower = (status ?? "").toLowerCase();
   return status === "For Sale" || lower.includes("sale");

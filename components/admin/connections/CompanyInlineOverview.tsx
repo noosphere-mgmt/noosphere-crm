@@ -142,7 +142,7 @@ export function CompanyInlineOverview({
         {lastActivity ? <InlineReadOnlyField label="Last Activity" value={lastActivity} /> : null}
       </DrawerOverviewCard>
 
-      <DrawerOverviewCard title="Contact & Location" columns={2} dense={false} matchHeight>
+      <DrawerOverviewCard title="Contact & Location" columns={2} mobileColumns={1} dense={false} matchHeight>
         <InlineTextField label="Country" value={company.country} onSave={save("country")} />
         <InlineTextField label="City" value={company.city} onSave={save("city")} />
         <InlineTextField label="District" value={company.district} onSave={save("district")} />

@@ -29,23 +29,13 @@ export const ADMIN_SETTINGS_ITEMS: AdminSettingsItem[] = [
   { href: "/admin/settings/users", label: "CRM Users & Access", description: "Human and virtual staff ownership" },
   {
     href: "/admin/import",
-    label: "Import Workbench",
-    description: "CSV import and column mapping",
-  },
-  {
-    href: "/admin/import/history",
     label: "Data Management",
-    description: "Import history and run audit",
+    description: "Import, export and history",
   },
   {
     href: "/admin/settings/configuration",
     label: "Configuration",
     description: "Email, AI and system configuration",
-  },
-  {
-    href: "/admin/glossary",
-    label: "Reference Data",
-    description: "Brokerage model glossary",
   },
 ];
 
@@ -58,7 +48,7 @@ export function isAdminNavActive(pathname: string, item: AdminNavItem): boolean 
     );
   }
   if (item.module === "tools") {
-    return pathname.startsWith("/admin/import") || pathname.startsWith("/admin/glossary");
+    return pathname.startsWith("/admin/import");
   }
   if (item.href === "/admin") {
     return pathname === "/admin" || pathname === "/admin/";

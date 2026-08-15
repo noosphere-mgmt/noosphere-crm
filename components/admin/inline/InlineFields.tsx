@@ -52,8 +52,7 @@ function editableFieldProps(_editHighlight: boolean, beginEdit: () => void) {
     },
     role: "button" as const,
     tabIndex: 0,
-    title: "Double-click to edit · saves automatically",
-    "aria-label": "Double-click to edit",
+    "aria-label": "Edit field",
   };
 }
 

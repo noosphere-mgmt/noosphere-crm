@@ -9,6 +9,7 @@ type Props = {
   label: string;
   uploadAction: (formData: FormData) => Promise<void>;
   focused?: boolean;
+  mode?: "import" | "export";
 };
 
 const linkClass = "shrink-0 text-xs font-medium text-slate-600 underline hover:text-slate-900";
@@ -19,6 +20,7 @@ export function ImportModuleCard({
   label,
   uploadAction,
   focused = false,
+  mode = "import",
 }: Props) {
   const inputId = useId();
   const [fileName, setFileName] = useState<string | null>(null);
@@ -34,34 +36,26 @@ export function ImportModuleCard({
       <div className="flex flex-wrap items-center gap-x-2 gap-y-2 sm:gap-x-3">
         <span className="w-24 shrink-0 text-sm font-medium text-slate-900 sm:w-28">{label}</span>
 
-        <label
-          htmlFor={inputId}
-          className="flex min-w-[6rem] flex-1 cursor-pointer items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-sm text-slate-600 sm:min-w-[8.5rem]"
-        >
-          <span className="shrink-0 font-medium text-slate-700">Browse…</span>
-          <span className="min-w-0 truncate">{fileName ?? "No file selected"}</span>
-        </label>
-        <input
-          id={inputId}
-          type="file"
-          name="file"
-          accept=".csv,text/csv"
-          required
-          className="sr-only"
-          onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
-        />
-
-        <button
-          type="submit"
-          className="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-800 hover:bg-slate-50"
-        >
-          Upload CSV
-        </button>
+        {mode === "import" ? (
+          <>
+            <label
+              htmlFor={inputId}
+              className="flex min-w-[6rem] flex-1 cursor-pointer items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-1.5 text-sm text-slate-600 sm:min-w-[8.5rem]"
+            >
+              <span className="shrink-0 font-medium text-slate-700">Browse…</span>
+              <span className="min-w-0 truncate">{fileName ?? "No file selected"}</span>
+            </label>
+            <input id={inputId} type="file" name="file" accept=".csv,text/csv" required className="sr-only" onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)} />
+            <button type="submit" className="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-800 hover:bg-slate-50">Upload CSV</button>
+          </>
+        ) : (
+          <span className="min-w-0 flex-1 text-xs text-slate-500">Download the current complete dataset or a clean template.</span>
+        )}
 
         <a href={`/api/admin/import/template/${objectType}`} className={linkClass}>
           Template
         </a>
-        <a href={`/api/admin/import/export/${objectType}`} className={exportLinkClass}>
+        <a href={`/api/admin/import/export/${objectType}`} className={mode === "export" ? "shrink-0 rounded-lg bg-blue-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-800" : exportLinkClass}>
           Export all
         </a>
       </div>

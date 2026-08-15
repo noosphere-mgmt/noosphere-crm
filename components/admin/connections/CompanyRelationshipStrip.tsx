@@ -41,7 +41,7 @@ export function CompanyRelationshipStrip({
   const contacts = crmSummary.contacts > 0 ? String(crmSummary.contacts) : null;
 
   return (
-    <dl className="flex flex-wrap divide-x divide-slate-100 rounded-xl border border-slate-200 bg-white shadow-sm">
+    <dl className="grid grid-cols-2 divide-x divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white shadow-sm sm:flex sm:flex-wrap sm:divide-y-0">
       <StripCell label="Roles" value={roles} />
       <StripCell label="Industry" value={industry} />
       <StripCell label="Location" value={district} />

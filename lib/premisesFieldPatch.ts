@@ -13,6 +13,7 @@ import {
   parseSpaceForm,
 } from "@/lib/premisesClassification";
 import {
+  PREMISES_CENTRE_STATUSES,
   V1_FIT_OUT_CONDITIONS,
   V1_LISTING_INTENTS,
   V1_LISTING_STATUSES,
@@ -93,6 +94,12 @@ export function applyPremisesFieldPatch(
     case "last_verified_at":
       patch[field] = strOrNull(value);
       break;
+    case "centre_status": {
+      const status = mustBeIn(value, PREMISES_CENTRE_STATUSES);
+      if (value && !status) return { error: "Invalid centre status" };
+      patch.centre_status = status;
+      break;
+    }
     case "space_form": {
       const form = parseSpaceForm(value);
       if (value && !form) return { error: "Invalid space form" };

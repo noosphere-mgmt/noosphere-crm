@@ -28,6 +28,7 @@ export function BuildingWorkspacePageClient({
   propertyOptions,
   activities,
   editMode,
+  returnTo,
 }: {
   property: PropertyV1;
   premises: PremisesV1[];
@@ -36,13 +37,14 @@ export function BuildingWorkspacePageClient({
   propertyOptions: PropertyV1SelectOption[];
   activities: ActivityListRow[];
   editMode: boolean;
+  returnTo: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tab = getBuildingWorkspaceTab({ tab: searchParams.get("tab") });
   const formId = propertyFormId(property);
   const submitRef = useRef<(() => void) | null>(null);
-  const viewHref = buildingWorkspaceHref(property, tab);
+  const viewHref = buildingWorkspaceHref(property, tab, undefined, returnTo);
   const buildingLabel = property.bldg_name_en?.trim() || property.property_id;
 
   if (editMode && tab === "overview") {
@@ -53,6 +55,7 @@ export function BuildingWorkspacePageClient({
             property={property}
             companies={companies}
             formId={formId}
+            returnTo={viewHref}
             onRegisterSubmit={(submit) => {
               submitRef.current = submit;
             }}
@@ -103,8 +106,8 @@ export function BuildingWorkspacePageClient({
   return (
     <InlineEditProvider resetKey={property.property_id}>
       <AdvisoryWorkspaceShell
-        header={<BuildingWorkspaceHeader property={property} premisesCount={premises.length} />}
-        tabs={<BuildingWorkspaceTabs property={property} premisesCount={premises.length} />}
+        header={<BuildingWorkspaceHeader property={property} premisesCount={premises.length} returnTo={returnTo} />}
+        tabs={<BuildingWorkspaceTabs property={property} premisesCount={premises.length} returnTo={returnTo} />}
         showAssistToggle={false}
       >
         {renderTab()}

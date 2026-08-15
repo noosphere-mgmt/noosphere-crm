@@ -26,6 +26,7 @@ export type SortKey =
   | "premises"
   | "district"
   | "operator"
+  | "centre_status"
   | "desks"
   | "gross_area"
   | "price"
@@ -37,6 +38,7 @@ export type PremisesColFilters = {
   premises: string;
   district: string;
   operator: string;
+  centre_status: string;
 };
 
 export type PremisesFlatListHookProps = {
@@ -108,6 +110,7 @@ export function usePremisesFlatList(
     premises: "",
     district: "",
     operator: "",
+    centre_status: "",
   });
 
   const priceHeaders = useMemo(
@@ -132,6 +135,7 @@ export function usePremisesFlatList(
     const premisesQ = colFilters.premises.trim().toLowerCase();
     const districtQ = colFilters.district.trim().toLowerCase();
     const operatorQ = colFilters.operator.trim().toLowerCase();
+    const centreStatusQ = colFilters.centre_status.trim().toLowerCase();
 
     const filtered = asArray<PremisesListItem>(props.rows).filter((row) => {
       const listLabel = formatPremisesListLabel(row.building_name_en, row.floor, row.unit).toLowerCase();
@@ -139,6 +143,7 @@ export function usePremisesFlatList(
       if (!fuzzyMatch(row.district_en, districtQ)) return false;
       const party = formatPremisesOperatorLandlord(row.operator_name, row.landlord_name);
       if (!fuzzyMatch(party === "Not assigned" ? "" : party, operatorQ)) return false;
+      if (!fuzzyMatch(row.centre_status ?? "Active", centreStatusQ)) return false;
       return true;
     });
 
@@ -157,6 +162,8 @@ export function usePremisesFlatList(
             formatPremisesOperatorLandlord(b.operator_name, b.landlord_name),
             sortDir,
           );
+        case "centre_status":
+          return compareText(a.centre_status ?? "Active", b.centre_status ?? "Active", sortDir);
         case "desks":
           return compareNullableNum(parseNum(a.workstation_count), parseNum(b.workstation_count), sortDir);
         case "gross_area":
@@ -164,7 +171,7 @@ export function usePremisesFlatList(
         case "price":
           return compareNullableNum(rowPriceSortValue(a), rowPriceSortValue(b), sortDir);
         case "updated":
-          return compareText(a.last_verified_date ?? "", b.last_verified_date ?? "", sortDir);
+          return compareText(a.updated_at ?? "", b.updated_at ?? "", sortDir);
         default:
           return 0;
       }
@@ -218,7 +225,7 @@ export function usePremisesFlatList(
   }
 
   const theme = moduleAccentClasses("properties");
-  const colSpan = 9;
+  const colSpan = 10;
 
   return {
     ...props,

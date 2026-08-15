@@ -23,7 +23,21 @@ export function CompanySupplyTab({
           Browse all premises →
         </Link>
       </div>
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="space-y-2 md:hidden">
+        {rows.length === 0 ? (
+          <p className="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500">No properties or premises linked to this company yet.</p>
+        ) : rows.map((row) => (
+          <Link key={`mobile-${row.kind}-${row.id}`} href={row.href} className="block rounded-xl border border-l-4 border-[#D2E1E3] border-l-[#79A9AF] bg-[#F1F7F7] p-3 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <p className="min-w-0 break-words font-semibold text-[#356C73]">{row.label}</p>
+              <span className="shrink-0 rounded-full bg-white/80 px-2 py-1 text-[11px] font-semibold text-[#356C73]">{row.kind === "premise" ? "Premise" : "Building"}</span>
+            </div>
+            {row.kind === "premise" && row.building_name ? <p className="mt-1 text-xs text-slate-600">{row.building_name}</p> : null}
+            <p className="mt-1 text-xs text-slate-500">{row.roles.length > 0 ? row.roles.join(", ") : "Relationship not specified"}</p>
+          </Link>
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm md:block">
         <table className="min-w-full text-sm">
           <thead className="bg-slate-50 text-left text-slate-600">
             <tr>

@@ -11,7 +11,7 @@ import {
   formatPremisesListLabel,
   formatPremisesName,
   formatPremisesOperatorLandlord,
-  formatVerifiedDate,
+  formatPremisesUpdatedAt,
 } from "@/lib/premisesDisplay";
 import { premisesDrawerHref } from "@/lib/premisesDrawerNav";
 import {
@@ -154,6 +154,13 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                 onSort={handleSort}
               />
               <PremisesSortableHeader
+                label="Status"
+                sortKey="centre_status"
+                activeKey={sortKey}
+                sortDir={sortDir}
+                onSort={handleSort}
+              />
+              <PremisesSortableHeader
                 label="Desks"
                 sortKey="desks"
                 activeKey={sortKey}
@@ -225,10 +232,11 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                     <td className="px-3 py-1.5 text-slate-700">
                       {formatPremisesOperatorLandlord(row.operator_name, row.landlord_name)}
                     </td>
+                    <td className="px-3 py-1.5 text-slate-700">{row.centre_status ?? "Active"}</td>
                     <td className="px-3 py-1.5 text-slate-700">{row.workstation_count ?? "—"}</td>
                     <td className="px-3 py-1.5 text-slate-700">{formatAreaSqft(row.gross_area_sqft)}</td>
                     <td className="px-3 py-1.5 text-slate-700">{prices.price}</td>
-                    <td className="px-3 py-1.5 text-slate-700">{formatVerifiedDate(row.last_verified_date)}</td>
+                    <td className="whitespace-nowrap px-3 py-1.5 text-slate-700">{formatPremisesUpdatedAt(row.updated_at)}</td>
                     <td className="px-3 py-1.5">
                       <ModuleRowActions
                         module="properties"

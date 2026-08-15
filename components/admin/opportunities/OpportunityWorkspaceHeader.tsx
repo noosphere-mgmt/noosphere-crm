@@ -36,11 +36,11 @@ export function OpportunityWorkspaceHeader({
         <Link href={returnTo} className={`text-xs font-medium ${theme.link}`}>
           ← {backLabel}
         </Link>
-        <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto sm:justify-end">
+        <div className="ml-auto flex shrink-0 items-center justify-end gap-1.5">
           {activeTab === "overview" && !editMode ? (
             <Link
               href={opportunityWorkspaceHref(opportunity, "overview", "edit", returnTo)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-800 hover:bg-blue-100"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-sm font-semibold text-blue-800 hover:bg-blue-100 sm:px-3"
               aria-label="Edit overview"
               title="Edit overview"
             >
@@ -68,7 +68,7 @@ export function OpportunityWorkspaceHeader({
         </div>
       </div>
 
-      <div className="mt-1.5 flex min-w-0 flex-wrap items-end justify-between gap-3">
+      <div className="mt-1.5 flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
             <h1
@@ -77,9 +77,9 @@ export function OpportunityWorkspaceHeader({
             >
               {opportunity.client_name}
             </h1>
-            <RecordBusinessId id={opportunity.business_id} className="shrink-0" />
+            <RecordBusinessId id={opportunity.business_id} className="hidden shrink-0 sm:inline" />
           </div>
-          <p className="mt-0.5 truncate text-sm text-slate-600">
+          <p className="mt-0.5 hidden truncate text-sm text-slate-600 sm:block">
             <AdminEntityLink
               href={companyFullPageHref(
                 opportunity.linked_company_business_id ?? opportunity.company_id,
@@ -100,11 +100,6 @@ export function OpportunityWorkspaceHeader({
               {opportunity.primary_contact_name?.trim()}
             </AdminEntityLink>
           </p>
-          {!editMode && activeTab === "overview" ? (
-            <p className="mt-1 text-xs text-slate-500">
-              Double-click Overview to open full edit · drawer fields save automatically
-            </p>
-          ) : null}
         </div>
         <OpportunityCommercialHeader opportunity={opportunity} />
       </div>

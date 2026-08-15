@@ -26,6 +26,7 @@ import {
   parseSpaceForm,
 } from "@/lib/premisesClassification";
 import { createPremisesV1, duplicatePremisesV1, getPremisesV1, updatePremisesV1, type PremisesV1Patch } from "@/lib/repos/premisesV1";
+import { PREMISES_CENTRE_STATUSES } from "@/lib/v1ListValues";
 
 function s(v: FormDataEntryValue | null): string | null {
   const out = String(v ?? "").trim();
@@ -174,6 +175,7 @@ async function parsePremisesV1Form(formData: FormData): Promise<PremisesV1Patch>
     market_mode: s(formData.get("market_mode")),
     occupancy_status: s(formData.get("occupancy_status")),
     availability_status: s(formData.get("availability_status")),
+    centre_status: s(formData.get("centre_status")),
     discovery_status: s(formData.get("discovery_status")),
     access_status: s(formData.get("access_status")),
     source_type: s(formData.get("source_type")),
@@ -279,7 +281,9 @@ export async function updatePremisesV1Action(premisesId: string, propertyId: str
     await updatePremisesV1(premisesId, patch);
 
     revalidatePath("/admin/properties");
+    revalidatePath("/admin/properties/premises");
     revalidatePath(`/admin/properties/${propertyId}`);
+    revalidatePath(`/admin/properties/premises/${encodeURIComponent(premisesId)}`);
     if (nextPropertyId !== propertyId) {
       revalidatePath(`/admin/properties/${nextPropertyId}`);
     }
@@ -431,6 +435,29 @@ export async function bulkDeletePremisesV1Action(formData: FormData) {
   revalidatePath("/admin/properties");
   const returnTo = s(formData.get("return_to")) ?? "/admin/properties";
   redirect(returnTo.startsWith("/admin") ? returnTo : "/admin/properties");
+}
+
+export type PremisesBulkStatusResult = { ok: true; updated_count: number } | { ok: false; error: string };
+
+export async function bulkUpdatePremisesCentreStatusAction(
+  formData: FormData,
+): Promise<PremisesBulkStatusResult> {
+  try {
+    const raw = String(formData.get("premises_ids") ?? "").trim();
+    const ids = raw ? raw.split(",").map((id) => id.trim()).filter(Boolean) : [];
+    const centreStatus = String(formData.get("centre_status") ?? "").trim();
+    if (ids.length === 0) return { ok: false, error: "No premises selected" };
+    if (!(PREMISES_CENTRE_STATUSES as readonly string[]).includes(centreStatus)) {
+      return { ok: false, error: "Invalid centre status" };
+    }
+    const { bulkUpdatePremisesCentreStatus } = await import("@/lib/repos/premisesV1");
+    const updated = await bulkUpdatePremisesCentreStatus(ids, centreStatus);
+    revalidatePath("/admin/properties");
+    return { ok: true, updated_count: updated };
+  } catch (err) {
+    rethrowNextNavigation(err);
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to update status" };
+  }
 }
 
 export async function deletePremisesV1FromListAction(

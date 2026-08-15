@@ -23,7 +23,7 @@ export function ActivityReviewDrawer({
   return (
     <>
       <button type="button" className="fixed inset-0 z-40 bg-slate-900/10" onClick={onClose} aria-label="Close" />
-      <aside className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-xl">
+      <aside className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-xl max-md:bottom-[calc(3.5rem+env(safe-area-inset-bottom))]">
         <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-4">
           <div className="min-w-0">
             <p className="text-xs text-slate-500">Review activity</p>

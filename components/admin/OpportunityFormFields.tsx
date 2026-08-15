@@ -30,6 +30,7 @@ import type { CompanyOption } from "@/lib/repos/companies";
 import type { Opportunity, OpportunityStatus } from "@/lib/types/entities";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { OPPORTUNITY_SOURCES, OPPORTUNITY_SOURCE_LABELS } from "@/lib/opportunitySourceValues";
+import { CrmStaffSelect } from "@/components/admin/CrmStaffSelect";
 
 type Props = {
   defaults?: Opportunity;
@@ -133,11 +134,7 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
               ))}
             </select>
           </label>
-          <FormField
-            label="Relationship Owner (Override)"
-            name="relationship_owner"
-            defaultValue={defaults?.relationship_owner ?? ""}
-          />
+          <CrmStaffSelect label="Opportunity Owner" name="relationship_owner" defaultValue={defaults?.relationship_owner} defaultToPrimary={!defaults} disabled={!editing} />
         </div>
       </div>
 
