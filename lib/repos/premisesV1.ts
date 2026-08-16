@@ -457,6 +457,7 @@ export async function duplicatePremisesV1(premisesId: string): Promise<string> {
 
   const {
     premises_id: _id,
+    business_id: _businessId,
     updated_at: _updated,
     gross_area_sqft,
     net_area_sqft,
@@ -488,6 +489,8 @@ export async function duplicatePremisesV1(premisesId: string): Promise<string> {
 
   const patch: PremisesV1Patch = {
     ...rest,
+    // Always allocate a fresh P###### — never reuse the source premises business_id.
+    business_id: null,
     gross_area_sqft: asNum(gross_area_sqft),
     net_area_sqft: asNum(net_area_sqft),
     gross_area_sqm: asNum(gross_area_sqm),
@@ -596,14 +599,16 @@ const flatJoin = `
   JOIN properties_v1 pr ON pr.property_id = p.property_id
   LEFT JOIN companies_v1 c ON ${sqlJoinV1Company("c", "p.operator_company_id")}
   LEFT JOIN companies_v1 landlord ON ${sqlJoinV1Company("landlord", "p.landlord_company_id")}
-  LEFT JOIN companies_v1 owner ON ${sqlJoinV1Company("owner", "p.owner_company_id")}`;
+  LEFT JOIN companies_v1 owner ON ${sqlJoinV1Company("owner", "p.owner_company_id")}
+  LEFT JOIN companies_v1 bldg_owner ON ${sqlJoinV1Company("bldg_owner", "pr.owner_company_id")}`;
 
 const flatJoinOptionalBuilding = `
   FROM premises_v1 p
   LEFT JOIN properties_v1 pr ON pr.property_id = p.property_id
   LEFT JOIN companies_v1 c ON ${sqlJoinV1Company("c", "p.operator_company_id")}
   LEFT JOIN companies_v1 landlord ON ${sqlJoinV1Company("landlord", "p.landlord_company_id")}
-  LEFT JOIN companies_v1 owner ON ${sqlJoinV1Company("owner", "p.owner_company_id")}`;
+  LEFT JOIN companies_v1 owner ON ${sqlJoinV1Company("owner", "p.owner_company_id")}
+  LEFT JOIN companies_v1 bldg_owner ON ${sqlJoinV1Company("bldg_owner", "pr.owner_company_id")}`;
 
 function premisesFlatWhere(filters: PremisesFlatFilters): { where: string; params: unknown[] } {
   const clauses: string[] = [];
@@ -686,6 +691,24 @@ function premisesFlatWhere(filters: PremisesFlatFilters): { where: string; param
       OR owner.company_name_en ILIKE $${i}
       OR owner.company_name_zh ILIKE $${i}
       OR owner.business_id ILIKE $${i}
+      OR bldg_owner.company_name_en ILIKE $${i}
+      OR bldg_owner.company_name_zh ILIKE $${i}
+      OR bldg_owner.business_id ILIKE $${i}
+      OR EXISTS (
+        SELECT 1
+        FROM jsonb_array_elements(COALESCE(pr.building_relationship_lines, '[]'::jsonb)) AS brel(line)
+        JOIN companies_v1 brel_co
+          ON ${sqlJoinV1Company("brel_co", "brel.line->>'company_id'")}
+        WHERE (
+          COALESCE(brel.line->>'role', '') ILIKE '%owner%'
+          OR COALESCE(brel.line->>'role', '') ILIKE '%landlord%'
+        )
+          AND (
+            brel_co.company_name_en ILIKE $${i}
+            OR brel_co.company_name_zh ILIKE $${i}
+            OR brel_co.business_id ILIKE $${i}
+          )
+      )
     )`);
     params.push(`%${filters.operator}%`);
     i++;
@@ -788,6 +811,33 @@ function premisesFlatWhere(filters: PremisesFlatFilters): { where: string; param
       OR owner.company_name_en ILIKE $${i}
       OR owner.company_name_zh ILIKE $${i}
       OR owner.business_id ILIKE $${i}
+      OR bldg_owner.company_name_en ILIKE $${i}
+      OR bldg_owner.company_name_zh ILIKE $${i}
+      OR bldg_owner.business_id ILIKE $${i}
+      OR EXISTS (
+        SELECT 1
+        FROM jsonb_array_elements(COALESCE(p.relationship_lines::jsonb, '[]'::jsonb)) AS rel(line)
+        JOIN companies_v1 rel_co
+          ON ${sqlJoinV1Company("rel_co", "rel.line->>'company_id'")}
+        WHERE rel_co.company_name_en ILIKE $${i}
+           OR rel_co.company_name_zh ILIKE $${i}
+           OR rel_co.business_id ILIKE $${i}
+      )
+      OR EXISTS (
+        SELECT 1
+        FROM jsonb_array_elements(COALESCE(pr.building_relationship_lines, '[]'::jsonb)) AS brel(line)
+        JOIN companies_v1 brel_co
+          ON ${sqlJoinV1Company("brel_co", "brel.line->>'company_id'")}
+        WHERE (
+          COALESCE(brel.line->>'role', '') ILIKE '%owner%'
+          OR COALESCE(brel.line->>'role', '') ILIKE '%landlord%'
+        )
+          AND (
+            brel_co.company_name_en ILIKE $${i}
+            OR brel_co.company_name_zh ILIKE $${i}
+            OR brel_co.business_id ILIKE $${i}
+          )
+      )
       OR TRIM(CONCAT_WS(' - ',
         NULLIF(TRIM(pr.bldg_name_en), ''),
         CASE

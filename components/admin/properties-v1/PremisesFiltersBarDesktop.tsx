@@ -50,7 +50,7 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
       onChange={(e) => setSearch(e.target.value)}
       onFocus={onSearchFocus}
       onBlur={onSearchBlur}
-      placeholder="Search buildings & premises — names, address, notes, floor/unit, operator, landlord, owner…"
+      placeholder="Search — names, address, floor/unit, operator, building owner/landlord…"
       aria-label="Search buildings and premises"
       autoComplete="off"
       className={theme.searchInput}

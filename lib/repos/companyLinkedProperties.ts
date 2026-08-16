@@ -9,6 +9,8 @@ export type CompanyLinkedPropertyRow = {
   business_id: string | null;
   label: string;
   building_name: string | null;
+  /** Workspace href for the parent building when kind is premise. */
+  building_href: string | null;
   roles: string[];
   href: string;
 };
@@ -176,6 +178,12 @@ export async function listCompanyLinkedProperties(
         row.property_name_en?.trim() ||
         formatPremisesName(row.building_name, row.floor, row.unit),
       building_name: row.building_name,
+      building_href: row.property_id
+        ? buildingWorkspaceHref(
+            { property_id: row.property_id, business_id: row.building_business_id },
+            "overview",
+          )
+        : null,
       roles: rolesFromFlags({
         operator: row.is_operator,
         owner: row.is_owner,
@@ -204,6 +212,7 @@ export async function listCompanyLinkedProperties(
         business_id: row.business_id,
         label: row.bldg_name_en?.trim() || row.property_id,
         building_name: row.bldg_name_en,
+        building_href: null,
         roles: rolesFromFlags({
           operator: row.is_operator,
           owner: row.is_owner,

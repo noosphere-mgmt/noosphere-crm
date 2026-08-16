@@ -33,6 +33,7 @@ function buildingMatchesSearch(building: PropertyV1SelectOption, query: string):
       building.property_id,
       building.city,
       building.country,
+      building.owner_landlord_search,
     ],
     query,
   );

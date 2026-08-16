@@ -428,6 +428,8 @@ export type PropertyV1SelectOption = {
   country: string | null;
   city: string | null;
   district: string | null;
+  /** Owner / landlord names (FK + relationship lines) for premises workspace search. */
+  owner_landlord_search?: string | null;
 };
 
 export async function listPropertyV1SelectOptions(): Promise<PropertyV1SelectOption[]> {
@@ -448,13 +450,48 @@ export async function listPropertyV1SelectOptions(): Promise<PropertyV1SelectOpt
     district_en: string | null;
     country: string | null;
     city_en: string | null;
+    owner_landlord_search: string | null;
   }>(
-    `SELECT property_id, business_id, bldg_name_en, bldg_name_zh, bldg_name_cn, building_remarks,
-            bldg_desc, full_address_en, mtr_station,
-            street_no, street_name_en, street_name_zh, street_name_cn,
-            district_en, country, city_en
-     FROM properties_v1
-     ORDER BY bldg_name_en ASC NULLS LAST, property_id ASC`,
+    `SELECT
+       p.property_id,
+       p.business_id,
+       p.bldg_name_en,
+       p.bldg_name_zh,
+       p.bldg_name_cn,
+       p.building_remarks,
+       p.bldg_desc,
+       p.full_address_en,
+       p.mtr_station,
+       p.street_no,
+       p.street_name_en,
+       p.street_name_zh,
+       p.street_name_cn,
+       p.district_en,
+       p.country,
+       p.city_en,
+       TRIM(BOTH ' ' FROM CONCAT_WS(' ',
+         NULLIF(TRIM(own.company_name_en), ''),
+         NULLIF(TRIM(own.company_name_zh), ''),
+         NULLIF(TRIM(own.business_id), ''),
+         (
+           SELECT string_agg(
+             DISTINCT TRIM(BOTH ' ' FROM CONCAT_WS(' ',
+               NULLIF(TRIM(rel_co.company_name_en), ''),
+               NULLIF(TRIM(rel_co.company_name_zh), ''),
+               NULLIF(TRIM(rel_co.business_id), '')
+             )),
+             ' '
+           )
+           FROM jsonb_array_elements(COALESCE(p.building_relationship_lines, '[]'::jsonb)) AS rel(line)
+           JOIN companies_v1 rel_co
+             ON ${sqlJoinV1Company("rel_co", "rel.line->>'company_id'")}
+           WHERE COALESCE(rel.line->>'role', '') ILIKE '%owner%'
+              OR COALESCE(rel.line->>'role', '') ILIKE '%landlord%'
+         )
+       )) AS owner_landlord_search
+     FROM properties_v1 p
+     LEFT JOIN companies_v1 own ON ${sqlJoinV1Company("own", "p.owner_company_id")}
+     ORDER BY p.bldg_name_en ASC NULLS LAST, p.property_id ASC`,
   );
   return rows.map((row) => {
     const name = row.bldg_name_en?.trim() || row.property_id;
@@ -477,6 +514,7 @@ export async function listPropertyV1SelectOptions(): Promise<PropertyV1SelectOpt
       country: row.country?.trim() || null,
       city: row.city_en?.trim() || null,
       district: district || null,
+      owner_landlord_search: row.owner_landlord_search?.trim() || null,
     };
   });
 }
