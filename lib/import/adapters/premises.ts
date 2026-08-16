@@ -352,7 +352,7 @@ function premiseFieldDef(key: (typeof FIELD_KEYS)[number]): ImportFieldDef {
     };
   }
   if (key === "property_category") {
-    return { ...base, type: "string", aliases: ["category"] };
+    return { ...base, type: "string", aliases: ["category"], exportHidden: true };
   }
   if (key === "space_form") {
     return { ...base, type: "enum", enumValues: [...SPACE_FORMS], aliases: ["space_form", "layout"] };

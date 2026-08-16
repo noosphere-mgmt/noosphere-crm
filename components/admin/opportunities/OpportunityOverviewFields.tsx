@@ -172,11 +172,13 @@ export function OpportunityOverviewFields({
   companies,
   contacts,
   sideContent,
+  belowRequirement,
 }: {
   opportunity: Opportunity;
   companies: CompanyOption[];
   contacts: ContactOption[];
   sideContent: React.ReactNode;
+  belowRequirement?: React.ReactNode;
 }) {
   const editing = useFormEditing();
   const companyOptions = toLegacyCompanySelectOptions(companies);
@@ -352,6 +354,8 @@ export function OpportunityOverviewFields({
           )}
         </Section>
 
+        {!editing ? <OpportunityRequirementIntake opportunity={opportunity} /> : null}
+
         <Section title="Situation">
           {editing ? (
             <div className={compactGrid}>
@@ -409,7 +413,7 @@ export function OpportunityOverviewFields({
             salesRole={editing ? salesRole : normalizeOpportunitySalesRole(opportunity.sales_role)}
           />
         </Section>
-        {!editing ? <OpportunityRequirementIntake opportunity={opportunity} /> : null}
+        {belowRequirement}
       </div>
 
       <aside className="min-w-0 lg:sticky lg:top-20">{sideContent}</aside>

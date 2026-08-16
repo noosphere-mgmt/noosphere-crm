@@ -7,11 +7,12 @@ import {
 } from "@/components/admin/inline/InlineFields";
 import { PremisesSectionCard } from "@/components/admin/properties-v1/premisesDrawerUi";
 import { PropertyInlineAreaConversionFields } from "@/components/admin/properties-v1/PropertyInlineAreaConversionFields";
-import { BuildingRelationshipsView } from "@/components/admin/properties-v1/BuildingRelationships";
+import { BuildingRelationshipsEditor } from "@/components/admin/properties-v1/BuildingRelationships";
 import { usePropertyInlineOverview } from "@/components/admin/properties-v1/usePropertyInlineOverview";
 import { BUILDING_GRADES, BUILDING_TITLES, PROPERTY_TYPES } from "@/lib/lookups";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
 import type { PropertyV1 } from "@/lib/repos/propertiesV1";
+import type { BuildingRelationshipLine } from "@/lib/buildingRelationships";
 
 export function PropertyInlineOverviewDesktop({
   property,
@@ -71,7 +72,14 @@ export function PropertyInlineOverviewDesktop({
       </PremisesSectionCard>
 
       <PremisesSectionCard title="Relationships" className="!p-3 lg:col-span-2">
-        <BuildingRelationshipsView value={property.building_relationship_lines} companyOptions={companyOptions} />
+        <BuildingRelationshipsEditor
+          value={property.building_relationship_lines}
+          companyOptions={companyOptions}
+          onSave={async (lines: BuildingRelationshipLine[]) => {
+            const result = await save("building_relationship_lines")(lines);
+            return { ok: result.ok, error: result.error };
+          }}
+        />
       </PremisesSectionCard>
 
       <div>

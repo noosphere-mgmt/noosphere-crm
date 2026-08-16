@@ -123,6 +123,11 @@ export function CompanyInlineOverview({
         />
         <InlineTextField label="Industry" value={company.industry} onSave={save("industry")} />
         <InlineTextField label="Source" value={company.source} onSave={save("source")} />
+        <InlineTextField
+          label="Staff"
+          value={company.relationship_owner}
+          onSave={save("relationship_owner")}
+        />
         {crmSummary && crmSummary.contacts > 0 ? (
           <CrmStat label="Contacts" value={crmSummary.contacts} href={resolveTabHref("contacts")} />
         ) : null}

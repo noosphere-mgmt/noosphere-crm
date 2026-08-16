@@ -113,7 +113,7 @@ export function PropertiesSearchBar({
         onBlur={() => {
           searchFocusedRef.current = false;
         }}
-        placeholder="Search buildings — names, address, notes, MTR, related company…"
+        placeholder="Search buildings — names, address, owner, operator, landlord…"
         aria-label="Search buildings"
         autoComplete="off"
         className={theme.searchInput}
@@ -154,8 +154,8 @@ export function PropertiesSearchBar({
         onBlur={() => {
           relatedFocusedRef.current = false;
         }}
-        placeholder="Related company"
-        aria-label="Related company"
+        placeholder="Owner / landlord / related"
+        aria-label="Owner, landlord or related company"
         autoComplete="off"
         className={theme.searchInput}
       />

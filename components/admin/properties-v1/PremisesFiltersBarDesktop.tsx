@@ -36,13 +36,9 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
     hasActiveFilters,
   } = usePremisesFiltersBar(props);
   const [monthlyRentMax, setMonthlyRentMax] = useState(filters.monthly_rent_max ?? "");
-  const [operatorFilter, setOperatorFilter] = useState(filters.operator ?? "");
   useEffect(() => {
     setMonthlyRentMax(filters.monthly_rent_max ?? "");
   }, [filters.monthly_rent_max]);
-  useEffect(() => {
-    setOperatorFilter(filters.operator ?? "");
-  }, [filters.operator]);
   const subtypeOptions = filters.asset_class && filters.asset_class in PREMISES_PRODUCT_SUBTYPES
     ? PREMISES_PRODUCT_SUBTYPES[filters.asset_class as keyof typeof PREMISES_PRODUCT_SUBTYPES]
     : Object.values(PREMISES_PRODUCT_SUBTYPES).flat();
@@ -54,7 +50,7 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
       onChange={(e) => setSearch(e.target.value)}
       onFocus={onSearchFocus}
       onBlur={onSearchBlur}
-      placeholder="Search buildings & premises — names, address, notes, floor/unit, operator…"
+      placeholder="Search buildings & premises — names, address, notes, floor/unit, operator, landlord, owner…"
       aria-label="Search buildings and premises"
       autoComplete="off"
       className={theme.searchInput}
@@ -215,28 +211,13 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
           ))}
         </select>
 
-        <input
-          type="search"
-          aria-label="Operator"
-          placeholder="Operator"
-          value={operatorFilter}
-          onChange={(e) => setOperatorFilter(e.target.value)}
-          onBlur={() => patch({ operator: operatorFilter.trim() || undefined })}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              patch({ operator: operatorFilter.trim() || undefined });
-            }
-          }}
-          className={theme.searchSelect}
-        />
-
         <select
-          aria-label="Unique Address"
+          aria-label="UniqueAdd"
           value={filters.offers_unique_address ?? ""}
           onChange={(e) => patch({ offers_unique_address: e.target.value || undefined })}
           className={theme.searchSelect}
         >
-          <option value="">Unique Address?</option>
+          <option value="">UniqueAdd</option>
           {YES_NO_OPTIONS.map((t) => (
             <option key={t} value={t}>
               {t}
@@ -245,12 +226,12 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
         </select>
 
         <select
-          aria-label="Stamp Duty"
+          aria-label="Stamp"
           value={filters.offers_stamp_duty ?? ""}
           onChange={(e) => patch({ offers_stamp_duty: e.target.value || undefined })}
           className={theme.searchSelect}
         >
-          <option value="">Stamp Duty?</option>
+          <option value="">Stamp</option>
           {YES_NO_OPTIONS.map((t) => (
             <option key={t} value={t}>
               {t}

@@ -76,7 +76,7 @@ export function CompanyFormFields({ defaults }: Props) {
         <FormField label="Email" name="email" type="email" defaultValue={defaults?.email ?? ""} />
         <FormField label="Industry" name="industry" defaultValue={defaults?.industry ?? ""} />
         <FormField label="Source" name="source" defaultValue={defaults?.source ?? ""} />
-        <CrmStaffSelect label="Relationship owner" name="relationship_owner" defaultValue={defaults?.relationship_owner} defaultToPrimary={!defaults} disabled={!editing} />
+        <CrmStaffSelect label="Staff" name="relationship_owner" defaultValue={defaults?.relationship_owner} defaultToPrimary={!defaults} disabled={!editing} />
         <label className="block">
           <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Last Contact</span>
           <p className="mt-0.5 text-sm text-slate-900">{defaults?.last_contact_date?.slice(0, 10) ?? "—"}</p>

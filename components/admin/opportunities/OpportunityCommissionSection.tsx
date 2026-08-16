@@ -56,10 +56,18 @@ export function OpportunityCommissionSection({ data }: { data: OpportunityDetail
           <button disabled={pending} className="mt-3 rounded-lg bg-[#776b5f] px-4 py-2 text-sm font-semibold text-white hover:bg-[#655b51] disabled:opacity-50">{pending ? "Saving…" : "Save Commission"}</button>
         </form>
       ) : (
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          <div><p className={labelClass}>Total fees</p><p className="mt-1 text-base font-semibold text-slate-900">{money(income)}</p></div>
-          <div><p className={labelClass}>Payout</p><p className="mt-1 text-base font-semibold text-slate-900">{money(n(draft.payout))}</p><p className="truncate text-xs text-slate-500">{commission?.payout_contact_name || commission?.payout_company_name || "—"}</p></div>
-          <div><p className={labelClass}>Profit</p><p className={`mt-1 text-lg font-bold ${profit < 0 ? "text-rose-700" : "text-emerald-700"}`}>{money(profit)}</p></div>
+        <div className="mt-3 space-y-3">
+          <div className="grid gap-2 sm:grid-cols-3">
+            <div><p className={labelClass}>Total fees</p><p className="mt-1 text-base font-semibold text-slate-900">{money(income)}</p></div>
+            <div><p className={labelClass}>Payout</p><p className="mt-1 text-base font-semibold text-slate-900">{money(n(draft.payout))}</p><p className="truncate text-xs text-slate-500">{commission?.payout_contact_name || commission?.payout_company_name || "—"}</p></div>
+            <div><p className={labelClass}>Profit</p><p className={`mt-1 text-lg font-bold ${profit < 0 ? "text-rose-700" : "text-emerald-700"}`}>{money(profit)}</p></div>
+          </div>
+          {commission?.remarks?.trim() ? (
+            <div>
+              <p className={labelClass}>Remarks</p>
+              <p className="mt-1 whitespace-pre-wrap text-sm text-slate-800">{commission.remarks.trim()}</p>
+            </div>
+          ) : null}
         </div>
       )}
     </section>

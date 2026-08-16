@@ -37,7 +37,7 @@ function filtersToParams(filters: PremisesFlatFilters, existing: URLSearchParams
   setOrDelete("listing_intent", filters.listing_intent);
   setOrDelete("listing_status", filters.listing_status);
   setOrDelete("centre_status", filters.centre_status);
-  setOrDelete("operator", filters.operator);
+  params.delete("operator");
   setOrDelete("offers_unique_address", filters.offers_unique_address);
   setOrDelete("offers_stamp_duty", filters.offers_stamp_duty);
   setOrDelete("package_offers", filters.package_offers);
@@ -137,7 +137,6 @@ export function usePremisesFiltersBar({ filters, cities, districts }: PremisesFi
       filters.listing_intent ||
       filters.listing_status ||
       filters.centre_status ||
-      filters.operator ||
       filters.offers_unique_address ||
       filters.offers_stamp_duty ||
       filters.package_offers ||
@@ -155,7 +154,6 @@ export function usePremisesFiltersBar({ filters, cities, districts }: PremisesFi
     filters.listing_intent,
     filters.listing_status,
     filters.centre_status,
-    filters.operator,
     filters.offers_unique_address,
     filters.offers_stamp_duty,
     filters.package_offers,

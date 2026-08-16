@@ -3,7 +3,7 @@ import { allocateNextBusinessId, ensureLegacyBusinessId, registerBusinessId } fr
 import { isPermanentBusinessId } from "@/lib/businessIds";
 import { sqlContactDisplayName } from "@/lib/contactName";
 import { resolveCompanyRefToLegacy, resolveContactRefToLegacy } from "@/lib/crmRefResolve";
-import { COMPANY_ROLES, COMPANY_ROLE_LABELS } from "@/lib/lookups";
+import { COMPANY_ROLES, COMPANY_ROLE_LABELS, resolveCompanyRoleToken } from "@/lib/lookups";
 import { syncLegacyCompanyToV1 } from "@/lib/repos/companiesV1";
 import type { CompanyRole } from "@/lib/types/entities";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord, withExportMatchIds } from "../adapterUtils";
@@ -76,15 +76,17 @@ function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
   if ("company_name_zh" in values) p.company_name_zh = values.company_name_zh;
   if ("company_name_cn" in values) p.company_name_cn = values.company_name_cn;
   if ("role" in values) {
-    const raw = String(values.role ?? "");
-    const parts = raw.split(/[;,]/).map((s) => s.trim()).filter(Boolean);
+    const raw = values.role;
+    const parts = Array.isArray(raw)
+      ? raw.map((v) => String(v).trim()).filter(Boolean)
+      : String(raw ?? "")
+          .split(/[;,]/)
+          .map((s) => s.trim())
+          .filter(Boolean);
     const roles: CompanyRole[] = [];
     for (const part of parts) {
-      const slug = part.toLowerCase().replace(/\s+/g, "_");
-      const byLabel = (COMPANY_ROLES as readonly string[]).find(
-        (r) => r === slug || COMPANY_ROLE_LABELS[r as CompanyRole].toLowerCase() === part.toLowerCase(),
-      );
-      if (byLabel) roles.push(byLabel as CompanyRole);
+      const byLabel = resolveCompanyRoleToken(part);
+      if (byLabel) roles.push(byLabel);
     }
     p.roles = roles.length ? roles : ["client"];
   }
@@ -123,7 +125,7 @@ export const companiesImportDefinition: ImportObjectDefinition = {
     { key: "company_name_en", label: "company_name_en", type: "string", requiredOnCreate: true, aliases: ["company_name"] },
     { key: "company_name_zh", label: "company_name_zh", type: "string" },
     { key: "company_name_cn", label: "company_name_cn", type: "string" },
-    { key: "role", label: "role", type: "string", aliases: ["roles"] },
+    { key: "role", label: "role", type: "company_roles", aliases: ["roles", "agent_class", "class"] },
     { key: "coverage", label: "coverage", type: "string_array" },
     { key: "country", label: "country", type: "string" },
     { key: "city", label: "city", type: "string" },

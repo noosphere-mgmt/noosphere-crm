@@ -195,19 +195,9 @@ export function PremisesFiltersBarMobile(props: PremisesFiltersBarProps) {
           ))}
         </select>
       </MobileFilterField>
-      <MobileFilterField label="Operator">
-        <input
-          type="search"
-          aria-label="Operator"
-          placeholder="Operator name"
-          defaultValue={filters.operator ?? ""}
-          onBlur={(e) => patch({ operator: e.target.value.trim() || undefined })}
-          className={`${theme.searchSelect} w-full`}
-        />
-      </MobileFilterField>
-      <MobileFilterField label="Unique Address?">
+      <MobileFilterField label="UniqueAdd">
         <select
-          aria-label="Unique Address"
+          aria-label="UniqueAdd"
           value={filters.offers_unique_address ?? ""}
           onChange={(e) => patch({ offers_unique_address: e.target.value || undefined })}
           className={`${theme.searchSelect} w-full`}
@@ -218,9 +208,9 @@ export function PremisesFiltersBarMobile(props: PremisesFiltersBarProps) {
           ))}
         </select>
       </MobileFilterField>
-      <MobileFilterField label="Stamp Duty?">
+      <MobileFilterField label="Stamp">
         <select
-          aria-label="Stamp Duty"
+          aria-label="Stamp"
           value={filters.offers_stamp_duty ?? ""}
           onChange={(e) => patch({ offers_stamp_duty: e.target.value || undefined })}
           className={`${theme.searchSelect} w-full`}

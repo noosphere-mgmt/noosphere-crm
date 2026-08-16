@@ -595,13 +595,15 @@ const flatJoin = `
   FROM premises_v1 p
   JOIN properties_v1 pr ON pr.property_id = p.property_id
   LEFT JOIN companies_v1 c ON ${sqlJoinV1Company("c", "p.operator_company_id")}
-  LEFT JOIN companies_v1 landlord ON ${sqlJoinV1Company("landlord", "p.landlord_company_id")}`;
+  LEFT JOIN companies_v1 landlord ON ${sqlJoinV1Company("landlord", "p.landlord_company_id")}
+  LEFT JOIN companies_v1 owner ON ${sqlJoinV1Company("owner", "p.owner_company_id")}`;
 
 const flatJoinOptionalBuilding = `
   FROM premises_v1 p
   LEFT JOIN properties_v1 pr ON pr.property_id = p.property_id
   LEFT JOIN companies_v1 c ON ${sqlJoinV1Company("c", "p.operator_company_id")}
-  LEFT JOIN companies_v1 landlord ON ${sqlJoinV1Company("landlord", "p.landlord_company_id")}`;
+  LEFT JOIN companies_v1 landlord ON ${sqlJoinV1Company("landlord", "p.landlord_company_id")}
+  LEFT JOIN companies_v1 owner ON ${sqlJoinV1Company("owner", "p.owner_company_id")}`;
 
 function premisesFlatWhere(filters: PremisesFlatFilters): { where: string; params: unknown[] } {
   const clauses: string[] = [];
@@ -674,8 +676,19 @@ function premisesFlatWhere(filters: PremisesFlatFilters): { where: string; param
     params.push(filters.centre_status);
   }
   if (filters.operator) {
-    clauses.push(`c.company_name_en ILIKE $${i++}`);
+    clauses.push(`(
+      c.company_name_en ILIKE $${i}
+      OR c.company_name_zh ILIKE $${i}
+      OR c.business_id ILIKE $${i}
+      OR landlord.company_name_en ILIKE $${i}
+      OR landlord.company_name_zh ILIKE $${i}
+      OR landlord.business_id ILIKE $${i}
+      OR owner.company_name_en ILIKE $${i}
+      OR owner.company_name_zh ILIKE $${i}
+      OR owner.business_id ILIKE $${i}
+    )`);
     params.push(`%${filters.operator}%`);
+    i++;
   }
   if (filters.offers_unique_address) {
     clauses.push(`p.offers_unique_address = $${i++}`);
@@ -769,6 +782,12 @@ function premisesFlatWhere(filters: PremisesFlatFilters): { where: string; param
       OR c.company_name_en ILIKE $${i}
       OR c.company_name_zh ILIKE $${i}
       OR c.business_id ILIKE $${i}
+      OR landlord.company_name_en ILIKE $${i}
+      OR landlord.company_name_zh ILIKE $${i}
+      OR landlord.business_id ILIKE $${i}
+      OR owner.company_name_en ILIKE $${i}
+      OR owner.company_name_zh ILIKE $${i}
+      OR owner.business_id ILIKE $${i}
       OR TRIM(CONCAT_WS(' - ',
         NULLIF(TRIM(pr.bldg_name_en), ''),
         CASE

@@ -111,7 +111,7 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
   );
 
   return (
-    <>
+    <div className={props.fillHeight ? "flex min-h-0 flex-1 flex-col" : undefined}>
       <ListingRecordCount
         filteredCount={displayedRows.length}
         totalCount={totalCount}
@@ -119,7 +119,13 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
         selectedCount={selectedCount}
       />
 
-      <div className={`${ADMIN_LIST_SCROLL_VIEWPORT_CLASS} rounded-xl border border-slate-200 bg-white`}>
+      <div
+        className={`${
+          props.fillHeight
+            ? "admin-list-scroll min-h-0 flex-1 overflow-x-auto overflow-y-scroll"
+            : ADMIN_LIST_SCROLL_VIEWPORT_CLASS
+        } rounded-xl border border-slate-200 bg-white`}
+      >
         <table className="min-w-full text-sm">
           <thead className="sticky top-0 z-10 bg-slate-50 text-left text-slate-600 shadow-[inset_0_-1px_0_0_rgb(226,232,240)]">
             <tr>
@@ -270,6 +276,6 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
             : undefined
         }
       />
-    </>
+    </div>
   );
 }

@@ -8,7 +8,8 @@ import {
 } from "@/components/admin/inline/InlineFields";
 import { PremisesSectionCard } from "@/components/admin/properties-v1/premisesDrawerUi";
 import { PropertyInlineAreaConversionFields } from "@/components/admin/properties-v1/PropertyInlineAreaConversionFields";
-import { BuildingRelationshipsView } from "@/components/admin/properties-v1/BuildingRelationships";
+import { BuildingRelationshipsEditor } from "@/components/admin/properties-v1/BuildingRelationships";
+import type { BuildingRelationshipLine } from "@/lib/buildingRelationships";
 import { usePropertyInlineOverview } from "@/components/admin/properties-v1/usePropertyInlineOverview";
 import { BUILDING_GRADES, BUILDING_TITLES, PROPERTY_TYPES } from "@/lib/lookups";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
@@ -135,7 +136,14 @@ export function PropertyInlineOverviewMobile({
       </MobileCollapsibleSection>
 
       <PremisesSectionCard title="Relationships">
-        <BuildingRelationshipsView value={property.building_relationship_lines} companyOptions={companyOptions} />
+        <BuildingRelationshipsEditor
+          value={property.building_relationship_lines}
+          companyOptions={companyOptions}
+          onSave={async (lines: BuildingRelationshipLine[]) => {
+            const result = await save("building_relationship_lines")(lines);
+            return { ok: result.ok, error: result.error };
+          }}
+        />
       </PremisesSectionCard>
 
       <PremisesSectionCard title="Proposal content">

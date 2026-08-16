@@ -165,6 +165,15 @@ export async function listPropertiesV1(filters: PropertiesListFilters = {}): Pro
             OR co.business_id ILIKE ${qParam}
           )
       )
+      OR EXISTS (
+        SELECT 1
+        FROM jsonb_array_elements(COALESCE(properties_v1.building_relationship_lines, '[]'::jsonb)) AS rel(line)
+        JOIN companies_v1 related_company
+          ON ${sqlJoinV1Company("related_company", "rel.line->>'company_id'")}
+        WHERE related_company.company_name_en ILIKE ${qParam}
+           OR related_company.company_name_zh ILIKE ${qParam}
+           OR related_company.business_id ILIKE ${qParam}
+      )
     )`);
     params.push(`%${filters.q}%`);
   }

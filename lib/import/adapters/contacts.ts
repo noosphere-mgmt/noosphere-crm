@@ -3,7 +3,7 @@ import { allocateNextBusinessId, ensureLegacyBusinessId, registerBusinessId } fr
 import { isPermanentBusinessId } from "@/lib/businessIds";
 import { resolveContactName, sqlContactDisplayName, syncContactDerivedNames } from "@/lib/contactName";
 import { resolveCompanyRefToLegacy, resolveContactRefToLegacy } from "@/lib/crmRefResolve";
-import { COMPANY_ROLES, COMPANY_ROLE_LABELS } from "@/lib/lookups";
+import { resolveCompanyRoleToken } from "@/lib/lookups";
 import type { CompanyRole } from "@/lib/types/entities";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord, withExportMatchIds } from "../adapterUtils";
 import { sqlExportCompanyId, sqlExportContactId, sqlJoinLegacyCompany } from "../lookupSql";
@@ -74,15 +74,17 @@ function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
   const p: Record<string, unknown> = {};
   if ("remarks" in values) p.notes = values.remarks;
   if ("contact_role" in values) {
-    const raw = String(values.contact_role ?? "");
-    const parts = raw.split(/[;,]/).map((s) => s.trim()).filter(Boolean);
+    const raw = values.contact_role;
+    const parts = Array.isArray(raw)
+      ? raw.map((v) => String(v).trim()).filter(Boolean)
+      : String(raw ?? "")
+          .split(/[;,]/)
+          .map((s) => s.trim())
+          .filter(Boolean);
     const roles: CompanyRole[] = [];
     for (const part of parts) {
-      const slug = part.toLowerCase().replace(/\s+/g, "_");
-      const match = (COMPANY_ROLES as readonly string[]).find(
-        (r) => r === slug || COMPANY_ROLE_LABELS[r as CompanyRole].toLowerCase() === part.toLowerCase(),
-      );
-      if (match) roles.push(match as CompanyRole);
+      const match = resolveCompanyRoleToken(part);
+      if (match) roles.push(match);
     }
     p.contact_role = roles;
   }

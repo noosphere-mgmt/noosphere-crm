@@ -214,9 +214,9 @@ export function PropertiesSplitDesktop(props: PremisesViewProps) {
       <PremisesListHeaderDesktop showCreate={false} />
       <PremisesFiltersBarDesktop filters={props.filters} cities={props.cities} districts={props.districts} />
 
-      <div className="mt-3 grid min-h-[65vh] grid-cols-[18rem_minmax(0,1fr)] gap-4">
-        <aside className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <div className="border-b border-slate-200 bg-slate-50 px-3 py-3">
+      <div className="mt-3 grid h-[calc(100vh-14rem)] min-h-[34rem] grid-cols-[18rem_minmax(0,1fr)] gap-4 items-stretch">
+        <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div className="shrink-0 border-b border-slate-200 bg-slate-50 px-3 py-2.5">
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-start gap-2">
                 <input
@@ -252,14 +252,14 @@ export function PropertiesSplitDesktop(props: PremisesViewProps) {
             />
           </div>
 
-          <div className="max-h-[calc(100vh-17rem)] overflow-y-auto p-2">
+          <div className="admin-list-scroll min-h-0 flex-1 overflow-y-scroll p-2 pb-2">
             <button
               type="button"
               onClick={() => {
                 setBuildingId(null);
                 setSelectedBuildings(new Set());
               }}
-              className={`mb-1 flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm ${buildingId === null && !hasCheckedBuildings ? "bg-sky-50 font-semibold text-sky-900 ring-1 ring-sky-100" : "text-slate-700 hover:bg-slate-50"}`}
+              className={`mb-1 flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm ${buildingId === null && !hasCheckedBuildings ? "bg-sky-50 font-semibold text-sky-900 ring-1 ring-sky-100" : "text-slate-700 hover:bg-slate-50"}`}
             >
               <span>All buildings</span>
               <span className="text-xs tabular-nums text-slate-500">{shortlistedPremises.length}</span>
@@ -319,8 +319,8 @@ export function PropertiesSplitDesktop(props: PremisesViewProps) {
           </div>
         </aside>
 
-        <section className="min-w-0">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+        <section className="flex min-h-0 min-w-0 flex-col">
+          <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">Premises workspace</p>
               <h2 className="mt-0.5 text-lg font-semibold text-slate-900">{premisesWorkspaceTitle}</h2>
@@ -354,11 +354,14 @@ export function PropertiesSplitDesktop(props: PremisesViewProps) {
             </div>
           </div>
 
-          <PremisesListDesktop
-            {...props}
-            rows={premisesRows}
-            totalCount={premisesRows.length}
-          />
+          <div className="flex min-h-0 flex-1 flex-col">
+            <PremisesListDesktop
+              {...props}
+              rows={premisesRows}
+              totalCount={premisesRows.length}
+              fillHeight
+            />
+          </div>
         </section>
       </div>
 

@@ -59,9 +59,11 @@ export function OpportunityOverviewTab({
             sideContent={
               <OpportunityCurrentPosition data={data} proposalsEnabled={proposalsEnabled} />
             }
+            belowRequirement={
+              !initialEditMode ? <OpportunityCommissionSection data={data} /> : null
+            }
           />
         </form>
-        {!initialEditMode ? <div className="mt-3 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)_minmax(240px,0.85fr)] lg:gap-3"><div className="lg:col-start-2"><OpportunityCommissionSection data={data} /></div></div> : null}
         {initialEditMode ? (
           <ModuleStickyEditBar formId={formId} onCancel={() => router.push(viewHref)} />
         ) : null}

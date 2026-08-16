@@ -1,6 +1,6 @@
 import type { ImportFieldDef } from "./objectRegistry";
 import { isBlank, parseBoolean, parseDate, parseIntStrict, parseNumber, parseStringArray } from "./normalize";
-import { COMPANY_ROLES, COMPANY_ROLE_LABELS } from "@/lib/lookups";
+import { COMPANY_ROLES, COMPANY_ROLE_LABELS, resolveCompanyRoleToken } from "@/lib/lookups";
 import type { CompanyRole } from "@/lib/types/entities";
 
 export function isFieldSupplied(fieldKey: string, suppliedFields: Set<string>): boolean {
@@ -55,11 +55,8 @@ export function coerceFieldValue(
       const parts = parseStringArray(str);
       const roles: CompanyRole[] = [];
       for (const part of parts) {
-        const slug = part.trim().toLowerCase().replace(/\s+/g, "_");
-        const byLabel = (COMPANY_ROLES as readonly string[]).find(
-          (r) => r === slug || COMPANY_ROLE_LABELS[r as CompanyRole].toLowerCase() === part.trim().toLowerCase(),
-        );
-        if (byLabel) roles.push(byLabel as CompanyRole);
+        const byLabel = resolveCompanyRoleToken(part);
+        if (byLabel) roles.push(byLabel);
         else if (opts?.strict) {
           return {
             value: null,

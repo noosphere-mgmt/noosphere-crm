@@ -252,6 +252,29 @@ export const COMPANY_ROLE_VIEW_LABELS: Partial<Record<string, string>> = {
   other: "Other",
 };
 
+/** Resolve company/contact role tokens including common aliases (e.g. Agent → agency). */
+export function resolveCompanyRoleToken(part: string): (typeof CONNECTION_COMPANY_ROLES)[number] | null {
+  const trimmed = part.trim();
+  if (!trimmed) return null;
+  const slug = trimmed.toLowerCase().replace(/\s+/g, "_");
+  const aliases: Record<string, (typeof CONNECTION_COMPANY_ROLES)[number]> = {
+    agent: "agency",
+    agents: "agency",
+    bldg_mgmt: "building_management",
+    building_mgmt: "building_management",
+    property_management: "building_management",
+  };
+  if (aliases[slug]) return aliases[slug];
+  const byRole = (CONNECTION_COMPANY_ROLES as readonly string[]).find(
+    (r) =>
+      r === slug ||
+      CONNECTION_COMPANY_ROLE_LABELS[r as (typeof CONNECTION_COMPANY_ROLES)[number]].toLowerCase() ===
+        trimmed.toLowerCase() ||
+      (COMPANY_ROLE_LABELS[r] ?? "").toLowerCase() === trimmed.toLowerCase(),
+  );
+  return (byRole as (typeof CONNECTION_COMPANY_ROLES)[number] | undefined) ?? null;
+}
+
 export const RELATIONSHIP_STRENGTHS = ["cold", "warm", "active", "strategic"] as const;
 
 export const RELATIONSHIP_STRENGTH_LABELS: Record<(typeof RELATIONSHIP_STRENGTHS)[number], string> = {

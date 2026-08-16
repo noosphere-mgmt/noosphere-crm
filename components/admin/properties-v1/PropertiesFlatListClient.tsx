@@ -15,6 +15,7 @@ import {
   nextSortState,
   type SortDir,
 } from "@/components/admin/SortableTableHeader";
+import { ADMIN_LIST_SCROLL_VIEWPORT_CLASS } from "@/lib/adminListViewport";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import { usePropertiesListSelection } from "@/components/admin/properties-v1/PropertiesListSelectionContext";
 import { formatPropertyV1AddressEn } from "@/lib/composeAddress";
@@ -170,9 +171,9 @@ export function PropertiesFlatListClient({
         label="Buildings"
         selectedCount={selectedCount}
       />
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <div className={`${ADMIN_LIST_SCROLL_VIEWPORT_CLASS} rounded-xl border border-slate-200 bg-white`}>
         <table className="min-w-full text-sm">
-          <thead className="bg-slate-50 text-left text-slate-600">
+          <thead className="sticky top-0 z-10 bg-slate-50 text-left text-slate-600 shadow-[inset_0_-1px_0_0_rgb(226,232,240)]">
             <tr>
               <th className="w-10 px-3 py-1.5">
                 <input

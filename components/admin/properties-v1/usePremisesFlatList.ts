@@ -56,6 +56,8 @@ export type PremisesListComponentProps = Omit<PremisesFlatListHookProps, "initia
   filters?: PremisesFlatFilters;
   cities?: string[];
   districts?: string[];
+  /** Stretch scroll area to fill parent flex height (split workspace). */
+  fillHeight?: boolean;
 };
 
 export function buildingDetailsHref(propertyId: string): string {
