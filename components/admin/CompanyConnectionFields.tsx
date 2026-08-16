@@ -23,7 +23,7 @@ export function CompanyConnectionFields({
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <SelectField
-        label="Owner"
+        label="Owner/Landlord"
         name="owner_company_id"
         defaultValue={owner}
         placeholder="— Select company —"

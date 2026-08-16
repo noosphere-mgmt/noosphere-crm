@@ -21,6 +21,25 @@ export function relationshipLineHasContent(line: PremisesRelationshipLine): bool
   );
 }
 
+function relationshipTypeKey(value: string | null | undefined): string {
+  return (value ?? "").trim().toLowerCase();
+}
+
+export function isOwnerLandlordRelationshipType(type: string | null | undefined): boolean {
+  const key = relationshipTypeKey(type);
+  return key === "owner/landlord" || key === "owner" || key === "landlord";
+}
+
+export function normalizePremisesRelationshipType(
+  type: string | null | undefined,
+): string {
+  const trimmed = String(type ?? "").trim();
+  if (!trimmed) return "";
+  if (isOwnerLandlordRelationshipType(trimmed)) return "Owner/Landlord";
+  if (trimmed === "Current Tenant") return "Current Occupant";
+  return trimmed;
+}
+
 export function parseRelationshipLines(raw: unknown): PremisesRelationshipLine[] {
   return asArray<PremisesRelationshipLine>(raw);
 }
@@ -30,7 +49,7 @@ export function normalizePremisesRelationshipLines(
   raw: unknown,
 ): PremisesRelationshipLine[] {
   return parseRelationshipLines(raw).map((line) => ({
-    relationship_type: line.relationship_type ?? "",
+    relationship_type: normalizePremisesRelationshipType(line.relationship_type),
     company_id: line.company_id ?? null,
     contact_id: line.contact_id ?? null,
     contact_role: line.contact_role ?? null,
@@ -47,6 +66,7 @@ export function coerceRelationshipLinesForSelect(
 ): PremisesRelationshipLine[] {
   return asArray<PremisesRelationshipLine>(lines).map((line) => ({
     ...line,
+    relationship_type: normalizePremisesRelationshipType(line.relationship_type),
     company_id: line.company_id
       ? coerceCompanyIdToSelectValue(line.company_id, companyOptions) || null
       : null,
@@ -59,15 +79,64 @@ export function normalizeRelationshipLines(
   maps: CompanyLookupMaps,
 ): PremisesRelationshipLine[] {
   return asArray<PremisesRelationshipLine>(lines).map((line) => {
-    if (!line.company_id?.trim()) return line;
+    const normalizedType = normalizePremisesRelationshipType(line.relationship_type);
+    if (!line.company_id?.trim()) return { ...line, relationship_type: normalizedType };
     const resolved = resolveToV1CompanyId(line.company_id, maps);
-    return resolved ? { ...line, company_id: resolved } : line;
+    return resolved
+      ? { ...line, relationship_type: normalizedType, company_id: resolved }
+      : { ...line, relationship_type: normalizedType };
   });
+}
+
+export function emptyRelationshipLine(): PremisesRelationshipLine {
+  return {
+    relationship_type: "",
+    company_id: null,
+    contact_id: null,
+    contact_role: null,
+    partnership_mode: null,
+    source_url: null,
+    source_file: null,
+    remarks: null,
+  };
+}
+
+/** Upsert a single Owner/Landlord row and keep owner/landlord FKs aligned. */
+export function upsertOwnerLandlordInLines(
+  lines: PremisesRelationshipLine[],
+  companyId: string | null,
+): PremisesRelationshipLine[] {
+  const normalized = normalizePremisesRelationshipLines(lines);
+  const others = normalized.filter((line) => !isOwnerLandlordRelationshipType(line.relationship_type));
+  if (!companyId?.trim()) return others;
+  const existing = normalized.find((line) => isOwnerLandlordRelationshipType(line.relationship_type));
+  return [
+    {
+      relationship_type: "Owner/Landlord",
+      company_id: companyId.trim(),
+      contact_id: existing?.contact_id ?? null,
+      contact_role: existing?.contact_role ?? null,
+      partnership_mode: existing?.partnership_mode ?? null,
+      source_url: existing?.source_url ?? null,
+      source_file: existing?.source_file ?? null,
+      remarks: existing?.remarks ?? null,
+    },
+    ...others,
+  ];
 }
 
 export function initialPremisesRelationshipLines(premises: PremisesV1): PremisesRelationshipLine[] {
   const stored = normalizePremisesRelationshipLines(premises.relationship_lines);
-  if (stored.length > 0) return stored;
+  if (stored.length > 0) {
+    // Still surface legacy owner/landlord FKs if they are missing from stored lines.
+    const hasOwnerLandlord = stored.some((line) =>
+      isOwnerLandlordRelationshipType(line.relationship_type),
+    );
+    if (hasOwnerLandlord) return stored;
+    const legacyOwner =
+      premises.owner_company_id?.trim() || premises.landlord_company_id?.trim() || null;
+    return legacyOwner ? upsertOwnerLandlordInLines(stored, legacyOwner) : stored;
+  }
 
   const lines: PremisesRelationshipLine[] = [];
   const push = (
@@ -94,9 +163,18 @@ export function initialPremisesRelationshipLines(premises: PremisesV1): Premises
   };
 
   push("Operator", premises.operator_company_id);
-  push("Owner", premises.owner_company_id);
-  push("Landlord", premises.landlord_company_id);
-  push("Current Tenant", premises.current_tenant_company_id);
+  const ownerLandlord =
+    premises.owner_company_id?.trim() || premises.landlord_company_id?.trim() || null;
+  push("Owner/Landlord", ownerLandlord);
+  // If owner and landlord differ, keep the second company as an extra Owner/Landlord row.
+  if (
+    premises.owner_company_id?.trim() &&
+    premises.landlord_company_id?.trim() &&
+    premises.owner_company_id.trim() !== premises.landlord_company_id.trim()
+  ) {
+    push("Owner/Landlord", premises.landlord_company_id);
+  }
+  push("Current Occupant", premises.current_tenant_company_id);
   push(
     "Source Agent",
     premises.source_company_id,
@@ -121,43 +199,31 @@ export function countPremisesRelationships(premises: PremisesV1): number {
   ).length;
 }
 
-export function emptyRelationshipLine(): PremisesRelationshipLine {
-  return {
-    relationship_type: "",
-    company_id: null,
-    contact_id: null,
-    contact_role: null,
-    partnership_mode: null,
-    source_url: null,
-    source_file: null,
-    remarks: null,
-  };
-}
-
-function relationshipTypeKey(value: string | null | undefined): string {
-  return (value ?? "").trim().toLowerCase();
-}
-
 export function syncRelationshipColumns(lines: unknown) {
   const normalized = normalizePremisesRelationshipLines(lines);
   const find = (type: string) =>
     normalized.find((l) => relationshipTypeKey(l.relationship_type) === type.toLowerCase()) ?? null;
 
   const operator = find("Operator");
-  const owner = find("Owner");
-  const landlord = find("Landlord");
-  const tenant = find("Current Tenant");
+  const ownerLandlords = normalized.filter((l) =>
+    isOwnerLandlordRelationshipType(l.relationship_type),
+  );
+  const tenant = find("Current Occupant") ?? find("Current Tenant");
   const source = find("Source Agent") ?? find("Source Contact");
   const agency = find("Agency");
   const referrer = find("Referrer");
   const bldgMgmt = find("Bldg Mgmt");
 
+  const primaryOwner = ownerLandlords[0]?.company_id ?? null;
+  const secondaryOwner = ownerLandlords[1]?.company_id ?? primaryOwner;
+
   return {
     operator_company_id: operator?.company_id ?? null,
-    owner_company_id: owner?.company_id ?? null,
-    landlord_company_id: landlord?.company_id ?? null,
+    owner_company_id: primaryOwner,
+    landlord_company_id: secondaryOwner,
     current_tenant_company_id: tenant?.company_id ?? null,
-    source_company_id: source?.company_id ?? referrer?.company_id ?? agency?.company_id ?? null,
+    source_company_id:
+      source?.company_id ?? referrer?.company_id ?? agency?.company_id ?? bldgMgmt?.company_id ?? null,
     source_contact_id: source?.contact_id ?? null,
     source_contact_role: source?.contact_role ?? null,
     source_url: source?.source_url ?? null,

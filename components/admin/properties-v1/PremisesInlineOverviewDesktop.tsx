@@ -162,8 +162,8 @@ export function PremisesInlineOverviewDesktop({
           </div>
           <div className="rounded-lg border border-white/80 bg-white/70 px-3 py-2">
             <InlineSelectField
-              label="Owner company"
-              value={coerceCompanyId(premises.owner_company_id) || null}
+              label="Owner/Landlord"
+              value={coerceCompanyId(premises.owner_company_id) || coerceCompanyId(premises.landlord_company_id) || null}
               options={companyOptions}
               onSave={save("owner_company_id")}
               placeholder="— Select company —"

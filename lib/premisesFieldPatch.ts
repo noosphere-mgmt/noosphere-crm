@@ -6,6 +6,10 @@ import {
   YES_NO_OPTIONS,
 } from "@/lib/premisesCommercial";
 import { formatPremisesViewTypes, parsePremisesViewTypes } from "@/lib/premisesDisplay";
+import {
+  normalizePremisesRelationshipLines,
+  upsertOwnerLandlordInLines,
+} from "@/lib/premisesRelationships";
 import type { PremisesV1, PremisesV1Patch } from "@/lib/repos/premisesV1";
 import {
   parseCanonicalListingIntent,
@@ -210,12 +214,21 @@ export function applyPremisesFieldPatch(
       patch.government_rates = isPackageOperatingModel(premises.operating_model) ? 0 : numOrNull(value);
       break;
     case "operator_company_id":
-    case "owner_company_id":
-    case "landlord_company_id":
     case "current_tenant_company_id":
     case "source_company_id":
       patch[field] = strOrNull(value);
       break;
+    case "owner_company_id":
+    case "landlord_company_id": {
+      const id = strOrNull(value);
+      patch.owner_company_id = id;
+      patch.landlord_company_id = id;
+      patch.relationship_lines = upsertOwnerLandlordInLines(
+        normalizePremisesRelationshipLines(premises.relationship_lines),
+        id,
+      );
+      break;
+    }
     case "contract_term_months":
       patch.contract_term_months = intOrNull(value);
       break;

@@ -1,5 +1,8 @@
 import { BUILDING_GRADES, BUILDING_TITLES } from "@/lib/lookups";
-import { normalizeBuildingRelationships } from "@/lib/buildingRelationships";
+import {
+  normalizeBuildingRelationships,
+  syncLegacyCompanyIdsFromBuildingRelationships,
+} from "@/lib/buildingRelationships";
 import type { PropertyV1, PropertyV1Patch } from "@/lib/repos/propertiesV1";
 
 export const PROPERTY_LOCATION_FIELDS = new Set([
@@ -133,9 +136,15 @@ export function applyPropertyFieldPatch(
     case "current_tenant_company_id":
       patch[field] = strOrNull(value);
       break;
-    case "building_relationship_lines":
-      patch.building_relationship_lines = normalizeBuildingRelationships(value);
+    case "building_relationship_lines": {
+      const lines = normalizeBuildingRelationships(value);
+      const synced = syncLegacyCompanyIdsFromBuildingRelationships(lines);
+      patch.building_relationship_lines = lines;
+      patch.owner_company_id = synced.owner_company_id;
+      patch.management_company_id = synced.management_company_id;
+      patch.current_tenant_company_id = synced.current_tenant_company_id;
       break;
+    }
     default:
       return { error: `Field "${field}" cannot be edited inline` };
   }

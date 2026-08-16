@@ -1,6 +1,9 @@
-import { composePropertyFullAddresses, hasAddressParts } from "@/lib/composeAddress";
+import {
+  mergeLegacyCompanyIdsIntoBuildingRelationships,
+  syncLegacyCompanyIdsFromBuildingRelationships,
+} from "@/lib/buildingRelationships";
 import type { PropertyV1Patch } from "@/lib/repos/propertiesV1";
-import { normalizeBuildingRelationships } from "@/lib/buildingRelationships";
+import { composePropertyFullAddresses, hasAddressParts } from "@/lib/composeAddress";
 
 function s(v: FormDataEntryValue | null): string | null {
   const out = String(v ?? "").trim();
@@ -73,8 +76,22 @@ export function parsePropertyV1Form(formData: FormData): PropertyV1Patch {
     facilities_zh: s(formData.get("facilities_zh")),
     facilities_cn: s(formData.get("facilities_cn")),
     green_certification: s(formData.get("green_certification")),
-    building_relationship_lines: normalizeBuildingRelationships(formData.get("building_relationship_lines")),
+    building_relationship_lines: [],
   };
+
+  const relationshipLines = mergeLegacyCompanyIdsIntoBuildingRelationships(
+    formData.get("building_relationship_lines"),
+    {
+      owner_company_id: patch.owner_company_id,
+      management_company_id: patch.management_company_id,
+      current_tenant_company_id: patch.current_tenant_company_id,
+    },
+  );
+  const syncedCompanies = syncLegacyCompanyIdsFromBuildingRelationships(relationshipLines);
+  patch.building_relationship_lines = relationshipLines;
+  patch.owner_company_id = syncedCompanies.owner_company_id;
+  patch.management_company_id = syncedCompanies.management_company_id;
+  patch.current_tenant_company_id = syncedCompanies.current_tenant_company_id;
 
   const composed = composePropertyFullAddresses(patch);
   const hasParts = hasAddressParts({

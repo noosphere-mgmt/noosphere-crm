@@ -831,7 +831,7 @@ export async function listPremisesFlat(filters: PremisesFlatFilters = {}): Promi
        p.available_date::text AS available_date,
        COALESCE(p.currency, 'HKD') AS currency,
        c.company_name_en AS operator_name,
-       landlord.company_name_en AS landlord_name
+       COALESCE(NULLIF(TRIM(landlord.company_name_en), ''), owner.company_name_en) AS landlord_name
      ${flatJoin}
      ${where}
      ORDER BY p.last_verified_date DESC NULLS LAST, pr.bldg_name_en ASC NULLS LAST, p.floor ASC NULLS LAST, p.unit ASC NULLS LAST`,
@@ -909,7 +909,7 @@ export async function listPremisesFullFiltered(filters: PremisesFlatFilters = {}
        pr.bldg_name_en AS building_name_en,
        pr.district_en,
        c.company_name_en AS operator_name,
-       landlord.company_name_en AS landlord_name
+       COALESCE(NULLIF(TRIM(landlord.company_name_en), ''), owner.company_name_en) AS landlord_name
      ${flatJoin}
      ${where}
      ORDER BY p.last_verified_date DESC NULLS LAST, pr.bldg_name_en ASC NULLS LAST, p.floor ASC NULLS LAST, p.unit ASC NULLS LAST`,
@@ -986,7 +986,7 @@ export async function getPremisesListItemByRef(raw: string): Promise<PremisesLis
        pr.bldg_name_en AS building_name_en,
        pr.district_en,
        c.company_name_en AS operator_name,
-       landlord.company_name_en AS landlord_name
+       COALESCE(NULLIF(TRIM(landlord.company_name_en), ''), owner.company_name_en) AS landlord_name
      ${flatJoinOptionalBuilding}
      WHERE p.premises_id = $1 OR p.business_id = $1
      LIMIT 1`,

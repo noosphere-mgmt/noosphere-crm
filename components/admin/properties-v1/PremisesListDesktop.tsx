@@ -153,7 +153,7 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                 onSort={handleSort}
               />
               <PremisesSortableHeader
-                label="Operator / landlord"
+                label="Operator / Owner"
                 sortKey="operator"
                 activeKey={sortKey}
                 sortDir={sortDir}

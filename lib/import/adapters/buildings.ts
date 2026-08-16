@@ -1,6 +1,10 @@
 import { query } from "@/lib/db";
 import { allocateNextBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
 import { isPermanentBusinessId } from "@/lib/businessIds";
+import {
+  mergeLegacyCompanyIdsIntoBuildingRelationships,
+  syncLegacyCompanyIdsFromBuildingRelationships,
+} from "@/lib/buildingRelationships";
 import { allocatePropertyV1Id } from "@/lib/repos/propertiesV1";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord, withExportMatchIds } from "../adapterUtils";
 import { sqlExportCompanyId, sqlJoinV1Company } from "../lookupSql";
@@ -190,6 +194,18 @@ function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
   ] as const) {
     if (k in values) p[k] = values[k];
   }
+
+  // Keep Owner/Landlord in relationships when owner_company_id is supplied (and vice versa).
+  const lines = mergeLegacyCompanyIdsIntoBuildingRelationships(p.building_relationship_lines, {
+    owner_company_id: (p.owner_company_id as string | null | undefined) ?? null,
+    management_company_id: (p.management_company_id as string | null | undefined) ?? null,
+    current_tenant_company_id: null,
+  });
+  const synced = syncLegacyCompanyIdsFromBuildingRelationships(lines);
+  p.building_relationship_lines = lines;
+  if (synced.owner_company_id) p.owner_company_id = synced.owner_company_id;
+  if (synced.management_company_id) p.management_company_id = synced.management_company_id;
+
   return p;
 }
 

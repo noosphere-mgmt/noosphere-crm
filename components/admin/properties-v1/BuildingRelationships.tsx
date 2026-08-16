@@ -119,7 +119,7 @@ export function BuildingRelationshipsEditor({
       <button
         type="button"
         disabled={pending}
-        onClick={() => persist([...lines, { role: "Owner", company_id: "", remarks: "" }])}
+        onClick={() => persist([...lines, { role: "Owner/Landlord", company_id: "", remarks: "" }])}
         className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-800 disabled:opacity-50"
       >
         + Add relationship

@@ -58,14 +58,15 @@ function rolesFromFlags(flags: {
 }): string[] {
   const roles: string[] = [];
   if (flags.operator) roles.push("Operator");
-  if (flags.owner) roles.push("Owner");
-  if (flags.landlord) roles.push("Landlord");
+  if (flags.owner || flags.landlord) roles.push("Owner/Landlord");
   if (flags.management) roles.push("Building management");
   if (flags.tenant) roles.push("Tenant");
   if (flags.source) roles.push("Source");
   for (const role of flags.line_roles ?? []) {
     const trimmed = role.trim();
-    if (trimmed && !roles.includes(trimmed)) roles.push(trimmed);
+    const display =
+      trimmed === "Owner" || trimmed === "Landlord" ? "Owner/Landlord" : trimmed;
+    if (display && !roles.includes(display)) roles.push(display);
   }
   return roles;
 }

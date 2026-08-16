@@ -6,7 +6,11 @@ import {
   formatSqlParamDebug,
 } from "@/lib/propertyV1DbCoerce";
 import { allocateNextBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
-import { normalizeBuildingRelationships, type BuildingRelationshipLine } from "@/lib/buildingRelationships";
+import {
+  mergeLegacyCompanyIdsIntoBuildingRelationships,
+  normalizeBuildingRelationships,
+  type BuildingRelationshipLine,
+} from "@/lib/buildingRelationships";
 
 export type PropertyV1 = {
   property_id: string;
@@ -98,6 +102,16 @@ const select = `
   updated_at::text AS updated_at
 `;
 
+function decoratePropertyV1(row: PropertyV1): PropertyV1 {
+  return {
+    ...row,
+    building_relationship_lines: mergeLegacyCompanyIdsIntoBuildingRelationships(
+      row.building_relationship_lines,
+      row,
+    ),
+  };
+}
+
 export type PropertiesListFilters = {
   q?: string;
   category?: string;
@@ -187,13 +201,28 @@ export async function listPropertiesV1(filters: PropertiesListFilters = {}): Pro
   }
   if (filters.related_company) {
     const companyParam = `$${params.length + 1}`;
-    clauses.push(`EXISTS (
-      SELECT 1
-      FROM jsonb_array_elements(COALESCE(building_relationship_lines, '[]'::jsonb)) AS rel(line)
-      JOIN companies_v1 related_company
-        ON ${sqlJoinV1Company("related_company", "rel.line->>'company_id'")}
-      WHERE related_company.company_name_en ILIKE ${companyParam}
-         OR related_company.business_id ILIKE ${companyParam}
+    clauses.push(`(
+      EXISTS (
+        SELECT 1 FROM companies_v1 co
+        WHERE (
+          ${sqlJoinV1Company("co", "properties_v1.owner_company_id")}
+          OR ${sqlJoinV1Company("co", "properties_v1.management_company_id")}
+          OR ${sqlJoinV1Company("co", "properties_v1.operator_company_id")}
+          OR ${sqlJoinV1Company("co", "properties_v1.current_tenant_company_id")}
+        )
+          AND (
+            co.company_name_en ILIKE ${companyParam}
+            OR co.business_id ILIKE ${companyParam}
+          )
+      )
+      OR EXISTS (
+        SELECT 1
+        FROM jsonb_array_elements(COALESCE(building_relationship_lines, '[]'::jsonb)) AS rel(line)
+        JOIN companies_v1 related_company
+          ON ${sqlJoinV1Company("related_company", "rel.line->>'company_id'")}
+        WHERE related_company.company_name_en ILIKE ${companyParam}
+           OR related_company.business_id ILIKE ${companyParam}
+      )
     )`);
     params.push(`%${filters.related_company}%`);
   }
@@ -203,7 +232,7 @@ export async function listPropertiesV1(filters: PropertiesListFilters = {}): Pro
     `SELECT ${select} FROM properties_v1 ${where} ORDER BY bldg_name_en ASC NULLS LAST, property_id ASC`,
     params,
   );
-  return rows.map((row) => ({ ...row, building_relationship_lines: normalizeBuildingRelationships(row.building_relationship_lines) }));
+  return rows.map(decoratePropertyV1);
 }
 
 export async function countPropertiesV1(): Promise<number> {
@@ -218,7 +247,7 @@ export async function getPropertyV1(propertyId: string): Promise<PropertyV1 | nu
     `SELECT ${select} FROM properties_v1 WHERE property_id = $1 OR business_id = $1 LIMIT 1`,
     [ref],
   );
-  if (rows[0]) return { ...rows[0], building_relationship_lines: normalizeBuildingRelationships(rows[0].building_relationship_lines) };
+  if (rows[0]) return decoratePropertyV1(rows[0]);
 
   // Crosswalk fallback: B100001 → properties_v1.property_id
   const crosswalk = await query<{ primary_ref: string }>(
@@ -233,7 +262,7 @@ export async function getPropertyV1(propertyId: string): Promise<PropertyV1 | nu
     `SELECT ${select} FROM properties_v1 WHERE property_id = $1 LIMIT 1`,
     [primaryRef],
   );
-  return byPrimary[0] ? { ...byPrimary[0], building_relationship_lines: normalizeBuildingRelationships(byPrimary[0].building_relationship_lines) } : null;
+  return byPrimary[0] ? decoratePropertyV1(byPrimary[0]) : null;
 }
 
 export type PropertyV1Patch = Partial<

@@ -170,8 +170,7 @@ export const V1_DEPOSIT_MONTHS = [
 
 export const PREMISES_RELATIONSHIP_TYPES = [
   "Operator",
-  "Owner",
-  "Landlord",
+  "Owner/Landlord",
   "Bldg Mgmt",
   "Current Occupant",
   "Source Agent",
