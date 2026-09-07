@@ -28,6 +28,8 @@ BEGIN
 END $$;
 
 -- Preserve any amounts previously saved on the sidecar table (phase 78).
+-- The opportunity_commissions table is retained for history; application writes
+-- go only to opportunities.commission_income / related_costs after this migration.
 -- Only fill opportunity columns that are still empty so existing values are not overwritten.
 DO $$
 BEGIN

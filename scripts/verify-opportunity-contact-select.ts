@@ -204,6 +204,12 @@ async function testRepositoryVisibility(): Promise<void> {
     assert(!visibleIds.has(supersededId), "superseded contact does not appear in Opportunity options");
 
     await deleteContact(laterDeletedId);
+    const remaining = await query<{ is_active: boolean | string }>(
+      `SELECT is_active FROM contacts WHERE id = $1`,
+      [laterDeletedId],
+    );
+    assert(remaining.length === 1, "Contact UI delete must keep the row (soft-delete)");
+    assert(remaining[0]!.is_active === false || remaining[0]!.is_active === "f", "soft-delete sets is_active = FALSE");
     const afterDelete = await listVisibleContactOptions();
     assert(
       !afterDelete.some((row) => row.id === laterDeletedId),

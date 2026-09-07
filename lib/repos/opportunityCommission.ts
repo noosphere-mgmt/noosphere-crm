@@ -1,3 +1,10 @@
+/**
+ * Legacy phase-78 sidecar. Historical rows are preserved.
+ *
+ * Canonical Opportunity financials are `opportunities.commission_income`,
+ * `related_costs`, and generated `net_profit` (phase 80). Do not write this
+ * table from application code — phase 80 migrates existing totals once.
+ */
 import { query } from "@/lib/db";
 
 export type OpportunityCommission = {
@@ -14,6 +21,7 @@ export type OpportunityCommission = {
   payout_contact_name?: string | null;
 };
 
+/** Read-only compatibility accessor for historical sidecar rows / backfill audits. */
 export async function getOpportunityCommission(opportunityId: number): Promise<OpportunityCommission | null> {
   const rows = await query<OpportunityCommission>(
     `SELECT oc.opportunity_id, oc.fee_from_seller::text, oc.fee_from_buyer::text,
@@ -27,20 +35,4 @@ export async function getOpportunityCommission(opportunityId: number): Promise<O
     [opportunityId],
   );
   return rows[0] ?? null;
-}
-
-export async function upsertOpportunityCommission(opportunityId: number, input: Omit<OpportunityCommission, "opportunity_id">): Promise<void> {
-  await query(
-    `INSERT INTO opportunity_commissions
-      (opportunity_id, fee_from_seller, fee_from_buyer, fee_from_operator_landlord, fee_from_tenant,
-       payout_amount, payout_company_id, payout_contact_id, remarks)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-     ON CONFLICT (opportunity_id) DO UPDATE SET
-       fee_from_seller = EXCLUDED.fee_from_seller, fee_from_buyer = EXCLUDED.fee_from_buyer,
-       fee_from_operator_landlord = EXCLUDED.fee_from_operator_landlord, fee_from_tenant = EXCLUDED.fee_from_tenant,
-       payout_amount = EXCLUDED.payout_amount, payout_company_id = EXCLUDED.payout_company_id,
-       payout_contact_id = EXCLUDED.payout_contact_id, remarks = EXCLUDED.remarks, updated_at = NOW()`,
-    [opportunityId, input.fee_from_seller, input.fee_from_buyer, input.fee_from_operator_landlord,
-      input.fee_from_tenant, input.payout_amount, input.payout_company_id, input.payout_contact_id, input.remarks],
-  );
 }

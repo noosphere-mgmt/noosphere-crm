@@ -200,6 +200,19 @@ async function testPersistence(): Promise<void> {
     const commissionOnlyId = await createOpportunity(baseInput({ commission_income: 1500 }));
     created.push(commissionOnlyId);
     await assertReload(commissionOnlyId, { income: 1500, costs: null, profit: 1500 });
+    const sidecarTable = await query<{ exists: boolean }>(
+      `SELECT EXISTS (
+         SELECT 1 FROM information_schema.tables
+          WHERE table_schema = current_schema() AND table_name = 'opportunity_commissions'
+       ) AS exists`,
+    );
+    if (sidecarTable[0]?.exists) {
+      const sidecarAfterWrite = await query<{ n: string }>(
+        `SELECT COUNT(*)::text AS n FROM opportunity_commissions WHERE opportunity_id = $1`,
+        [commissionOnlyId],
+      );
+      assert.equal(Number.parseInt(sidecarAfterWrite[0]?.n ?? "1", 10), 0, "phase-80 writes must not insert sidecar rows");
+    }
     console.log("OK  save commission only");
 
     const costsOnlyId = await createOpportunity(baseInput({ related_costs: 275.25 }));
@@ -294,7 +307,7 @@ async function inspectExistingSchema(): Promise<void> {
   console.log(
     `Schema: opportunities financial columns = ${oppCols.map((c) => c.column_name).join(", ") || "(none)"}`,
   );
-  console.log(`Schema: opportunity_commissions table exists = ${sidecar[0]?.exists === true}`);
+  console.log(`Schema: opportunity_commissions table exists = ${sidecar[0]?.exists === true} (historical; not written)`);
 }
 
 async function main(): Promise<void> {

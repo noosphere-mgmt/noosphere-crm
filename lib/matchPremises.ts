@@ -1,4 +1,5 @@
 import { query } from "@/lib/db";
+import { leaseExpiryWithinMonths } from "@/lib/occupantLease";
 import { getOpportunity } from "@/lib/repos/opportunities";
 import {
   parseCategoryPreferenceList,
@@ -95,9 +96,40 @@ function resolveMoveInDate(opp: Opportunity): string | null {
 
 function isPremisesAvailable(row: PremisesCandidateRow): boolean {
   const offer = (row.offer_status ?? "").trim().toLowerCase();
+  if (offer === "leased" || offer === "sold" || offer === "withdrawn") return false;
   if (offer === "available") return true;
   const inv = (row.inventory_status ?? "").trim().toLowerCase();
   return inv.includes("lease") || inv.includes("sale") || inv.includes("rent");
+}
+
+function splitPreferenceTokens(value: string | null | undefined): string[] {
+  if (!value?.trim()) return [];
+  return value
+    .split(/[,;/|]/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+/** Map a stored preference token onto premises_v1.property_category. */
+function premisesCategoryForToken(token: string): string | null {
+  const key = token.trim().toLowerCase().replace(/[\s-]+/g, "_");
+  const mapped: Record<string, string> = {
+    office: "Office",
+    conventional_office: "Office",
+    serviced_office: "Serviced Office",
+    shared_office: "Shared Office",
+    shared_sublet: "Shared Office",
+    shared_sublet_office: "Shared Office",
+    retail: "Retail",
+    shop_retail: "Retail",
+    industrial: "Industrial",
+    industrial_unit: "Industrial",
+    residential: "Residential",
+    hotel: "Hotel",
+    investment: "Investment",
+    land: "Investment",
+  };
+  return mapped[key] ?? null;
 }
 
 function acceptedPremisesCategories(categoryPreferences: string[], subtypePreferences: string[]): string[] {
@@ -131,36 +163,93 @@ function acceptedPremisesCategories(categoryPreferences: string[], subtypePrefer
   return [...accepted];
 }
 
+/**
+ * Required-type taxonomy (commercial / residential / …) plus legacy premises
+ * categories still stored on some Opportunities (Office, Retail, …).
+ * Unrecognised tokens must not silently disable the hard filter.
+ */
+function resolveAcceptedPremisesCategories(
+  rawCategoryPreference: string | null | undefined,
+  rawSubtypePreference: string | null | undefined,
+): string[] {
+  const parsedPrimaries = parseCategoryPreferenceList(rawCategoryPreference);
+  const parsedSubtypes = [
+    ...parseSpaceFormPreferenceList(rawSubtypePreference),
+    ...splitPreferenceTokens(rawSubtypePreference)
+      .map((token) => token.trim().toLowerCase().replace(/[\s-]+/g, "_"))
+      .filter((token) =>
+        [
+          "conventional_office",
+          "serviced_office",
+          "shared_sublet",
+          "shared_sublet_office",
+          "shop_retail",
+        ].includes(token),
+      ),
+  ];
+  const fromTaxonomy = acceptedPremisesCategories(parsedPrimaries, parsedSubtypes);
+  if (fromTaxonomy.length > 0) return fromTaxonomy;
+
+  const fromLegacy = splitPreferenceTokens(rawCategoryPreference)
+    .map(premisesCategoryForToken)
+    .filter((value): value is string => Boolean(value));
+  return [...new Set(fromLegacy)];
+}
+
 function acceptedPremisesSpaceForms(preferences: string[]): string[] {
   const accepted = new Set<string>();
-  for (const value of preferences) {
-    if (value === "shop_retail" || value === "industrial_unit") accepted.add("Unit (s)");
-    else if (value === "whole_building") {
-      accepted.add("Enbloc");
-    } else if (value === "land") accepted.add("Land");
-    else if (["Unit (s)", "Floor (s)", "Enbloc", "Land"].includes(value)) accepted.add(value);
-    else if (["Unit", "Suite", "Room", "Shop", "Warehouse"].includes(value)) accepted.add("Unit (s)");
-    else if (["Floor", "Whole Floor"].includes(value)) accepted.add("Floor (s)");
-    else if (["En-bloc", "Building", "Portfolio"].includes(value)) accepted.add("Enbloc");
+  for (const raw of preferences) {
+    const value = raw.trim();
+    const key = value.toLowerCase().replace(/[\s-]+/g, "_");
+    if (key === "shop_retail" || key === "industrial_unit") accepted.add("Unit (s)");
+    else if (key === "whole_building") accepted.add("Enbloc");
+    else if (key === "land") accepted.add("Land");
+    else if (key === "unit_(s)" || value === "Unit (s)") accepted.add("Unit (s)");
+    else if (key === "floor_(s)" || value === "Floor (s)") accepted.add("Floor (s)");
+    else if (key === "enbloc" || value === "Enbloc") accepted.add("Enbloc");
+    else if (["unit", "suite", "room", "shop", "warehouse"].includes(key)) accepted.add("Unit (s)");
+    else if (["floor", "whole_floor"].includes(key)) accepted.add("Floor (s)");
+    else if (["en_bloc", "building", "portfolio"].includes(key)) accepted.add("Enbloc");
   }
   return [...accepted];
 }
 
+function resolveAcceptedSpaceForms(rawSubtypePreference: string | null | undefined): string[] {
+  const parsed = parseSpaceFormPreferenceList(rawSubtypePreference);
+  const fromTaxonomy = acceptedPremisesSpaceForms(parsed);
+  if (fromTaxonomy.length > 0) return fromTaxonomy;
+  return acceptedPremisesSpaceForms(splitPreferenceTokens(rawSubtypePreference));
+}
+
+function canonicalizeSpaceForm(value: string | null | undefined): string {
+  const trimmed = (value ?? "").trim();
+  if (!trimmed) return "";
+  const mapped = acceptedPremisesSpaceForms([trimmed]);
+  return mapped[0] ?? trimmed;
+}
+
+function canonicalizePremisesCategory(value: string | null | undefined): string {
+  const trimmed = (value ?? "").trim();
+  if (!trimmed) return "";
+  return premisesCategoryForToken(trimmed) ?? trimmed;
+}
+
 /** Hard filter: opportunity category / space-form preferences + sales-role listing intent. */
 export function passesPremisesHardFilter(opp: Opportunity, row: PremisesCandidateRow): boolean {
-  const categories = parseCategoryPreferenceList(opp.property_category_preference);
-  const spaceForms = parseSpaceFormPreferenceList(opp.property_type_preference);
-  const acceptedCategories = acceptedPremisesCategories(categories, spaceForms);
+  const acceptedCategories = resolveAcceptedPremisesCategories(
+    opp.property_category_preference,
+    opp.property_type_preference,
+  );
   if (acceptedCategories.length > 0) {
-    const category = (row.property_category ?? "").trim();
+    const category = canonicalizePremisesCategory(row.property_category);
     if (!category || !acceptedCategories.includes(category)) {
       return false;
     }
   }
 
-  const acceptedSpaceForms = acceptedPremisesSpaceForms(spaceForms);
+  const acceptedSpaceForms = resolveAcceptedSpaceForms(opp.property_type_preference);
   if (acceptedSpaceForms.length > 0) {
-    const form = (row.space_form ?? "").trim();
+    const form = canonicalizeSpaceForm(row.space_form);
     if (!form || !acceptedSpaceForms.includes(form)) {
       return false;
     }
@@ -262,17 +351,10 @@ export function scorePremisesMatch(opp: Opportunity, row: PremisesCandidateRow):
   if (isPremisesAvailable(row)) {
     score += 10;
     reasons.push("Premises is available");
-  } else if (row.occupant_lease_expiry) {
-    const expiry = row.occupant_lease_expiry.slice(0, 10);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const limit = new Date(today);
-    limit.setMonth(limit.getMonth() + 24);
-    const expiryDate = new Date(`${expiry}T00:00:00`);
-    if (!Number.isNaN(expiryDate.getTime()) && expiryDate >= today && expiryDate <= limit) {
-      score += 12;
-      reasons.push(`Upcoming vacancy (lease expires ${expiry})`);
-    }
+  } else if (leaseExpiryWithinMonths(row.occupant_lease_expiry, 24)) {
+    const expiry = (row.occupant_lease_expiry ?? "").slice(0, 10);
+    score += 12;
+    reasons.push(`Upcoming vacancy (lease expires ${expiry})`);
   }
 
   const category = row.property_category ?? "";

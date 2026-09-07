@@ -8,6 +8,7 @@ import {
   attentionRowTone,
 } from "@/components/admin/dashboard/dashboardUi";
 import { formatCount, formatDays, statusLabel } from "@/components/admin/dashboard/dashboardShared";
+import { formatOpportunityMoney } from "@/lib/opportunityFinancials";
 import type { DashboardViewData } from "@/components/admin/dashboard/DashboardV2";
 import {
   contactHref,
@@ -62,9 +63,13 @@ export function DashboardMobile({ data }: { data: DashboardViewData }) {
             <p className="text-[10px] text-sky-700">Active late stages</p>
           </Link>
           <Link href={opportunitiesHref({ status: "closed_won" })} className="rounded-xl border border-violet-100 bg-gradient-to-br from-violet-50 to-fuchsia-50 p-3">
-            <p className="text-[9px] font-bold uppercase tracking-wide text-violet-700">Win rate</p>
-            <p className="mt-1 text-2xl font-semibold text-violet-950">{winRate}%</p>
-            <p className="text-[10px] text-violet-700">{won} won · {lost} lost</p>
+            <p className="text-[9px] font-bold uppercase tracking-wide text-violet-700">Won revenue</p>
+            <p className="mt-1 text-xl font-semibold tabular-nums text-violet-950">
+              {formatOpportunityMoney(dashboard.won_financials.commission_income)}
+            </p>
+            <p className="text-[10px] text-violet-700">
+              {formatCount(won)} won · {winRate}% win rate · {formatOpportunityMoney(dashboard.won_financials.net_profit)} net
+            </p>
           </Link>
           <Link href={opportunitiesHref({ status: "open" })} className="rounded-xl border border-rose-100 bg-gradient-to-br from-amber-50 to-rose-50 p-3">
             <p className="text-[9px] font-bold uppercase tracking-wide text-rose-700">Attention</p>

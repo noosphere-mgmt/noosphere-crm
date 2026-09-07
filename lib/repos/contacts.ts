@@ -305,6 +305,7 @@ export async function updateContact(id: number, input: ContactInput): Promise<vo
 }
 
 export async function deleteContact(id: number): Promise<void> {
+  // Contact list / bulk delete actions call this. Soft-delete preserves Opportunity FKs.
   await query(`UPDATE contacts SET is_active = FALSE, updated_at = NOW() WHERE id = $1`, [id]);
 }
 

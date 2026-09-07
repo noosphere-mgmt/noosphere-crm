@@ -80,11 +80,12 @@ function baseOpportunity(overrides: Partial<Opportunity> = {}): Opportunity {
 }
 
 function testHardFilterCategory() {
-  const opp = baseOpportunity({ property_category_preference: "Office" });
-  assert.equal(passesPremisesHardFilter(opp, baseCandidate()), true);
+  const officeOpp = baseOpportunity({ property_category_preference: "Office" });
+  assert.equal(passesPremisesHardFilter(officeOpp, baseCandidate()), true);
   assert.equal(
-    passesPremisesHardFilter(opp, baseCandidate({ property_category: "Retail" })),
+    passesPremisesHardFilter(officeOpp, baseCandidate({ property_category: "Retail" })),
     false,
+    "legacy Office preference must exclude Retail premises",
   );
   assert.equal(
     passesPremisesHardFilter(
@@ -93,6 +94,28 @@ function testHardFilterCategory() {
     ),
     true,
   );
+
+  const officeSubtype = baseOpportunity({
+    property_category_preference: "commercial",
+    property_type_preference: "conventional_office",
+  });
+  assert.equal(passesPremisesHardFilter(officeSubtype, baseCandidate({ property_category: "Office" })), true);
+  assert.equal(
+    passesPremisesHardFilter(officeSubtype, baseCandidate({ property_category: "Retail" })),
+    false,
+    "commercial + conventional_office must exclude Retail",
+  );
+
+  const commercialAny = baseOpportunity({
+    property_category_preference: "commercial",
+    property_type_preference: null,
+  });
+  assert.equal(passesPremisesHardFilter(commercialAny, baseCandidate({ property_category: "Office" })), true);
+  assert.equal(passesPremisesHardFilter(commercialAny, baseCandidate({ property_category: "Retail" })), true);
+
+  const residential = baseOpportunity({ property_category_preference: "residential" });
+  assert.equal(passesPremisesHardFilter(residential, baseCandidate({ property_category: "Office" })), false);
+  assert.equal(passesPremisesHardFilter(residential, baseCandidate({ property_category: "Residential" })), true);
 }
 
 function testHardFilterSpaceForm() {
