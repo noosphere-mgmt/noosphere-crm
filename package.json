@@ -47,6 +47,7 @@
     "verify:opportunity-financials": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-opportunity-financials.ts",
     "verify:opportunity-contact-select": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-opportunity-contact-select.ts",
     "verify:occupant-lease": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-occupant-lease.ts",
+    "verify:contact-affiliation-primary": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-contact-affiliation-primary.ts",
     "db:backfill-premises-category": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/backfill-premises-category.ts"
   },
   "dependencies": {
