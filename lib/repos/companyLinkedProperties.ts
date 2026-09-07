@@ -1,5 +1,6 @@
 import { query } from "@/lib/db";
 import { buildingWorkspaceHref } from "@/lib/buildingWorkspaceNav";
+import { sqlJoinV1Company } from "@/lib/import/lookupSql";
 import { formatPremisesName } from "@/lib/premisesDisplay";
 import { premisesWorkspaceHref } from "@/lib/premisesWorkspaceNav";
 
@@ -13,6 +14,15 @@ export type CompanyLinkedPropertyRow = {
   building_href: string | null;
   roles: string[];
   href: string;
+  operator_name: string | null;
+  landlord_name: string | null;
+  occupant_name: string | null;
+  operator_id: string | null;
+  landlord_id: string | null;
+  occupant_id: string | null;
+  occupancy_status: string | null;
+  operating_model: string | null;
+  centre_status: string | null;
 };
 
 /** All known string refs that may appear on premises/buildings company FKs or relationship lines. */
@@ -95,6 +105,15 @@ export async function listCompanyLinkedProperties(
       is_tenant: boolean;
       is_source: boolean;
       line_roles: string[] | null;
+      operator_name: string | null;
+      landlord_name: string | null;
+      occupant_name: string | null;
+      operator_id: string | null;
+      landlord_id: string | null;
+      occupant_id: string | null;
+      occupancy_status: string | null;
+      operating_model: string | null;
+      centre_status: string | null;
     }>(
       `SELECT
          p.premises_id,
@@ -114,9 +133,27 @@ export async function listCompanyLinkedProperties(
            SELECT ARRAY_AGG(DISTINCT NULLIF(TRIM(line->>'relationship_type'), ''))
            FILTER (WHERE NULLIF(TRIM(line->>'company_id'), '') = ANY($1::text[]))
            FROM jsonb_array_elements(COALESCE(p.relationship_lines::jsonb, '[]'::jsonb)) AS line
-         ) AS line_roles
+         ) AS line_roles,
+         op_co.company_name_en AS operator_name,
+         COALESCE(NULLIF(TRIM(ll_co.company_name_en), ''), own_co.company_name_en) AS landlord_name,
+         occ_co.company_name_en AS occupant_name,
+         COALESCE(NULLIF(TRIM(op_co.business_id), ''), p.operator_company_id) AS operator_id,
+         COALESCE(
+           NULLIF(TRIM(ll_co.business_id), ''),
+           p.landlord_company_id,
+           NULLIF(TRIM(own_co.business_id), ''),
+           p.owner_company_id
+         ) AS landlord_id,
+         COALESCE(NULLIF(TRIM(occ_co.business_id), ''), p.current_tenant_company_id) AS occupant_id,
+         p.occupancy_status,
+         p.operating_model,
+         p.centre_status
        FROM premises_v1 p
        LEFT JOIN properties_v1 pr ON pr.property_id = p.property_id
+       LEFT JOIN companies_v1 op_co ON ${sqlJoinV1Company("op_co", "p.operator_company_id")}
+       LEFT JOIN companies_v1 ll_co ON ${sqlJoinV1Company("ll_co", "p.landlord_company_id")}
+       LEFT JOIN companies_v1 own_co ON ${sqlJoinV1Company("own_co", "p.owner_company_id")}
+       LEFT JOIN companies_v1 occ_co ON ${sqlJoinV1Company("occ_co", "p.current_tenant_company_id")}
        WHERE NULLIF(TRIM(p.operator_company_id), '') = ANY($1::text[])
           OR NULLIF(TRIM(p.owner_company_id), '') = ANY($1::text[])
           OR NULLIF(TRIM(p.landlord_company_id), '') = ANY($1::text[])
@@ -139,6 +176,12 @@ export async function listCompanyLinkedProperties(
       is_tenant: boolean;
       is_management: boolean;
       line_roles: string[] | null;
+      operator_name: string | null;
+      landlord_name: string | null;
+      occupant_name: string | null;
+      operator_id: string | null;
+      landlord_id: string | null;
+      occupant_id: string | null;
     }>(
       `SELECT
          pr.property_id,
@@ -152,8 +195,17 @@ export async function listCompanyLinkedProperties(
            SELECT ARRAY_AGG(DISTINCT NULLIF(TRIM(line->>'role'), ''))
            FILTER (WHERE NULLIF(TRIM(line->>'company_id'), '') = ANY($1::text[]))
            FROM jsonb_array_elements(COALESCE(pr.building_relationship_lines::jsonb, '[]'::jsonb)) AS line
-         ) AS line_roles
+         ) AS line_roles,
+         op_co.company_name_en AS operator_name,
+         own_co.company_name_en AS landlord_name,
+         occ_co.company_name_en AS occupant_name,
+         COALESCE(NULLIF(TRIM(op_co.business_id), ''), pr.operator_company_id) AS operator_id,
+         COALESCE(NULLIF(TRIM(own_co.business_id), ''), pr.owner_company_id) AS landlord_id,
+         COALESCE(NULLIF(TRIM(occ_co.business_id), ''), pr.current_tenant_company_id) AS occupant_id
        FROM properties_v1 pr
+       LEFT JOIN companies_v1 op_co ON ${sqlJoinV1Company("op_co", "pr.operator_company_id")}
+       LEFT JOIN companies_v1 own_co ON ${sqlJoinV1Company("own_co", "pr.owner_company_id")}
+       LEFT JOIN companies_v1 occ_co ON ${sqlJoinV1Company("occ_co", "pr.current_tenant_company_id")}
        WHERE NULLIF(TRIM(pr.operator_company_id), '') = ANY($1::text[])
           OR NULLIF(TRIM(pr.owner_company_id), '') = ANY($1::text[])
           OR NULLIF(TRIM(pr.current_tenant_company_id), '') = ANY($1::text[])
@@ -193,6 +245,15 @@ export async function listCompanyLinkedProperties(
         line_roles: row.line_roles,
       }),
       href: premisesWorkspaceHref(ref, "overview"),
+      operator_name: row.operator_name,
+      landlord_name: row.landlord_name,
+      occupant_name: row.occupant_name,
+      operator_id: row.operator_id,
+      landlord_id: row.landlord_id,
+      occupant_id: row.occupant_id,
+      occupancy_status: row.occupancy_status,
+      operating_model: row.operating_model,
+      centre_status: row.centre_status,
     };
   });
 
@@ -221,6 +282,15 @@ export async function listCompanyLinkedProperties(
           line_roles: row.line_roles,
         }),
         href: buildingWorkspaceHref(ref, "overview"),
+        operator_name: row.operator_name,
+        landlord_name: row.landlord_name,
+        occupant_name: row.occupant_name,
+        operator_id: row.operator_id,
+        landlord_id: row.landlord_id,
+        occupant_id: row.occupant_id,
+        occupancy_status: null,
+        operating_model: null,
+        centre_status: null,
       };
     });
 

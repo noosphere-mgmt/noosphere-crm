@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
+import { PremisesCentreStatusIcon } from "@/components/admin/properties-v1/PremisesCentreStatusIcon";
+import { PremisesRelatedCompaniesCell } from "@/components/admin/properties-v1/PremisesRelatedCompaniesCell";
 import { connectionsGlassClasses } from "@/lib/connectionsGlassTheme";
 import { premisesWorkspaceHref } from "@/lib/premisesWorkspaceNav";
 import type { CompanyLinkedPropertyRow } from "@/lib/repos/companyLinkedProperties";
@@ -30,15 +32,17 @@ export function CompanySupplyTab({
           </p>
         ) : (
           rows.map((row) => (
-            <Link
+            <div
               key={`mobile-${row.kind}-${row.id}`}
-              href={row.href}
-              className="block rounded-xl border border-l-4 border-[#D2E1E3] border-l-[#79A9AF] bg-[#F1F7F7] p-3 shadow-sm"
+              className="rounded-xl border border-l-4 border-[#D2E1E3] border-l-[#79A9AF] bg-[#F1F7F7] p-3 shadow-sm"
             >
               <div className="flex items-start justify-between gap-3">
-                <p className="min-w-0 break-words font-semibold text-[#356C73] underline-offset-2">
-                  {row.label}
-                </p>
+                <div className="flex min-w-0 items-start gap-2">
+                  {row.kind === "premise" ? <PremisesCentreStatusIcon status={row.centre_status} /> : null}
+                  <Link href={row.href} className="min-w-0 break-words font-semibold text-[#356C73] underline-offset-2 hover:underline">
+                    {row.label}
+                  </Link>
+                </div>
                 <span className="shrink-0 rounded-full bg-white/80 px-2 py-1 text-[11px] font-semibold text-[#356C73]">
                   {row.kind === "premise" ? "Premise" : "Building"}
                 </span>
@@ -47,9 +51,19 @@ export function CompanySupplyTab({
                 <p className="mt-1 text-xs text-slate-600">{row.building_name}</p>
               ) : null}
               <p className="mt-1 text-xs text-slate-500">
-                {row.roles.length > 0 ? row.roles.join(", ") : "Relationship not specified"}
+                {row.roles.length > 0 ? `This company: ${row.roles.join(", ")}` : "Relationship not specified"}
               </p>
-            </Link>
+              <div className="mt-2">
+                <PremisesRelatedCompaniesCell
+                  operatorName={row.operator_name}
+                  landlordName={row.landlord_name}
+                  occupantName={row.occupant_name}
+                  operatorId={row.operator_id}
+                  landlordId={row.landlord_id}
+                  occupantId={row.occupant_id}
+                />
+              </div>
+            </div>
           ))
         )}
       </div>
@@ -60,7 +74,7 @@ export function CompanySupplyTab({
               <th className="px-4 py-2 font-medium">Property</th>
               <th className="px-4 py-2 font-medium">Type</th>
               <th className="px-4 py-2 font-medium">Building</th>
-              <th className="px-4 py-2 font-medium">Link role</th>
+              <th className="px-4 py-2 font-medium">Related Companies</th>
               <th className="px-4 py-2 font-medium" />
             </tr>
           </thead>
@@ -75,13 +89,21 @@ export function CompanySupplyTab({
               rows.map((row) => (
                 <tr key={`${row.kind}-${row.id}`} className="border-t border-slate-100 hover:bg-slate-50/80">
                   <td className="px-4 py-2">
-                    <Link
-                      href={row.href}
-                      className="font-medium text-sky-800 underline-offset-2 hover:underline"
-                    >
-                      {row.label}
-                    </Link>
-                    <RecordBusinessId id={row.business_id ?? row.id} className="mt-0.5 block" />
+                    <div className="flex items-start gap-2">
+                      {row.kind === "premise" ? <PremisesCentreStatusIcon status={row.centre_status} /> : null}
+                      <div className="min-w-0">
+                        <Link
+                          href={row.href}
+                          className="font-medium text-sky-800 underline-offset-2 hover:underline"
+                        >
+                          {row.label}
+                        </Link>
+                        <RecordBusinessId id={row.business_id ?? row.id} className="mt-0.5 block" />
+                        {row.roles.length > 0 ? (
+                          <p className="mt-0.5 text-[11px] text-slate-500">{row.roles.join(", ")}</p>
+                        ) : null}
+                      </div>
+                    </div>
                   </td>
                   <td className="px-4 py-2 text-slate-700">
                     {row.kind === "premise" ? "Premise" : "Building"}
@@ -107,7 +129,14 @@ export function CompanySupplyTab({
                     )}
                   </td>
                   <td className="px-4 py-2 text-slate-700">
-                    {row.roles.length > 0 ? row.roles.join(", ") : "—"}
+                    <PremisesRelatedCompaniesCell
+                      operatorName={row.operator_name}
+                      landlordName={row.landlord_name}
+                      occupantName={row.occupant_name}
+                      operatorId={row.operator_id}
+                      landlordId={row.landlord_id}
+                      occupantId={row.occupant_id}
+                    />
                   </td>
                   <td className="px-4 py-2 text-right">
                     <div className="flex flex-wrap items-center justify-end gap-3">

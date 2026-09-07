@@ -17,7 +17,7 @@ import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import { companyFullPageHref, contactFullPageHref } from "@/lib/crmDetailNav";
 import { OPPORTUNITY_PARTY_ROLES } from "@/lib/opportunityValues";
 import { partyRoleLabel } from "@/lib/opportunityPartiesDisplay";
-import { toLegacyCompanySelectOptions, toLegacyContactSelectOptions, resolveCompanySelectValue, resolveContactSelectValue } from "@/lib/crmSelectOptions";
+import { toLegacyCompanySelectOptions, toLegacyContactSelectOptions, resolveCompanySelectValue, resolveContactSelectValue, opportunityPrimaryContactLabel } from "@/lib/crmSelectOptions";
 import type { CompanyOption } from "@/lib/repos/companies";
 import type { OpportunityDetailData } from "@/lib/repos/opportunityDetail";
 import type { OpportunityParty } from "@/lib/types/entities";
@@ -197,7 +197,7 @@ export function OpportunityPartiesTab({ data }: { data: OpportunityDetailData })
                 )}
                 className="underline-offset-2 hover:underline"
               >
-                {opportunity.primary_contact_name}
+                {opportunityPrimaryContactLabel(opportunity) || opportunity.primary_contact_name}
               </AdminEntityLink>
             ) : (
               opportunity.client_name

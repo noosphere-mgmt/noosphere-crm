@@ -10,6 +10,7 @@ import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { AdminEntityLink } from "@/components/admin/AdminEntityLink";
 import { adminReturnToLabel } from "@/lib/adminReturnTo";
 import { companyFullPageHref, contactFullPageHref } from "@/lib/crmDetailNav";
+import { opportunityPrimaryContactLabel } from "@/lib/crmSelectOptions";
 import { opportunityWorkspaceHref } from "@/lib/opportunityWorkspaceNav";
 import type { OpportunityDetailData } from "@/lib/repos/opportunityDetail";
 import type { OpportunityWorkspaceTabId } from "@/lib/opportunityDetailTab";
@@ -97,7 +98,7 @@ export function OpportunityWorkspaceHeader({
               className="underline-offset-2 hover:underline"
               fallback="No contact"
             >
-              {opportunity.primary_contact_name?.trim()}
+              {opportunityPrimaryContactLabel(opportunity) || opportunity.primary_contact_name?.trim()}
             </AdminEntityLink>
           </p>
         </div>

@@ -18,6 +18,7 @@ import {
   V1_LISTING_STATUSES,
   V1_VIEW_TYPES,
 } from "@/lib/v1ListValues";
+import { LEASE_EXPIRY_WITHIN_MONTHS } from "@/lib/occupantLease";
 import { BUILDING_TITLES } from "@/lib/lookups";
 
 export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
@@ -50,7 +51,7 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
       onChange={(e) => setSearch(e.target.value)}
       onFocus={onSearchFocus}
       onBlur={onSearchBlur}
-      placeholder="Search — names, address, floor/unit, operator, building owner/landlord…"
+      placeholder="Search — names, address, floor/unit, operator, owner/landlord, occupant…"
       aria-label="Search buildings and premises"
       autoComplete="off"
       className={theme.searchInput}
@@ -59,7 +60,7 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
 
   return (
     <div
-      className={`mb-3 rounded-lg border border-slate-200 bg-white text-sm ${isPending ? "opacity-70" : ""}`}
+      className={`mb-3 rounded-lg border border-[#BFDBFE]/80 bg-white text-sm ${isPending ? "opacity-70" : ""}`}
     >
       {!props.hideLocationSearch ? (
         <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2">
@@ -207,6 +208,20 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
           {PREMISES_CENTRE_STATUSES.map((t) => (
             <option key={t} value={t}>
               {t}
+            </option>
+          ))}
+        </select>
+
+        <select
+          aria-label="Lease expiry"
+          value={filters.lease_expiry_within_months ?? ""}
+          onChange={(e) => patch({ lease_expiry_within_months: e.target.value || undefined })}
+          className={theme.searchSelect}
+        >
+          <option value="">Lease expiry</option>
+          {LEASE_EXPIRY_WITHIN_MONTHS.map((months) => (
+            <option key={months} value={months}>
+              Expiry within {months} months
             </option>
           ))}
         </select>

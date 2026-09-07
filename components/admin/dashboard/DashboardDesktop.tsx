@@ -8,6 +8,7 @@ import {
   opportunitiesHref,
   referrerPerformanceHref,
 } from "@/lib/dashboardLinks";
+import { formatOpportunityMoney } from "@/lib/opportunityFinancials";
 import {
   countDealsByPipelineStage,
   DASHBOARD_PIPELINE_STAGES,
@@ -171,9 +172,13 @@ export function DashboardDesktop({ data }: { data: DashboardViewData }) {
               <span className="mt-1 text-[11px] text-sky-700">Negotiating opportunities</span>
             </Link>
             <Link href={opportunitiesHref({ status: "closed_won" })} className="flex min-h-28 flex-col justify-between rounded-xl border border-violet-100 bg-gradient-to-br from-violet-50 to-fuchsia-50 p-3 transition hover:shadow-md sm:p-4">
-              <span className="text-[10px] font-bold uppercase tracking-wide text-violet-700">Win rate</span>
-              <strong className="mt-2 text-3xl font-semibold tabular-nums text-violet-950">{winRate}%</strong>
-              <span className="mt-1 text-[11px] text-violet-700">{formatCount(wonCount)} won · {formatCount(lostCount)} lost</span>
+              <span className="text-[10px] font-bold uppercase tracking-wide text-violet-700">Won revenue</span>
+              <strong className="mt-2 text-2xl font-semibold tabular-nums text-violet-950">
+                {formatOpportunityMoney(dashboard.won_financials.commission_income)}
+              </strong>
+              <span className="mt-1 text-[11px] text-violet-700">
+                {formatCount(wonCount)} won · {winRate}% win rate · {formatOpportunityMoney(dashboard.won_financials.net_profit)} net
+              </span>
             </Link>
             <Link href={opportunitiesHref({ status: "open" })} className="flex min-h-28 flex-col justify-between rounded-xl border border-amber-100 bg-gradient-to-br from-amber-50 to-rose-50 p-3 transition hover:shadow-md sm:p-4">
               <span className="text-[10px] font-bold uppercase tracking-wide text-rose-700">Attention needed</span>

@@ -13,6 +13,11 @@ import { opportunityStatusChip } from "@/lib/opportunityStatusTheme";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import type { Opportunity } from "@/lib/types/entities";
 import { useSearchParams } from "next/navigation";
+import {
+  formatOpportunityMoney,
+  isRealisedWonRevenue,
+  opportunityFinancials,
+} from "@/lib/opportunityFinancials";
 
 function formatDateLabel(value: string | null | undefined): string {
   if (!value) return "—";
@@ -50,7 +55,7 @@ export function OpportunitiesListDesktop({
   const theme = moduleAccentClasses("opportunities");
   const searchParams = useSearchParams();
   const listReturnTo = buildOpportunitiesReturnTo(searchParams);
-  const colCount = 8;
+  const colCount = 9;
 
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
@@ -71,6 +76,7 @@ export function OpportunitiesListDesktop({
             <SortableTableHeader label="Contact" sortKey="contact" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <SortableTableHeader label="Expected Close · Chance" sortKey="expected_close" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <SortableTableHeader label="Status" sortKey="status" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+            <th className="px-3 py-1.5 align-top font-medium">Commission / Profit</th>
             <SortableTableHeader label="Updated" sortKey="updated" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <th className="w-24 px-3 py-1.5 align-top font-medium">Actions</th>
           </tr>
@@ -137,6 +143,20 @@ export function OpportunitiesListDesktop({
                 </td>
                 <td className="px-3 py-1.5">
                   <span {...opportunityStatusChip(row.status)}>{OPPORTUNITY_STATUS_LABELS[row.status]}</span>
+                </td>
+                <td className="px-3 py-1.5 text-slate-700">
+                  {(() => {
+                    const financials = opportunityFinancials(row);
+                    return (
+                      <>
+                        <p className="tabular-nums">{formatOpportunityMoney(financials.commission_income)}</p>
+                        <p className="mt-0.5 text-[11px] text-slate-500">
+                          {isRealisedWonRevenue(row.status) ? "Won" : "Est."} ·{" "}
+                          {formatOpportunityMoney(financials.net_profit)}
+                        </p>
+                      </>
+                    );
+                  })()}
                 </td>
                 <td className="px-3 py-1.5 text-slate-700">{formatDateLabel(row.updated_at)}</td>
                 <td className="px-3 py-1.5">

@@ -11,15 +11,37 @@ function formatUnitSegment(unit: string): string {
   return `#${trimmed}`;
 }
 
-/** Operator and/or landlord for list columns — one cell, both when distinct. */
-export function formatPremisesOperatorLandlord(
-  operatorName: string | null | undefined,
-  landlordName: string | null | undefined,
-): string {
-  const operator = (operatorName ?? "").trim();
-  const landlord = (landlordName ?? "").trim();
-  if (operator && landlord && operator !== landlord) return `${operator} / ${landlord}`;
-  return operator || landlord || "Not assigned";
+export type PremisesRelatedCompanies = {
+  operator: string | null;
+  landlord: string | null;
+  occupant: string | null;
+};
+
+function trimName(value: string | null | undefined): string | null {
+  const trimmed = (value ?? "").trim();
+  return trimmed || null;
+}
+
+export function premisesRelatedCompanies(row: {
+  operator_name?: string | null;
+  landlord_name?: string | null;
+  occupant_name?: string | null;
+}): PremisesRelatedCompanies {
+  return {
+    operator: trimName(row.operator_name),
+    landlord: trimName(row.landlord_name),
+    occupant: trimName(row.occupant_name),
+  };
+}
+
+/** Search/sort text for the Related Companies column. */
+export function formatPremisesRelatedCompaniesSearchText(row: {
+  operator_name?: string | null;
+  landlord_name?: string | null;
+  occupant_name?: string | null;
+}): string {
+  const related = premisesRelatedCompanies(row);
+  return [related.operator, related.landlord, related.occupant].filter(Boolean).join(" ");
 }
 
 /** Floor + unit only — for in-property premises tables (no building name). */

@@ -71,6 +71,9 @@ export type PremisesV1 = {
   owner_company_id: string | null;
   landlord_company_id: string | null;
   current_tenant_company_id: string | null;
+  occupant_lease_commencement: string | null;
+  occupant_lease_expiry: string | null;
+  occupant_lease_term: string | null;
   operator_company_id: string | null;
   source_company_id: string | null;
   source_contact_id: string | null;
@@ -140,6 +143,9 @@ const select = `
   government_rates::text AS government_rates,
   remarks,
   owner_company_id, landlord_company_id, current_tenant_company_id, operator_company_id,
+  occupant_lease_commencement::text AS occupant_lease_commencement,
+  occupant_lease_expiry::text AS occupant_lease_expiry,
+  occupant_lease_term,
   source_company_id, source_contact_id, source_contact_role,
   offer_type, offer_status,
   capacity_pax,
@@ -368,6 +374,9 @@ export function emptyPremisesV1(propertyId: string): PremisesV1 {
     owner_company_id: null,
     landlord_company_id: null,
     current_tenant_company_id: null,
+    occupant_lease_commencement: null,
+    occupant_lease_expiry: null,
+    occupant_lease_term: null,
     operator_company_id: null,
     source_company_id: null,
     source_contact_id: null,
@@ -542,6 +551,8 @@ export type PremisesFlatFilters = {
   package_offers?: string;
   /** Max monthly rent for serviced / shared office */
   monthly_rent_max?: string;
+  /** Occupant lease expiry within this many months from today */
+  lease_expiry_within_months?: string;
 };
 
 export type PremisesFlatRow = {
@@ -565,6 +576,7 @@ export type PremisesFlatRow = {
   currency: string | null;
   operator_name: string | null;
   landlord_name: string | null;
+  occupant_name: string | null;
 };
 
 export async function deletePremisesV1(premisesIds: string[]): Promise<void> {
@@ -592,6 +604,7 @@ export type PremisesListItem = PremisesV1 & {
   district_en: string | null;
   operator_name: string | null;
   landlord_name: string | null;
+  occupant_name: string | null;
 };
 
 const flatJoin = `
@@ -600,6 +613,7 @@ const flatJoin = `
   LEFT JOIN companies_v1 c ON ${sqlJoinV1Company("c", "p.operator_company_id")}
   LEFT JOIN companies_v1 landlord ON ${sqlJoinV1Company("landlord", "p.landlord_company_id")}
   LEFT JOIN companies_v1 owner ON ${sqlJoinV1Company("owner", "p.owner_company_id")}
+  LEFT JOIN companies_v1 occupant ON ${sqlJoinV1Company("occupant", "p.current_tenant_company_id")}
   LEFT JOIN companies_v1 bldg_owner ON ${sqlJoinV1Company("bldg_owner", "pr.owner_company_id")}`;
 
 const flatJoinOptionalBuilding = `
@@ -608,6 +622,7 @@ const flatJoinOptionalBuilding = `
   LEFT JOIN companies_v1 c ON ${sqlJoinV1Company("c", "p.operator_company_id")}
   LEFT JOIN companies_v1 landlord ON ${sqlJoinV1Company("landlord", "p.landlord_company_id")}
   LEFT JOIN companies_v1 owner ON ${sqlJoinV1Company("owner", "p.owner_company_id")}
+  LEFT JOIN companies_v1 occupant ON ${sqlJoinV1Company("occupant", "p.current_tenant_company_id")}
   LEFT JOIN companies_v1 bldg_owner ON ${sqlJoinV1Company("bldg_owner", "pr.owner_company_id")}`;
 
 function premisesFlatWhere(filters: PremisesFlatFilters): { where: string; params: unknown[] } {
@@ -680,6 +695,17 @@ function premisesFlatWhere(filters: PremisesFlatFilters): { where: string; param
     clauses.push(`p.centre_status = $${i++}`);
     params.push(filters.centre_status);
   }
+  if (filters.lease_expiry_within_months) {
+    const months = Number.parseInt(filters.lease_expiry_within_months, 10);
+    if (Number.isFinite(months) && months > 0) {
+      clauses.push(
+        `p.occupant_lease_expiry IS NOT NULL
+         AND p.occupant_lease_expiry >= CURRENT_DATE
+         AND p.occupant_lease_expiry <= CURRENT_DATE + ($${i++}::text || ' months')::interval`,
+      );
+      params.push(String(months));
+    }
+  }
   if (filters.operator) {
     clauses.push(`(
       c.company_name_en ILIKE $${i}
@@ -691,6 +717,9 @@ function premisesFlatWhere(filters: PremisesFlatFilters): { where: string; param
       OR owner.company_name_en ILIKE $${i}
       OR owner.company_name_zh ILIKE $${i}
       OR owner.business_id ILIKE $${i}
+      OR occupant.company_name_en ILIKE $${i}
+      OR occupant.company_name_zh ILIKE $${i}
+      OR occupant.business_id ILIKE $${i}
       OR bldg_owner.company_name_en ILIKE $${i}
       OR bldg_owner.company_name_zh ILIKE $${i}
       OR bldg_owner.business_id ILIKE $${i}
@@ -811,6 +840,9 @@ function premisesFlatWhere(filters: PremisesFlatFilters): { where: string; param
       OR owner.company_name_en ILIKE $${i}
       OR owner.company_name_zh ILIKE $${i}
       OR owner.business_id ILIKE $${i}
+      OR occupant.company_name_en ILIKE $${i}
+      OR occupant.company_name_zh ILIKE $${i}
+      OR occupant.business_id ILIKE $${i}
       OR bldg_owner.company_name_en ILIKE $${i}
       OR bldg_owner.company_name_zh ILIKE $${i}
       OR bldg_owner.business_id ILIKE $${i}
@@ -881,7 +913,8 @@ export async function listPremisesFlat(filters: PremisesFlatFilters = {}): Promi
        p.available_date::text AS available_date,
        COALESCE(p.currency, 'HKD') AS currency,
        c.company_name_en AS operator_name,
-       COALESCE(NULLIF(TRIM(landlord.company_name_en), ''), owner.company_name_en) AS landlord_name
+       COALESCE(NULLIF(TRIM(landlord.company_name_en), ''), owner.company_name_en) AS landlord_name,
+       occupant.company_name_en AS occupant_name
      ${flatJoin}
      ${where}
      ORDER BY p.last_verified_date DESC NULLS LAST, pr.bldg_name_en ASC NULLS LAST, p.floor ASC NULLS LAST, p.unit ASC NULLS LAST`,
@@ -920,6 +953,9 @@ export async function listPremisesFullFiltered(filters: PremisesFlatFilters = {}
        p.government_rates::text AS government_rates,
        p.remarks,
        p.owner_company_id, p.landlord_company_id, p.current_tenant_company_id, p.operator_company_id,
+       p.occupant_lease_commencement::text AS occupant_lease_commencement,
+       p.occupant_lease_expiry::text AS occupant_lease_expiry,
+       p.occupant_lease_term,
        p.source_company_id, p.source_contact_id, p.source_contact_role,
        p.offer_type, p.offer_status,
        p.capacity_pax,
@@ -959,7 +995,8 @@ export async function listPremisesFullFiltered(filters: PremisesFlatFilters = {}
        pr.bldg_name_en AS building_name_en,
        pr.district_en,
        c.company_name_en AS operator_name,
-       COALESCE(NULLIF(TRIM(landlord.company_name_en), ''), owner.company_name_en) AS landlord_name
+       COALESCE(NULLIF(TRIM(landlord.company_name_en), ''), owner.company_name_en) AS landlord_name,
+       occupant.company_name_en AS occupant_name
      ${flatJoin}
      ${where}
      ORDER BY p.last_verified_date DESC NULLS LAST, pr.bldg_name_en ASC NULLS LAST, p.floor ASC NULLS LAST, p.unit ASC NULLS LAST`,
@@ -997,6 +1034,9 @@ export async function getPremisesListItemByRef(raw: string): Promise<PremisesLis
        p.government_rates::text AS government_rates,
        p.remarks,
        p.owner_company_id, p.landlord_company_id, p.current_tenant_company_id, p.operator_company_id,
+       p.occupant_lease_commencement::text AS occupant_lease_commencement,
+       p.occupant_lease_expiry::text AS occupant_lease_expiry,
+       p.occupant_lease_term,
        p.source_company_id, p.source_contact_id, p.source_contact_role,
        p.offer_type, p.offer_status,
        p.capacity_pax,
@@ -1036,7 +1076,8 @@ export async function getPremisesListItemByRef(raw: string): Promise<PremisesLis
        pr.bldg_name_en AS building_name_en,
        pr.district_en,
        c.company_name_en AS operator_name,
-       COALESCE(NULLIF(TRIM(landlord.company_name_en), ''), owner.company_name_en) AS landlord_name
+       COALESCE(NULLIF(TRIM(landlord.company_name_en), ''), owner.company_name_en) AS landlord_name,
+       occupant.company_name_en AS occupant_name
      ${flatJoinOptionalBuilding}
      WHERE p.premises_id = $1 OR p.business_id = $1
      LIMIT 1`,

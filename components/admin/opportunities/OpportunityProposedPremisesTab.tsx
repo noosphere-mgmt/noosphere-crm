@@ -7,6 +7,7 @@ import { createProposalFromShortlistAndRedirectAction } from "@/app/admin/opport
 import { IconTrash } from "@/components/admin/ModuleActionIcons";
 import { moduleActionButtonClass } from "@/components/admin/ModuleActionBar";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
+import { OpportunityMatchBoard } from "@/components/admin/opportunities/OpportunityMatchBoard";
 import { PremisesSelectorModal } from "@/components/admin/opportunities/PremisesSelectorModal";
 import { ProposedPremisesLinePanel } from "@/components/admin/opportunities/ProposedPremisesLinePanel";
 import { ProposedPremisesListRow } from "@/components/admin/opportunities/ProposedPremisesListRow";
@@ -37,6 +38,7 @@ export function OpportunityProposedPremisesTab({
   const theme = moduleAccentClasses("opportunities");
   const { opportunity, proposedPremises } = data;
   const [selectorOpen, setSelectorOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
   const [selectedLineId, setSelectedLineId] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [compareOpen, setCompareOpen] = useState(false);
@@ -89,6 +91,13 @@ export function OpportunityProposedPremisesTab({
         <button type="button" onClick={() => setSelectorOpen(true)} className={theme.primaryButton}>
           + Add Premises
         </button>
+        <button
+          type="button"
+          onClick={() => setAiOpen((open) => !open)}
+          className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-900 hover:bg-emerald-100"
+        >
+          {aiOpen ? "Hide AI shortlist" : "Noosphere AI shortlist"}
+        </button>
         {proposalsEnabled ? (
           <button
             type="button"
@@ -117,6 +126,15 @@ export function OpportunityProposedPremisesTab({
           </button>
         ) : null}
       </div>
+
+      {aiOpen ? (
+        <section className="space-y-2">
+          <p className="text-sm text-slate-600">
+            Opportunity is demand; premises are supply. Noosphere AI ranks suitable premises against this brief.
+          </p>
+          <OpportunityMatchBoard opportunityId={opportunity.id} excludeIds={existingPremisesIds} />
+        </section>
+      ) : null}
 
       {compareOpen && selectedRows.length >= 2 ? (
         <section className="overflow-hidden rounded-xl border border-sky-200 bg-white">
@@ -157,7 +175,7 @@ export function OpportunityProposedPremisesTab({
       <div className="space-y-3 md:hidden">
         {proposedPremises.length === 0 ? (
           <div className="rounded-xl border border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-500">
-            No proposed premises yet. Use + Add Premises to select manually.
+            No proposed premises yet. Use Noosphere AI shortlist or + Add Premises.
           </div>
         ) : (
           proposedPremises.map((row) => {
@@ -254,7 +272,7 @@ export function OpportunityProposedPremisesTab({
             {proposedPremises.length === 0 ? (
               <tr>
                 <td colSpan={9} className="px-4 py-10 text-center text-slate-500">
-                  No proposed premises yet. Use + Add Premises to select manually.
+                  No proposed premises yet. Use Noosphere AI shortlist or + Add Premises.
                 </td>
               </tr>
             ) : (

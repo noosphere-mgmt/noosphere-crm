@@ -33,6 +33,7 @@ function baseCandidate(overrides: Partial<PremisesCandidateRow> = {}): PremisesC
     available_date: "2026-06-01",
     inventory_status: "For Lease",
     offer_status: "Available",
+    occupant_lease_expiry: null,
     ...overrides,
   };
 }
@@ -70,6 +71,8 @@ function baseOpportunity(overrides: Partial<Opportunity> = {}): Opportunity {
     next_action_date: null,
     requirement_summary: null,
     remarks: null,
+    commission_income: null,
+    related_costs: null,
     created_at: "",
     updated_at: "",
     ...overrides,

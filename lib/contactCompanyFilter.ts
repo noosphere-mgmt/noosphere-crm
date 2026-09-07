@@ -1,4 +1,6 @@
 import { isPermanentBusinessId } from "@/lib/businessIds";
+import { isSelectableContact } from "@/lib/contactVisibility";
+import { compareContactDisplayNames, type LegacyContactSelectOption } from "@/lib/crmSelectOptions";
 import type { ContactOption } from "@/lib/repos/contacts";
 
 export function parseCompanyId(value: number | string | null | undefined): number | null {
@@ -9,6 +11,39 @@ export function parseCompanyId(value: number | string | null | undefined): numbe
 
 function contactHasNoCompany(contact: ContactOption): boolean {
   return contact.company_id == null && !String(contact.company_ref ?? "").trim();
+}
+
+export function compareContactsForSelect(a: ContactOption, b: ContactOption): number {
+  const byName = compareContactDisplayNames(a.contact_name ?? "", b.contact_name ?? "");
+  if (byName !== 0) return byName;
+  const idA = a.business_id?.trim() || `id:${a.id}`;
+  const idB = b.business_id?.trim() || `id:${b.id}`;
+  const byId = idA.localeCompare(idB, undefined, { numeric: true, sensitivity: "base" });
+  if (byId !== 0) return byId;
+  return a.id - b.id;
+}
+
+export function sortContactsAlphabetically(contacts: ContactOption[]): ContactOption[] {
+  return [...contacts].sort(compareContactsForSelect);
+}
+
+export function contactMatchesSelectSearch(
+  contact: ContactOption,
+  query: string,
+  option?: Pick<LegacyContactSelectOption, "label" | "value" | "businessId">,
+): boolean {
+  const q = query.trim().toLocaleLowerCase();
+  if (!q) return true;
+  const haystack = [
+    contact.contact_name,
+    contact.chinese_name,
+    contact.business_id,
+    contact.v1_contact_id,
+    option?.label,
+    option?.value,
+    option?.businessId,
+  ];
+  return haystack.some((part) => part != null && String(part).toLocaleLowerCase().includes(q));
 }
 
 /**
@@ -22,7 +57,7 @@ export function contactsForCompany(
   companies?: { id: number; business_id?: string | null; v1_company_id?: string | null }[],
 ): ContactOption[] {
   const ref = String(companyRef ?? "").trim();
-  if (!ref) return contacts;
+  if (!ref) return sortContactsAlphabetically(contacts);
 
   let selectedCompany: { id: number; business_id?: string | null; v1_company_id?: string | null } | undefined;
   if (isPermanentBusinessId("company", ref)) {
@@ -33,7 +68,7 @@ export function contactsForCompany(
     if (!selectedCompany && legacyCompanyId != null) selectedCompany = { id: legacyCompanyId };
   }
 
-  if (!selectedCompany) return contacts;
+  if (!selectedCompany) return sortContactsAlphabetically(contacts);
 
   const companyRefs = new Set(
     [String(selectedCompany.id), selectedCompany.business_id, selectedCompany.v1_company_id]
@@ -41,9 +76,26 @@ export function contactsForCompany(
       .filter((value): value is string => Boolean(value)),
   );
 
-  return contacts.filter((contact) => {
+  const matched = contacts.filter((contact) => {
     if (contactHasNoCompany(contact)) return true;
     const refs = [contact.company_ref, contact.company_id != null ? String(contact.company_id) : null];
     return refs.some((value) => value != null && companyRefs.has(value.trim()));
   });
+
+  const companyContacts: ContactOption[] = [];
+  const unaffiliated: ContactOption[] = [];
+  for (const contact of matched) {
+    if (contactHasNoCompany(contact)) unaffiliated.push(contact);
+    else companyContacts.push(contact);
+  }
+  return [...sortContactsAlphabetically(companyContacts), ...sortContactsAlphabetically(unaffiliated)];
+}
+
+/** Company-scoped picker list excluding inactive/archived Contact-list records. */
+export function selectableContactsForCompany(
+  contacts: ContactOption[],
+  companyRef: number | string | null | undefined,
+  companies?: { id: number; business_id?: string | null; v1_company_id?: string | null }[],
+): ContactOption[] {
+  return contactsForCompany(contacts, companyRef, companies).filter(isSelectableContact);
 }

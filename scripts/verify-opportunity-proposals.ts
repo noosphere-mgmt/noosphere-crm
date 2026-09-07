@@ -54,6 +54,8 @@ function testNetEffectiveRent() {
     next_action_date: null,
     requirement_summary: null,
     remarks: null,
+    commission_income: null,
+    related_costs: null,
     created_at: "",
     updated_at: "",
   };

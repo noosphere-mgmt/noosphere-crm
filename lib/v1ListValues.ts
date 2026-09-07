@@ -187,4 +187,7 @@ export type PremisesRelationshipLine = {
   source_url: string | null;
   source_file: string | null;
   remarks: string | null;
+  lease_commencement?: string | null;
+  lease_expiry?: string | null;
+  lease_term?: string | null;
 };

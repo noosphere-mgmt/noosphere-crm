@@ -27,6 +27,7 @@ export type PremisesCandidateRow = {
   available_date: string | null;
   inventory_status: string | null;
   offer_status: string | null;
+  occupant_lease_expiry: string | null;
 };
 
 const premisesCandidateSelect = `
@@ -47,7 +48,8 @@ const premisesCandidateSelect = `
   pm.asking_sale_price::text AS asking_sale_price,
   pm.available_date::text AS available_date,
   pm.inventory_status,
-  pm.offer_status
+  pm.offer_status,
+  pm.occupant_lease_expiry::text AS occupant_lease_expiry
 `;
 
 function parseNum(v: string | null | undefined): number | null {
@@ -260,6 +262,17 @@ export function scorePremisesMatch(opp: Opportunity, row: PremisesCandidateRow):
   if (isPremisesAvailable(row)) {
     score += 10;
     reasons.push("Premises is available");
+  } else if (row.occupant_lease_expiry) {
+    const expiry = row.occupant_lease_expiry.slice(0, 10);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const limit = new Date(today);
+    limit.setMonth(limit.getMonth() + 24);
+    const expiryDate = new Date(`${expiry}T00:00:00`);
+    if (!Number.isNaN(expiryDate.getTime()) && expiryDate >= today && expiryDate <= limit) {
+      score += 12;
+      reasons.push(`Upcoming vacancy (lease expires ${expiry})`);
+    }
   }
 
   const category = row.property_category ?? "";
@@ -298,13 +311,26 @@ async function listPremisesCandidates(): Promise<PremisesCandidateRow[]> {
     `SELECT ${premisesCandidateSelect}
      FROM premises_v1 pm
      JOIN properties_v1 pv ON pv.property_id = pm.property_id
-     WHERE COALESCE(pm.offer_status, '') NOT IN ('Leased', 'Sold', 'Withdrawn')
+     WHERE COALESCE(pm.offer_status, '') NOT IN ('Sold', 'Withdrawn')
+       AND (
+         COALESCE(pm.offer_status, '') <> 'Leased'
+         OR (
+           pm.occupant_lease_expiry IS NOT NULL
+           AND pm.occupant_lease_expiry >= CURRENT_DATE
+           AND pm.occupant_lease_expiry <= CURRENT_DATE + INTERVAL '24 months'
+         )
+       )
        AND (
          pm.offer_status = 'Available'
          OR pm.inventory_status ILIKE '%lease%'
          OR pm.inventory_status ILIKE '%sale%'
          OR pm.inventory_status ILIKE '%rent%'
          OR (pm.monthly_rent IS NOT NULL OR pm.asking_sale_price IS NOT NULL)
+         OR (
+           pm.occupant_lease_expiry IS NOT NULL
+           AND pm.occupant_lease_expiry >= CURRENT_DATE
+           AND pm.occupant_lease_expiry <= CURRENT_DATE + INTERVAL '24 months'
+         )
        )
      ORDER BY pm.updated_at DESC`,
   );

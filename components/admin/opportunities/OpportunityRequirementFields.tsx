@@ -9,10 +9,10 @@ import {
 import {
   OPPORTUNITY_FUNDING_STATUSES,
   OPPORTUNITY_FUNDING_STATUS_LABELS,
-  OPPORTUNITY_SALES_ROLES,
   OPPORTUNITY_SALES_ROLE_LABELS,
-  isOtherSalesRole,
+  isNonPropertySalesRole,
   isSaleCaseSalesRole,
+  opportunitySalesRoleSelectOptions,
   type OpportunitySalesRole,
 } from "@/lib/opportunityValues";
 import {
@@ -332,7 +332,7 @@ export function OpportunitySalesRoleSelect({
         onChange={(e) => onChange?.(e.target.value as OpportunitySalesRole)}
         className={selectClass}
       >
-        {OPPORTUNITY_SALES_ROLES.map((role) => (
+        {opportunitySalesRoleSelectOptions(value).map((role) => (
           <option key={role} value={role}>
             {OPPORTUNITY_SALES_ROLE_LABELS[role]}
           </option>
@@ -351,7 +351,7 @@ export function OpportunityRequirementFields({
   salesRole: OpportunitySalesRole;
   editing: boolean;
 }) {
-  if (isOtherSalesRole(salesRole)) {
+  if (isNonPropertySalesRole(salesRole)) {
     if (editing) {
       return (
         <TextAreaField

@@ -7,7 +7,7 @@ import {
 } from "@/lib/opportunityFormParsing";
 import { latestProposalSummary } from "@/lib/opportunityPipeline";
 import { opportunityWorkspaceHref } from "@/lib/opportunityWorkspaceNav";
-import { isProfServiceSalesRole } from "@/lib/opportunityValues";
+import { isNonPropertySalesRole, opportunitySalesRoleLabel } from "@/lib/opportunityValues";
 import type { OpportunityDetailData } from "@/lib/repos/opportunityDetail";
 
 function StripCell({
@@ -38,10 +38,10 @@ export function OpportunityRequirementStrip({
 }) {
   const { opportunity, proposals } = data;
 
-  if (isProfServiceSalesRole(opportunity.sales_role)) {
+  if (isNonPropertySalesRole(opportunity.sales_role)) {
     return (
       <div className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-700">
-        <span className="font-medium text-slate-900">Prof Service</span>
+        <span className="font-medium text-slate-900">{opportunitySalesRoleLabel(opportunity.sales_role)}</span>
         {opportunity.requirement_summary ? (
           <span className="text-slate-600"> — {opportunity.requirement_summary.slice(0, 120)}</span>
         ) : null}

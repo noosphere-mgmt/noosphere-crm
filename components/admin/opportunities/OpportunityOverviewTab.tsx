@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { FormEditingContext, ModuleStickyEditBar } from "@/components/admin/ModuleActionBar";
 import { OpportunityOverviewFields } from "@/components/admin/opportunities/OpportunityOverviewFields";
 import { OpportunityCurrentPosition } from "@/components/admin/opportunities/OpportunityCurrentPosition";
 import { OpportunityCommissionSection } from "@/components/admin/opportunities/OpportunityCommissionSection";
-import { updateOpportunityAction } from "@/app/admin/opportunities/actions";
+import { patchOpportunityFieldAction, updateOpportunityAction } from "@/app/admin/opportunities/actions";
 import { opportunityWorkspaceHref } from "@/lib/opportunityWorkspaceNav";
 import type { OpportunityDetailData } from "@/lib/repos/opportunityDetail";
 
@@ -39,6 +39,18 @@ export function OpportunityOverviewTab({
     return update(formData);
   }
 
+  const saveFinancialField = useCallback(
+    (field: "commission_income" | "related_costs") => async (value: unknown) => {
+      const result = await patchOpportunityFieldAction(
+        opportunity.id,
+        field,
+        JSON.stringify(value),
+      );
+      return { ok: result.ok, error: result.ok ? undefined : result.error };
+    },
+    [opportunity.id],
+  );
+
   return (
     <FormEditingContext.Provider value={initialEditMode ?? false}>
       <div className={initialEditMode ? "pt-14" : undefined}>
@@ -60,7 +72,10 @@ export function OpportunityOverviewTab({
               <OpportunityCurrentPosition data={data} proposalsEnabled={proposalsEnabled} />
             }
             belowRequirement={
-              !initialEditMode ? <OpportunityCommissionSection data={data} /> : null
+              <OpportunityCommissionSection
+                opportunity={opportunity}
+                onSaveField={initialEditMode ? undefined : saveFinancialField}
+              />
             }
           />
         </form>

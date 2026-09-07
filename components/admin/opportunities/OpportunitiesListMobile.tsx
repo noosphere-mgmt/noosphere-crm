@@ -10,6 +10,11 @@ import {
 } from "@/components/admin/mobile/MobileSwipeToDeleteRow";
 import { OPPORTUNITY_STATUS_LABELS } from "@/lib/lookups";
 import { formatOpportunityExpectedFee } from "@/lib/opportunitiesList";
+import {
+  formatOpportunityMoney,
+  isRealisedWonRevenue,
+  opportunityFinancials,
+} from "@/lib/opportunityFinancials";
 import { opportunityStatusChip } from "@/lib/opportunityStatusTheme";
 
 function formatDateLabel(value: string | null | undefined): string {
@@ -46,6 +51,8 @@ export function OpportunitiesListMobile({
           displayedRows.map((row) => {
             const id = String(row.id);
             const statusChip = opportunityStatusChip(row.status);
+            const financials = opportunityFinancials(row);
+            const commission = formatOpportunityMoney(financials.commission_income);
             const expectedFee = formatOpportunityExpectedFee(row.expected_fee);
             const meta = [
               row.linked_company_name ?? "No company",
@@ -82,7 +89,11 @@ export function OpportunitiesListMobile({
                   <div className="mt-1.5 flex min-w-0 items-end justify-between gap-3 text-xs text-slate-600">
                     <span className="min-w-0 flex-1 truncate">{meta.join(" · ")}</span>
                     <span className="shrink-0 whitespace-nowrap text-right tabular-nums text-slate-500">
-                      {expectedFee !== "—" ? `${expectedFee} · ` : ""}
+                      {commission !== "—"
+                        ? `${isRealisedWonRevenue(row.status) ? "Won" : "Est."} ${commission} · `
+                        : expectedFee !== "—"
+                          ? `${expectedFee} · `
+                          : ""}
                       {formatDateLabel(row.updated_at)}
                     </span>
                   </div>

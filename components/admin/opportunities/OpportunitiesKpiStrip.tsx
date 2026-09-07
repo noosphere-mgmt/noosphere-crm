@@ -2,6 +2,11 @@
 
 import Link from "next/link";
 import type { Opportunity } from "@/lib/types/entities";
+import {
+  formatOpportunityMoney,
+  summariseEstimatedPipelineFinancials,
+  summariseWonOpportunityFinancials,
+} from "@/lib/opportunityFinancials";
 
 function isOpen(status: Opportunity["status"]): boolean {
   return status !== "closed_won" && status !== "closed_lost";
@@ -43,14 +48,45 @@ export function OpportunitiesKpiStrip({ rows }: { rows: Opportunity[] }) {
 
   const viewings = rows.filter((r) => isOpen(r.status) && r.has_viewing_premises).length;
   const withoutFootprint = rows.filter((r) => isOpen(r.status) && !r.activity_count).length;
+  const wonFinancials = summariseWonOpportunityFinancials(rows);
+  const pipelineFinancials = summariseEstimatedPipelineFinancials(rows);
 
   return (
-    <div className="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+    <div className="mb-3 space-y-3">
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
       {kpiCard("Without footprint", String(withoutFootprint), "/admin/opportunities?status=active&stage=no_footprint", "emerald", openCount ? `Across ${openCount} active opportunities` : "No active opportunities")}
       {kpiCard("Active proposals", String(activeProposals), "/admin/opportunities?status=proposal_reviewing")}
       {kpiCard("Viewing pipeline", String(viewings), "/admin/opportunities?status=active&stage=viewing")}
       {kpiCard("Negotiation", String(negotiating), "/admin/opportunities?status=negotiating")}
       {kpiCard("Won this month", String(wonThisMonth), "/admin/opportunities?status=won&stage=won_month")}
+    </div>
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {kpiCard(
+        "Won revenue",
+        formatOpportunityMoney(wonFinancials.commission_income),
+        "/admin/opportunities?status=won",
+        "emerald",
+        `${wonFinancials.opp_count} won opportunities`,
+      )}
+      {kpiCard(
+        "Won related costs",
+        formatOpportunityMoney(wonFinancials.related_costs),
+        "/admin/opportunities?status=won",
+      )}
+      {kpiCard(
+        "Won net profit",
+        formatOpportunityMoney(wonFinancials.net_profit),
+        "/admin/opportunities?status=won",
+        "emerald",
+      )}
+      {kpiCard(
+        "Pipeline estimate",
+        formatOpportunityMoney(pipelineFinancials.commission_income),
+        "/admin/opportunities?status=active",
+        undefined,
+        "Not counted as Won Revenue",
+      )}
+    </div>
     </div>
   );
 }

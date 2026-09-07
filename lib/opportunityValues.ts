@@ -107,35 +107,79 @@ export const FEE_STATUS_LABELS: Record<FeeStatus, string> = {
 };
 
 export const OPPORTUNITY_SALES_ROLES = [
+  "to_buy",
   "to_lease",
   "to_let",
-  "to_buy",
   "to_sell",
+  "ad_prof_service",
   "others",
 ] as const;
 export type OpportunitySalesRole = (typeof OPPORTUNITY_SALES_ROLES)[number];
 
+/** Roles shown on create/edit — demand-side opportunity, plus advisory/other. */
+export const OPPORTUNITY_SALES_ROLE_OPTIONS = [
+  "to_buy",
+  "to_lease",
+  "ad_prof_service",
+  "others",
+] as const;
+
+export function opportunitySalesRoleSelectOptions(
+  current?: OpportunitySalesRole | string | null,
+): OpportunitySalesRole[] {
+  const options: OpportunitySalesRole[] = [...OPPORTUNITY_SALES_ROLE_OPTIONS];
+  if (!current) return options;
+  const normalized = normalizeOpportunitySalesRole(current);
+  if (!options.includes(normalized as (typeof OPPORTUNITY_SALES_ROLE_OPTIONS)[number])) {
+    return [normalized, ...options];
+  }
+  return options;
+}
+
 export const OPPORTUNITY_SALES_ROLE_LABELS: Record<OpportunitySalesRole, string> = {
-  to_lease: "To Lease",
-  to_let: "To Let",
-  to_buy: "To Buy",
-  to_sell: "To Sell",
+  to_buy: "Ppty-Buy",
+  to_lease: "Ppty-Rent",
+  to_let: "Ppty-Rent",
+  to_sell: "Ppty-Buy",
+  ad_prof_service: "Ad Prof Service",
   others: "Others",
 };
 
-/** Normalize stored/import values (incl. legacy `prof_service`) to a canonical sales role. */
+/** Normalize stored/import values (incl. legacy `prof_service`, `to_let`, `to_sell`). */
 export function normalizeOpportunitySalesRole(
   value: string | null | undefined,
 ): OpportunitySalesRole {
   const raw = String(value ?? "").trim();
   if (!raw) return "to_lease";
   const key = raw.toLowerCase().replace(/[\s/-]+/g, "_");
-  if (key === "prof_service" || key === "corporate_service" || key === "other" || key === "others") {
-    return "others";
+  if (
+    key === "ad_prof_service" ||
+    key === "prof_service" ||
+    key === "corporate_service" ||
+    key === "advisory"
+  ) {
+    return "ad_prof_service";
   }
+  if (key === "other" || key === "others") return "others";
   if (key === "to_let" || key === "let") return "to_let";
-  if (key === "to_lease" || key === "lease") return "to_lease";
-  if (key === "to_buy" || key === "buy" || key === "acquisition") return "to_buy";
+  if (
+    key === "to_lease" ||
+    key === "lease" ||
+    key === "ppty_rent" ||
+    key === "ppty-rent" ||
+    key === "rent"
+  ) {
+    return "to_lease";
+  }
+  if (
+    key === "to_buy" ||
+    key === "buy" ||
+    key === "acquisition" ||
+    key === "ppty_buy" ||
+    key === "ppty-buy"
+  ) {
+    return "to_buy";
+  }
   if (key === "to_sell" || key === "sell" || key === "disposal") return "to_sell";
   if ((OPPORTUNITY_SALES_ROLES as readonly string[]).includes(key)) {
     return key as OpportunitySalesRole;
@@ -158,18 +202,32 @@ export function isSaleCaseSalesRole(
   return normalized === "to_buy" || normalized === "to_sell";
 }
 
-/** Non-property / catch-all role (legacy: `prof_service`). */
+/** Non-property advisory mandate. */
+export function isAdProfServiceSalesRole(
+  role: OpportunitySalesRole | string | null | undefined,
+): boolean {
+  return normalizeOpportunitySalesRole(role) === "ad_prof_service";
+}
+
+/** Catch-all non-property role. */
 export function isOtherSalesRole(
   role: OpportunitySalesRole | string | null | undefined,
 ): boolean {
   return normalizeOpportunitySalesRole(role) === "others";
 }
 
-/** @deprecated Use `isOtherSalesRole` — kept for existing call sites. */
+/** Advisory or catch-all — no property demand brief. */
+export function isNonPropertySalesRole(
+  role: OpportunitySalesRole | string | null | undefined,
+): boolean {
+  return isAdProfServiceSalesRole(role) || isOtherSalesRole(role);
+}
+
+/** @deprecated Use `isAdProfServiceSalesRole` — kept for existing call sites. */
 export function isProfServiceSalesRole(
   role: OpportunitySalesRole | string | null | undefined,
 ): boolean {
-  return isOtherSalesRole(role);
+  return isAdProfServiceSalesRole(role);
 }
 
 export function opportunitySalesRoleLabel(

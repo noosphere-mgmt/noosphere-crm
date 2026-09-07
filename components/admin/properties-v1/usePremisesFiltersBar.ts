@@ -42,6 +42,7 @@ function filtersToParams(filters: PremisesFlatFilters, existing: URLSearchParams
   setOrDelete("offers_stamp_duty", filters.offers_stamp_duty);
   setOrDelete("package_offers", filters.package_offers);
   setOrDelete("monthly_rent_max", filters.monthly_rent_max);
+  setOrDelete("lease_expiry_within_months", filters.lease_expiry_within_months);
 
   return params;
 }
@@ -140,7 +141,8 @@ export function usePremisesFiltersBar({ filters, cities, districts }: PremisesFi
       filters.offers_unique_address ||
       filters.offers_stamp_duty ||
       filters.package_offers ||
-      filters.monthly_rent_max,
+      filters.monthly_rent_max ||
+      filters.lease_expiry_within_months,
   );
 
   const activeFilterCount = [
@@ -158,6 +160,7 @@ export function usePremisesFiltersBar({ filters, cities, districts }: PremisesFi
     filters.offers_stamp_duty,
     filters.package_offers,
     filters.monthly_rent_max,
+    filters.lease_expiry_within_months,
   ].filter(Boolean).length;
 
   return {

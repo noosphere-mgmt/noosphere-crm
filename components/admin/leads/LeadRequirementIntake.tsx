@@ -6,7 +6,7 @@ import {
   requirementSuggestionDisplayValue,
   type RequirementSuggestion,
 } from "@/lib/opportunityRequirementAnalysis";
-import { isOtherSalesRole, isSaleCaseSalesRole, normalizeOpportunitySalesRole } from "@/lib/opportunityValues";
+import { isNonPropertySalesRole, isSaleCaseSalesRole, normalizeOpportunitySalesRole } from "@/lib/opportunityValues";
 import type { Lead } from "@/lib/repos/leads";
 
 export type LeadRequirementPatch = Partial<
@@ -40,7 +40,7 @@ function patchFromSuggestions(text: string, suggestions: RequirementSuggestion[]
 
   let office_space_required: boolean | null = null;
   if (salesRole) {
-    if (isOtherSalesRole(salesRole)) office_space_required = false;
+    if (isNonPropertySalesRole(salesRole)) office_space_required = false;
     else if (isSaleCaseSalesRole(salesRole) || salesRole === "to_lease" || salesRole === "to_let") {
       office_space_required = true;
     }

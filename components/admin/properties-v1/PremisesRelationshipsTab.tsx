@@ -7,6 +7,10 @@ import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
 import { PremisesSectionCard } from "@/components/admin/properties-v1/premisesDrawerUi";
 import { InlineTextAreaField } from "@/components/admin/inline/InlineFields";
 import {
+  formatLeaseTermFromDates,
+  formatOccupantTenancySummary,
+} from "@/lib/occupantLease";
+import {
   formatPremisesRelationshipCompanyLabel,
   formatPremisesRelationshipContactLabel,
 } from "@/lib/premisesDetailDisplay";
@@ -18,6 +22,7 @@ import {
   coerceRelationshipLinesForSelect,
   emptyRelationshipLine,
   initialPremisesRelationshipLines,
+  isCurrentOccupantRelationshipType,
   relationshipLineHasContent,
 } from "@/lib/premisesRelationships";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
@@ -125,6 +130,56 @@ function RelationshipLineFields({
           onChange={(e) => onChange({ remarks: e.target.value || null })}
         />
       </label>
+      {isCurrentOccupantRelationshipType(line.relationship_type) ? (
+        <>
+          <label className="block text-sm font-medium text-slate-700">
+            Tenancy commencement
+            <input
+              type="date"
+              className={inputClass}
+              value={(line.lease_commencement ?? "").slice(0, 10)}
+              onChange={(e) => {
+                const lease_commencement = e.target.value || null;
+                onChange({
+                  lease_commencement,
+                  lease_term:
+                    formatLeaseTermFromDates(lease_commencement, line.lease_expiry) ??
+                    line.lease_term ??
+                    null,
+                });
+              }}
+            />
+          </label>
+          <label className="block text-sm font-medium text-slate-700">
+            Tenancy expiry
+            <input
+              type="date"
+              className={inputClass}
+              value={(line.lease_expiry ?? "").slice(0, 10)}
+              onChange={(e) => {
+                const lease_expiry = e.target.value || null;
+                onChange({
+                  lease_expiry,
+                  lease_term:
+                    formatLeaseTermFromDates(line.lease_commencement, lease_expiry) ??
+                    line.lease_term ??
+                    null,
+                });
+              }}
+            />
+          </label>
+          <label className="block text-sm font-medium text-slate-700 sm:col-span-2">
+            Term
+            <input
+              type="text"
+              className={inputClass}
+              placeholder="e.g. 3 years"
+              value={line.lease_term ?? ""}
+              onChange={(e) => onChange({ lease_term: e.target.value || null })}
+            />
+          </label>
+        </>
+      ) : null}
     </div>
   );
 }
@@ -313,7 +368,15 @@ function PremisesRelationshipsManager({
                     <td className="px-3 py-2 text-slate-800">
                       {formatPremisesRelationshipContactLabel(contactLabels, line.contact_id)}
                     </td>
-                    <td className="max-w-[12rem] px-3 py-2 whitespace-pre-wrap text-slate-700">{display(line.remarks)}</td>
+                    <td className="max-w-[12rem] px-3 py-2 whitespace-pre-wrap text-slate-700">
+                      {display(line.remarks)}
+                      {isCurrentOccupantRelationshipType(line.relationship_type) &&
+                      formatOccupantTenancySummary(line) ? (
+                        <p className="mt-1 text-xs text-slate-500">
+                          {formatOccupantTenancySummary(line)}
+                        </p>
+                      ) : null}
+                    </td>
                     <td className="sticky right-0 bg-white/95 px-3 py-2">
                       <div className="flex items-center justify-end gap-2">
                         <button

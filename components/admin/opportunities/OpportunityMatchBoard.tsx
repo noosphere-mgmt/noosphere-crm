@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   addProposedPremisesAction,
   getOpportunityMatchesAction,
@@ -145,6 +146,7 @@ export function OpportunityMatchBoard({
   excludeIds: Set<string>;
 }) {
   const theme = moduleAccentClasses("opportunities");
+  const router = useRouter();
   const excludeKey = useMemo(() => [...excludeIds].sort().join(","), [excludeIds]);
   const [rows, setRows] = useState<MatchRow[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -196,13 +198,14 @@ export function OpportunityMatchBoard({
         return next;
       });
       setAddingId(null);
+      router.refresh();
     });
   }
 
   if (loading) {
     return (
       <div className="rounded-2xl bg-white px-6 py-16 text-center text-sm text-slate-500 shadow-sm ring-1 ring-slate-100/80">
-        Loading ranked matches…
+        Loading Noosphere AI shortlist…
       </div>
     );
   }
@@ -220,8 +223,7 @@ export function OpportunityMatchBoard({
       <div className="rounded-2xl bg-slate-50 px-6 py-16 text-center shadow-sm ring-1 ring-slate-100/80">
         <h3 className="text-lg font-semibold text-slate-900">No matches yet</h3>
         <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-slate-600">
-          Adjust property category, space form, district, or budget on the Brief tab — or add supply in
-          Properties.
+          Adjust the demand brief (category, space form, district, budget) — or add supply in Properties.
         </p>
       </div>
     );
@@ -231,9 +233,9 @@ export function OpportunityMatchBoard({
     <>
       <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100/80">
         <div className="px-6 py-5">
-          <h3 className="text-base font-semibold text-slate-900">Ranked matches</h3>
+          <h3 className="text-base font-semibold text-slate-900">Noosphere AI shortlist</h3>
           <p className="mt-1 text-sm text-slate-500">
-            {rows.length} premises · click a row for detail
+            {rows.length} suitable premises · click a row for detail
           </p>
         </div>
         <div className="space-y-2 border-t border-slate-100 p-3 md:hidden">

@@ -23,6 +23,9 @@ import type { PropertyV1SelectOption } from "@/lib/repos/propertiesV1";
 import type { PremisesDrawerData } from "@/lib/repos/premisesDrawer";
 import { asArray } from "@/lib/asArray";
 import { normalizePremisesDrawerData, normalizePremisesV1Client } from "@/lib/premisesClientData";
+import { lookupCompanyV1Name } from "@/lib/companyV1Display";
+import { PremisesCentreStatusIcon } from "@/components/admin/properties-v1/PremisesCentreStatusIcon";
+import { PremisesRelatedCompaniesCell } from "@/components/admin/properties-v1/PremisesRelatedCompaniesCell";
 import {
   V1_FIT_OUT_CONDITIONS,
   V1_LISTING_INTENTS,
@@ -253,7 +256,7 @@ export function PropertiesV1Client({
           <thead className="bg-slate-50 text-left text-slate-600">
             <tr>
               <th className="px-3 py-1.5 font-medium">Premises</th>
-              <th className="px-3 py-1.5 font-medium">Desks</th>
+              <th className="px-3 py-1.5 font-medium">Related Companies</th>
               <th className="px-3 py-1.5 font-medium">Gross area</th>
               <th className="px-3 py-1.5 font-medium">Rent / Sales Price</th>
               <th className="px-3 py-1.5 font-medium">Fit Out</th>
@@ -280,15 +283,33 @@ export function PropertiesV1Client({
                 return (
                   <tr key={p.premises_id} className="border-t border-slate-100">
                     <td className="px-3 py-1.5">
-                      <button
-                        type="button"
-                        className={`text-left ${theme.link}`}
-                        onClick={() => openView(p.premises_id)}
-                      >
-                        {formatPremisesCompactLabel(p.floor, p.unit)}
-                      </button>
+                      <div className="flex items-start gap-2">
+                        <PremisesCentreStatusIcon status={p.centre_status} />
+                        <div className="min-w-0">
+                          <button
+                            type="button"
+                            className={`text-left ${theme.link}`}
+                            onClick={() => openView(p.premises_id)}
+                          >
+                            {formatPremisesCompactLabel(p.floor, p.unit)}
+                          </button>
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-3 py-1.5 text-slate-700">{chip(p.workstation_count)}</td>
+                    <td className="px-3 py-1.5 text-slate-700">
+                      <PremisesRelatedCompaniesCell
+                        operatorName={lookupCompanyV1Name(companies, p.operator_company_id)}
+                        landlordName={
+                          lookupCompanyV1Name(companies, p.landlord_company_id) ??
+                          lookupCompanyV1Name(companies, p.owner_company_id)
+                        }
+                        occupantName={lookupCompanyV1Name(companies, p.current_tenant_company_id)}
+                        operatorId={p.operator_company_id}
+                        landlordId={p.landlord_company_id || p.owner_company_id}
+                        occupantId={p.current_tenant_company_id}
+                        companies={companies}
+                      />
+                    </td>
                     <td className="px-3 py-1.5 text-slate-700">{formatAreaSqft(p.gross_area_sqft)}</td>
                     <td className="px-3 py-1.5 text-slate-700">{price}</td>
                     <td className="px-3 py-1.5 text-slate-700">{chip(p.fit_out_condition)}</td>

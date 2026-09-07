@@ -31,7 +31,7 @@ import type { OpportunityLeadType } from "@/lib/types/entities";
 import { normalizeOpportunitySource } from "@/lib/opportunitySourceValues";
 import {
   isLeaseLikeSalesRole,
-  isOtherSalesRole,
+  isNonPropertySalesRole,
   isSaleCaseSalesRole,
 } from "@/lib/opportunityValues";
 import { getDefaultCrmOwnerName } from "@/lib/repos/crmUsers";
@@ -85,7 +85,7 @@ async function opportunityInputFromForm(formData: FormData) {
   const isLeaseLike = isLeaseLikeSalesRole(salesRole);
   const isBuy = salesRole === "to_buy";
   const isSaleCase = isSaleCaseSalesRole(salesRole);
-  const isOther = isOtherSalesRole(salesRole);
+  const isOther = isNonPropertySalesRole(salesRole);
 
   return {
     client_name: clientName || "Unknown",
@@ -132,6 +132,8 @@ async function opportunityInputFromForm(formData: FormData) {
     next_action_date: parseOptionalString(formData.get("next_action_date")),
     requirement_summary: parseOptionalString(formData.get("requirement_summary")),
     remarks: parseOptionalString(formData.get("remarks")),
+    commission_income: parseOptionalDecimal(formData.get("commission_income")),
+    related_costs: parseOptionalDecimal(formData.get("related_costs")),
   };
 }
 
@@ -184,6 +186,8 @@ export async function updateOpportunityAction(id: number, formData: FormData) {
     ["next_action_date", existing.next_action_date],
     ["requirement_summary", existing.requirement_summary],
     ["remarks", existing.remarks],
+    ["commission_income", existing.commission_income],
+    ["related_costs", existing.related_costs],
   ];
   for (const [field, value] of preserveWhenAbsent) {
     if (!formData.has(field)) formData.set(field, value == null ? "" : String(value));

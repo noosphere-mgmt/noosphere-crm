@@ -9,7 +9,7 @@ import {
 import {
   OPPORTUNITY_FUNDING_STATUSES,
   OPPORTUNITY_FUNDING_STATUS_LABELS,
-  isOtherSalesRole,
+  isNonPropertySalesRole,
   isSaleCaseSalesRole,
   type OpportunitySalesRole,
 } from "@/lib/opportunityValues";
@@ -193,7 +193,7 @@ export function OpportunityRequirementInlineFields({
   save: SaveFn;
   salesRole?: OpportunitySalesRole;
 }) {
-  if (isOtherSalesRole(salesRole)) {
+  if (isNonPropertySalesRole(salesRole)) {
     return (
       <div className="col-span-full">
         <InlineTextAreaField

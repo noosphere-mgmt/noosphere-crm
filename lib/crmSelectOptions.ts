@@ -1,6 +1,7 @@
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
 import type { ContactV1Option } from "@/lib/repos/contactsV1";
 import { isPermanentBusinessId } from "@/lib/businessIds";
+import { contactVisibilitySuffix } from "@/lib/contactVisibility";
 
 export type LegacyCompanySelectOption = {
   value: string;
@@ -18,6 +19,28 @@ export function formatLabelWithBusinessId(name: string, businessId?: string | nu
   const id = businessId?.trim();
   const trimmedName = name.trim() || "—";
   return id ? `${trimmedName} (${id})` : trimmedName;
+}
+
+export function formatContactOptionLabel(
+  name: string,
+  businessId?: string | null,
+  isActive?: boolean | null,
+): string {
+  return `${formatLabelWithBusinessId(name, businessId)}${contactVisibilitySuffix(isActive)}`;
+}
+
+export function opportunityPrimaryContactLabel(opportunity: {
+  primary_contact_name?: string | null;
+  primary_contact_is_active?: boolean | null;
+}): string {
+  const name = opportunity.primary_contact_name?.trim();
+  if (!name) return "";
+  return `${name}${contactVisibilitySuffix(opportunity.primary_contact_is_active)}`;
+}
+
+/** Case-insensitive A–Z compare. Callers should tie-break by contact ID for determinism. */
+export function compareContactDisplayNames(a: string, b: string): number {
+  return a.trim().localeCompare(b.trim(), undefined, { sensitivity: "base", numeric: true });
 }
 
 function v1CompanyByLegacy(companies: CompanyV1Option[]): Map<number, CompanyV1Option> {
@@ -64,19 +87,26 @@ export function toLegacyContactSelectOptions(
     business_id?: string | null;
     company_id?: number | null;
     v1_contact_id?: string | null;
+    is_active?: boolean | null;
   }[],
   v1Contacts: ContactV1Option[] = [],
 ): LegacyContactSelectOption[] {
   const v1ByLegacy = v1ContactByLegacy(v1Contacts);
-  return contacts.map((c) => {
-    const businessId = c.business_id?.trim() || v1ByLegacy.get(c.id)?.business_id?.trim() || null;
-    const value = businessId ?? String(c.id);
-    return {
-      value,
-      label: formatLabelWithBusinessId(c.contact_name, businessId),
-      businessId,
-    };
-  });
+  return contacts
+    .map((c) => {
+      const businessId = c.business_id?.trim() || v1ByLegacy.get(c.id)?.business_id?.trim() || null;
+      const value = businessId ?? String(c.id);
+      return {
+        value,
+        label: formatContactOptionLabel(c.contact_name, businessId, c.is_active),
+        businessId,
+      };
+    })
+    .sort((a, b) => {
+      const byLabel = compareContactDisplayNames(a.label, b.label);
+      if (byLabel !== 0) return byLabel;
+      return a.value.localeCompare(b.value, undefined, { numeric: true });
+    });
 }
 
 export function formatLegacyCompanyOptionLabel(

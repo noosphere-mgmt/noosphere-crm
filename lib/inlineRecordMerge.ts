@@ -20,7 +20,7 @@ import type {
 import { normalizeOpportunitySource } from "@/lib/opportunitySourceValues";
 import {
   isLeaseLikeSalesRole,
-  isOtherSalesRole,
+  isNonPropertySalesRole,
   isSaleCaseSalesRole,
   normalizeOpportunitySalesRole,
 } from "@/lib/opportunityValues";
@@ -246,6 +246,8 @@ export function opportunityToInput(opportunity: Opportunity): OpportunityInput {
     next_action_date: opportunity.next_action_date,
     requirement_summary: opportunity.requirement_summary,
     remarks: opportunity.remarks,
+    commission_income: parseOptionalNumber(opportunity.commission_income),
+    related_costs: parseOptionalNumber(opportunity.related_costs),
   };
 }
 
@@ -330,6 +332,12 @@ export function applyOpportunityPatch(
       }
       input.lost_reason = value ? String(value).trim() || null : null;
       break;
+    case "commission_income":
+      input.commission_income = parseOptionalNumber(value);
+      break;
+    case "related_costs":
+      input.related_costs = parseOptionalNumber(value);
+      break;
     case "property_type":
     case "workspace_type": {
       const pt = value ? String(value).trim() || null : null;
@@ -353,7 +361,7 @@ export function applyOpportunityPatch(
       break;
     case "sales_role": {
       input.sales_role = normalizeOpportunitySalesRole(String(value ?? ""));
-      if (isOtherSalesRole(input.sales_role)) {
+      if (isNonPropertySalesRole(input.sales_role)) {
         input.lease_term = null;
         input.move_in_date = null;
         input.required_capacity_pax = null;

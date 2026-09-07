@@ -7,7 +7,7 @@ import { opportunityPropertyType } from "@/lib/opportunityFormParsing";
 import { opportunityWorkspaceHref } from "@/lib/opportunityWorkspaceNav";
 import {
   isLeaseLikeSalesRole,
-  isOtherSalesRole,
+  isNonPropertySalesRole,
   isSaleCaseSalesRole,
   normalizeOpportunitySalesRole,
 } from "@/lib/opportunityValues";
@@ -40,7 +40,7 @@ export function OpportunityNotesTab({ data }: { data: OpportunityDetailData }) {
       {hiddenField("primary_contact_id", opportunity.primary_contact_id)}
       {hiddenField("referrer_company_id", opportunity.referrer_company_id)}
       {hiddenField("referrer_contact_id", opportunity.referrer_contact_id)}
-      {!isOtherSalesRole(salesRole) ? (
+      {!isNonPropertySalesRole(salesRole) ? (
         <>
           {hiddenField("property_type", propertyType)}
           {hiddenField("district_preference", opportunity.district_preference)}

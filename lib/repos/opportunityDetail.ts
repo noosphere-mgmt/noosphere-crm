@@ -32,17 +32,22 @@ export async function getOpportunityDetailData(id: number): Promise<OpportunityD
   const opportunity = await getOpportunity(id);
   if (!opportunity) return null;
 
-  const [proposedPremises, parties, companies, contacts, activities, lastActivityDate, proposals, documents, commission] =
+  const [proposedPremises, parties, companies, activities, lastActivityDate, proposals, documents, commission] =
     await Promise.all([
     listProposedPremisesForOpportunity(id),
     listOpportunityParties(id),
     listCompanyOptions(),
-    listContactOptions(),
     listActivitiesForOpportunity(id).catch(() => [] as ActivityListRow[]),
     getLastActivityDateForOpportunity(id).catch(() => null),
     listProposalsForOpportunity(id).catch(() => []),
     listOpportunityDocuments(id).catch(() => []),
     getOpportunityCommission(id).catch(() => null),
+  ]);
+
+  const contacts = await listContactOptions([
+    opportunity.primary_contact_id,
+    opportunity.referrer_contact_id,
+    ...parties.map((party) => party.contact_id),
   ]);
 
   const feeSummary = summarizePartyFees(parties);

@@ -26,6 +26,9 @@ const opportunitySelect = `
   o.move_in_date::text, o.status,
   o.waiting_for, o.next_action, o.next_action_date::text,
   o.requirement_summary, o.remarks,
+  o.commission_income::text AS commission_income,
+  o.related_costs::text AS related_costs,
+  o.net_profit::text AS net_profit,
   o.created_at::text, o.updated_at::text,
   EXISTS (
     SELECT 1 FROM opportunity_proposed_premises pp
@@ -35,6 +38,7 @@ const opportunitySelect = `
   lc.business_id AS linked_company_business_id,
   pc.contact_name AS primary_contact_name,
   pc.business_id AS primary_contact_business_id,
+  pc.is_active AS primary_contact_is_active,
   rc.company_name AS referrer_company_name,
   rfc.contact_name AS referrer_contact_name,
   o.business_id,
@@ -100,6 +104,8 @@ export type OpportunityInput = {
   next_action_date?: string | null;
   requirement_summary?: string | null;
   remarks?: string | null;
+  commission_income?: number | null;
+  related_costs?: number | null;
 };
 
 function opportunityValues(input: OpportunityInput) {
@@ -136,6 +142,8 @@ function opportunityValues(input: OpportunityInput) {
     input.next_action_date?.trim() || null,
     input.requirement_summary?.trim() || null,
     input.remarks?.trim() || null,
+    input.commission_income ?? null,
+    input.related_costs ?? null,
   ];
 }
 
@@ -190,8 +198,8 @@ export async function createOpportunity(input: OpportunityInput): Promise<number
        property_category_preference, property_type_preference,
        target_yield, funding_status, move_in_date,
        status, waiting_for, next_action, next_action_date,
-       requirement_summary, remarks, business_id
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32)
+       requirement_summary, remarks, commission_income, related_costs, business_id
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34)
      RETURNING id::text AS id`,
     [...opportunityValues(input), businessId],
   );
@@ -219,7 +227,7 @@ export async function updateOpportunity(id: number, input: OpportunityInput): Pr
        target_yield = $24, funding_status = $25,
        move_in_date = $26, status = $27,
        waiting_for = $28, next_action = $29, next_action_date = $30,
-       requirement_summary = $31, remarks = $32
+       requirement_summary = $31, remarks = $32, commission_income = $33, related_costs = $34
      WHERE id = $1`,
     [legacyId, ...opportunityValues(input)],
   );

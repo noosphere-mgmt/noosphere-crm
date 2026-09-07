@@ -6,11 +6,12 @@ import { ListingRecordCount } from "@/components/admin/ListingRecordCount";
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { SortableTableHeader } from "@/components/admin/SortableTableHeader";
+import { PremisesCentreStatusIcon } from "@/components/admin/properties-v1/PremisesCentreStatusIcon";
+import { PremisesRelatedCompaniesCell } from "@/components/admin/properties-v1/PremisesRelatedCompaniesCell";
 import { formatAreaSqft } from "@/lib/formatCurrency";
 import {
   formatPremisesListLabel,
   formatPremisesName,
-  formatPremisesOperatorLandlord,
   formatPremisesUpdatedAt,
 } from "@/lib/premisesDisplay";
 import { premisesDrawerHref } from "@/lib/premisesDrawerNav";
@@ -124,10 +125,10 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
           props.fillHeight
             ? "admin-list-scroll min-h-0 flex-1 overflow-x-auto overflow-y-scroll"
             : ADMIN_LIST_SCROLL_VIEWPORT_CLASS
-        } rounded-xl border border-slate-200 bg-white`}
+        } rounded-xl border border-[#BFDBFE]/70 bg-white`}
       >
         <table className="min-w-full text-sm">
-          <thead className="sticky top-0 z-10 bg-slate-50 text-left text-slate-600 shadow-[inset_0_-1px_0_0_rgb(226,232,240)]">
+          <thead className="sticky top-0 z-10 bg-[#F8FBFF] text-left text-slate-600 shadow-[inset_0_-1px_0_0_rgb(191,219,254)]">
             <tr>
               <th className="w-10 px-3 py-1.5 align-top">
                 <input
@@ -146,29 +147,8 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                 onSort={handleSort}
               />
               <PremisesSortableHeader
-                label="District"
-                sortKey="district"
-                activeKey={sortKey}
-                sortDir={sortDir}
-                onSort={handleSort}
-              />
-              <PremisesSortableHeader
-                label="Operator / Owner"
+                label="Related Companies"
                 sortKey="operator"
-                activeKey={sortKey}
-                sortDir={sortDir}
-                onSort={handleSort}
-              />
-              <PremisesSortableHeader
-                label="Status"
-                sortKey="centre_status"
-                activeKey={sortKey}
-                sortDir={sortDir}
-                onSort={handleSort}
-              />
-              <PremisesSortableHeader
-                label="Desks"
-                sortKey="desks"
                 activeKey={sortKey}
                 sortDir={sortDir}
                 onSort={handleSort}
@@ -214,7 +194,7 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
               displayedRows.map((row) => {
                 const prices = getPremisesRowPriceDisplay(row);
                 return (
-                  <tr key={row.premises_id} className="border-t border-slate-100">
+                  <tr key={row.premises_id} className="border-t border-slate-100 hover:bg-[#EFF6FF]/50">
                     <td className="px-3 py-1.5">
                       <input
                         type="checkbox"
@@ -225,21 +205,39 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                       />
                     </td>
                     <td className="px-3 py-1.5">
-                      <button
-                        type="button"
-                        onClick={() => openView(row.premises_id)}
-                        className={`text-left text-sm font-medium underline-offset-2 hover:underline ${theme.link}`}
-                      >
-                        {formatPremisesListLabel(row.building_name_en, row.floor, row.unit)}
-                      </button>
-                      <RecordBusinessId id={row.business_id ?? row.premises_id} className="mt-0.5 block" />
+                      <div className="flex items-start gap-2">
+                        <PremisesCentreStatusIcon status={row.centre_status} />
+                        <div className="min-w-0">
+                          <button
+                            type="button"
+                            onClick={() => openView(row.premises_id)}
+                            className={`text-left text-sm font-medium underline-offset-2 hover:underline ${theme.link}`}
+                          >
+                            {formatPremisesListLabel(row.building_name_en, row.floor, row.unit)}
+                          </button>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-slate-500">
+                            <RecordBusinessId id={row.business_id ?? row.premises_id} />
+                            {row.district_en?.trim() ? (
+                              <>
+                                <span aria-hidden>·</span>
+                                <span>{row.district_en}</span>
+                              </>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-3 py-1.5 text-slate-700">{row.district_en ?? "—"}</td>
                     <td className="px-3 py-1.5 text-slate-700">
-                      {formatPremisesOperatorLandlord(row.operator_name, row.landlord_name)}
+                      <PremisesRelatedCompaniesCell
+                        operatorName={row.operator_name}
+                        landlordName={row.landlord_name}
+                        occupantName={row.occupant_name}
+                        operatorId={row.operator_company_id}
+                        landlordId={row.landlord_company_id || row.owner_company_id}
+                        occupantId={row.current_tenant_company_id}
+                        companies={companies}
+                      />
                     </td>
-                    <td className="px-3 py-1.5 text-slate-700">{row.centre_status ?? "Active"}</td>
-                    <td className="px-3 py-1.5 text-slate-700">{row.workstation_count ?? "—"}</td>
                     <td className="px-3 py-1.5 text-slate-700">{formatAreaSqft(row.gross_area_sqft)}</td>
                     <td className="px-3 py-1.5 text-slate-700">{prices.price}</td>
                     <td className="whitespace-nowrap px-3 py-1.5 text-slate-700">{formatPremisesUpdatedAt(row.updated_at)}</td>

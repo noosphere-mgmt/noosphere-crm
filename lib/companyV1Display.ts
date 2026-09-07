@@ -46,6 +46,39 @@ export function coerceCompanyIdToSelectValue(
   return "";
 }
 
+/** Company English name only (no business ID suffix) for compact listing cells. */
+export function lookupCompanyV1Name(
+  companies: CompanyV1Option[] | null | undefined,
+  companyId: string | null | undefined,
+): string | null {
+  const id = companyId?.trim();
+  if (!id) return null;
+  const match = asArray<CompanyV1Option>(companies).find(
+    (c) =>
+      c.business_id === id ||
+      c.company_id === id ||
+      (c.legacy_company_id != null && String(c.legacy_company_id) === id),
+  );
+  return match?.company_name_en?.trim() || null;
+}
+
+/** Permanent business ID for company links (C100001). */
+export function lookupCompanyV1BusinessId(
+  companies: CompanyV1Option[] | null | undefined,
+  companyId: string | null | undefined,
+): string | null {
+  const id = companyId?.trim();
+  if (!id) return null;
+  if (isPermanentBusinessId("company", id)) return id;
+  const match = asArray<CompanyV1Option>(companies).find(
+    (c) =>
+      c.business_id === id ||
+      c.company_id === id ||
+      (c.legacy_company_id != null && String(c.legacy_company_id) === id),
+  );
+  return match?.business_id?.trim() || null;
+}
+
 export function buildCompanyV1LabelMap(companies: CompanyV1Option[] | null | undefined): Map<string, string> {
   const map = new Map<string, string>();
   for (const c of asArray<CompanyV1Option>(companies)) {

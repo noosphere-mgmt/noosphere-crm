@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { updatePremisesV1Action } from "@/app/admin/properties/actions";
 import { PremisesDrawer } from "@/components/admin/properties-v1/PremisesDrawer";
 import { ListingRecordCount } from "@/components/admin/ListingRecordCount";
+import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { MobileCardMeta } from "@/components/admin/mobile/MobileCard";
 import { confirmDeletePremises } from "@/components/admin/mobile/mobileListDelete";
 import {
@@ -15,8 +16,9 @@ import { formatAreaSqft } from "@/lib/formatCurrency";
 import {
   formatPremisesListLabel,
   formatPremisesName,
-  formatPremisesOperatorLandlord,
 } from "@/lib/premisesDisplay";
+import { PremisesCentreStatusIcon } from "@/components/admin/properties-v1/PremisesCentreStatusIcon";
+import { PremisesRelatedCompaniesCell } from "@/components/admin/properties-v1/PremisesRelatedCompaniesCell";
 import { premisesDrawerHref } from "@/lib/premisesDrawerNav";
 import {
   resolvePremisesFlatListFilters,
@@ -86,13 +88,7 @@ export function PremisesListMobile(props: PremisesListComponentProps) {
             displayedRows.map((row) => {
               const prices = getPremisesRowPriceDisplay(row);
               const listLabel = formatPremisesListLabel(row.building_name_en, row.floor, row.unit);
-              const party = formatPremisesOperatorLandlord(row.operator_name, row.landlord_name);
-              const metaParts = [
-                row.district_en,
-                party !== "Not assigned" ? party : null,
-                row.centre_status && row.centre_status !== "Active" ? row.centre_status : null,
-                formatAreaSqft(row.gross_area_sqft) !== "—" ? formatAreaSqft(row.gross_area_sqft) : null,
-              ].filter(Boolean);
+              const area = formatAreaSqft(row.gross_area_sqft);
 
               return (
                 <MobileSwipeToDeleteRow
@@ -103,21 +99,42 @@ export function PremisesListMobile(props: PremisesListComponentProps) {
                   onDelete={() =>
                     deletePremisesRow(row.premises_id, row.building_name_en, row.floor, row.unit)
                   }
-                  className="rounded-xl border border-l-4 border-[#D8E1ED] border-l-[#839BBE] bg-white shadow-[0_4px_14px_rgba(80,107,145,0.10)]"
+                  className="rounded-xl border border-l-4 border-[#BFDBFE] border-l-[#60A5FA] bg-white shadow-[0_4px_14px_rgba(37,99,235,0.08)]"
                 >
                   <div className="bg-white px-3 py-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <button
-                          type="button"
-                          onClick={() => openView(row.premises_id)}
-                          className="block w-full truncate text-left text-sm font-semibold text-[#506B91] underline-offset-2 hover:underline active:text-[#405A80]"
-                        >
-                          {listLabel !== "—" ? listLabel : "Unnamed premise"}
-                        </button>
-                        {metaParts.length > 0 ? (
-                          <MobileCardMeta>{metaParts.join(" · ")}</MobileCardMeta>
-                        ) : null}
+                        <div className="flex items-start gap-2">
+                          <PremisesCentreStatusIcon status={row.centre_status} />
+                          <button
+                            type="button"
+                            onClick={() => openView(row.premises_id)}
+                            className="block min-w-0 w-full truncate text-left text-sm font-semibold text-[#1D4ED8] underline-offset-2 hover:underline active:text-[#2563EB]"
+                          >
+                            {listLabel !== "—" ? listLabel : "Unnamed premise"}
+                          </button>
+                        </div>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-slate-500">
+                          <RecordBusinessId id={row.business_id ?? row.premises_id} />
+                          {row.district_en?.trim() ? (
+                            <>
+                              <span aria-hidden>·</span>
+                              <span>{row.district_en}</span>
+                            </>
+                          ) : null}
+                        </div>
+                        {area !== "—" ? <MobileCardMeta>{area}</MobileCardMeta> : null}
+                        <div className="mt-1.5">
+                          <PremisesRelatedCompaniesCell
+                            operatorName={row.operator_name}
+                            landlordName={row.landlord_name}
+                            occupantName={row.occupant_name}
+                            operatorId={row.operator_company_id}
+                            landlordId={row.landlord_company_id || row.owner_company_id}
+                            occupantId={row.current_tenant_company_id}
+                            companies={companies}
+                          />
+                        </div>
                       </div>
                       <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-900">
                         {prices.price}

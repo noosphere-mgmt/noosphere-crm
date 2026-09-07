@@ -22,6 +22,7 @@ import {
   V1_LISTING_STATUSES,
   V1_VIEW_TYPES,
 } from "@/lib/v1ListValues";
+import { LEASE_EXPIRY_WITHIN_MONTHS } from "@/lib/occupantLease";
 import { BUILDING_TITLES } from "@/lib/lookups";
 
 export function PremisesFiltersBarMobile(props: PremisesFiltersBarProps) {
@@ -57,7 +58,7 @@ export function PremisesFiltersBarMobile(props: PremisesFiltersBarProps) {
       onChange={(e) => setSearch(e.target.value)}
       onFocus={onSearchFocus}
       onBlur={onSearchBlur}
-      placeholder="Search — names, address, floor/unit, operator, building owner/landlord…"
+      placeholder="Search — names, address, floor/unit, operator, owner/landlord, occupant…"
       aria-label="Search buildings and premises"
       autoComplete="off"
       className={theme.searchInput}
@@ -192,6 +193,21 @@ export function PremisesFiltersBarMobile(props: PremisesFiltersBarProps) {
           <option value="">All centre statuses</option>
           {PREMISES_CENTRE_STATUSES.map((t) => (
             <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
+      </MobileFilterField>
+      <MobileFilterField label="Lease expiry">
+        <select
+          aria-label="Lease expiry"
+          value={filters.lease_expiry_within_months ?? ""}
+          onChange={(e) => patch({ lease_expiry_within_months: e.target.value || undefined })}
+          className={`${theme.searchSelect} w-full`}
+        >
+          <option value="">Any expiry</option>
+          {LEASE_EXPIRY_WITHIN_MONTHS.map((months) => (
+            <option key={months} value={months}>
+              Within {months} months
+            </option>
           ))}
         </select>
       </MobileFilterField>

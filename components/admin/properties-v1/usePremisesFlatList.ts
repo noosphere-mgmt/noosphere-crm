@@ -8,8 +8,7 @@ import { useSyncListingExportIds } from "@/components/admin/ModuleListingExportC
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import {
   formatPremisesListLabel,
-  formatPremisesName,
-  formatPremisesOperatorLandlord,
+  formatPremisesRelatedCompaniesSearchText,
 } from "@/lib/premisesDisplay";
 import { getPremisesListPriceHeaderLabels, isListingIntentForSale } from "@/lib/premisesListing";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
@@ -26,8 +25,6 @@ export type SortKey =
   | "premises"
   | "district"
   | "operator"
-  | "centre_status"
-  | "desks"
   | "gross_area"
   | "price"
   | "updated";
@@ -38,7 +35,6 @@ export type PremisesColFilters = {
   premises: string;
   district: string;
   operator: string;
-  centre_status: string;
 };
 
 export type PremisesFlatListHookProps = {
@@ -112,7 +108,6 @@ export function usePremisesFlatList(
     premises: "",
     district: "",
     operator: "",
-    centre_status: "",
   });
 
   const priceHeaders = useMemo(
@@ -137,15 +132,13 @@ export function usePremisesFlatList(
     const premisesQ = colFilters.premises.trim().toLowerCase();
     const districtQ = colFilters.district.trim().toLowerCase();
     const operatorQ = colFilters.operator.trim().toLowerCase();
-    const centreStatusQ = colFilters.centre_status.trim().toLowerCase();
 
     const filtered = asArray<PremisesListItem>(props.rows).filter((row) => {
       const listLabel = formatPremisesListLabel(row.building_name_en, row.floor, row.unit).toLowerCase();
       if (!fuzzyMatch(listLabel === "—" ? "" : listLabel, premisesQ)) return false;
       if (!fuzzyMatch(row.district_en, districtQ)) return false;
-      const party = formatPremisesOperatorLandlord(row.operator_name, row.landlord_name);
-      if (!fuzzyMatch(party === "Not assigned" ? "" : party, operatorQ)) return false;
-      if (!fuzzyMatch(row.centre_status ?? "Active", centreStatusQ)) return false;
+      const related = formatPremisesRelatedCompaniesSearchText(row);
+      if (!fuzzyMatch(related, operatorQ)) return false;
       return true;
     });
 
@@ -160,14 +153,10 @@ export function usePremisesFlatList(
           return compareText(a.district_en ?? "", b.district_en ?? "", sortDir);
         case "operator":
           return compareText(
-            formatPremisesOperatorLandlord(a.operator_name, a.landlord_name),
-            formatPremisesOperatorLandlord(b.operator_name, b.landlord_name),
+            formatPremisesRelatedCompaniesSearchText(a),
+            formatPremisesRelatedCompaniesSearchText(b),
             sortDir,
           );
-        case "centre_status":
-          return compareText(a.centre_status ?? "Active", b.centre_status ?? "Active", sortDir);
-        case "desks":
-          return compareNullableNum(parseNum(a.workstation_count), parseNum(b.workstation_count), sortDir);
         case "gross_area":
           return compareNullableNum(parseNum(a.gross_area_sqft), parseNum(b.gross_area_sqft), sortDir);
         case "price":
@@ -227,7 +216,7 @@ export function usePremisesFlatList(
   }
 
   const theme = moduleAccentClasses("properties");
-  const colSpan = 10;
+  const colSpan = 7;
 
   return {
     ...props,

@@ -9,6 +9,7 @@ import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { OPPORTUNITY_STATUS_LABELS } from "@/lib/lookups";
 import { opportunityStatusChip } from "@/lib/opportunityStatusTheme";
 import { companyFullPageHref, contactFullPageHref } from "@/lib/crmDetailNav";
+import { opportunityPrimaryContactLabel } from "@/lib/crmSelectOptions";
 import { AdminEntityLink } from "@/components/admin/AdminEntityLink";
 import { buildOpportunitiesReturnTo } from "@/lib/opportunitiesDrawerNav";
 import { opportunityWorkspaceHref } from "@/lib/opportunityWorkspaceNav";
@@ -56,7 +57,7 @@ export function OpportunityDrawerHeader({
                 )}
                 className="text-sm text-slate-600 underline-offset-2 hover:underline"
               >
-                {opportunity.primary_contact_name}
+                {opportunityPrimaryContactLabel(opportunity)}
               </AdminEntityLink>
             ) : null}
           </div>

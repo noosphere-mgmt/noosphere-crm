@@ -25,7 +25,7 @@ import {
   OPPORTUNITY_FUNDING_STATUSES,
   OPPORTUNITY_FUNDING_STATUS_LABELS,
   isLeaseLikeSalesRole,
-  isOtherSalesRole,
+  isNonPropertySalesRole,
   isSaleCaseSalesRole,
   normalizeOpportunitySalesRole,
   type OpportunitySalesRole,
@@ -165,7 +165,7 @@ export function OpportunityRequirementSection({
   salesRole?: OpportunitySalesRole | null;
 }) {
   const salesRole = normalizeOpportunitySalesRole(salesRoleProp ?? opportunity.sales_role);
-  const profService = isOtherSalesRole(salesRole);
+  const profService = isNonPropertySalesRole(salesRole);
   const isLease = isLeaseLikeSalesRole(salesRole);
   const isBuy = salesRole === "to_buy";
   const isSaleCase = isSaleCaseSalesRole(salesRole);

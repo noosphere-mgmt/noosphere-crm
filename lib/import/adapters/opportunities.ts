@@ -65,6 +65,8 @@ const FIELD_KEYS = [
   "next_action",
   "next_action_date",
   "internal_remarks",
+  "commission_income",
+  "related_costs",
   // Legacy / removed-from-UI (importable, hidden from template/export)
   "lead_type",
   "sales_type",
@@ -112,6 +114,8 @@ const SELECT = `
   o.next_action,
   o.next_action_date::text AS next_action_date,
   o.remarks AS internal_remarks,
+  o.commission_income::text AS commission_income,
+  o.related_costs::text AS related_costs,
   o.lead_type,
   o.property_type AS sales_type,
   o.property_type AS usage_type,
@@ -161,6 +165,8 @@ function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
   if ("waiting_for" in values) p.waiting_for = values.waiting_for;
   if ("next_action" in values) p.next_action = values.next_action;
   if ("next_action_date" in values) p.next_action_date = values.next_action_date;
+  if ("commission_income" in values) p.commission_income = values.commission_income;
+  if ("related_costs" in values) p.related_costs = values.related_costs;
   if ("sales_role" in values) {
     p.sales_role = normalizeOpportunitySalesRole(
       values.sales_role == null ? "" : String(values.sales_role),
@@ -225,6 +231,8 @@ const FIELD_LABELS: Partial<Record<(typeof FIELD_KEYS)[number], string>> = {
   next_action: "Next Action",
   next_action_date: "Next Action Date",
   internal_remarks: "Internal Remarks",
+  commission_income: "Commission / Income (HKD)",
+  related_costs: "Related Costs (HKD)",
 };
 
 function opportunityFieldDef(key: (typeof FIELD_KEYS)[number]): ImportFieldDef {
@@ -294,11 +302,11 @@ function opportunityFieldDef(key: (typeof FIELD_KEYS)[number]): ImportFieldDef {
       type: "enum",
       enumValues: [...OPPORTUNITY_SALES_ROLES],
       defaultValue: "to_lease",
-      aliases: ["prof_service"],
+      aliases: ["prof_service", "ppty_buy", "ppty_rent", "ppty-buy", "ppty-rent"],
     };
   }
   if (key.includes("date")) return { ...base, type: "date" };
-  if (["required_capacity_pax", "required_area_sqft", "budget_min", "budget_max"].includes(key)) {
+  if (["required_capacity_pax", "required_area_sqft", "budget_min", "budget_max", "commission_income", "related_costs"].includes(key)) {
     return { ...base, type: "number" };
   }
   return { ...base, type: "string" };
@@ -463,7 +471,7 @@ export const opportunitiesImportDefinition: ImportObjectDefinition = {
       legacyNumeric: id,
     });
     const extra = dbPatch(values);
-    for (const key of ["budget_min", "lost_reason", "relationship_owner", "referrer_company_id", "referrer_contact_id", "waiting_for", "next_action", "next_action_date"]) {
+    for (const key of ["budget_min", "lost_reason", "relationship_owner", "referrer_company_id", "referrer_contact_id", "waiting_for", "next_action", "next_action_date", "commission_income", "related_costs"]) {
       if (!(key in extra)) continue;
       await genericUpdateRecord("opportunities", "id", id, { [key]: extra[key] }, ctx);
     }

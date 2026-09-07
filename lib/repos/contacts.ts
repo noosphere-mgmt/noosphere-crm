@@ -1,6 +1,6 @@
-import { cache } from "react";
 import { query } from "@/lib/db";
 import { allocateNextBusinessId, ensureLegacyBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
+import { sqlContactListVisible } from "@/lib/contactVisibility";
 import { coerceLegacyContactId } from "@/lib/entityRefGuards";
 import { resolveContactName, sqlContactDisplayName, syncContactDerivedNames } from "@/lib/contactName";
 import { normalizePhoneAreaCode } from "@/lib/phoneAreaCodes";
@@ -107,6 +107,7 @@ export async function listContacts(companyId?: number): Promise<Contact[]> {
      LEFT JOIN companies_v1 cv ON cv.legacy_company_id = co.id
      LEFT JOIN contacts_v1 cm ON cm.legacy_contact_id = c.id
      WHERE c.company_id::text = $1::text
+       AND ${sqlContactListVisible("c")}
      ORDER BY c.is_primary DESC, ${sqlContactDisplayName("c")} ASC`,
     [companyId],
   );
@@ -128,6 +129,7 @@ export async function listContacts(companyId?: number): Promise<Contact[]> {
        WHERE (o.primary_contact_id = c.id OR op.contact_id = c.id)
          AND o.status NOT IN ('closed_won', 'closed_lost')
      ) opp ON TRUE
+     WHERE ${sqlContactListVisible("c")}
      ORDER BY co.company_name ASC, c.is_primary DESC, ${sqlContactDisplayName("c")} ASC`,
   );
 }
@@ -137,27 +139,70 @@ export type ContactOption = {
   company_id: number | null;
   company_ref?: string | null;
   contact_name: string;
+  chinese_name?: string | null;
   is_primary: boolean;
+  is_active?: boolean;
   business_id?: string | null;
   v1_contact_id?: string | null;
 };
 
-export const listContactOptions = cache(async function listContactOptions(): Promise<ContactOption[]> {
-  return query<ContactOption>(
-    `SELECT c.id,
-            CASE WHEN c.company_id::text ~ '^\\d+$' THEN c.company_id::text::int ELSE co.id END AS company_id,
-            c.company_id::text AS company_ref,
-            ${sqlContactDisplayName("c")} AS contact_name,
-            c.is_primary,
-            COALESCE(c.business_id, cm.business_id) AS business_id,
-            cm.contact_id AS v1_contact_id
-     FROM contacts c
-     LEFT JOIN companies co ON co.id::text = c.company_id::text
-     LEFT JOIN contacts_v1 cm ON cm.legacy_contact_id = c.id
-     WHERE c.is_active = TRUE
+const contactOptionSelect = `
+  SELECT c.id,
+          CASE WHEN c.company_id::text ~ '^\\d+$' THEN c.company_id::text::int ELSE co.id END AS company_id,
+          c.company_id::text AS company_ref,
+          ${sqlContactDisplayName("c")} AS contact_name,
+          c.chinese_name,
+          c.is_primary,
+          c.is_active,
+          COALESCE(c.business_id, cm.business_id) AS business_id,
+          cm.contact_id AS v1_contact_id
+   FROM contacts c
+   LEFT JOIN companies co ON co.id::text = c.company_id::text
+   LEFT JOIN contacts_v1 cm ON cm.legacy_contact_id = c.id
+`;
+
+async function queryContactOptions(whereSql: string, params: unknown[] = []): Promise<ContactOption[]> {
+  const rows = await query<ContactOption>(
+    `${contactOptionSelect}
+     WHERE ${whereSql}
      ORDER BY company_id, c.is_primary DESC, ${sqlContactDisplayName("c")} ASC`,
+    params,
   );
-});
+  return rows.map((row) => ({
+    ...row,
+    id: Number(row.id),
+    company_id: row.company_id == null ? null : Number(row.company_id),
+  }));
+}
+
+function uniqueContactIds(includeIds?: Array<number | string | null | undefined>): number[] {
+  const ids = new Set<number>();
+  for (const raw of includeIds ?? []) {
+    const id = coerceLegacyContactId(raw);
+    if (id != null) ids.add(id);
+  }
+  return [...ids];
+}
+
+/** Visible Contact-list records only — same rule as `listContacts`. */
+export async function listVisibleContactOptions(): Promise<ContactOption[]> {
+  return queryContactOptions(sqlContactListVisible("c"));
+}
+
+/**
+ * Opportunity / lead contact picker source.
+ * Defaults to Contact-list visibility. Pass `includeIds` so an existing
+ * Opportunity can still display a historically linked inactive contact.
+ */
+export async function listContactOptions(
+  includeIds?: Array<number | string | null | undefined>,
+): Promise<ContactOption[]> {
+  const visible = await listVisibleContactOptions();
+  const extras = uniqueContactIds(includeIds).filter((id) => !visible.some((row) => row.id === id));
+  if (extras.length === 0) return visible;
+  const historical = await queryContactOptions(`c.id = ANY($1::bigint[])`, [extras]);
+  return [...visible, ...historical];
+}
 
 export async function getContact(id: number | string): Promise<Contact | null> {
   const legacyId = coerceLegacyContactId(id);
@@ -260,10 +305,13 @@ export async function updateContact(id: number, input: ContactInput): Promise<vo
 }
 
 export async function deleteContact(id: number): Promise<void> {
-  await query(`DELETE FROM contacts WHERE id = $1`, [id]);
+  await query(`UPDATE contacts SET is_active = FALSE, updated_at = NOW() WHERE id = $1`, [id]);
 }
 
 export async function bulkDeleteContacts(ids: number[]): Promise<void> {
   if (ids.length === 0) return;
-  await query(`DELETE FROM contacts WHERE id = ANY($1::bigint[])`, [ids]);
+  await query(
+    `UPDATE contacts SET is_active = FALSE, updated_at = NOW() WHERE id = ANY($1::bigint[])`,
+    [ids],
+  );
 }

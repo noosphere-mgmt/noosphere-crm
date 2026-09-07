@@ -2,15 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { FormField, TextAreaField } from "@/components/admin/AdminFormFields";
-import {
-  OpportunityRequirementFields,
-  OpportunitySalesRoleSelect,
-  fieldGrid,
-  labelClass,
-  selectClass,
-} from "@/components/admin/opportunities/OpportunityRequirementFields";
+import { OpportunityRequirementFields, OpportunitySalesRoleSelect, fieldGrid, labelClass, selectClass } from "@/components/admin/opportunities/OpportunityRequirementFields";
+import { OpportunityPartyContactSelect } from "@/components/admin/opportunities/OpportunityPartyContactSelect";
 import { useFormEditing } from "@/components/admin/ModuleActionBar";
-import { contactsForCompany } from "@/lib/contactCompanyFilter";
 import {
   OPPORTUNITY_STATUSES,
   OPPORTUNITY_STATUS_LABELS,
@@ -21,7 +15,7 @@ import {
 } from "@/lib/openOpportunityStatus";
 import {
   type OpportunitySalesRole,
-  isProfServiceSalesRole,
+  isNonPropertySalesRole,
   normalizeOpportunitySalesRole,
 } from "@/lib/opportunityValues";
 import { toLegacyCompanySelectOptions, toLegacyContactSelectOptions, resolveCompanySelectValue, resolveContactSelectValue } from "@/lib/crmSelectOptions";
@@ -47,18 +41,10 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
   const [companyId, setCompanyId] = useState(
     resolveCompanySelectValue(companies, defaults?.company_id),
   );
-  const [primaryContactId, setPrimaryContactId] = useState(
-    resolveContactSelectValue(contacts, defaults?.primary_contact_id),
-  );
   const [salesRole, setSalesRole] = useState<OpportunitySalesRole>(
     normalizeOpportunitySalesRole(defaults?.sales_role),
   );
   const [status, setStatus] = useState<OpportunityStatus>(defaults?.status ?? "qualifying");
-
-  const contactsForCompanyList = useMemo(
-    () => contactsForCompany(contacts, companyId, companies),
-    [companyId, contacts, companies],
-  );
 
   const opportunityDefaults: Opportunity = {
     id: defaults?.id ?? 0,
@@ -93,19 +79,14 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
     next_action_date: defaults?.next_action_date ?? null,
     requirement_summary: defaults?.requirement_summary ?? null,
     remarks: defaults?.remarks ?? null,
+    commission_income: defaults?.commission_income ?? null,
+    related_costs: defaults?.related_costs ?? null,
     created_at: defaults?.created_at ?? "",
     updated_at: defaults?.updated_at ?? "",
   };
 
   function onCompanyChange(next: string) {
     setCompanyId(next);
-    const nextContacts = contactsForCompany(contacts, next, companies);
-    const stillValid = nextContacts.some(
-      (c) => resolveContactSelectValue(contacts, c.id) === primaryContactId,
-    );
-    if (!stillValid) {
-      setPrimaryContactId("");
-    }
   }
 
   return (
@@ -159,27 +140,17 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
               ))}
             </select>
           </label>
-          <label className="block min-w-0 text-sm">
-            <span className={labelClass}>Contact</span>
-            <select
-              name="primary_contact_id"
-              value={primaryContactId}
-              onChange={(e) => setPrimaryContactId(e.target.value)}
-              className={editing ? selectClass : selectReadOnlyClass}
-              disabled={!editing}
-            >
-              <option value="">— Select contact —</option>
-              {contactsForCompanyList.map((c) => {
-                const value = resolveContactSelectValue(contacts, c.id);
-                const opt = contactOptions.find((o) => o.value === value);
-                return (
-                  <option key={c.id} value={value}>
-                    {opt?.label ?? c.contact_name}
-                  </option>
-                );
-              })}
-            </select>
-          </label>
+          <OpportunityPartyContactSelect
+            instanceKey={`opportunity-form-${defaults?.id ?? "new"}-${companyId}`}
+            companyId={companyId}
+            contacts={contacts}
+            companies={companies}
+            contactOptions={contactOptions}
+            defaultContactId={resolveContactSelectValue(contacts, defaults?.primary_contact_id)}
+            fieldName="primary_contact_id"
+            disabled={!editing}
+            emptyLabel="— Select contact —"
+          />
           <input type="hidden" name="lead_type" value={defaults?.lead_type ?? "direct_client"} />
           <label className="block min-w-0 text-sm">
             <span className={labelClass}>Lead/Opp Source</span>
@@ -219,8 +190,26 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
         <OpportunityRequirementFields opportunity={opportunityDefaults} salesRole={salesRole} editing={editing} />
       </div>
 
+      <div className="rounded-lg border border-slate-200 bg-white p-4">
+        <p className="mb-3 text-sm font-medium text-slate-800">Financials</p>
+        <dl className={fieldGrid}>
+          <FormField
+            label="Commission / Income (HKD)"
+            name="commission_income"
+            type="number"
+            defaultValue={defaults?.commission_income ?? ""}
+          />
+          <FormField
+            label="Related Costs (HKD)"
+            name="related_costs"
+            type="number"
+            defaultValue={defaults?.related_costs ?? ""}
+          />
+        </dl>
+      </div>
+
       <TextAreaField label="Internal Remarks" name="remarks" defaultValue={defaults?.remarks ?? ""} />
-      {!isProfServiceSalesRole(salesRole) ? (
+      {!isNonPropertySalesRole(salesRole) ? (
         <p className="text-xs text-slate-500">
           District: comma-separated (e.g. Central, Admiralty, Causeway Bay).
         </p>

@@ -20,7 +20,7 @@ import {
 } from "@/lib/openOpportunityStatus";
 import { OPPORTUNITY_SOURCES, OPPORTUNITY_SOURCE_LABELS } from "@/lib/opportunitySourceValues";
 import {
-  OPPORTUNITY_SALES_ROLES,
+  opportunitySalesRoleSelectOptions,
   normalizeOpportunitySalesRole,
   opportunitySalesRoleLabel,
   type OpportunitySalesRole,
@@ -30,6 +30,7 @@ import {
   toLegacyContactSelectOptions,
   resolveCompanySelectValue,
   resolveContactSelectValue,
+  opportunityPrimaryContactLabel,
 } from "@/lib/crmSelectOptions";
 import type { CompanyOption } from "@/lib/repos/companies";
 import type { ContactOption } from "@/lib/repos/contacts";
@@ -265,7 +266,7 @@ export function OpportunityOverviewFields({
                 contactOptions={contactOptions}
                 defaultContactId={resolveContactSelectValue(contacts, opportunity.primary_contact_id)}
                 fieldName="primary_contact_id"
-                onNewContact={() => {}}
+                emptyLabel="— Select contact —"
               />
               <input type="hidden" name="lead_type" value={opportunity.lead_type ?? "direct_client"} />
               <label className="block min-w-0 text-sm">
@@ -286,7 +287,7 @@ export function OpportunityOverviewFields({
                   onChange={(e) => setSalesRole(e.target.value as OpportunitySalesRole)}
                   className={selectClass}
                 >
-                  {OPPORTUNITY_SALES_ROLES.map((role) => (
+                  {opportunitySalesRoleSelectOptions(salesRole).map((role) => (
                     <option key={role} value={role}>
                       {opportunitySalesRoleLabel(role)}
                     </option>
@@ -333,7 +334,7 @@ export function OpportunityOverviewFields({
                       )}
                       className="underline-offset-2 hover:underline"
                     >
-                      {opportunity.primary_contact_name}
+                      {opportunityPrimaryContactLabel(opportunity) || opportunity.primary_contact_name}
                     </AdminEntityLink>
                   ) : null
                 }

@@ -19,12 +19,18 @@ import {
   closedOutcomeReasonLabel,
   isClosedOpportunityStatus,
 } from "@/lib/openOpportunityStatus";
-import { contactsForCompany } from "@/lib/contactCompanyFilter";
+import { selectableContactsForCompany } from "@/lib/contactCompanyFilter";
+import { isSelectableContact } from "@/lib/contactVisibility";
 import { partiesSummaryRows } from "@/lib/opportunityPartiesDisplay";
 import {
-  OPPORTUNITY_SALES_ROLES,
+  formatOpportunityMoney,
+  opportunityNetProfit,
+  parseOpportunityMoney,
+} from "@/lib/opportunityFinancials";
+import {
   OPPORTUNITY_SALES_ROLE_LABELS,
   normalizeOpportunitySalesRole,
+  opportunitySalesRoleSelectOptions,
 } from "@/lib/opportunityValues";
 import { OPPORTUNITY_SOURCES, OPPORTUNITY_SOURCE_LABELS } from "@/lib/opportunitySourceValues";
 import type { OpportunityDetailData } from "@/lib/repos/opportunityDetail";
@@ -37,19 +43,30 @@ export function OpportunityInlineOverview({ data }: { data: OpportunityDetailDat
 
   const companyContacts = useMemo(() => {
     const companyValue = resolveCompanySelectValue(companies as CompanyOption[], opportunity.company_id);
-    return contactsForCompany(contacts, companyValue, companies as CompanyOption[]);
-  }, [contacts, companies, opportunity.company_id]);
+    const selectable = selectableContactsForCompany(contacts, companyValue, companies as CompanyOption[]);
+    const currentValue = resolveContactSelectValue(contacts, opportunity.primary_contact_id);
+    const historical = contacts.find(
+      (contact) =>
+        resolveContactSelectValue(contacts, contact.id) === currentValue && !isSelectableContact(contact),
+    );
+    return historical ? [historical, ...selectable.filter((contact) => contact.id !== historical.id)] : selectable;
+  }, [contacts, companies, opportunity.company_id, opportunity.primary_contact_id]);
 
-  const contactOptions = useMemo(
-    () => [
+  const contactOptions = useMemo(() => {
+    const labels = new Map(
+      toLegacyContactSelectOptions(companyContacts).map((option) => [option.value, option.label] as const),
+    );
+    return [
       { value: "", label: "—" },
-      ...toLegacyContactSelectOptions(companyContacts).map((c) => ({
-        value: c.value,
-        label: c.label,
-      })),
-    ],
-    [companyContacts],
-  );
+      ...companyContacts.map((contact) => {
+        const value = resolveContactSelectValue(contacts, contact.id);
+        return {
+          value,
+          label: labels.get(value) ?? contact.contact_name,
+        };
+      }),
+    ];
+  }, [companyContacts, contacts]);
 
   const save = useCallback(
     (field: string) => async (value: unknown) => {
@@ -89,7 +106,7 @@ export function OpportunityInlineOverview({ data }: { data: OpportunityDetailDat
         <InlineSelectField
           label="Sales Role"
           value={normalizeOpportunitySalesRole(opportunity.sales_role)}
-          options={OPPORTUNITY_SALES_ROLES.map((r) => ({
+          options={opportunitySalesRoleSelectOptions(opportunity.sales_role).map((r) => ({
             value: r,
             label: OPPORTUNITY_SALES_ROLE_LABELS[r],
           }))}
@@ -149,6 +166,34 @@ export function OpportunityInlineOverview({ data }: { data: OpportunityDetailDat
           compact
           fullWidth
         />
+      </DrawerOverviewCard>
+
+      <DrawerOverviewCard title="Financials" columns={3} dense={false} className="w-full">
+        <InlineTextField
+          label="Commission / Income (HKD)"
+          type="number"
+          value={opportunity.commission_income}
+          onSave={save("commission_income")}
+          useGrouping={false}
+        />
+        <InlineTextField
+          label="Related Costs (HKD)"
+          type="number"
+          value={opportunity.related_costs}
+          onSave={save("related_costs")}
+          useGrouping={false}
+        />
+        <div className="min-w-0 py-1">
+          <dt className={labelClass}>Net Profit</dt>
+          <dd className="mt-1 text-sm font-semibold tabular-nums text-slate-900">
+            {formatOpportunityMoney(
+              opportunityNetProfit(
+                parseOpportunityMoney(opportunity.commission_income),
+                parseOpportunityMoney(opportunity.related_costs),
+              ),
+            )}
+          </dd>
+        </div>
       </DrawerOverviewCard>
     </div>
   );

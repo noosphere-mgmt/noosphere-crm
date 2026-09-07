@@ -1,6 +1,6 @@
 import { formatOpportunityBudget } from "@/lib/opportunityFormParsing";
 import { opportunityWorkspaceHref } from "@/lib/opportunityWorkspaceNav";
-import { isProfServiceSalesRole } from "@/lib/opportunityValues";
+import { isNonPropertySalesRole } from "@/lib/opportunityValues";
 import type { OpportunityDetailData } from "@/lib/repos/opportunityDetail";
 
 export type DeskActionLink = {
@@ -16,7 +16,7 @@ export type DeskPendingItem = {
 
 function requirementsIncomplete(data: OpportunityDetailData): boolean {
   const { opportunity } = data;
-  if (isProfServiceSalesRole(opportunity.sales_role)) {
+  if (isNonPropertySalesRole(opportunity.sales_role)) {
     return !opportunity.requirement_summary?.trim();
   }
   const budget = formatOpportunityBudget(opportunity.budget_max, opportunity.budget_min);
@@ -29,7 +29,7 @@ export function deriveNextAction(
 ): DeskActionLink {
   const { opportunity, proposedPremises, proposals } = data;
 
-  if (isProfServiceSalesRole(opportunity.sales_role)) {
+  if (isNonPropertySalesRole(opportunity.sales_role)) {
     return {
       label: "Add communication note",
       href: opportunityWorkspaceHref(opportunity, "timeline"),
@@ -91,7 +91,7 @@ export function collectPendingItems(
   const { opportunity, proposedPremises, proposals, activities } = data;
   const items: DeskPendingItem[] = [];
 
-  if (isProfServiceSalesRole(opportunity.sales_role)) {
+  if (isNonPropertySalesRole(opportunity.sales_role)) {
     if (activities.length === 0) {
       items.push({
         label: "No notes logged",

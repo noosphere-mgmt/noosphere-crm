@@ -255,7 +255,13 @@ export type Contact = {
   v1_contact_id?: string | null;
 };
 
-export type OpportunitySalesRole = "to_lease" | "to_let" | "to_buy" | "to_sell" | "others";
+export type OpportunitySalesRole =
+  | "to_lease"
+  | "to_let"
+  | "to_buy"
+  | "to_sell"
+  | "ad_prof_service"
+  | "others";
 
 export type OpportunityFundingStatus =
   | "cash"
@@ -297,12 +303,16 @@ export type Opportunity = {
   next_action_date: string | null;
   requirement_summary: string | null;
   remarks: string | null;
+  commission_income: string | null;
+  related_costs: string | null;
+  net_profit?: string | null;
   created_at: string;
   updated_at: string;
   linked_company_name?: string | null;
   linked_company_business_id?: string | null;
   primary_contact_name?: string | null;
   primary_contact_business_id?: string | null;
+  primary_contact_is_active?: boolean | null;
   business_id?: string | null;
   v1_opportunity_id?: string | null;
   referrer_company_name?: string | null;

@@ -103,6 +103,12 @@ export type DashboardData = {
   upcoming_activities: DashboardUpcomingActivity[];
   revenue_pipeline: DashboardRevenueRow[];
   revenue_totals: { opp_count: number; expected_fee: number; confirmed_fee: number };
+  won_financials: {
+    opp_count: number;
+    commission_income: number;
+    related_costs: number;
+    net_profit: number;
+  };
   top_referrers: DashboardReferrerPerformanceRow[];
   top_agents: DashboardPartyPerformanceRow[];
   top_proposed_premises: DashboardProposedPremisesRow[];
@@ -119,6 +125,25 @@ function num(v: unknown): number {
   if (v == null) return 0;
   const n = typeof v === "number" ? v : Number.parseFloat(String(v));
   return Number.isFinite(n) ? n : 0;
+}
+
+async function fetchWonFinancials(): Promise<DashboardData["won_financials"]> {
+  const rows = await query<Record<string, unknown>>(
+    `SELECT
+       COUNT(*)::text AS opp_count,
+       COALESCE(SUM(commission_income), 0)::text AS commission_income,
+       COALESCE(SUM(related_costs), 0)::text AS related_costs,
+       COALESCE(SUM(net_profit), 0)::text AS net_profit
+     FROM opportunities
+     WHERE status = 'closed_won'`,
+  );
+  const r = rows[0] ?? {};
+  return {
+    opp_count: num(r.opp_count),
+    commission_income: num(r.commission_income),
+    related_costs: num(r.related_costs),
+    net_profit: num(r.net_profit),
+  };
 }
 
 async function fetchPipelineKpis(): Promise<DashboardPipelineKpis> {
@@ -598,11 +623,12 @@ async function fetchRelationshipNetwork(): Promise<DashboardRelationshipNode[]> 
 export async function fetchDashboardData(): Promise<DashboardData> {
   // The current dashboard uses only these four reports. Keep the remaining
   // result keys empty for API compatibility without running unused queries.
-  const [pipeline, attention, top_referrers, relationship_network] = await Promise.all([
+  const [pipeline, attention, top_referrers, relationship_network, won_financials] = await Promise.all([
     fetchPipelineKpis(),
     fetchAttentionRequired(),
     fetchTopReferrers(),
     fetchRelationshipNetwork(),
+    fetchWonFinancials(),
   ]);
 
   return {
@@ -611,6 +637,7 @@ export async function fetchDashboardData(): Promise<DashboardData> {
     upcoming_activities: [],
     revenue_pipeline: [],
     revenue_totals: { opp_count: 0, expected_fee: 0, confirmed_fee: 0 },
+    won_financials,
     top_referrers,
     top_agents: [],
     top_proposed_premises: [],

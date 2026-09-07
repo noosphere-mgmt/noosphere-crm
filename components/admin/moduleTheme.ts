@@ -63,6 +63,7 @@ export function moduleAccentClasses(module: AdminModuleKey | undefined): ModuleT
         filterPillActive: "rounded-full bg-[#EFF6FF] px-3 py-1 text-xs font-semibold text-[#1D4ED8] ring-1 ring-[#BFDBFE]",
         filterPillInactive: pillInactive,
         rowIconEdit: "text-[#2563EB] hover:bg-[#EFF6FF]",
+        shellBg: "bg-gradient-to-b from-[#EFF6FF]/70 via-[#F8FAFC] to-[#F8FAFC]",
       };
     case "connections":
       return {

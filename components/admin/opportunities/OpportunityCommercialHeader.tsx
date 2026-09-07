@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 import { patchOpportunityFieldAction } from "@/app/admin/opportunities/actions";
 import { useOptionalInlineEdit } from "@/components/admin/inline/InlineEditProvider";
 import {
+  formatOpportunityMoney,
+  isRealisedWonRevenue,
+  opportunityFinancials,
+} from "@/lib/opportunityFinancials";
+import {
   OPPORTUNITY_STATUS_LABELS,
   OPPORTUNITY_STATUS_PROBABILITY,
   formatOpportunityActionDate,
@@ -155,6 +160,8 @@ export function OpportunityCommercialHeader({ opportunity }: { opportunity: Oppo
 
   const probability = OPPORTUNITY_STATUS_PROBABILITY[status];
   const chip = opportunityStatusChip(status);
+  const financials = opportunityFinancials(opportunity);
+  const realised = isRealisedWonRevenue(status);
   const saveHint =
     inline?.saveStatus === "saving" || savingStatus
       ? "Saving…"
@@ -166,7 +173,7 @@ export function OpportunityCommercialHeader({ opportunity }: { opportunity: Oppo
 
   return (
     <section className="w-full min-w-0 sm:w-auto sm:min-w-[28rem]">
-      <dl className="grid grid-cols-3 gap-1.5">
+      <dl className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-5">
         <Metric
           label="Status"
           tone="border-violet-100 bg-violet-50/70"
@@ -222,6 +229,39 @@ export function OpportunityCommercialHeader({ opportunity }: { opportunity: Oppo
             displayValue={formatOpportunityActionDate(opportunity.expected_close_date)}
             onSave={(value) => saveField("expected_close_date", value)}
           />
+        </Metric>
+        <Metric
+          label={realised ? "Won Revenue" : "Commission / Income"}
+          tone="border-amber-100 bg-amber-50/70"
+          hint={realised ? "Realised Won Revenue" : "Estimated — realised only when Won"}
+        >
+          <div className="flex items-center px-1 py-1">
+            <span className="text-sm font-semibold tabular-nums text-slate-900">
+              {formatOpportunityMoney(financials.commission_income)}
+            </span>
+          </div>
+        </Metric>
+        <Metric
+          label="Net Profit"
+          tone={
+            (financials.net_profit ?? 0) < 0
+              ? "border-rose-100 bg-rose-50/70"
+              : "border-emerald-100 bg-emerald-50/70"
+          }
+        >
+          <div className="flex items-center px-1 py-1">
+            <span
+              className={`text-sm font-semibold tabular-nums ${
+                financials.net_profit == null
+                  ? "text-slate-400"
+                  : financials.net_profit < 0
+                    ? "text-rose-800"
+                    : "text-emerald-800"
+              }`}
+            >
+              {formatOpportunityMoney(financials.net_profit)}
+            </span>
+          </div>
         </Metric>
       </dl>
       {saveHint ? (

@@ -38,7 +38,7 @@ export function analyseOpportunityRequirement(text: string): RequirementSuggesti
   };
 
   if (/bank account|incorporat|company secretar|銀行戶口|银行账户|公司註冊|公司注册/.test(lower)) {
-    push("sales_role", "Sales Role", "others");
+    push("sales_role", "Sales Role", "ad_prof_service");
   } else if (/sell|sale|disposal|dispose|出售|放售/.test(lower)) {
     push("sales_role", "Sales Role", "to_sell");
   } else if (/buy|purchase|acquisition|acquire|買入|购买|收購|收购/.test(lower)) {
@@ -84,8 +84,9 @@ export function analyseOpportunityRequirement(text: string): RequirementSuggesti
 
 export function requirementSuggestionDisplayValue(item: RequirementSuggestion): string {
   const labels: Record<string, string> = {
-    to_lease: "To Lease", to_let: "To Let", to_buy: "To Buy", to_sell: "To Sell", others: "Others",
-    prof_service: "Others",
+    to_lease: "Ppty-Rent", to_let: "Ppty-Rent", to_buy: "Ppty-Buy", to_sell: "Ppty-Buy",
+    ad_prof_service: "Ad Prof Service", others: "Others",
+    prof_service: "Ad Prof Service",
     commercial: "Commercial", residential: "Residential", industrial: "Industrial",
     conventional_office: "Conventional Office", serviced_office: "Serviced Office",
     shared_sublet_office: "Shared / Sublet Office", shared_sublet: "Shared / Sublet Office",

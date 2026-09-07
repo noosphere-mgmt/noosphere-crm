@@ -38,6 +38,7 @@ type Props = {
     offers_stamp_duty?: string;
     package_offers?: string;
     monthly_rent_max?: string;
+    lease_expiry_within_months?: string;
     premises?: string;
     mode?: string;
     tab?: string;
@@ -65,6 +66,7 @@ export default async function AllPremisesPage({ searchParams }: Props) {
     offers_stamp_duty: sp.offers_stamp_duty?.trim() || undefined,
     package_offers: sp.package_offers?.trim() || undefined,
     monthly_rent_max: sp.monthly_rent_max?.trim() || undefined,
+    lease_expiry_within_months: sp.lease_expiry_within_months?.trim() || undefined,
   };
 
   const premisesRef = sp.premises?.trim();

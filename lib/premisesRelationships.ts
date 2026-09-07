@@ -3,10 +3,16 @@ import type { PremisesV1 } from "@/lib/repos/premisesV1";
 import type { CompanyLookupMaps } from "@/lib/companyIdResolve";
 import { resolveToV1CompanyId } from "@/lib/companyIdResolve";
 import { asArray } from "@/lib/asArray";
+import { resolveOccupantLeaseTerm } from "@/lib/occupantLease";
 import {
   coerceCompanyIdToSelectValue,
   type CompanyV1SelectOption,
 } from "@/lib/companyV1Display";
+
+export function isCurrentOccupantRelationshipType(value: string | null | undefined): boolean {
+  const key = relationshipTypeKey(value);
+  return key === "current occupant" || key === "current tenant";
+}
 
 export function relationshipLineHasContent(line: PremisesRelationshipLine): boolean {
   return Boolean(
@@ -17,7 +23,10 @@ export function relationshipLineHasContent(line: PremisesRelationshipLine): bool
       line.partnership_mode?.trim() ||
       line.contact_role?.trim() ||
       line.source_url?.trim() ||
-      line.source_file?.trim(),
+      line.source_file?.trim() ||
+      line.lease_commencement?.trim() ||
+      line.lease_expiry?.trim() ||
+      line.lease_term?.trim(),
   );
 }
 
@@ -48,16 +57,24 @@ export function parseRelationshipLines(raw: unknown): PremisesRelationshipLine[]
 export function normalizePremisesRelationshipLines(
   raw: unknown,
 ): PremisesRelationshipLine[] {
-  return parseRelationshipLines(raw).map((line) => ({
-    relationship_type: normalizePremisesRelationshipType(line.relationship_type),
-    company_id: line.company_id ?? null,
-    contact_id: line.contact_id ?? null,
-    contact_role: line.contact_role ?? null,
-    partnership_mode: line.partnership_mode ?? null,
-    source_url: line.source_url ?? null,
-    source_file: line.source_file ?? null,
-    remarks: line.remarks ?? null,
-  }));
+  return parseRelationshipLines(raw).map((line) => {
+    const commencement = line.lease_commencement?.trim() || null;
+    const expiry = line.lease_expiry?.trim() || null;
+    const term = resolveOccupantLeaseTerm(commencement, expiry, line.lease_term);
+    return {
+      relationship_type: normalizePremisesRelationshipType(line.relationship_type),
+      company_id: line.company_id ?? null,
+      contact_id: line.contact_id ?? null,
+      contact_role: line.contact_role ?? null,
+      partnership_mode: line.partnership_mode ?? null,
+      source_url: line.source_url ?? null,
+      source_file: line.source_file ?? null,
+      remarks: line.remarks ?? null,
+      lease_commencement: commencement,
+      lease_expiry: expiry,
+      lease_term: term,
+    };
+  });
 }
 
 export function coerceRelationshipLinesForSelect(
@@ -98,6 +115,9 @@ export function emptyRelationshipLine(): PremisesRelationshipLine {
     source_url: null,
     source_file: null,
     remarks: null,
+    lease_commencement: null,
+    lease_expiry: null,
+    lease_term: null,
   };
 }
 
@@ -120,9 +140,34 @@ export function upsertOwnerLandlordInLines(
       source_url: existing?.source_url ?? null,
       source_file: existing?.source_file ?? null,
       remarks: existing?.remarks ?? null,
+      lease_commencement: existing?.lease_commencement ?? null,
+      lease_expiry: existing?.lease_expiry ?? null,
+      lease_term: existing?.lease_term ?? null,
     },
     ...others,
   ];
+}
+
+function hydrateOccupantLeaseFromPremises(
+  lines: PremisesRelationshipLine[],
+  premises: PremisesV1,
+): PremisesRelationshipLine[] {
+  return lines.map((line) => {
+    if (!isCurrentOccupantRelationshipType(line.relationship_type)) return line;
+    const commencement = line.lease_commencement?.trim() || premises.occupant_lease_commencement;
+    const expiry = line.lease_expiry?.trim() || premises.occupant_lease_expiry;
+    const term = resolveOccupantLeaseTerm(
+      commencement,
+      expiry,
+      line.lease_term ?? premises.occupant_lease_term,
+    );
+    return {
+      ...line,
+      lease_commencement: commencement,
+      lease_expiry: expiry,
+      lease_term: term,
+    };
+  });
 }
 
 export function initialPremisesRelationshipLines(premises: PremisesV1): PremisesRelationshipLine[] {
@@ -132,10 +177,13 @@ export function initialPremisesRelationshipLines(premises: PremisesV1): Premises
     const hasOwnerLandlord = stored.some((line) =>
       isOwnerLandlordRelationshipType(line.relationship_type),
     );
-    if (hasOwnerLandlord) return stored;
+    if (hasOwnerLandlord) return hydrateOccupantLeaseFromPremises(stored, premises);
     const legacyOwner =
       premises.owner_company_id?.trim() || premises.landlord_company_id?.trim() || null;
-    return legacyOwner ? upsertOwnerLandlordInLines(stored, legacyOwner) : stored;
+    return hydrateOccupantLeaseFromPremises(
+      legacyOwner ? upsertOwnerLandlordInLines(stored, legacyOwner) : stored,
+      premises,
+    );
   }
 
   const lines: PremisesRelationshipLine[] = [];
@@ -175,6 +223,17 @@ export function initialPremisesRelationshipLines(premises: PremisesV1): Premises
     push("Owner/Landlord", premises.landlord_company_id);
   }
   push("Current Occupant", premises.current_tenant_company_id);
+  if (
+    !lines.some((line) => isCurrentOccupantRelationshipType(line.relationship_type)) &&
+    (premises.occupant_lease_commencement ||
+      premises.occupant_lease_expiry ||
+      premises.occupant_lease_term)
+  ) {
+    lines.push({
+      ...emptyRelationshipLine(),
+      relationship_type: "Current Occupant",
+    });
+  }
   push(
     "Source Agent",
     premises.source_company_id,
@@ -186,7 +245,10 @@ export function initialPremisesRelationshipLines(premises: PremisesV1): Premises
     premises.listing_remarks,
   );
 
-  return lines.length > 0 ? lines : [emptyRelationshipLine()];
+  return hydrateOccupantLeaseFromPremises(
+    lines.length > 0 ? lines : [emptyRelationshipLine()],
+    premises,
+  );
 }
 
 export function countPremisesRelationships(premises: PremisesV1): number {
@@ -222,6 +284,9 @@ export function syncRelationshipColumns(lines: unknown) {
     owner_company_id: primaryOwner,
     landlord_company_id: secondaryOwner,
     current_tenant_company_id: tenant?.company_id ?? null,
+    occupant_lease_commencement: tenant?.lease_commencement ?? null,
+    occupant_lease_expiry: tenant?.lease_expiry ?? null,
+    occupant_lease_term: tenant?.lease_term ?? null,
     source_company_id:
       source?.company_id ?? referrer?.company_id ?? agency?.company_id ?? bldgMgmt?.company_id ?? null,
     source_contact_id: source?.contact_id ?? null,
