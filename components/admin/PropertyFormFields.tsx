@@ -19,7 +19,7 @@ export function PropertyFormFields({ defaults }: Props) {
       <FormField label="Property name (TC)" name="name_zh" defaultValue={defaults?.name_zh ?? ""} />
       <label className="block text-sm font-medium text-slate-700">
         Property type
-        <select name="property_type" defaultValue={defaults?.property_type ?? "Commercial Building"} className={selectClass} required>
+        <select name="property_type" defaultValue={defaults?.property_type ?? "Commercial"} className={selectClass} required>
           {PROPERTY_TYPES.map((t) => (
             <option key={t} value={t}>{t}</option>
           ))}

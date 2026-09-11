@@ -252,10 +252,11 @@ export const buildingsImportDefinition: ImportObjectDefinition = {
     { key: "building_name_cn", label: "building_name_cn", type: "string", aliases: ["bldg_name_cn"] },
     {
       key: "building_type",
-      label: "building_type",
+      label: "Building Type",
       type: "enum",
       enumValues: [...PROPERTY_TYPES],
       aliases: ["category", "building type", "property_type", "property type"],
+      normalizeValue: (raw) => normalizeBuildingType(raw),
     },
     { key: "country", label: "country", type: "string", defaultValue: "Hong Kong" },
     {

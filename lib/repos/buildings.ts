@@ -50,7 +50,7 @@ function buildingValues(input: BuildingInput) {
     input.property_id ?? null,
     input.name_en.trim(),
     input.name_zh?.trim() || null,
-    input.property_type?.trim() || "Commercial Building",
+    input.property_type?.trim() || "Commercial",
     input.centre_type?.trim() || null,
     input.status ?? "active",
     input.country?.trim() || "Hong Kong",

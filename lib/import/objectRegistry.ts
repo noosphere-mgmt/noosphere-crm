@@ -27,6 +27,8 @@ export type ImportFieldDef = {
   label: string;
   type: ImportFieldType;
   aliases?: string[];
+  /** Map a cell value onto a canonical form before type checks (e.g. commercial → Commercial). */
+  normalizeValue?: (raw: string) => string | null;
   requiredOnCreate?: boolean;
   defaultValue?: unknown;
   integer?: boolean;

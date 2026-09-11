@@ -1,5 +1,6 @@
 import { query } from "@/lib/db";
 import { sqlJoinV1Company } from "@/lib/import/lookupSql";
+import { buildingTypeMatchValues, normalizeBuildingType } from "@/lib/lookups";
 import {
   coercePropertyV1PatchForDb,
   describePropertyV1UpdateParams,
@@ -105,6 +106,7 @@ const select = `
 function decoratePropertyV1(row: PropertyV1): PropertyV1 {
   return {
     ...row,
+    building_type: normalizeBuildingType(row.building_type) ?? row.building_type,
     building_relationship_lines: mergeLegacyCompanyIdsIntoBuildingRelationships(
       row.building_relationship_lines,
       row,
@@ -192,8 +194,14 @@ export async function listPropertiesV1(filters: PropertiesListFilters = {}): Pro
     params.push(`%${filters.q}%`);
   }
   if (filters.category) {
-    clauses.push(`building_type = $${params.length + 1}`);
-    params.push(filters.category);
+    const types = buildingTypeMatchValues(filters.category);
+    if (types.length === 1) {
+      clauses.push(`building_type = $${params.length + 1}`);
+      params.push(types[0]);
+    } else if (types.length > 1) {
+      clauses.push(`building_type = ANY($${params.length + 1}::text[])`);
+      params.push(types);
+    }
   }
   if (filters.title) {
     clauses.push(`title = $${params.length + 1}`);

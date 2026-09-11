@@ -41,6 +41,7 @@ export function offerTypeToSpaceForm(offerType: string, spaceType?: string | nul
 function buildingPropertyTypeToCategory(propertyType: string | null | undefined): string {
   switch (propertyType) {
     case "Industrial Building":
+    case "Industrial":
       return "Industrial";
     case "Residential":
       return "Residential";

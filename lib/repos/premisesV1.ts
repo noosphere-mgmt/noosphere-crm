@@ -1,5 +1,6 @@
 import { query } from "@/lib/db";
 import { sqlJoinV1Company } from "@/lib/import/lookupSql";
+import { buildingTypeMatchValues } from "@/lib/lookups";
 import {
   coercePremisesV1PatchForDb,
   describeV1UpdateParams,
@@ -643,8 +644,14 @@ function premisesFlatWhere(filters: PremisesFlatFilters): { where: string; param
     params.push(filters.title);
   }
   if (filters.building_type) {
-    clauses.push(`pr.building_type = $${i++}`);
-    params.push(filters.building_type);
+    const types = buildingTypeMatchValues(filters.building_type);
+    if (types.length === 1) {
+      clauses.push(`pr.building_type = $${i++}`);
+      params.push(types[0]);
+    } else if (types.length > 1) {
+      clauses.push(`pr.building_type = ANY($${i++}::text[])`);
+      params.push(types);
+    }
   }
   if (filters.asset_class) {
     clauses.push(`p.asset_class = $${i++}`);

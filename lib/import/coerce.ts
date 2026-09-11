@@ -24,9 +24,14 @@ export function coerceFieldValue(
     return { value: null, cleared: true };
   }
 
+  const normalized = field.normalizeValue?.(str.trim()) ?? str.trim();
+  if (isBlank(String(normalized ?? ""))) {
+    return { value: null, cleared: true };
+  }
+
   switch (field.type) {
     case "string":
-      return { value: str.trim(), cleared: false };
+      return { value: String(normalized).trim(), cleared: false };
     case "number": {
       const n = field.integer ? parseIntStrict(str) : parseNumber(str);
       if (n == null && opts?.strict) return { value: null, cleared: false, error: "invalid number" };
@@ -43,7 +48,7 @@ export function coerceFieldValue(
       return { value: d, cleared: false };
     }
     case "enum": {
-      const v = str.trim();
+      const v = String(normalized).trim();
       const allowed = field.enumValues ?? [];
       const match = allowed.find((a) => a.toLowerCase() === v.toLowerCase());
       if (!match && opts?.strict) {

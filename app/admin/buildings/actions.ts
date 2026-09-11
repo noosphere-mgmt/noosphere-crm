@@ -49,7 +49,7 @@ function buildingInputFromForm(formData: FormData) {
     property_id: parseOptionalId(formData.get("legacy_property_id")),
     name_en: String(formData.get("name_en") ?? ""),
     name_zh: parseOptionalString(formData.get("name_zh")),
-    property_type: String(formData.get("property_type") ?? "") || "Commercial Building",
+    property_type: String(formData.get("property_type") ?? "") || "Commercial",
     centre_type: parseOptionalString(formData.get("centre_type")),
     status: parseStatus(formData.get("status")),
     country: String(formData.get("country") ?? "") || "Hong Kong",

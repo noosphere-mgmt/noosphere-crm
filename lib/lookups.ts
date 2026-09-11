@@ -1,16 +1,16 @@
 export const PROPERTY_TYPES = [
-  "Commercial Building",
-  "Industrial Building",
+  "Commercial",
+  "Industrial",
   "Residential",
   "Hotel",
 ] as const;
 
 const BUILDING_TYPE_ALIASES: Record<string, (typeof PROPERTY_TYPES)[number]> = {
-  commercial: "Commercial Building",
-  "commercial building": "Commercial Building",
-  office: "Commercial Building",
-  industrial: "Industrial Building",
-  "industrial building": "Industrial Building",
+  commercial: "Commercial",
+  "commercial building": "Commercial",
+  office: "Commercial",
+  industrial: "Industrial",
+  "industrial building": "Industrial",
   residential: "Residential",
   "residential building": "Residential",
   hotel: "Hotel",
@@ -23,6 +23,15 @@ export function normalizeBuildingType(raw: unknown): string | null {
   const exact = PROPERTY_TYPES.find((t) => t.toLowerCase() === s.toLowerCase());
   if (exact) return exact;
   return BUILDING_TYPE_ALIASES[s.toLowerCase()] ?? s;
+}
+
+/** Canonical value plus legacy labels so filters still match unmigrated rows. */
+export function buildingTypeMatchValues(raw: unknown): string[] {
+  const canonical = normalizeBuildingType(raw);
+  if (!canonical) return [];
+  if (canonical === "Commercial") return ["Commercial", "Commercial Building"];
+  if (canonical === "Industrial") return ["Industrial", "Industrial Building"];
+  return [canonical];
 }
 
 export const CENTRE_TYPES = ["Serviced Office", "Shared Office"] as const;

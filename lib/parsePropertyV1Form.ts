@@ -2,6 +2,7 @@ import {
   mergeLegacyCompanyIdsIntoBuildingRelationships,
   syncLegacyCompanyIdsFromBuildingRelationships,
 } from "@/lib/buildingRelationships";
+import { normalizeBuildingType } from "@/lib/lookups";
 import type { PropertyV1Patch } from "@/lib/repos/propertiesV1";
 import { composePropertyFullAddresses, hasAddressParts } from "@/lib/composeAddress";
 
@@ -30,7 +31,7 @@ export function parsePropertyV1Form(formData: FormData): PropertyV1Patch {
     bldg_name_en: s(formData.get("bldg_name_en")),
     bldg_name_zh: s(formData.get("bldg_name_zh")),
     bldg_name_cn: s(formData.get("bldg_name_cn")),
-    building_type: s(formData.get("building_type")),
+    building_type: normalizeBuildingType(formData.get("building_type")),
     tower_block: s(formData.get("tower_block")),
     floor_count: nInt(formData.get("floor_count")),
     bldg_area_sqft: nDec(formData.get("bldg_area_sqft")),

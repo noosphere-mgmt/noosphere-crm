@@ -23,7 +23,7 @@ export function BuildingFormFields({ defaults }: Props) {
         <SelectField
           label="Building type"
           name="property_type"
-          defaultValue={defaults?.property_type ?? "Commercial Building"}
+          defaultValue={defaults?.property_type ?? "Commercial"}
           placeholder=""
           options={PROPERTY_TYPES}
         />

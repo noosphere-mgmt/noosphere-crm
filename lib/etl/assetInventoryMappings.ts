@@ -124,7 +124,7 @@ export function mapSpaceForm(
   if (asset.asset_type === "Room") {
     return { value: "Room", ambiguous: false };
   }
-  if (asset.building_property_type === "Industrial Building") {
+  if (asset.building_property_type === "Industrial Building" || asset.building_property_type === "Industrial") {
     return { value: "Warehouse", ambiguous: false };
   }
   if (asset.building_property_type === "Residential") {
@@ -146,6 +146,7 @@ export function mapPropertyCategory(
   }
   switch (asset.building_property_type) {
     case "Industrial Building":
+    case "Industrial":
       return { value: "Industrial", ambiguous: false };
     case "Residential":
       return { value: "Residential", ambiguous: false };
@@ -157,7 +158,12 @@ export function mapPropertyCategory(
   if (offerType === "Serviced Office" || offerType === "Shared Office") {
     return { value: "Office", ambiguous: false };
   }
-  return { value: "Office", ambiguous: asset.building_property_type !== "Commercial Building" };
+  return {
+    value: "Office",
+    ambiguous:
+      asset.building_property_type !== "Commercial Building" &&
+      asset.building_property_type !== "Commercial",
+  };
 }
 
 export function mapOperatingModel(

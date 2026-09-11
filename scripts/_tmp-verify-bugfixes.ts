@@ -16,7 +16,7 @@ async function main() {
   }
   if (mapping["Property Type"] !== "building_type") throw new Error("Property Type header not mapped");
   if (mapping.category !== "building_type") throw new Error("category header not mapped");
-  if (normalizeBuildingType("commercial") !== "Commercial Building") throw new Error("alias commercial");
+  if (normalizeBuildingType("commercial") !== "Commercial") throw new Error("alias commercial");
   if (normalizeBuildingType("hotel") !== "Hotel") throw new Error("alias hotel");
   console.log("OK mapping + normalizeBuildingType");
 

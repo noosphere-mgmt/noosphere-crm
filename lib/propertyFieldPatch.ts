@@ -1,4 +1,4 @@
-import { BUILDING_GRADES, BUILDING_TITLES } from "@/lib/lookups";
+import { BUILDING_GRADES, BUILDING_TITLES, normalizeBuildingType } from "@/lib/lookups";
 import {
   normalizeBuildingRelationships,
   syncLegacyCompanyIdsFromBuildingRelationships,
@@ -57,10 +57,12 @@ export function applyPropertyFieldPatch(
   const patch: PropertyV1Patch = {};
 
   switch (field) {
+    case "building_type":
+      patch.building_type = normalizeBuildingType(value);
+      break;
     case "bldg_name_en":
     case "bldg_name_zh":
     case "bldg_name_cn":
-    case "building_type":
     case "tower_block":
     case "country":
     case "city_en":
