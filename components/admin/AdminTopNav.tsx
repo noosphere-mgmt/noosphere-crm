@@ -74,7 +74,7 @@ function TopNavLink({
 
 export function AdminTopNav() {
   return (
-    <header className="sticky top-0 z-40 w-full max-w-full border-b border-slate-200/80 bg-[#f4f6f8]/95 backdrop-blur-md">
+    <header className="sticky top-0 z-40 w-full max-w-full shrink-0 border-b border-slate-200/80 bg-[#f4f6f8]/95 backdrop-blur-md">
       <div className="mx-auto flex max-w-[1800px] items-center gap-2 px-3 py-2.5 sm:px-4 lg:gap-6 lg:px-6 lg:py-3">
         <Link href="/admin" className="shrink-0">
           <p className="text-sm font-bold tracking-tight text-slate-900">NOOSPHERE CRM</p>

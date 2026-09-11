@@ -101,7 +101,7 @@ export default async function AllPremisesPage({ searchParams }: Props) {
     : [null, []];
 
   return (
-    <AdminShell title="Properties" module="properties" wide hideHeader>
+    <AdminShell title="Properties" module="properties" wide hideHeader fillViewport>
       <AllPremisesWorkspace
         rows={rows}
         totalCount={totalCount}

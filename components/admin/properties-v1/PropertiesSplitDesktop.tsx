@@ -211,11 +211,15 @@ export function PropertiesSplitDesktop(props: PremisesViewProps) {
     : selectedBuilding?.label ?? "All premises";
 
   return (
-    <>
-      <PremisesListHeaderDesktop showCreate={false} />
-      <PremisesFiltersBarDesktop filters={props.filters} cities={props.cities} districts={props.districts} />
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="shrink-0">
+        <PremisesListHeaderDesktop showCreate={false} />
+      </div>
+      <div className="shrink-0">
+        <PremisesFiltersBarDesktop filters={props.filters} cities={props.cities} districts={props.districts} />
+      </div>
 
-      <div className="mt-3 grid h-[calc(100vh-14rem)] min-h-[34rem] grid-cols-[18rem_minmax(0,1fr)] gap-4 items-stretch">
+      <div className="grid min-h-0 flex-1 grid-cols-[18rem_minmax(0,1fr)] items-stretch gap-4 overflow-hidden">
         <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
           <div className="shrink-0 border-b border-slate-200 bg-slate-50 px-3 py-2.5">
             <div className="flex items-center justify-between gap-3">
@@ -381,6 +385,6 @@ export function PropertiesSplitDesktop(props: PremisesViewProps) {
             : undefined
         }
       />
-    </>
+    </div>
   );
 }

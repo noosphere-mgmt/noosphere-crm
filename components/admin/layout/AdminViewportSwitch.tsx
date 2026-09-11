@@ -11,9 +11,11 @@ import { AdminListLoadingFallback } from "@/components/admin/layout/AdminListLoa
 export function AdminViewportSwitch({
   mobile,
   desktop,
+  className,
 }: {
   mobile: ReactNode;
   desktop: ReactNode;
+  className?: string;
 }) {
   const [ready, setReady] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -28,10 +30,15 @@ export function AdminViewportSwitch({
   }, []);
 
   if (!ready) {
-    return <AdminListLoadingFallback />;
+    return (
+      <div className={className}>
+        <AdminListLoadingFallback />
+      </div>
+    );
   }
 
-  return isMobile ? mobile : desktop;
+  const tree = isMobile ? mobile : desktop;
+  return className ? <div className={className}>{tree}</div> : tree;
 }
 
 export function AdminMobileOnly({ children }: { children: ReactNode }) {

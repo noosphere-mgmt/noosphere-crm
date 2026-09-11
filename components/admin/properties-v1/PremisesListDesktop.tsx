@@ -114,12 +114,14 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
 
   return (
     <div className={props.fillHeight ? "flex min-h-0 flex-1 flex-col" : undefined}>
-      <ListingRecordCount
-        filteredCount={displayedRows.length}
-        totalCount={totalCount}
-        label="Premises"
-        selectedCount={selectedCount}
-      />
+      <div className={props.fillHeight ? "shrink-0" : undefined}>
+        <ListingRecordCount
+          filteredCount={displayedRows.length}
+          totalCount={totalCount}
+          label="Premises"
+          selectedCount={selectedCount}
+        />
+      </div>
 
       <div
         className={`${
