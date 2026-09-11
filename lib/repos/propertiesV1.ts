@@ -72,6 +72,10 @@ export type PropertyV1 = {
   inventory_count_sales: number | null;
   inventory_count_lease: number | null;
   building_relationship_lines: BuildingRelationshipLine[];
+  search_aliases?: string[];
+  merged_into_property_id?: string | null;
+  merged_at?: string | null;
+  merged_by?: string | null;
   updated_at: string;
 };
 
@@ -100,6 +104,10 @@ const select = `
   grade, management_company_id, operator_company_id, current_tenant_company_id, owner_company_id, title,
   inventory_count, inventory_count_sales, inventory_count_lease,
   building_relationship_lines,
+  search_aliases,
+  merged_into_property_id,
+  merged_at::text AS merged_at,
+  merged_by,
   updated_at::text AS updated_at
 `;
 
@@ -111,6 +119,10 @@ function decoratePropertyV1(row: PropertyV1): PropertyV1 {
       row.building_relationship_lines,
       row,
     ),
+    search_aliases: Array.isArray(row.search_aliases) ? row.search_aliases.filter((alias) => Boolean(alias?.trim())) : [],
+    merged_into_property_id: row.merged_into_property_id?.trim() || null,
+    merged_at: row.merged_at ?? null,
+    merged_by: row.merged_by?.trim() || null,
   };
 }
 
@@ -122,7 +134,7 @@ export type PropertiesListFilters = {
 };
 
 export async function listPropertiesV1(filters: PropertiesListFilters = {}): Promise<PropertyV1[]> {
-  const clauses: string[] = [];
+  const clauses: string[] = ["merged_into_property_id IS NULL"];
   const params: unknown[] = [];
 
   if (filters.q) {
@@ -167,6 +179,10 @@ export async function listPropertiesV1(filters: PropertiesListFilters = {}): Pro
       OR proposal_highlights_zh ILIKE ${qParam}
       OR proposal_highlights_cn ILIKE ${qParam}
       OR building_remarks ILIKE ${qParam}
+      OR EXISTS (
+        SELECT 1 FROM unnest(COALESCE(search_aliases, '{}'::text[])) AS alias(name)
+        WHERE alias.name ILIKE ${qParam}
+      )
       OR EXISTS (
         SELECT 1 FROM companies_v1 co
         WHERE (
@@ -244,7 +260,9 @@ export async function listPropertiesV1(filters: PropertiesListFilters = {}): Pro
 }
 
 export async function countPropertiesV1(): Promise<number> {
-  const rows = await query<{ n: string }>(`SELECT COUNT(*)::text AS n FROM properties_v1`);
+  const rows = await query<{ n: string }>(
+    `SELECT COUNT(*)::text AS n FROM properties_v1 WHERE merged_into_property_id IS NULL`,
+  );
   return Number.parseInt(rows[0]?.n ?? "0", 10);
 }
 
@@ -274,7 +292,7 @@ export async function getPropertyV1(propertyId: string): Promise<PropertyV1 | nu
 }
 
 export type PropertyV1Patch = Partial<
-  Omit<PropertyV1, "property_id" | "updated_at" | "bldg_area_sqft" | "bldg_area_sqm" | "plot_ratio" | "site_area_sqft" | "site_area_sqm"> & {
+  Omit<PropertyV1, "property_id" | "updated_at" | "merged_into_property_id" | "merged_at" | "merged_by" | "search_aliases" | "bldg_area_sqft" | "bldg_area_sqm" | "plot_ratio" | "site_area_sqft" | "site_area_sqm"> & {
     bldg_area_sqft?: number | null;
     bldg_area_sqm?: number | null;
     plot_ratio?: number | null;
@@ -388,6 +406,10 @@ export function emptyPropertyV1(): PropertyV1 {
     inventory_count_sales: null,
     inventory_count_lease: null,
     building_relationship_lines: [],
+    search_aliases: [],
+    merged_into_property_id: null,
+    merged_at: null,
+    merged_by: null,
     updated_at: "",
   };
 }
@@ -505,6 +527,7 @@ export async function listPropertyV1SelectOptions(): Promise<PropertyV1SelectOpt
        )) AS owner_landlord_search
      FROM properties_v1 p
      LEFT JOIN companies_v1 own ON ${sqlJoinV1Company("own", "p.owner_company_id")}
+     WHERE p.merged_into_property_id IS NULL
      ORDER BY p.bldg_name_en ASC NULLS LAST, p.property_id ASC`,
   );
   return rows.map((row) => {

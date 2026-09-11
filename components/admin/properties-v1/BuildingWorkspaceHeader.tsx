@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { IconX } from "@/components/admin/ModuleActionIcons";
 import { moduleEditButtonClass } from "@/components/admin/ModuleActionBar";
@@ -35,6 +36,7 @@ export function BuildingWorkspaceHeader({
 }) {
   const theme = moduleAccentClasses("properties");
   const address = propertyAddressLine(property);
+  const router = useRouter();
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
@@ -75,6 +77,17 @@ export function BuildingWorkspaceHeader({
           >
             Log activity
           </Link>
+          <button
+            type="button"
+            onClick={() =>
+              router.push(
+                `/admin/properties/buildings/merge?ids=${encodeURIComponent(property.business_id || property.property_id)}`,
+              )
+            }
+            className={theme.secondaryButton}
+          >
+            Merge
+          </button>
           <Link
             href={buildingWorkspaceHref(property, "overview", "edit", returnTo)}
             scroll={false}

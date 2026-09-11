@@ -7,6 +7,7 @@ import {
   syncLegacyCompanyIdsFromBuildingRelationships,
 } from "@/lib/buildingRelationships";
 import { allocatePropertyV1Id } from "@/lib/repos/propertiesV1";
+import { resolveLivePropertyId } from "@/lib/repos/buildingMerge";
 import { applySessionMetadata, genericUpdateRecord, rowToRecord, withExportMatchIds } from "../adapterUtils";
 import { sqlExportCompanyId, sqlJoinV1Company } from "../lookupSql";
 import { buildNaturalKeyParts, splitNaturalKeyParts } from "../matchRecord";
@@ -328,6 +329,11 @@ export const buildingsImportDefinition: ImportObjectDefinition = {
 
   async findById(id) {
     const raw = String(id).trim();
+    const liveId = await resolveLivePropertyId(raw);
+    if (liveId) {
+      const live = await load("p.property_id = $1", [liveId]);
+      if (live[0]) return live[0];
+    }
     const byBusinessId = await load("p.business_id = $1", [raw]);
     if (byBusinessId[0]) return byBusinessId[0];
     const byPropertyId = await load("p.property_id = $1", [raw]);
@@ -335,7 +341,17 @@ export const buildingsImportDefinition: ImportObjectDefinition = {
   },
 
   async findByExternalRef(externalRef) {
-    return load("p.external_ref = $1", [externalRef.trim()]);
+    const matches = await load("p.external_ref = $1", [externalRef.trim()]);
+    const resolved: ExistingRecord[] = [];
+    const seen = new Set<string>();
+    for (const match of matches) {
+      const liveId = await resolveLivePropertyId(String(match.id));
+      if (!liveId || seen.has(liveId)) continue;
+      seen.add(liveId);
+      const live = liveId === String(match.id) ? match : (await load("p.property_id = $1", [liveId]))[0];
+      if (live) resolved.push(live);
+    }
+    return resolved;
   },
 
   buildNaturalKey(values) {
@@ -352,13 +368,29 @@ export const buildingsImportDefinition: ImportObjectDefinition = {
     const [name, district, city] = parts;
     const rows = await query<{ property_id: string }>(
       `SELECT property_id FROM properties_v1
-       WHERE lower(trim(bldg_name_en)) = $1
+       WHERE (
+         lower(trim(bldg_name_en)) = $1
+         OR EXISTS (
+           SELECT 1 FROM unnest(COALESCE(search_aliases, '{}'::text[])) AS alias(name)
+           WHERE lower(trim(alias.name)) = $1
+         )
+       )
          AND lower(trim(district_en)) = $2
-         AND lower(trim(coalesce(city_en, ''))) = $3`,
+         AND lower(trim(coalesce(city_en, ''))) = $3
+       ORDER BY CASE WHEN merged_into_property_id IS NULL THEN 0 ELSE 1 END, property_id ASC`,
       [name, district, city ?? ""],
     );
     if (rows.length === 0) return [];
-    return load(`p.property_id = ANY($1::text[])`, [rows.map((r) => r.property_id)]);
+    const liveIds: string[] = [];
+    const seen = new Set<string>();
+    for (const row of rows) {
+      const liveId = await resolveLivePropertyId(row.property_id);
+      if (!liveId || seen.has(liveId)) continue;
+      seen.add(liveId);
+      liveIds.push(liveId);
+    }
+    if (liveIds.length === 0) return [];
+    return load(`p.property_id = ANY($1::text[])`, [liveIds]);
   },
 
   async validateReferences(values, suppliedFields, existing, writable) {
@@ -438,7 +470,7 @@ export const buildingsImportDefinition: ImportObjectDefinition = {
 
   async exportRows() {
     const rows = await query<Record<string, unknown>>(
-      `SELECT ${SELECT} FROM ${FROM} ORDER BY building_name_en ASC NULLS LAST`,
+      `SELECT ${SELECT} FROM ${FROM} WHERE p.merged_into_property_id IS NULL ORDER BY building_name_en ASC NULLS LAST`,
     );
     return rows.map((r) =>
       withExportMatchIds(

@@ -5,15 +5,17 @@ export function ListingRecordCount({
   totalCount,
   label,
   selectedCount = 0,
+  className,
 }: {
   filteredCount: number;
   totalCount: number;
   label: string;
   selectedCount?: number;
+  className?: string;
 }) {
   return (
     <div
-      className="mb-2 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm text-slate-600"
+      className={`${className ?? "mb-2"} flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm text-slate-600`}
       aria-live="polite"
     >
       <p>

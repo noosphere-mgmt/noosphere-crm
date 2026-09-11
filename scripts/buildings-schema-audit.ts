@@ -61,6 +61,10 @@ const PROPERTIES_V1_CODE = [
   "inventory_count_sales",
   "inventory_count_lease",
   "updated_at",
+  "search_aliases",
+  "merged_into_property_id",
+  "merged_at",
+  "merged_by",
 ] as const;
 
 /** lib/repos/buildings.ts buildingSelect (Quick Add / legacy). */

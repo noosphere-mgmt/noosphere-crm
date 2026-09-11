@@ -23,6 +23,7 @@ import {
   parseOptionalText,
   premisesExists,
 } from "./fkValidation";
+import { resolveLivePropertyId } from "@/lib/repos/buildingMerge";
 
 export type ReferenceValidationResult = {
   errors: string[];
@@ -69,14 +70,17 @@ async function lookupLegacyCompanyIdByName(name: string): Promise<number | null>
 }
 
 async function lookupBuildingId(raw: string): Promise<string | null> {
-  if (await buildingExists(raw)) return raw;
+  const live = await resolveLivePropertyId(raw);
+  if (live) return live;
 
   // Canonical CSV ID: B100001 → internal property_id for FK writes
   const byBusinessId = await query<{ property_id: string }>(
     `SELECT property_id FROM properties_v1 WHERE business_id = $1 LIMIT 1`,
     [raw],
   );
-  if (byBusinessId[0]?.property_id) return byBusinessId[0].property_id;
+  if (byBusinessId[0]?.property_id) {
+    return resolveLivePropertyId(byBusinessId[0].property_id);
+  }
 
   const byCrosswalk = await query<{ property_id: string }>(
     `SELECT COALESCE(
@@ -89,14 +93,14 @@ async function lookupBuildingId(raw: string): Promise<string | null> {
     [raw],
   );
   if (byCrosswalk[0]?.property_id && (await buildingExists(byCrosswalk[0].property_id))) {
-    return byCrosswalk[0].property_id;
+    return resolveLivePropertyId(byCrosswalk[0].property_id);
   }
 
   const byExternalRef = await query<{ property_id: string }>(
     `SELECT property_id FROM properties_v1 WHERE external_ref = $1 LIMIT 1`,
     [raw],
   );
-  if (byExternalRef[0]?.property_id) return byExternalRef[0].property_id;
+  if (byExternalRef[0]?.property_id) return resolveLivePropertyId(byExternalRef[0].property_id);
 
   if (/^\d+$/.test(raw)) {
     const legacyId = Number.parseInt(raw, 10);
@@ -104,7 +108,7 @@ async function lookupBuildingId(raw: string): Promise<string | null> {
       `SELECT property_id FROM properties_v1 WHERE legacy_building_id = $1 LIMIT 1`,
       [legacyId],
     );
-    if (byLegacy[0]?.property_id) return byLegacy[0].property_id;
+    if (byLegacy[0]?.property_id) return resolveLivePropertyId(byLegacy[0].property_id);
   }
 
   return null;
@@ -114,10 +118,20 @@ async function lookupBuildingIdByName(name: string): Promise<string | null> {
   const rows = await query<{ property_id: string }>(
     `SELECT property_id FROM properties_v1
      WHERE lower(trim(bldg_name_en)) = $1
-     ORDER BY property_id ASC`,
+        OR EXISTS (
+          SELECT 1 FROM unnest(COALESCE(search_aliases, '{}'::text[])) AS alias(name)
+          WHERE lower(trim(alias.name)) = $1
+        )
+     ORDER BY CASE WHEN merged_into_property_id IS NULL THEN 0 ELSE 1 END, property_id ASC`,
     [name.trim().toLowerCase()],
   );
-  if (rows.length === 1) return rows[0]!.property_id;
+  if (rows.length === 0) return null;
+  const liveIds = new Set<string>();
+  for (const row of rows) {
+    const live = await resolveLivePropertyId(row.property_id);
+    if (live) liveIds.add(live);
+  }
+  if (liveIds.size === 1) return [...liveIds][0]!;
   return null;
 }
 

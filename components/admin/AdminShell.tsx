@@ -30,29 +30,35 @@ export function AdminShell({
   return (
     <AdminChromeProviders>
       <div
-        className={`max-w-full overflow-x-clip ${shellBg} pt-[env(safe-area-inset-top)] ${
+        className={
           fillViewport
-            ? "flex min-h-dvh flex-col lg:h-dvh lg:max-h-dvh lg:overflow-hidden"
-            : "min-h-screen"
-        }`}
+            ? `admin-fill-viewport flex min-h-dvh max-w-full flex-col pt-[env(safe-area-inset-top)] max-md:overflow-x-clip md:h-dvh md:max-h-dvh md:overflow-clip md:[contain:strict] ${shellBg}`
+            : `max-w-full overflow-x-clip pt-[env(safe-area-inset-top)] min-h-screen ${shellBg}`
+        }
       >
         <Suspense fallback={<div className="h-14 shrink-0 border-b border-slate-200 bg-white" />}>
           <AdminTopNav />
         </Suspense>
 
         <div
-          className={`mx-auto w-full min-w-0 max-w-full ${maxWidth} px-3 py-2 pb-[calc(5.25rem+env(safe-area-inset-bottom))] sm:px-4 ${
+          className={
             fillViewport
-              ? "flex min-h-0 flex-1 flex-col md:py-4 lg:px-6 lg:pb-4"
-              : module === "dashboard"
-                ? "md:pt-4 lg:px-6 lg:pb-4"
-                : "md:py-6 lg:px-6 lg:pb-6"
-          }`}
+              ? `mx-auto flex min-h-0 w-full min-w-0 max-w-full flex-1 flex-col ${maxWidth} px-3 py-2 sm:px-4 max-md:pb-[calc(5.25rem+env(safe-area-inset-bottom))] md:overflow-clip md:px-6 md:py-3`
+              : `mx-auto w-full min-w-0 max-w-full ${maxWidth} px-3 py-2 pb-[calc(5.25rem+env(safe-area-inset-bottom))] sm:px-4 ${
+                  module === "dashboard"
+                    ? "md:pt-4 lg:px-6 lg:pb-4"
+                    : "md:py-6 lg:px-6 lg:pb-6"
+                }`
+          }
         >
           {hideHeader ? null : (
             <ModulePageHeader title={title} module={module} actions={actions} />
           )}
-          {fillViewport ? <div className="flex min-h-0 flex-1 flex-col">{children}</div> : children}
+          {fillViewport ? (
+            <div className="flex min-h-0 flex-1 flex-col md:overflow-clip">{children}</div>
+          ) : (
+            children
+          )}
         </div>
         <AdminBottomNav />
       </div>

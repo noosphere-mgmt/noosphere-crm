@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { PropertyV1DetailClient } from "@/components/admin/properties-v1/PropertyV1DetailClient";
 import { getPropertyV1, listPropertyV1SelectOptions } from "@/lib/repos/propertiesV1";
@@ -7,6 +7,7 @@ import { listPremisesForPropertyV1 } from "@/lib/repos/premisesV1";
 import { listCompanyV1Options } from "@/lib/repos/companiesV1";
 import { listContactV1Options } from "@/lib/repos/contactsV1";
 import { getPremisesDrawerData } from "@/lib/repos/premisesDrawer";
+import { buildingWorkspaceHref } from "@/lib/buildingWorkspaceNav";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,12 @@ export default async function EditPropertyPage({ params, searchParams }: Props) 
 
   const property = await getPropertyV1(propertyId);
   if (!property) notFound();
+  if (property.merged_into_property_id) {
+    const master = await getPropertyV1(property.merged_into_property_id);
+    if (master && !master.merged_into_property_id) {
+      redirect(buildingWorkspaceHref(master));
+    }
+  }
 
   const [premises, companies, contacts, propertyOptions] = await Promise.all([
     listPremisesForPropertyV1(property.property_id),

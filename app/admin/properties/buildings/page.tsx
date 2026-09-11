@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { AllBuildingsWorkspace } from "@/components/admin/properties-v1/AllBuildingsWorkspace";
 import { listCompanyV1Options } from "@/lib/repos/companiesV1";
@@ -31,6 +32,20 @@ export default async function AllPropertiesPage({ searchParams }: Props) {
   const [selectedProperty, selectedPremises] = propertyId
     ? await Promise.all([getPropertyV1(propertyId), listPremisesForPropertyV1(propertyId)])
     : [null, []];
+
+  if (selectedProperty?.merged_into_property_id) {
+    const master = await getPropertyV1(selectedProperty.merged_into_property_id);
+    if (master && !master.merged_into_property_id) {
+      const params = new URLSearchParams();
+      if (q) params.set("q", q);
+      if (category) params.set("category", category);
+      if (title) params.set("title", title);
+      if (relatedCompany) params.set("related_company", relatedCompany);
+      params.set("property", master.business_id || master.property_id);
+      if (sp.mode) params.set("mode", sp.mode);
+      redirect(`/admin/properties/buildings?${params.toString()}`);
+    }
+  }
 
   return (
     <AdminShell title="Properties" module="properties" wide hideHeader>

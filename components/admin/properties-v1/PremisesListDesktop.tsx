@@ -113,20 +113,21 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
   );
 
   return (
-    <div className={props.fillHeight ? "flex min-h-0 flex-1 flex-col" : undefined}>
+    <div className={props.fillHeight ? "flex min-h-0 flex-1 flex-col overflow-clip" : undefined}>
       <div className={props.fillHeight ? "shrink-0" : undefined}>
         <ListingRecordCount
           filteredCount={displayedRows.length}
           totalCount={totalCount}
           label="Premises"
           selectedCount={selectedCount}
+          className={props.fillHeight ? "mb-1" : undefined}
         />
       </div>
 
       <div
         className={`${
           props.fillHeight
-            ? "admin-list-scroll min-h-0 flex-1 overflow-x-auto overflow-y-scroll"
+            ? "admin-list-scroll min-h-0 flex-1 overflow-x-auto overflow-y-scroll overscroll-y-contain"
             : ADMIN_LIST_SCROLL_VIEWPORT_CLASS
         } rounded-xl border border-[#BFDBFE]/70 bg-white`}
       >

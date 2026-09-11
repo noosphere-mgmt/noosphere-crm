@@ -7,7 +7,6 @@ import { PremisesFiltersBarDesktop } from "@/components/admin/properties-v1/Prem
 import { PremisesListDesktop } from "@/components/admin/properties-v1/PremisesListDesktop";
 import { PremisesListHeaderDesktop } from "@/components/admin/properties-v1/PremisesListHeaderDesktop";
 import { PropertyDrawer, type PropertyDrawerMode } from "@/components/admin/properties-v1/PropertyDrawer";
-import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import { buildingFullPageHref } from "@/lib/crmDetailNav";
 import { matchesGlobalSearch } from "@/lib/connectionsList";
 import type { PremisesViewProps } from "@/components/admin/properties-v1/PremisesDesktop";
@@ -42,7 +41,6 @@ function buildingMatchesSearch(building: PropertyV1SelectOption, query: string):
 export function PropertiesSplitDesktop(props: PremisesViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const theme = moduleAccentClasses("properties");
   const [buildingId, setBuildingId] = useState<string | null>(null);
   const [buildingSearch, setBuildingSearch] = useState("");
   const [selectedBuildings, setSelectedBuildings] = useState<Set<string>>(new Set());
@@ -211,7 +209,7 @@ export function PropertiesSplitDesktop(props: PremisesViewProps) {
     : selectedBuilding?.label ?? "All premises";
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col overflow-clip">
       <div className="shrink-0">
         <PremisesListHeaderDesktop showCreate={false} />
       </div>
@@ -219,9 +217,9 @@ export function PropertiesSplitDesktop(props: PremisesViewProps) {
         <PremisesFiltersBarDesktop filters={props.filters} cities={props.cities} districts={props.districts} />
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-[18rem_minmax(0,1fr)] items-stretch gap-4 overflow-hidden">
-        <aside className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
-          <div className="shrink-0 border-b border-slate-200 bg-slate-50 px-3 py-2.5">
+      <div className="grid min-h-0 flex-1 grid-cols-[18rem_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] items-stretch gap-4 overflow-clip">
+        <aside className="flex h-full min-h-0 flex-col overflow-clip rounded-xl border border-slate-200 bg-white">
+          <div className="shrink-0 border-b border-slate-200 bg-slate-50 px-3 py-2">
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-start gap-2">
                 <input
@@ -253,11 +251,11 @@ export function PropertiesSplitDesktop(props: PremisesViewProps) {
               onChange={(e) => setBuildingSearch(e.target.value)}
               placeholder="Search buildings…"
               aria-label="Search buildings"
-              className={`mt-2 ${theme.searchInput}`}
+              className="mt-1.5 h-8 w-full rounded-md border border-slate-200 px-2.5 py-1 text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#60A5FA] focus:outline-none focus:ring-2 focus:ring-[#EFF6FF]"
             />
           </div>
 
-          <div className="admin-list-scroll min-h-0 flex-1 overflow-y-scroll p-2 pb-2">
+          <div className="admin-list-scroll min-h-0 flex-1 overflow-y-scroll overscroll-y-contain p-2">
             <button
               type="button"
               onClick={() => {
@@ -324,8 +322,8 @@ export function PropertiesSplitDesktop(props: PremisesViewProps) {
           </div>
         </aside>
 
-        <section className="flex min-h-0 min-w-0 flex-col">
-          <div className="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
+        <section className="flex h-full min-h-0 min-w-0 flex-col overflow-clip">
+          <div className="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">Premises workspace</p>
               <h2 className="mt-0.5 text-lg font-semibold text-slate-900">{premisesWorkspaceTitle}</h2>
@@ -339,7 +337,7 @@ export function PropertiesSplitDesktop(props: PremisesViewProps) {
                       premisesFocusBuilding.business_id ?? premisesFocusBuilding.property_id,
                     ) ?? "/admin/properties/buildings"
                   }
-                  className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                 >
                   Open building
                 </Link>
@@ -352,14 +350,14 @@ export function PropertiesSplitDesktop(props: PremisesViewProps) {
                       )}`
                     : "/admin/properties/premises/new"
                 }
-                className="rounded-lg bg-sky-700 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-800"
+                className="rounded-lg bg-sky-700 px-3 py-1.5 text-sm font-semibold text-white hover:bg-sky-800"
               >
                 + Premises
               </Link>
             </div>
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col">
+          <div className="flex min-h-0 flex-1 flex-col overflow-clip">
             <PremisesListDesktop
               {...props}
               rows={premisesRows}

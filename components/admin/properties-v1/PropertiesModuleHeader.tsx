@@ -9,6 +9,7 @@ export function PropertiesModuleHeader({ actions }: { actions?: ReactNode }) {
     <ModulePageHeader
       title="Properties"
       module="properties"
+      compact
       tabs={<PropertiesModuleNav embedded />}
       actions={actions}
     />

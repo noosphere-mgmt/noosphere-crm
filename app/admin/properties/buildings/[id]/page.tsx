@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { BuildingWorkspacePageClient } from "@/components/admin/properties-v1/BuildingWorkspacePageClient";
 import { listActivitiesForPremises } from "@/lib/repos/activities";
@@ -7,6 +7,8 @@ import { listCompanyV1Options } from "@/lib/repos/companiesV1";
 import { listContactV1Options } from "@/lib/repos/contactsV1";
 import { listPremisesForPropertyV1 } from "@/lib/repos/premisesV1";
 import { getPropertyV1, listPropertyV1SelectOptions } from "@/lib/repos/propertiesV1";
+import { buildingWorkspaceHref } from "@/lib/buildingWorkspaceNav";
+import { getBuildingWorkspaceTab } from "@/lib/buildingWorkspaceTab";
 import type { ActivityListRow } from "@/lib/repos/activities";
 import { sanitizeAdminReturnTo } from "@/lib/adminReturnTo";
 
@@ -41,6 +43,24 @@ export default async function BuildingDetailPage({ params, searchParams }: Props
   const returnTo = sanitizeAdminReturnTo(sp.returnTo, "/admin/properties");
   const property = await getPropertyV1(idRaw.trim());
   if (!property) notFound();
+  if (property.merged_into_property_id) {
+    const master = await getPropertyV1(property.merged_into_property_id);
+    if (master && !master.merged_into_property_id) {
+      redirect(
+        buildingWorkspaceHref(master, getBuildingWorkspaceTab({ tab: sp.tab }), sp.mode === "edit" ? "edit" : undefined, returnTo),
+      );
+    }
+    return (
+      <AdminShell title="Merged building" module="properties">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+          This building was archived after a merge.
+          {property.merged_into_property_id ? (
+            <span> Merged into {property.merged_into_property_id}.</span>
+          ) : null}
+        </div>
+      </AdminShell>
+    );
+  }
 
   const [premises, companies, contacts, propertyOptions] = await Promise.all([
     listPremisesForPropertyV1(property.property_id),

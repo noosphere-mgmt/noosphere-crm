@@ -55,10 +55,10 @@ export function AllPremisesWorkspace({
   return (
     <PremisesListSelectionProvider>
       <ModuleListingExportProvider>
-        <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col md:overflow-clip">
           <Suspense fallback={<AdminListLoadingFallback />}>
             <AdminViewportSwitch
-              className="flex min-h-0 flex-1 flex-col"
+              className="flex min-h-0 flex-1 flex-col md:overflow-clip"
               mobile={<PremisesMobile {...viewProps} />}
               desktop={<PropertiesSplitDesktop {...viewProps} />}
             />

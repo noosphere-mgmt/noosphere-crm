@@ -21,9 +21,15 @@ import {
 import { LEASE_EXPIRY_WITHIN_MONTHS } from "@/lib/occupantLease";
 import { BUILDING_TITLES } from "@/lib/lookups";
 
+const compactSearch =
+  "h-8 w-full rounded-md border border-slate-200 px-2.5 py-1 text-sm text-slate-800 placeholder:text-slate-400 focus:border-[#60A5FA] focus:outline-none focus:ring-2 focus:ring-[#EFF6FF]";
+const compactSelect =
+  "h-8 min-w-[7.5rem] rounded-md border border-slate-200 px-2 py-1 text-sm text-slate-800 focus:border-[#60A5FA] focus:outline-none focus:ring-2 focus:ring-[#EFF6FF]";
+const compactReset =
+  "h-8 shrink-0 rounded-md border border-slate-200 px-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 disabled:cursor-default disabled:opacity-40";
+
 export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
   const {
-    theme,
     filters,
     cities,
     districts,
@@ -54,34 +60,34 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
       placeholder="Search — names, address, floor/unit, operator, owner/landlord, occupant…"
       aria-label="Search buildings and premises"
       autoComplete="off"
-      className={theme.searchInput}
+      className={compactSearch}
     />
   );
 
   return (
     <div
-      className={`mb-3 rounded-lg border border-[#BFDBFE]/80 bg-white text-sm ${isPending ? "opacity-70" : ""}`}
+      className={`mb-2 rounded-lg border border-[#BFDBFE]/80 bg-white text-sm ${isPending ? "opacity-70" : ""}`}
     >
       {!props.hideLocationSearch ? (
-        <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2">
+        <div className="flex items-center gap-2 border-b border-slate-100 px-2.5 py-1.5">
           <div className="min-w-0 flex-1">{searchInput}</div>
           <button
             type="button"
             onClick={resetAll}
             disabled={!hasActiveFilters}
-            className="shrink-0 rounded-md border border-slate-200 px-2.5 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 disabled:cursor-default disabled:opacity-40"
+            className={compactReset}
           >
             Reset all
           </button>
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-2 px-3 py-2">
+      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 px-2.5 py-1.5">
         {!props.hideLocationSearch ? <select
           aria-label="City"
           value={filters.city ?? ""}
           onChange={(e) => patch({ city: e.target.value || undefined })}
-          className={theme.searchSelect}
+          className={compactSelect}
         >
           <option value="">City</option>
           {cities.map((c) => (
@@ -95,7 +101,7 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
           aria-label="Building title"
           value={filters.title ?? ""}
           onChange={(e) => patch({ title: e.target.value || undefined })}
-          className={theme.searchSelect}
+          className={compactSelect}
         >
           <option value="">Building title</option>
           {BUILDING_TITLES.map((value) => <option key={value} value={value}>{value}</option>)}
@@ -105,7 +111,7 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
           aria-label="District"
           value={filters.district ?? ""}
           onChange={(e) => patch({ district: e.target.value || undefined })}
-          className={theme.searchSelect}
+          className={compactSelect}
         >
           <option value="">District</option>
           {districts.map((d) => (
@@ -119,7 +125,7 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
           aria-label="Asset class"
           value={filters.asset_class ?? ""}
           onChange={(e) => patch({ asset_class: e.target.value || undefined, product_subtype: undefined })}
-          className={theme.searchSelect}
+          className={compactSelect}
         >
           <option value="">Asset class</option>
           {PREMISES_ASSET_CLASSES.map((t) => (
@@ -133,7 +139,7 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
           aria-label="Subtype"
           value={filters.product_subtype ?? ""}
           onChange={(e) => patch({ product_subtype: e.target.value || undefined })}
-          className={theme.searchSelect}
+          className={compactSelect}
         >
           <option value="">Subtype</option>
           {subtypeOptions.map((t) => (
@@ -147,7 +153,7 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
           aria-label="Fit out condition"
           value={filters.fit_out_condition ?? ""}
           onChange={(e) => patch({ fit_out_condition: e.target.value || undefined })}
-          className={theme.searchSelect}
+          className={compactSelect}
         >
           <option value="">Fit out</option>
           {V1_FIT_OUT_CONDITIONS.map((t) => (
@@ -161,7 +167,7 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
           aria-label="View"
           value={filters.view_type ?? ""}
           onChange={(e) => patch({ view_type: e.target.value || undefined })}
-          className={theme.searchSelect}
+          className={compactSelect}
         >
           <option value="">View</option>
           <option value="Sea View">Any sea view</option>
@@ -174,7 +180,7 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
           aria-label="Listing Intent"
           value={filters.listing_intent ?? ""}
           onChange={(e) => patch({ listing_intent: e.target.value || undefined })}
-          className={theme.searchSelect}
+          className={compactSelect}
         >
           <option value="">Listing Intent</option>
           {V1_LISTING_INTENTS.map((t) => (
@@ -188,7 +194,7 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
           aria-label="Listing Status"
           value={filters.listing_status ?? ""}
           onChange={(e) => patch({ listing_status: e.target.value || undefined })}
-          className={theme.searchSelect}
+          className={compactSelect}
         >
           <option value="">Listing Status</option>
           {V1_LISTING_STATUSES.map((t) => (
@@ -202,7 +208,7 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
           aria-label="Centre status"
           value={filters.centre_status ?? ""}
           onChange={(e) => patch({ centre_status: e.target.value || undefined })}
-          className={theme.searchSelect}
+          className={compactSelect}
         >
           <option value="">Centre status</option>
           {PREMISES_CENTRE_STATUSES.map((t) => (
@@ -216,7 +222,7 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
           aria-label="Lease expiry"
           value={filters.lease_expiry_within_months ?? ""}
           onChange={(e) => patch({ lease_expiry_within_months: e.target.value || undefined })}
-          className={theme.searchSelect}
+          className={compactSelect}
         >
           <option value="">Lease expiry</option>
           {LEASE_EXPIRY_WITHIN_MONTHS.map((months) => (
@@ -230,7 +236,7 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
           aria-label="UniqueAdd"
           value={filters.offers_unique_address ?? ""}
           onChange={(e) => patch({ offers_unique_address: e.target.value || undefined })}
-          className={theme.searchSelect}
+          className={compactSelect}
         >
           <option value="">UniqueAdd</option>
           {YES_NO_OPTIONS.map((t) => (
@@ -244,7 +250,7 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
           aria-label="Stamp"
           value={filters.offers_stamp_duty ?? ""}
           onChange={(e) => patch({ offers_stamp_duty: e.target.value || undefined })}
-          className={theme.searchSelect}
+          className={compactSelect}
         >
           <option value="">Stamp</option>
           {YES_NO_OPTIONS.map((t) => (
@@ -258,7 +264,7 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
           aria-label="Offers"
           value={filters.package_offers ?? ""}
           onChange={(e) => patch({ package_offers: e.target.value || undefined })}
-          className={theme.searchSelect}
+          className={compactSelect}
         >
           <option value="">Offers</option>
           {SERVICED_OFFICE_OFFERS.map((offer) => (
@@ -285,7 +291,7 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
               patch({ monthly_rent_max: monthlyRentMax.trim() || undefined });
             }
           }}
-          className={theme.searchSelect}
+          className={compactSelect}
         />
 
         {props.hideLocationSearch ? (
@@ -293,7 +299,7 @@ export function PremisesFiltersBarDesktop(props: PremisesFiltersBarProps) {
             type="button"
             onClick={resetAll}
             disabled={!hasActiveFilters}
-            className="ml-auto rounded-md border border-slate-200 px-2.5 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 disabled:cursor-default disabled:opacity-40"
+            className={`ml-auto ${compactReset}`}
           >
             Reset all
           </button>

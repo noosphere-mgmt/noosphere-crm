@@ -46,6 +46,8 @@ export function BuildingWorkspacePageClient({
   const submitRef = useRef<(() => void) | null>(null);
   const viewHref = buildingWorkspaceHref(property, tab, undefined, returnTo);
   const buildingLabel = property.bldg_name_en?.trim() || property.property_id;
+  const mergedNotice = searchParams.get("merged") === "1";
+  const transferredPremises = Number.parseInt(searchParams.get("premises") ?? "0", 10);
 
   if (editMode && tab === "overview") {
     return (
@@ -105,6 +107,14 @@ export function BuildingWorkspacePageClient({
 
   return (
     <InlineEditProvider resetKey={property.property_id}>
+      {mergedNotice ? (
+        <div className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
+          Buildings merged successfully.
+          {Number.isFinite(transferredPremises) && transferredPremises > 0
+            ? ` ${transferredPremises} ${transferredPremises === 1 ? "premise was" : "premises were"} transferred.`
+            : ""}
+        </div>
+      ) : null}
       <AdvisoryWorkspaceShell
         header={<BuildingWorkspaceHeader property={property} premisesCount={premises.length} returnTo={returnTo} />}
         tabs={<BuildingWorkspaceTabs property={property} premisesCount={premises.length} returnTo={returnTo} />}
