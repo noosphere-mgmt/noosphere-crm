@@ -87,15 +87,15 @@ export function DashboardBusinessPulse({ pulse }: { pulse: DashboardPulseMetrics
   ];
 
   return (
-    <section className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-200/80 bg-white px-2.5 py-2 shadow-[0_1px_2px_rgba(15,23,42,0.05)] lg:px-3 lg:py-2.5">
+    <section className="flex h-full min-h-0 min-w-0 max-w-full flex-col rounded-2xl border border-slate-200/80 bg-white px-2.5 py-2 shadow-[0_1px_2px_rgba(15,23,42,0.05)] lg:px-3 lg:py-2.5">
       <h2 className="mb-1.5 text-sm font-semibold tracking-tight text-slate-900 lg:mb-2">Business Pulse</h2>
-      <div className="grid grid-cols-2 gap-1.5">
+      <div className="grid min-w-0 grid-cols-2 gap-1.5">
         {tiles.map((tile) => (
           <Link
             key={tile.label}
             href={tile.href}
             title={tile.title}
-            className={`rounded-xl bg-gradient-to-br px-2 py-1.5 lg:px-2.5 lg:py-2 ${tile.tone}`}
+            className={`min-w-0 rounded-xl bg-gradient-to-br px-2 py-1.5 lg:px-2.5 lg:py-2 ${tile.tone}`}
           >
             <p className="text-[11px] font-semibold leading-tight text-slate-600">{tile.label}</p>
             <p className="mt-1 text-lg font-semibold tabular-nums tracking-tight">{tile.value}</p>

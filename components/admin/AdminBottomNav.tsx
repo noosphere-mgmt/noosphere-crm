@@ -76,7 +76,7 @@ export function AdminBottomNav() {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       aria-label="Main navigation"
     >
-      <div className="mx-auto grid max-w-lg grid-cols-5">
+      <div className="mx-auto grid w-full min-w-0 max-w-lg grid-cols-5">
         {items.map((item) => {
           const active = item.href === "/admin/connections/channel-tree"
             ? pathname.startsWith(item.href)
@@ -88,7 +88,7 @@ export function AdminBottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex min-h-[3.5rem] flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-semibold transition ${
+              className={`flex min-h-[3.5rem] min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-semibold transition ${
                 active ? theme.navActiveTitle : "text-slate-500"
               }`}
             >

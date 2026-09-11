@@ -1,7 +1,7 @@
 import type { PipelineOpportunityPoint } from "@/lib/dashboardPipelineStages";
 
 export const PIPELINE_CHART_SIZE = { width: 680, height: 292 };
-export const PIPELINE_CHART_PAD = { left: 38, right: 12, top: 14, bottom: 36 };
+export const PIPELINE_CHART_PAD = { left: 38, right: 12, top: 8, bottom: 32 };
 export const PIPELINE_UNSCHEDULED_BAND = 72;
 
 export type LaidPipelineBubble = PipelineOpportunityPoint & {

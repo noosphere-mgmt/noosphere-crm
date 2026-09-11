@@ -36,8 +36,8 @@ export function DashboardAiInsights({ insights }: { insights: DashboardInsights 
 
   return (
     <>
-      <section className="rounded-2xl border border-violet-100 bg-gradient-to-r from-violet-50/80 via-white to-sky-50/70 px-2.5 py-2 shadow-[0_1px_2px_rgba(15,23,42,0.05)] lg:px-3">
-        <div className="mb-1.5 flex items-start justify-between gap-2">
+      <section className="w-full min-w-0 max-w-full rounded-2xl border border-violet-100 bg-gradient-to-r from-violet-50/80 via-white to-sky-50/70 px-2.5 py-2 shadow-[0_1px_2px_rgba(15,23,42,0.05)] lg:px-3">
+        <div className="mb-1.5 flex min-w-0 items-start justify-between gap-2">
           <div className="flex min-w-0 items-start gap-2">
             <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-violet-600 text-white">
               <IconSparkle className="h-3.5 w-3.5" />
@@ -56,7 +56,7 @@ export function DashboardAiInsights({ insights }: { insights: DashboardInsights 
             Ask AI
           </button>
         </div>
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid min-w-0 grid-cols-3 gap-1.5">
           {cards.map((card) => {
             const isExpanded = expanded === card.kind;
             return (

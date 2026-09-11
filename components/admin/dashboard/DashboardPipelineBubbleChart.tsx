@@ -56,28 +56,26 @@ export function DashboardPipelineBubbleChart({
   return (
     <section
       ref={rootRef}
-      className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-200/80 bg-white px-2.5 py-2 shadow-[0_1px_2px_rgba(15,23,42,0.05)] lg:px-3 lg:py-2.5"
+      className="flex h-full min-h-0 min-w-0 max-w-full flex-col rounded-2xl border border-slate-200/80 bg-white px-2.5 py-2 shadow-[0_1px_2px_rgba(15,23,42,0.05)] lg:px-3 lg:py-2.5"
     >
-      <div className="mb-1 flex items-start justify-between gap-2">
-        <div>
-          <h2 className="text-sm font-semibold tracking-tight text-slate-900">Pipeline Analysis</h2>
-          <p className="text-[11px] text-slate-500">
-            {formatCount(points.length)} active · {formatOpportunityMoneyCompact(pipelineValue)}
-            {plot.unscheduledCount > 0 ? ` · ${formatCount(plot.unscheduledCount)} unscheduled` : ""}
-          </p>
-        </div>
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
-          Active only
-        </span>
+      <div className="mb-0.5 flex min-w-0 items-baseline justify-between gap-2 lg:mb-1">
+        <h2 className="min-w-0 text-sm font-semibold tracking-tight text-slate-900">Pipeline Analysis</h2>
+        <p className="shrink-0 text-[11px] tabular-nums text-slate-500">
+          {formatCount(points.length)} active · {formatOpportunityMoneyCompact(pipelineValue)}
+          {plot.unscheduledCount > 0 ? ` · ${formatCount(plot.unscheduledCount)} unscheduled` : ""}
+        </p>
       </div>
 
-      <div className="relative min-h-0 flex-1">
-        <svg
-          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-          className="h-[16.5rem] w-full lg:h-[17.5rem]"
-          role="img"
-          aria-label="Pipeline analysis: one bubble per active opportunity"
-        >
+      <div className="relative min-h-0 min-w-0 w-full max-w-full flex-1">
+        <div className="min-w-0 w-full max-w-full overflow-hidden">
+          <svg
+            viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+            preserveAspectRatio="xMidYMin meet"
+            width="100%"
+            className="block h-auto w-full max-w-full min-w-0 lg:h-[16rem]"
+            role="img"
+            aria-label="Pipeline analysis: one bubble per active opportunity"
+          >
           {plot.gridY.map((tick) => (
             <g key={tick.value}>
               <line x1={plot.plotLeft} x2={WIDTH - 12} y1={tick.y} y2={tick.y} stroke="#e2e8f0" strokeWidth="1" />
@@ -96,11 +94,22 @@ export function DashboardPipelineBubbleChart({
               rx="6"
             />
           ) : null}
-          {plot.gridX.map((tick) => (
-            <text key={`${tick.label}-${tick.x}`} x={tick.x} y={HEIGHT - 10} textAnchor="middle" className="fill-slate-400" fontSize="7.5">
-              {tick.label}
-            </text>
-          ))}
+          {plot.gridX.map((tick, index) => {
+            const isLast = index === plot.gridX.length - 1;
+            const isFirst = index === 0;
+            return (
+              <text
+                key={`${tick.label}-${tick.x}`}
+                x={tick.x}
+                y={HEIGHT - 10}
+                textAnchor={isLast ? "end" : isFirst ? "start" : "middle"}
+                className="fill-slate-400"
+                fontSize="7.5"
+              >
+                {tick.label}
+              </text>
+            );
+          })}
           <text
             x="11"
             y={HEIGHT / 2}
@@ -165,6 +174,7 @@ export function DashboardPipelineBubbleChart({
             </g>
           ))}
         </svg>
+        </div>
 
         {hover && !selected ? (
           <div
@@ -217,7 +227,7 @@ export function DashboardPipelineBubbleChart({
         ) : null}
       </div>
 
-      <ul className="mt-1 flex flex-wrap gap-x-2.5 gap-y-0.5 text-[10px] text-slate-600 sm:gap-x-3 sm:text-[11px]">
+      <ul className="mt-1 flex min-w-0 w-full flex-wrap gap-x-2.5 gap-y-0.5 text-[10px] text-slate-600 sm:gap-x-3 sm:text-[11px]">
         {STATUS_LEGEND.map((status) => (
           <li key={status.id} className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: PIPELINE_STATUS_COLOURS[status.id] }} />

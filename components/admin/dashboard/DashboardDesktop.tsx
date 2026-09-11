@@ -27,24 +27,26 @@ export function DashboardDesktop({
   });
 
   return (
-    <div className="flex flex-col gap-2 lg:gap-2.5">
-      <header className="flex items-start justify-between gap-2 sm:gap-3">
+    <div className="flex w-full min-w-0 max-w-full flex-col gap-2.5">
+      <header className="flex min-w-0 items-start justify-between gap-2 sm:gap-3">
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-violet-600">AI-POWERED CRM</p>
-          <h1 className="text-base font-semibold leading-tight tracking-tight text-slate-900 sm:text-lg">Noosphere Intelligence</h1>
-          <p className="text-[11px] leading-snug text-slate-500 sm:text-xs">
-            Turn relationships, property intelligence and opportunities into action.
+          <p className="text-[10px] font-semibold uppercase leading-none tracking-[0.16em] text-violet-600">AI-POWERED CRM</p>
+          <h1 className="mt-0.5 text-base font-semibold leading-none tracking-tight text-slate-900 sm:text-lg">
+            Noosphere Intelligence
+          </h1>
+          <p className="mt-0.5 whitespace-nowrap text-[11px] leading-none text-slate-500 sm:text-xs">
+            Turns relationships into opportunities.
           </p>
         </div>
-        <p className="shrink-0 pt-1 text-[11px] font-medium text-slate-500 sm:text-xs">{today}</p>
+        <p className="shrink-0 text-[10px] font-medium text-slate-400 sm:text-xs sm:text-slate-500">{today}</p>
       </header>
 
       <DashboardAiInsights insights={insights} />
 
-      <div className="grid min-h-0 items-stretch gap-2 lg:grid-cols-[27fr_46fr_27fr] lg:gap-2.5">
+      <div className="grid w-full min-h-0 min-w-0 max-w-full items-stretch gap-2 lg:grid-cols-[minmax(0,27fr)_minmax(0,46fr)_minmax(0,27fr)] lg:gap-2.5">
         <DashboardBusinessPulse pulse={pulse} />
         <DashboardPipelineBubbleChart points={points} pipelineValue={pipelineFinancials.commission_income ?? 0} />
-        <section className="flex min-h-0 flex-col rounded-2xl border border-slate-200/80 bg-white px-2.5 py-2 shadow-[0_1px_2px_rgba(15,23,42,0.05)] lg:px-3 lg:py-2.5">
+        <section className="flex min-h-0 min-w-0 max-w-full flex-col rounded-2xl border border-slate-200/80 bg-white px-2.5 py-2 shadow-[0_1px_2px_rgba(15,23,42,0.05)] lg:px-3 lg:py-2.5">
           <h2 className="mb-1.5 text-sm font-semibold tracking-tight text-slate-900 lg:mb-2">Referral Performance</h2>
           <ReferralPerformanceView opportunityReferrers={dashboard.top_referrers.slice(0, 5)} />
         </section>

@@ -28,23 +28,23 @@ export function ReferralPerformanceView({
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <ol className="flex-1 space-y-1.5">
+    <div className="flex h-full min-w-0 w-full max-w-full flex-col">
+      <ol className="min-w-0 w-full flex-1 space-y-1.5">
         {rows.map((row, index) => {
           const colour = rankingColours[index] ?? rankingColours[rankingColours.length - 1];
           const width = Math.max((row.total_opps / maximum) * 100, 14);
           return (
-            <li key={row.entity_key}>
+            <li key={row.entity_key} className="min-w-0 w-full">
               <Link
                 href={referrerPerformanceHref(row)}
-                className="group relative flex min-h-9 flex-nowrap items-center gap-1.5 overflow-hidden rounded-xl border border-slate-100 bg-white px-2 py-1.5 transition hover:border-slate-200 hover:shadow-sm sm:min-h-10 sm:gap-2 sm:px-2.5"
+                className="group relative flex min-h-9 w-full min-w-0 max-w-full flex-nowrap items-center gap-1.5 overflow-hidden rounded-xl border border-slate-100 bg-white px-2 py-1.5 transition hover:border-slate-200 hover:shadow-sm sm:min-h-10 sm:gap-2 sm:px-2.5"
               >
                 <span className={`absolute inset-y-0 left-0 ${colour.bar} transition-all group-hover:opacity-80`} style={{ width: `${width}%` }} />
                 <span className={`relative flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold ${colour.badge}`}>
                   {index + 1}
                 </span>
-                <span className="relative min-w-0 flex-1 truncate text-[13px] font-semibold text-slate-900" title={row.party_name}>{row.party_name}</span>
-                <span className="relative flex min-w-0 shrink-0 items-center gap-1 whitespace-nowrap text-[10px] tabular-nums sm:gap-1 sm:text-[11px]">
+                <span className="relative min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-[13px] font-semibold text-slate-900" title={row.party_name}>{row.party_name}</span>
+                <span className="relative flex shrink-0 items-center gap-1 whitespace-nowrap text-[10px] tabular-nums sm:gap-1.5 sm:text-[11px]">
                   <strong className={`rounded-full bg-white px-1.5 py-0.5 sm:px-2 ${colour.count}`}>{formatCount(row.total_opps)}</strong>
                   <span className="rounded-full bg-white/90 px-1.5 py-0.5 font-medium text-slate-600 sm:px-2">
                     {formatCount(row.active_opps)} active
