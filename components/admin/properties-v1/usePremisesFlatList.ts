@@ -20,11 +20,13 @@ import { getPremisesTab } from "@/lib/premisesDetailTab";
 import type { PropertyV1SelectOption } from "@/lib/repos/propertiesV1";
 import type { PremisesDrawerData } from "@/lib/repos/premisesDrawer";
 import { getPremisesRowPriceDisplay } from "@/lib/premisesCommercial";
+import { premisesProductSubtypeLabel } from "@/lib/v1ListValues";
 
 export type SortKey =
   | "premises"
   | "district"
   | "operator"
+  | "subtype"
   | "gross_area"
   | "price"
   | "updated";
@@ -157,6 +159,12 @@ export function usePremisesFlatList(
             formatPremisesRelatedCompaniesSearchText(b),
             sortDir,
           );
+        case "subtype":
+          return compareText(
+            premisesProductSubtypeLabel(a.product_subtype, a.asset_class),
+            premisesProductSubtypeLabel(b.product_subtype, b.asset_class),
+            sortDir,
+          );
         case "gross_area":
           return compareNullableNum(parseNum(a.gross_area_sqft), parseNum(b.gross_area_sqft), sortDir);
         case "price":
@@ -216,7 +224,7 @@ export function usePremisesFlatList(
   }
 
   const theme = moduleAccentClasses("properties");
-  const colSpan = 7;
+  const colSpan = 8;
 
   return {
     ...props,

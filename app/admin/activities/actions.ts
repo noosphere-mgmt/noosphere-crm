@@ -208,7 +208,7 @@ export async function searchActivityLinkAction(
     case "company":
       return searchActivityCompanies(query, limit);
     case "contact":
-      return searchActivityContacts(query, limit);
+      return searchActivityContacts(query, limit ?? (query.trim() ? 40 : 15));
     case "opportunity":
       return searchActivityOpportunities(query, limit ?? 40);
     case "premises":

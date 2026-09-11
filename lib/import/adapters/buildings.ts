@@ -1,6 +1,7 @@
 import { query } from "@/lib/db";
 import { allocateNextBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
 import { isPermanentBusinessId } from "@/lib/businessIds";
+import { PROPERTY_TYPES, normalizeBuildingType } from "@/lib/lookups";
 import {
   mergeLegacyCompanyIdsIntoBuildingRelationships,
   syncLegacyCompanyIdsFromBuildingRelationships,
@@ -136,6 +137,20 @@ const FROM = `
   LEFT JOIN companies_v1 own ON ${sqlJoinV1Company("own", "p.owner_company_id")}
 `;
 
+async function resolvePropertiesV1Pk(id: RecordId): Promise<string> {
+  const raw = String(id).trim();
+  const rows = await query<{ property_id: string }>(
+    `SELECT property_id FROM properties_v1
+     WHERE property_id = $1 OR business_id = $1
+     ORDER BY CASE WHEN property_id = $1 THEN 0 ELSE 1 END
+     LIMIT 1`,
+    [raw],
+  );
+  const propertyId = rows[0]?.property_id;
+  if (!propertyId) throw new Error(`Building ${raw} not found`);
+  return propertyId;
+}
+
 function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
   const p: Record<string, unknown> = {};
   if ("building_name_en" in values) p.bldg_name_en = values.building_name_en;
@@ -192,7 +207,7 @@ function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
     "proposal_highlights_cn",
     "last_verified_date",
   ] as const) {
-    if (k in values) p[k] = values[k];
+    if (k in values) p[k] = k === "building_type" ? normalizeBuildingType(values[k]) : values[k];
   }
 
   // Keep Owner/Landlord in relationships when owner_company_id is supplied (and vice versa).
@@ -235,7 +250,13 @@ export const buildingsImportDefinition: ImportObjectDefinition = {
     },
     { key: "building_name_zh", label: "building_name_zh", type: "string", aliases: ["bldg_name_zh"] },
     { key: "building_name_cn", label: "building_name_cn", type: "string", aliases: ["bldg_name_cn"] },
-    { key: "building_type", label: "building_type", type: "string", aliases: ["category"] },
+    {
+      key: "building_type",
+      label: "building_type",
+      type: "enum",
+      enumValues: [...PROPERTY_TYPES],
+      aliases: ["category", "building type", "property_type", "property type"],
+    },
     { key: "country", label: "country", type: "string", defaultValue: "Hong Kong" },
     {
       key: "city",
@@ -410,7 +431,8 @@ export const buildingsImportDefinition: ImportObjectDefinition = {
   },
 
   async updateRecord(id, patch, ctx) {
-    await genericUpdateRecord("properties_v1", "property_id", id, dbPatch(patch), ctx);
+    const propertyId = await resolvePropertiesV1Pk(id);
+    await genericUpdateRecord("properties_v1", "property_id", propertyId, dbPatch(patch), ctx);
   },
 
   async exportRows() {

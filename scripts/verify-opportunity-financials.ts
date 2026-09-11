@@ -18,6 +18,19 @@ import {
   summariseWonOpportunityFinancials,
 } from "../lib/opportunityFinancials";
 import {
+  occupiedPipelineStageCount,
+  pipelineValueSegments,
+  wonCostsRatio,
+  wonCostsRecordCount,
+  wonProfitMargin,
+  wonRevenueAverage,
+  wonRevenueSparkline,
+} from "../lib/opportunityKpiVisuals";
+import {
+  nextOpportunitiesJourneyFilter,
+  opportunitiesViewScopeFromFilter,
+} from "../lib/opportunitiesList";
+import {
   createOpportunity,
   deleteOpportunity,
   getOpportunity,
@@ -137,6 +150,48 @@ function testUnitCalculations(): void {
   assert.match(formatted, /1,234\.50/);
   assert.ok(formatted.includes("HK$") || formatted.includes("HKD"));
   console.log("OK  unit: parse, net profit, won vs pipeline reporting");
+
+  const kpiNow = new Date("2026-09-11T00:00:00");
+  const sparkRows = [
+    { ...rows[0], updated_at: "2026-07-04T00:00:00Z", commission_income: "1000" },
+    { ...rows[0], id: 3, updated_at: "2026-08-20T00:00:00Z", commission_income: "3000" },
+  ] as Opportunity[];
+  const spark = wonRevenueSparkline(sparkRows, kpiNow);
+  assert.ok(spark);
+  assert.equal(spark.length, 6);
+  assert.equal(spark[3], 1000);
+  assert.equal(spark[4], 3000);
+  assert.equal(wonRevenueSparkline([sparkRows[0]], kpiNow), null);
+  assert.equal(wonCostsRatio(rows), 0.2005);
+  assert.equal(wonProfitMargin(rows), 0.7995);
+  assert.equal(wonCostsRecordCount(rows), 1);
+  assert.equal(wonRevenueAverage(rows), 1000);
+  assert.equal(wonCostsRatio([{ ...rows[0], status: "qualifying" } as Opportunity]), null);
+
+  const segmentRows = [
+    { ...rows[1], status: "qualifying", commission_income: "2000" },
+    { ...rows[1], id: 4, status: "sourcing", commission_income: "8000" },
+    { ...rows[1], id: 5, status: "proposal_reviewing", commission_income: "0" },
+  ] as Opportunity[];
+  const segments = pipelineValueSegments(segmentRows);
+  assert.equal(segments.map((segment) => segment.label).join("/"), "Qualifying/Sourcing/Considering/Negotiating");
+  assert.equal(segments.find((segment) => segment.status === "sourcing")?.share, 0.8);
+  assert.equal(segments.find((segment) => segment.status === "qualifying")?.count, 1);
+  assert.equal(occupiedPipelineStageCount(segmentRows), 3);
+  console.log("OK  unit: KPI sparkline, ratios, and pipeline value segments");
+}
+
+function testJourneyMeterFilters(): void {
+  assert.equal(nextOpportunitiesJourneyFilter("active", "qualifying"), "qualifying");
+  assert.equal(nextOpportunitiesJourneyFilter("qualifying", "qualifying"), "active");
+  assert.equal(nextOpportunitiesJourneyFilter("sourcing", "negotiating"), "negotiating");
+  assert.equal(opportunitiesViewScopeFromFilter("qualifying"), "active");
+  assert.equal(opportunitiesViewScopeFromFilter("closed"), null);
+  assert.equal(opportunitiesViewScopeFromFilter("active"), "active");
+  assert.equal(opportunitiesViewScopeFromFilter("won"), "won");
+  assert.equal(opportunitiesViewScopeFromFilter("lost"), "lost");
+  assert.equal(opportunitiesViewScopeFromFilter("all"), "all");
+  console.log("OK  unit: operation status meter toggle and view scope");
 }
 
 async function ensureFinancialColumns(): Promise<void> {
@@ -312,6 +367,7 @@ async function inspectExistingSchema(): Promise<void> {
 
 async function main(): Promise<void> {
   testUnitCalculations();
+  testJourneyMeterFilters();
   await ensureFinancialColumns();
   await inspectExistingSchema();
   await testPersistence();

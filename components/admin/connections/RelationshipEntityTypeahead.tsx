@@ -7,7 +7,16 @@ import {
 import type { RelationshipSearchHit } from "@/lib/repos/relationships";
 import type { EntityType } from "@/lib/entityRelationships";
 
-export function RelationshipEntityTypeahead({
+export function RelationshipEntityTypeahead(props: {
+  partyType: EntityType;
+  value: RelationshipSearchHit | null;
+  onChange: (hit: RelationshipSearchHit | null) => void;
+  disabled?: boolean;
+}) {
+  return <RelationshipEntityTypeaheadInner key={props.partyType} {...props} />;
+}
+
+function RelationshipEntityTypeaheadInner({
   partyType,
   value,
   onChange,
@@ -24,15 +33,8 @@ export function RelationshipEntityTypeahead({
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
-    setQuery(value?.label ?? "");
-  }, [value?.label, partyType]);
-
-  useEffect(() => {
     const term = query.trim();
-    if (!open || term.length < 1) {
-      setHits([]);
-      return;
-    }
+    if (!open || term.length < 1) return;
     const timer = window.setTimeout(() => {
       startTransition(async () => {
         const result = await searchRelationshipEntitiesAction(partyType, term);
@@ -46,7 +48,7 @@ export function RelationshipEntityTypeahead({
     <div className="relative">
       <input
         type="search"
-        value={query}
+        value={value ? value.label : query}
         disabled={disabled}
         placeholder={partyType === "company" ? "Search companies…" : "Search contacts…"}
         onChange={(e) => {
@@ -70,27 +72,31 @@ export function RelationshipEntityTypeahead({
           Clear
         </button>
       ) : null}
-      {open && hits.length > 0 ? (
+      {open && query.trim().length >= 1 ? (
         <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
-          {hits.map((hit) => (
-            <li key={`${hit.entity_type}-${hit.entity_id}`}>
-              <button
-                type="button"
-                className="block w-full px-3 py-2 text-left text-sm hover:bg-violet-50"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  onChange(hit);
-                  setQuery(hit.label);
-                  setOpen(false);
-                }}
-              >
-                <span className="font-medium text-slate-900">{hit.label}</span>
-                {hit.subtitle ? (
-                  <span className="mt-0.5 block text-xs text-slate-500">{hit.subtitle}</span>
-                ) : null}
-              </button>
-            </li>
-          ))}
+          {hits.length === 0 && !pending ? (
+            <li className="px-3 py-2 text-sm text-slate-500">No matches — try another name</li>
+          ) : (
+            hits.map((hit) => (
+              <li key={`${hit.entity_type}-${hit.entity_id}`}>
+                <button
+                  type="button"
+                  className="block w-full px-3 py-2 text-left text-sm hover:bg-violet-50"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    onChange(hit);
+                    setQuery(hit.label);
+                    setOpen(false);
+                  }}
+                >
+                  <span className="font-medium text-slate-900">{hit.label}</span>
+                  {hit.subtitle ? (
+                    <span className="mt-0.5 block text-xs text-slate-500">{hit.subtitle}</span>
+                  ) : null}
+                </button>
+              </li>
+            ))
+          )}
         </ul>
       ) : null}
       {pending ? <p className="mt-1 text-xs text-slate-400">Searching…</p> : null}

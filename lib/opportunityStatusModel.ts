@@ -14,7 +14,7 @@ export type OpportunityStatus = (typeof OPPORTUNITY_STATUSES)[number];
 export const OPPORTUNITY_STATUS_LABELS: Record<OpportunityStatus, string> = {
   qualifying: "Qualifying",
   sourcing: "Sourcing",
-  proposal_reviewing: "Proposal Reviewing",
+  proposal_reviewing: "Considering",
   negotiating: "Negotiating",
   closed_won: "Closed Won",
   closed_lost: "Closed Lost",

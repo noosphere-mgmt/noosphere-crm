@@ -3,26 +3,98 @@ import { normalizeOpportunityStatus } from "@/lib/opportunityStatusModel";
 import { formatMoney, formatAreaSqft } from "@/lib/formatCurrency";
 import type { Opportunity, OpportunityStatus } from "@/lib/types/entities";
 
-export type OpportunitiesListStatusFilter = "active" | "all" | "won" | "lost" | "closed";
+export type OpportunitiesListStatusFilter =
+  | "all"
+  | "active"
+  | "qualifying"
+  | "sourcing"
+  | "proposal_reviewing"
+  | "negotiating"
+  | "won"
+  | "lost"
+  | "closed";
 
 export const OPPORTUNITIES_LIST_STATUS_FILTERS: OpportunitiesListStatusFilter[] = [
-  "active",
   "all",
+  "active",
+  "qualifying",
+  "sourcing",
+  "proposal_reviewing",
+  "negotiating",
   "won",
   "lost",
-  "closed",
 ];
 
 export const OPPORTUNITIES_LIST_STATUS_FILTER_LABELS: Record<OpportunitiesListStatusFilter, string> = {
-  active: "Active",
   all: "All",
+  active: "Active",
+  qualifying: "Qualifying",
+  sourcing: "Sourcing",
+  proposal_reviewing: "Considering",
+  negotiating: "Negotiating",
   won: "Won",
   lost: "Lost",
   closed: "Closed",
 };
 
+export const OPPORTUNITIES_JOURNEY_STATUS_FILTERS = [
+  "qualifying",
+  "sourcing",
+  "proposal_reviewing",
+  "negotiating",
+] as const;
+
+export type OpportunitiesJourneyStatusFilter = (typeof OPPORTUNITIES_JOURNEY_STATUS_FILTERS)[number];
+
+export const OPPORTUNITIES_OPERATION_STATUS_METER_FILTERS = [
+  ...OPPORTUNITIES_JOURNEY_STATUS_FILTERS,
+  "closed",
+] as const;
+
+export type OpportunitiesOperationStatusFilter =
+  (typeof OPPORTUNITIES_OPERATION_STATUS_METER_FILTERS)[number];
+
+export const OPPORTUNITIES_VIEW_SCOPE_FILTERS = ["all", "active", "won", "lost"] as const;
+
+export type OpportunitiesViewScopeFilter = (typeof OPPORTUNITIES_VIEW_SCOPE_FILTERS)[number];
+
+export type OpportunitiesKpiFilter = "won_revenue" | "won_payouts" | "won_net_profit" | "pipeline_estimate";
+
+export function isOpportunitiesJourneyStatusFilter(
+  value: string,
+): value is OpportunitiesJourneyStatusFilter {
+  return (OPPORTUNITIES_JOURNEY_STATUS_FILTERS as readonly string[]).includes(value);
+}
+
+export function isOpportunitiesOperationStatusFilter(
+  value: string,
+): value is OpportunitiesOperationStatusFilter {
+  return (OPPORTUNITIES_OPERATION_STATUS_METER_FILTERS as readonly string[]).includes(value);
+}
+
+export function opportunitiesViewScopeFromFilter(
+  filter: OpportunitiesListStatusFilter,
+): OpportunitiesViewScopeFilter | null {
+  if (filter === "won" || filter === "lost" || filter === "all") return filter;
+  if (filter === "closed") return null;
+  return "active";
+}
+
+export function nextOpportunitiesJourneyFilter(
+  current: OpportunitiesListStatusFilter,
+  clicked: OpportunitiesOperationStatusFilter,
+): OpportunitiesListStatusFilter {
+  return current === clicked ? "active" : clicked;
+}
+
+export function statusFilterForKpi(kpi: OpportunitiesKpiFilter): OpportunitiesListStatusFilter {
+  return kpi === "pipeline_estimate" ? "active" : "won";
+}
+
 export function isOpportunitiesListStatusFilter(value: string): value is OpportunitiesListStatusFilter {
-  return (OPPORTUNITIES_LIST_STATUS_FILTERS as readonly string[]).includes(value);
+  return (
+    (OPPORTUNITIES_LIST_STATUS_FILTERS as readonly string[]).includes(value) || value === "closed"
+  );
 }
 
 export function opportunityMatchesListStatusFilter(
@@ -34,6 +106,14 @@ export function opportunityMatchesListStatusFilter(
       return row.status !== "closed_won" && row.status !== "closed_lost";
     case "all":
       return true;
+    case "qualifying":
+      return row.status === "qualifying";
+    case "sourcing":
+      return row.status === "sourcing";
+    case "proposal_reviewing":
+      return row.status === "proposal_reviewing";
+    case "negotiating":
+      return row.status === "negotiating";
     case "won":
       return row.status === "closed_won";
     case "lost":

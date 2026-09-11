@@ -25,10 +25,6 @@ export function ActivityLinkTypeahead({
   const [menuRect, setMenuRect] = useState<{ top: number; left: number; width: number } | null>(null);
   const [pending, startTransition] = useTransition();
 
-  useEffect(() => {
-    setQuery(value?.label ?? "");
-  }, [value?.label, entityType]);
-
   const syncMenuPosition = useCallback(() => {
     const el = inputRef.current;
     if (!el) return;
@@ -41,10 +37,7 @@ export function ActivityLinkTypeahead({
   }, []);
 
   useEffect(() => {
-    if (!open) {
-      setHits([]);
-      return;
-    }
+    if (!open) return;
     syncMenuPosition();
     const timer = window.setTimeout(() => {
       startTransition(async () => {
@@ -116,7 +109,7 @@ export function ActivityLinkTypeahead({
         <input
           ref={inputRef}
           type="search"
-          value={query}
+          value={value ? value.label : query}
           disabled={disabled}
           onChange={(e) => {
             setQuery(e.target.value);

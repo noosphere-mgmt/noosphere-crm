@@ -1,6 +1,7 @@
 import { query } from "@/lib/db";
 import { allocateNextBusinessId, ensureLegacyBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
 import { isActivityType } from "@/lib/activityValues";
+import { sqlContactNameSearch, sqlContactSearchLabel } from "@/lib/contactName";
 import { normalizePremisesIds, resolvePremisesRefToId } from "@/lib/crmRefResolve";
 import {
   sqlJoinLegacyCompany,
@@ -501,11 +502,12 @@ export async function searchActivityCompanies(q: string, limit = 15): Promise<Ac
 
 export async function searchActivityContacts(q: string, limit = 15): Promise<ActivityLinkSearchHit[]> {
   const term = q.trim();
+  const searchLimit = term ? Math.max(limit, 40) : limit;
   const contactIdSql = `COALESCE(NULLIF(trim(ct.business_id), ''), ct.id::text)`;
-  const contactLabelSql = `COALESCE(ct.display_name, ct.contact_name) || ' (' || ${contactIdSql} || ')'`;
+  const contactLabelSql = `${sqlContactSearchLabel("ct")} || ' (' || ${contactIdSql} || ')'`;
   const contactFrom = `
     FROM contacts ct
-    JOIN companies co ON co.id::text = ct.company_id::text
+    LEFT JOIN companies co ON co.id::text = ct.company_id::text
   `;
   if (!term) {
     return query<ActivityLinkSearchHit>(
@@ -515,9 +517,9 @@ export async function searchActivityContacts(q: string, limit = 15): Promise<Act
               co.company_name AS subtitle
        ${contactFrom}
        WHERE ct.is_active = TRUE
-       ORDER BY COALESCE(ct.display_name, ct.contact_name) ASC
+       ORDER BY ${sqlContactSearchLabel("ct")} ASC
        LIMIT $1`,
-      [limit],
+      [searchLimit],
     );
   }
   return query<ActivityLinkSearchHit>(
@@ -527,16 +529,13 @@ export async function searchActivityContacts(q: string, limit = 15): Promise<Act
             co.company_name AS subtitle
      ${contactFrom}
      WHERE ct.is_active = TRUE
-       AND (COALESCE(ct.display_name, ct.contact_name) ILIKE $1
-         OR ct.chinese_name ILIKE $1
+       AND (${sqlContactNameSearch("ct", "$1", "$2")}
          OR co.company_name ILIKE $1
          OR co.company_name_zh ILIKE $1
-         OR co.company_name_cn ILIKE $1
-         OR ct.business_id ILIKE $1
-         OR ct.id::text = $2)
-     ORDER BY COALESCE(ct.display_name, ct.contact_name) ASC
+         OR co.company_name_cn ILIKE $1)
+     ORDER BY ${sqlContactSearchLabel("ct")} ASC
      LIMIT $3`,
-    [`%${term}%`, term, limit],
+    [`%${term}%`, term, searchLimit],
   );
 }
 

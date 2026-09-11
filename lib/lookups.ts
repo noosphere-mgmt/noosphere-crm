@@ -5,6 +5,26 @@ export const PROPERTY_TYPES = [
   "Hotel",
 ] as const;
 
+const BUILDING_TYPE_ALIASES: Record<string, (typeof PROPERTY_TYPES)[number]> = {
+  commercial: "Commercial Building",
+  "commercial building": "Commercial Building",
+  office: "Commercial Building",
+  industrial: "Industrial Building",
+  "industrial building": "Industrial Building",
+  residential: "Residential",
+  "residential building": "Residential",
+  hotel: "Hotel",
+};
+
+/** Map import/UI values onto the Building Type dropdown options. */
+export function normalizeBuildingType(raw: unknown): string | null {
+  const s = String(raw ?? "").trim();
+  if (!s) return null;
+  const exact = PROPERTY_TYPES.find((t) => t.toLowerCase() === s.toLowerCase());
+  if (exact) return exact;
+  return BUILDING_TYPE_ALIASES[s.toLowerCase()] ?? s;
+}
+
 export const CENTRE_TYPES = ["Serviced Office", "Shared Office"] as const;
 
 export const PROPERTY_STATUSES = ["active", "inactive", "archived"] as const;

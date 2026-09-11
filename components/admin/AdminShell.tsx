@@ -32,7 +32,9 @@ export function AdminShell({
         </Suspense>
 
         <div
-          className={`mx-auto min-w-0 ${maxWidth} px-3 py-3 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:px-4 md:py-6 lg:px-6 lg:pb-6`}
+          className={`mx-auto min-w-0 ${maxWidth} px-3 py-2 pb-[calc(5.25rem+env(safe-area-inset-bottom))] sm:px-4 ${
+            module === "dashboard" ? "md:pt-4 lg:px-6 lg:pb-4" : "md:py-6 lg:px-6 lg:pb-6"
+          }`}
         >
           {hideHeader ? null : (
             <ModulePageHeader title={title} module={module} actions={actions} />

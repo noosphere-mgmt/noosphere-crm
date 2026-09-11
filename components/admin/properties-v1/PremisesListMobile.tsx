@@ -13,6 +13,7 @@ import {
   MobileSwipeToDeleteRow,
 } from "@/components/admin/mobile/MobileSwipeToDeleteRow";
 import { formatAreaSqft } from "@/lib/formatCurrency";
+import { premisesProductSubtypeLabel } from "@/lib/v1ListValues";
 import {
   formatPremisesListLabel,
   formatPremisesName,
@@ -89,6 +90,7 @@ export function PremisesListMobile(props: PremisesListComponentProps) {
               const prices = getPremisesRowPriceDisplay(row);
               const listLabel = formatPremisesListLabel(row.building_name_en, row.floor, row.unit);
               const area = formatAreaSqft(row.gross_area_sqft);
+              const subtype = premisesProductSubtypeLabel(row.product_subtype, row.asset_class);
 
               return (
                 <MobileSwipeToDeleteRow
@@ -123,6 +125,7 @@ export function PremisesListMobile(props: PremisesListComponentProps) {
                             </>
                           ) : null}
                         </div>
+                        {subtype !== "—" ? <MobileCardMeta>{subtype}</MobileCardMeta> : null}
                         {area !== "—" ? <MobileCardMeta>{area}</MobileCardMeta> : null}
                         <div className="mt-1.5">
                           <PremisesRelatedCompaniesCell

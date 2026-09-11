@@ -7,8 +7,6 @@ export type DashboardViewData = {
   deals: Opportunity[];
 };
 
-export function DashboardV2({ data }: { data: DashboardViewData }) {
-  // Keep one responsive information architecture on every device.  The old
-  // mobile-only dashboard had different sections and metrics from desktop.
-  return <DashboardDesktop data={data} />;
+export function DashboardV2({ data, ownerName }: { data: DashboardViewData; ownerName?: string }) {
+  return <DashboardDesktop data={data} ownerName={ownerName} />;
 }

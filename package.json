@@ -45,6 +45,7 @@
     "verify:match-premises": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-match-premises.ts",
     "verify:opportunity-proposals": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-opportunity-proposals.ts",
     "verify:opportunity-financials": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-opportunity-financials.ts",
+    "verify:dashboard-home": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-dashboard-home.ts",
     "verify:opportunity-contact-select": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-opportunity-contact-select.ts",
     "verify:occupant-lease": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-occupant-lease.ts",
     "verify:contact-affiliation-primary": "ts-node -r tsconfig-paths/register --compiler-options \"{\\\"module\\\":\\\"CommonJS\\\"}\" scripts/verify-contact-affiliation-primary.ts",

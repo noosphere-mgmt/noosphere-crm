@@ -4,8 +4,8 @@ import { ListingRecordCount } from "@/components/admin/ListingRecordCount";
 import { OpportunitiesKpiStrip } from "@/components/admin/opportunities/OpportunitiesKpiStrip";
 import { OpportunitiesListDesktop } from "@/components/admin/opportunities/OpportunitiesListDesktop";
 import { OpportunitiesListHeaderDesktop } from "@/components/admin/opportunities/OpportunitiesListHeaderDesktop";
+import { OpportunitiesOperationStatusMeter } from "@/components/admin/opportunities/OpportunitiesOperationStatusMeter";
 import { OpportunitiesSearchToolbarDesktop } from "@/components/admin/opportunities/OpportunitiesSearchToolbarDesktop";
-import { OpportunitiesSalesCopilot } from "@/components/admin/opportunities/OpportunitiesSalesCopilot";
 import type { OpportunitiesListState } from "@/components/admin/opportunities/useOpportunitiesList";
 
 export function OpportunitiesDesktop({
@@ -22,16 +22,25 @@ export function OpportunitiesDesktop({
   return (
     <>
       <OpportunitiesListHeaderDesktop onNewOpportunity={onNewOpportunity} onCaptureRequirement={onCaptureRequirement} />
-      <OpportunitiesKpiStrip rows={state.rows} />
-      <OpportunitiesSalesCopilot rows={state.rows} />
+      <OpportunitiesKpiStrip
+        rows={state.rows}
+        selectedKpi={state.kpiFilter}
+        onKpiFilterChange={state.setKpiFilter}
+      />
+      <OpportunitiesOperationStatusMeter
+        listStatusFilter={state.listStatusFilter}
+        onListStatusFilterChange={state.setListStatusFilter}
+        counts={state.statusFilterCounts}
+        usingLegacyStatusFilter={state.usingLegacyStatusFilter}
+      />
       <OpportunitiesSearchToolbarDesktop
         searchQuery={state.searchQuery}
         onSearchChange={state.setSearchQuery}
         listStatusFilter={state.listStatusFilter}
         onListStatusFilterChange={state.setListStatusFilter}
-        statusFilterCounts={state.statusFilterCounts}
         usingLegacyStatusFilter={state.usingLegacyStatusFilter}
         dashboardStage={state.dashboardStage}
+        rows={state.rows}
       />
       <ListingRecordCount
         filteredCount={state.displayedRows.length}

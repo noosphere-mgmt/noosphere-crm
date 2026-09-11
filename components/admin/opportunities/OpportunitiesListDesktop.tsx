@@ -9,7 +9,7 @@ import { companyFullPageHref, contactFullPageHref } from "@/lib/crmDetailNav";
 import { OPPORTUNITY_STATUS_LABELS } from "@/lib/lookups";
 import { buildOpportunitiesReturnTo } from "@/lib/opportunitiesDrawerNav";
 import { opportunityWorkspaceHref } from "@/lib/opportunityWorkspaceNav";
-import { opportunityStatusChip } from "@/lib/opportunityStatusTheme";
+import { OPPORTUNITY_STATUS_COLORS, opportunityStatusChip } from "@/lib/opportunityStatusTheme";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import type { Opportunity } from "@/lib/types/entities";
 import { useSearchParams } from "next/navigation";
@@ -23,15 +23,6 @@ function formatDateLabel(value: string | null | undefined): string {
   if (!value) return "—";
   return value.slice(0, 10);
 }
-
-const STATUS_CHANCE: Record<Opportunity["status"], { percent: number; label: string }> = {
-  qualifying: { percent: 20, label: "Low" },
-  sourcing: { percent: 30, label: "Low" },
-  proposal_reviewing: { percent: 50, label: "Medium" },
-  negotiating: { percent: 70, label: "High" },
-  closed_won: { percent: 100, label: "Won" },
-  closed_lost: { percent: 0, label: "Lost" },
-};
 
 export function OpportunitiesListDesktop({
   state,
@@ -74,7 +65,7 @@ export function OpportunitiesListDesktop({
             <SortableTableHeader label="Opportunity" sortKey="opportunity" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <SortableTableHeader label="Company" sortKey="company" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <SortableTableHeader label="Contact" sortKey="contact" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-            <SortableTableHeader label="Expected Close · Chance" sortKey="expected_close" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+            <SortableTableHeader label="Expected Close" sortKey="expected_close" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <SortableTableHeader label="Status" sortKey="status" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <th className="px-3 py-1.5 align-top font-medium">Commission / Profit</th>
             <SortableTableHeader label="Updated" sortKey="updated" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
@@ -96,7 +87,11 @@ export function OpportunitiesListDesktop({
             </tr>
           ) : (
             displayedRows.map((row) => (
-              <tr key={row.id} className="border-t border-slate-100">
+              <tr
+                key={row.id}
+                className="border-t border-slate-100"
+                style={{ boxShadow: `inset 3px 0 0 ${OPPORTUNITY_STATUS_COLORS[row.status]}` }}
+              >
                 <td className="px-3 py-1.5">
                   <input
                     type="checkbox"
@@ -137,9 +132,6 @@ export function OpportunitiesListDesktop({
                 </td>
                 <td className="px-3 py-1.5 text-slate-700">
                   <p className="tabular-nums">{formatDateLabel(row.expected_close_date)}</p>
-                  <p className="mt-0.5 text-[11px] text-slate-500">
-                    {STATUS_CHANCE[row.status].label} · {STATUS_CHANCE[row.status].percent}%
-                  </p>
                 </td>
                 <td className="px-3 py-1.5">
                   <span {...opportunityStatusChip(row.status)}>{OPPORTUNITY_STATUS_LABELS[row.status]}</span>

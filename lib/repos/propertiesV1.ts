@@ -482,7 +482,13 @@ export async function listPropertyV1SelectOptions(): Promise<PropertyV1SelectOpt
              )),
              ' '
            )
-           FROM jsonb_array_elements(COALESCE(p.building_relationship_lines, '[]'::jsonb)) AS rel(line)
+           FROM jsonb_array_elements(
+             CASE
+               WHEN jsonb_typeof(COALESCE(p.building_relationship_lines, '[]'::jsonb)) = 'array'
+               THEN COALESCE(p.building_relationship_lines, '[]'::jsonb)
+               ELSE '[]'::jsonb
+             END
+           ) AS rel(line)
            JOIN companies_v1 rel_co
              ON ${sqlJoinV1Company("rel_co", "rel.line->>'company_id'")}
            WHERE COALESCE(rel.line->>'role', '') ILIKE '%owner%'

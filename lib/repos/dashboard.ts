@@ -621,8 +621,7 @@ async function fetchRelationshipNetwork(): Promise<DashboardRelationshipNode[]> 
 }
 
 export async function fetchDashboardData(): Promise<DashboardData> {
-  // The current dashboard uses only these four reports. Keep the remaining
-  // result keys empty for API compatibility without running unused queries.
+  // Home uses won financials and referrers. Remaining keys stay empty for API compatibility.
   const [pipeline, attention, top_referrers, relationship_network, won_financials] = await Promise.all([
     fetchPipelineKpis(),
     fetchAttentionRequired(),

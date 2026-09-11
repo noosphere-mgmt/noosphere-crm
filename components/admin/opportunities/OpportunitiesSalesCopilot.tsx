@@ -47,28 +47,27 @@ export function OpportunitiesSalesCopilot({ rows }: { rows: Opportunity[] }) {
   if (insights.length === 0) return null;
 
   return (
-    <section className="mb-3 rounded-xl border border-violet-200 bg-violet-50/50 px-3 py-2.5">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <div className="flex shrink-0 items-center gap-2">
-          <span aria-hidden="true" className="text-violet-600">✦</span>
-          <div>
-            <h2 className="text-sm font-semibold text-slate-900">Activity insight</h2>
-            <p className="text-[11px] text-slate-500">Based only on recorded footprints</p>
-          </div>
-        </div>
-        <div className="flex min-w-0 flex-1 flex-wrap gap-2 lg:flex-nowrap">
-          {insights.map((item) => (
-            <Link key={item.row.id} href={opportunityWorkspaceHref(item.row, "timeline")}
-              className="group min-w-[220px] flex-1 rounded-lg border border-white bg-white px-3 py-2 shadow-sm hover:border-violet-300">
-              <div className="flex items-center justify-between gap-2">
-                <p className="truncate text-xs font-semibold text-slate-900 group-hover:text-violet-700">{item.row.client_name}</p>
-                <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">{item.label}</span>
-              </div>
-              <p className="mt-1 truncate text-[11px] text-slate-500" title={item.detail}>{item.detail}</p>
-            </Link>
-          ))}
-        </div>
-      </div>
-    </section>
+    <div
+      aria-label="Activity insight"
+      className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto"
+    >
+      <span className="hidden shrink-0 items-center gap-1 text-[11px] font-semibold text-violet-800 sm:flex">
+        <span aria-hidden="true">✦</span>
+        Activity insight
+      </span>
+      {insights.map((item) => (
+        <Link
+          key={item.row.id}
+          href={opportunityWorkspaceHref(item.row, "timeline")}
+          title={item.detail}
+          className="inline-flex min-w-0 max-w-[22rem] items-center gap-1.5 rounded-full border border-violet-200 bg-violet-50/70 px-2 py-1 hover:border-violet-300 hover:bg-white"
+        >
+          <span className="truncate text-[11px] font-semibold text-slate-800">{item.row.client_name}</span>
+          <span className="shrink-0 rounded-full bg-amber-50 px-1.5 py-px text-[10px] font-semibold text-amber-800">
+            {item.label}
+          </span>
+        </Link>
+      ))}
+    </div>
   );
 }

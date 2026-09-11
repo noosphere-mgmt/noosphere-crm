@@ -9,6 +9,7 @@ import { SortableTableHeader } from "@/components/admin/SortableTableHeader";
 import { PremisesCentreStatusIcon } from "@/components/admin/properties-v1/PremisesCentreStatusIcon";
 import { PremisesRelatedCompaniesCell } from "@/components/admin/properties-v1/PremisesRelatedCompaniesCell";
 import { formatAreaSqft } from "@/lib/formatCurrency";
+import { premisesProductSubtypeLabel } from "@/lib/v1ListValues";
 import {
   formatPremisesListLabel,
   formatPremisesName,
@@ -154,6 +155,13 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                 onSort={handleSort}
               />
               <PremisesSortableHeader
+                label="Subtype"
+                sortKey="subtype"
+                activeKey={sortKey}
+                sortDir={sortDir}
+                onSort={handleSort}
+              />
+              <PremisesSortableHeader
                 label="Gross area"
                 sortKey="gross_area"
                 activeKey={sortKey}
@@ -237,6 +245,9 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                         occupantId={row.current_tenant_company_id}
                         companies={companies}
                       />
+                    </td>
+                    <td className="px-3 py-1.5 text-slate-700">
+                      {premisesProductSubtypeLabel(row.product_subtype, row.asset_class)}
                     </td>
                     <td className="px-3 py-1.5 text-slate-700">{formatAreaSqft(row.gross_area_sqft)}</td>
                     <td className="px-3 py-1.5 text-slate-700">{prices.price}</td>

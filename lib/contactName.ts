@@ -46,6 +46,36 @@ export function sqlContactDisplayName(columnPrefix = ""): string {
   return `COALESCE(${p}display_name::text, ${p}contact_name::text)`;
 }
 
+/** SQL: display/contact name, then first+last, then Chinese name. */
+export function sqlContactSearchLabel(columnPrefix = ""): string {
+  const p = columnPrefix ? `${columnPrefix}.` : "";
+  return `COALESCE(
+    NULLIF(trim(${sqlContactDisplayName(columnPrefix)}), ''),
+    NULLIF(btrim(COALESCE(${p}first_name::text, '') || ' ' || COALESCE(${p}last_name::text, '')), ''),
+    NULLIF(trim(${p}chinese_name::text), ''),
+    'Contact'
+  )`;
+}
+
+/** SQL boolean: personal names, display/contact name, and business id. */
+export function sqlContactNameSearch(
+  columnPrefix: string,
+  likeParam: string,
+  idParam: string,
+): string {
+  const p = columnPrefix ? `${columnPrefix}.` : "";
+  return `(
+    COALESCE(${p}display_name::text, '') ILIKE ${likeParam}
+    OR COALESCE(${p}contact_name::text, '') ILIKE ${likeParam}
+    OR COALESCE(${p}first_name::text, '') ILIKE ${likeParam}
+    OR COALESCE(${p}last_name::text, '') ILIKE ${likeParam}
+    OR COALESCE(${p}chinese_name::text, '') ILIKE ${likeParam}
+    OR btrim(COALESCE(${p}first_name::text, '') || ' ' || COALESCE(${p}last_name::text, '')) ILIKE ${likeParam}
+    OR COALESCE(${p}business_id::text, '') ILIKE ${likeParam}
+    OR ${p}id::text = ${idParam}
+  )`;
+}
+
 export function syncContactDerivedNames<T extends {
   first_name?: string | null;
   last_name?: string | null;

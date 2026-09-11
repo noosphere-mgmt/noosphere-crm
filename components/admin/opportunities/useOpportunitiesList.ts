@@ -6,6 +6,7 @@ import { useSyncListingExportIds } from "@/components/admin/ModuleListingExportC
 import { useOpportunitiesListSelection } from "@/components/admin/opportunities/OpportunitiesListSelectionContext";
 import { compareSortText, nextSortState, type SortDir } from "@/components/admin/SortableTableHeader";
 import { OPPORTUNITY_STATUS_LABELS } from "@/lib/lookups";
+import { parseOpportunityMoney } from "@/lib/opportunityFinancials";
 import {
   countOpportunitiesListStatusFilter,
   EMPTY_OPPORTUNITIES_QUICK_FILTERS,
@@ -13,7 +14,9 @@ import {
   opportunityMatchesGlobalSearch,
   opportunityMatchesListStatusFilter,
   opportunityMatchesQuickFilters,
+  statusFilterForKpi,
   type OpportunitiesDashboardStage,
+  type OpportunitiesKpiFilter,
   type OpportunitiesListStatusFilter,
   type OpportunitiesQuickFilters,
 } from "@/lib/opportunitiesList";
@@ -34,6 +37,9 @@ export function useOpportunitiesList(
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [searchQuery, setSearchQuery] = useState("");
   const [listStatusFilter, setListStatusFilterState] = useState(initialListStatusFilter);
+  const [kpiFilter, setKpiFilterState] = useState<OpportunitiesKpiFilter | null>(
+    searchParams.get("kpi") === "payouts" ? "won_payouts" : null,
+  );
   const [dashboardStage, setDashboardStageState] = useState(initialDashboardStage);
   const [quickFilters, setQuickFiltersState] = useState<OpportunitiesQuickFilters>({
     ...EMPTY_OPPORTUNITIES_QUICK_FILTERS,
@@ -42,8 +48,12 @@ export function useOpportunitiesList(
 
   const statusFilterCounts = useMemo(
     () => ({
-      active: countOpportunitiesListStatusFilter(rows, "active"),
       all: countOpportunitiesListStatusFilter(rows, "all"),
+      active: countOpportunitiesListStatusFilter(rows, "active"),
+      qualifying: countOpportunitiesListStatusFilter(rows, "qualifying"),
+      sourcing: countOpportunitiesListStatusFilter(rows, "sourcing"),
+      proposal_reviewing: countOpportunitiesListStatusFilter(rows, "proposal_reviewing"),
+      negotiating: countOpportunitiesListStatusFilter(rows, "negotiating"),
       won: countOpportunitiesListStatusFilter(rows, "won"),
       lost: countOpportunitiesListStatusFilter(rows, "lost"),
       closed: countOpportunitiesListStatusFilter(rows, "closed"),
@@ -56,6 +66,7 @@ export function useOpportunitiesList(
       listStatusFilter?: OpportunitiesListStatusFilter;
       dashboardStage?: OpportunitiesDashboardStage | undefined;
       legacyStatuses?: OpportunityStatus[];
+      kpiFilter?: OpportunitiesKpiFilter | null;
     }) => {
       const params = new URLSearchParams(searchParams.toString());
       params.delete("opportunity");
@@ -67,30 +78,70 @@ export function useOpportunitiesList(
       const filter = next.listStatusFilter ?? listStatusFilter;
       const stage = next.dashboardStage !== undefined ? next.dashboardStage : dashboardStage;
       const legacy = next.legacyStatuses ?? quickFilters.statuses;
+      const kpi = next.kpiFilter !== undefined ? next.kpiFilter : kpiFilter;
 
       if (legacy.length > 0) {
         params.set("status", legacy.join(","));
         params.delete("stage");
+        params.delete("kpi");
       } else {
         params.set("status", filter);
         if (stage) params.set("stage", stage);
         else params.delete("stage");
+        if (kpi === "won_payouts") params.set("kpi", "payouts");
+        else params.delete("kpi");
       }
 
       const qs = params.toString();
       router.replace(qs ? `/admin/opportunities?${qs}` : "/admin/opportunities");
     },
-    [dashboardStage, listStatusFilter, quickFilters.statuses, router, searchParams],
+    [dashboardStage, kpiFilter, listStatusFilter, quickFilters.statuses, router, searchParams],
   );
 
   const setListStatusFilter = useCallback(
     (filter: OpportunitiesListStatusFilter) => {
       setListStatusFilterState(filter);
+      setKpiFilterState(null);
       setDashboardStageState(undefined);
       setQuickFiltersState(EMPTY_OPPORTUNITIES_QUICK_FILTERS);
-      syncListParams({ listStatusFilter: filter, dashboardStage: undefined, legacyStatuses: [] });
+      syncListParams({
+        listStatusFilter: filter,
+        dashboardStage: undefined,
+        legacyStatuses: [],
+        kpiFilter: null,
+      });
     },
     [syncListParams],
+  );
+
+  const setKpiFilter = useCallback(
+    (kpi: OpportunitiesKpiFilter) => {
+      if (kpiFilter === kpi) {
+        setKpiFilterState(null);
+        setListStatusFilterState("all");
+        setDashboardStageState(undefined);
+        setQuickFiltersState(EMPTY_OPPORTUNITIES_QUICK_FILTERS);
+        syncListParams({
+          listStatusFilter: "all",
+          dashboardStage: undefined,
+          legacyStatuses: [],
+          kpiFilter: null,
+        });
+        return;
+      }
+      const status = statusFilterForKpi(kpi);
+      setKpiFilterState(kpi);
+      setListStatusFilterState(status);
+      setDashboardStageState(undefined);
+      setQuickFiltersState(EMPTY_OPPORTUNITIES_QUICK_FILTERS);
+      syncListParams({
+        listStatusFilter: status,
+        dashboardStage: undefined,
+        legacyStatuses: [],
+        kpiFilter: kpi,
+      });
+    },
+    [kpiFilter, syncListParams],
   );
 
   const setQuickFilters = useCallback(
@@ -111,6 +162,7 @@ export function useOpportunitiesList(
       } else {
         if (dashboardStage && !opportunityMatchesDashboardStage(row, dashboardStage)) return false;
         if (!opportunityMatchesListStatusFilter(row, listStatusFilter)) return false;
+        if (kpiFilter === "won_payouts" && parseOpportunityMoney(row.related_costs) == null) return false;
       }
       if (!opportunityMatchesGlobalSearch(row, searchQuery)) return false;
       return true;
@@ -138,7 +190,7 @@ export function useOpportunitiesList(
           return 0;
       }
     });
-  }, [rows, quickFilters, searchQuery, sortKey, sortDir, dashboardStage, listStatusFilter]);
+  }, [rows, quickFilters, searchQuery, sortKey, sortDir, dashboardStage, listStatusFilter, kpiFilter]);
 
   const displayedIds = useMemo(() => displayedRows.map((r) => String(r.id)), [displayedRows]);
   useSyncListingExportIds(displayedIds);
@@ -167,6 +219,8 @@ export function useOpportunitiesList(
     setQuickFilters,
     listStatusFilter,
     setListStatusFilter,
+    kpiFilter,
+    setKpiFilter,
     statusFilterCounts,
     dashboardStage,
     usingLegacyStatusFilter,

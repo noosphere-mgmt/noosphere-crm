@@ -54,6 +54,25 @@ export const PREMISES_PRODUCT_SUBTYPES = {
   unknown: [{ value: "unknown", label: "Unknown" }],
 } as const;
 
+export function premisesProductSubtypeLabel(
+  productSubtype?: string | null,
+  assetClass?: string | null,
+): string {
+  const value = productSubtype?.trim();
+  if (!value) return "—";
+  const preferred =
+    assetClass && assetClass in PREMISES_PRODUCT_SUBTYPES
+      ? PREMISES_PRODUCT_SUBTYPES[assetClass as keyof typeof PREMISES_PRODUCT_SUBTYPES]
+      : null;
+  const fromPreferred = preferred?.find((row) => row.value === value)?.label;
+  if (fromPreferred) return fromPreferred;
+  for (const rows of Object.values(PREMISES_PRODUCT_SUBTYPES)) {
+    const hit = rows.find((row) => row.value === value);
+    if (hit) return hit.label;
+  }
+  return value;
+}
+
 export const PREMISES_WHOLE_ASSET_TYPES = [
   { value: "hotel", label: "Hotel" },
   { value: "residential_building", label: "Residential Building" },

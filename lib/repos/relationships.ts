@@ -1,5 +1,5 @@
 import { query, withTransaction, type DbClient } from "@/lib/db";
-import { sqlContactDisplayName } from "@/lib/contactName";
+import { sqlContactDisplayName, sqlContactNameSearch, sqlContactSearchLabel } from "@/lib/contactName";
 import {
   entityIdString,
   isEntityType,
@@ -312,6 +312,7 @@ export async function searchRelationshipEntities(
 ): Promise<RelationshipSearchHit[]> {
   const term = q.trim();
   if (!term) return [];
+  const searchLimit = Math.max(limit, 40);
 
   if (partyType === "company") {
     return query<RelationshipSearchHit>(
@@ -323,21 +324,24 @@ export async function searchRelationshipEntities(
        WHERE is_active = TRUE AND company_name ILIKE $1
        ORDER BY company_name ASC
        LIMIT $2`,
-      [`%${term}%`, limit],
+      [`%${term}%`, searchLimit],
     );
   }
 
   return query<RelationshipSearchHit>(
     `SELECT 'contact'::text AS entity_type,
             c.id::text AS entity_id,
-            ${sqlContactDisplayName("c")} AS label,
+            ${sqlContactSearchLabel("c")} AS label,
             co.company_name AS subtitle
      FROM contacts c
-     JOIN companies co ON co.id::text = c.company_id::text
+     LEFT JOIN companies co ON co.id::text = c.company_id::text
      WHERE c.is_active = TRUE
-       AND (${sqlContactDisplayName("c")} ILIKE $1 OR co.company_name ILIKE $1)
-     ORDER BY ${sqlContactDisplayName("c")} ASC
-     LIMIT $2`,
-    [`%${term}%`, limit],
+       AND (${sqlContactNameSearch("c", "$1", "$2")}
+         OR co.company_name ILIKE $1
+         OR co.company_name_zh ILIKE $1
+         OR co.company_name_cn ILIKE $1)
+     ORDER BY ${sqlContactSearchLabel("c")} ASC
+     LIMIT $3`,
+    [`%${term}%`, term, searchLimit],
   );
 }

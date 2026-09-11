@@ -1,5 +1,6 @@
 import { AdminShell } from "@/components/admin/AdminShell";
 import { DashboardV2 } from "@/components/admin/dashboard/DashboardV2";
+import { getDefaultCrmOwnerName } from "@/lib/repos/crmUsers";
 import { fetchDashboardData } from "@/lib/repos/dashboard";
 import { listOpportunities } from "@/lib/repos/opportunities";
 
@@ -8,19 +9,22 @@ export const dynamic = "force-dynamic";
 export default async function AdminDashboardPage() {
   let error: string | null = null;
   let viewData: Parameters<typeof DashboardV2>[0]["data"] | null = null;
+  let ownerName = "Teresa";
 
   try {
-    const [dashboard, deals] = await Promise.all([
+    const [dashboard, deals, owner] = await Promise.all([
       fetchDashboardData(),
       listOpportunities(),
+      getDefaultCrmOwnerName(),
     ]);
     viewData = { dashboard, deals };
+    ownerName = owner;
   } catch (err) {
     error = err instanceof Error ? err.message : "Failed to load dashboard";
   }
 
   return (
-    <AdminShell title="Noosphere Intelligence" module="dashboard" wide hideHeader>
+    <AdminShell title="Dashboard" module="dashboard" wide hideHeader>
       {error ? (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-6 text-sm text-red-900">
           <p className="font-semibold">Dashboard unavailable</p>
@@ -30,7 +34,7 @@ export default async function AdminDashboardPage() {
           </p>
         </div>
       ) : viewData ? (
-        <DashboardV2 data={viewData} />
+        <DashboardV2 data={viewData} ownerName={ownerName} />
       ) : null}
     </AdminShell>
   );

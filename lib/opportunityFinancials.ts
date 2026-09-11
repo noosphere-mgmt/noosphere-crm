@@ -77,6 +77,25 @@ export function formatOpportunityMoney(value: OpportunityMoneyAmount | string | 
   }).format(n);
 }
 
+/** Compact Home/KPI display: HK$950, HK$420K, HK$4.2M. Full amount stays on `formatOpportunityMoney`. */
+export function formatOpportunityMoneyCompact(value: OpportunityMoneyAmount | string | undefined): string {
+  const n = parseOpportunityMoney(value);
+  if (n == null) return "—";
+  const sign = n < 0 ? "-" : "";
+  const abs = Math.abs(n);
+  if (abs < 10_000) {
+    return `${sign}HK$${Math.round(abs).toLocaleString("en-HK")}`;
+  }
+  if (abs < 1_000_000) {
+    const thousands = abs / 1000;
+    const text = Number.isInteger(thousands) ? String(thousands) : thousands.toFixed(1).replace(/\.0$/, "");
+    return `${sign}HK$${text}K`;
+  }
+  const millions = abs / 1_000_000;
+  const text = millions >= 10 && Number.isInteger(millions) ? String(millions) : millions.toFixed(1).replace(/\.0$/, "");
+  return `${sign}HK$${text}M`;
+}
+
 export function summariseWonOpportunityFinancials(
   rows: Array<Pick<Opportunity, "id" | "status" | "commission_income" | "related_costs" | "net_profit">>,
 ): WonOpportunityFinancialsSummary {
