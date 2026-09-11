@@ -175,10 +175,16 @@ export function ChannelTreeClient({ contacts, tree }: { contacts: Contact[]; tre
               </button>
             ) : <span className="h-6 w-6 shrink-0" />}
             <div className="min-w-0">
-              <Link href={entityHref(node)} className="break-words font-semibold text-[#62556A] hover:text-[#807089]">{node.name}</Link>
-            <p className="mt-0.5 text-xs text-slate-500">
-              {node.member ? "Contact in company" : depth === 0 ? "Channel origin" : `Introduced ${node.entity_type}`}
-            </p>
+              <p className="min-w-0 break-words">
+                <Link href={entityHref(node)} className="font-semibold text-[#62556A] hover:text-[#807089]">{node.name}</Link>
+                {node.member ? (
+                  <span className="ml-1.5 text-xs font-normal text-slate-500">Contact in company</span>
+                ) : depth > 0 ? (
+                  <span className="ml-1.5 text-xs font-normal text-slate-500">Introduced {node.entity_type}</span>
+                ) : (
+                  <span className="ml-1.5 text-xs font-normal text-slate-500">Channel origin</span>
+                )}
+              </p>
             </div>
           </div>
           <div className="grid w-full grid-cols-4 gap-1 text-center text-[10px] font-semibold sm:flex sm:w-auto sm:flex-wrap sm:gap-2 sm:text-xs">
