@@ -93,7 +93,7 @@ export function creationTypeToReverseType(type: CreationRelationshipType): Relat
   return REVERSE_RELATIONSHIP_TYPES[type];
 }
 
-/** Default add-form type: contacts usually log who referred them. */
-export function defaultAddRelationshipType(entityType: EntityType): AddableRelationshipType {
-  return entityType === "contact" ? "Referred By" : "Refers";
+/** Default add-form type: log who referred the current party. */
+export function defaultAddRelationshipType(_entityType?: EntityType): AddableRelationshipType {
+  return "Referred By";
 }

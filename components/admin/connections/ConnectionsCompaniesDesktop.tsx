@@ -167,9 +167,16 @@ export function ConnectionsCompaniesDesktop({
     }
 
     const q = state.searchQuery.trim();
+    const sectors = state.quickFilters.coverage;
+    const sectorFiltered =
+      sectors.length === 0
+        ? base
+        : base.filter((contact) =>
+            contactMatchesQuickFilters(contact, { country: "", city: "", coverage: sectors }, contact.company_id != null ? companiesById.get(contact.company_id)?.coverage : undefined),
+          );
     const filtered = !q
-      ? base
-      : base.filter((contact) => {
+      ? sectorFiltered
+      : sectorFiltered.filter((contact) => {
           if (contactMatchesGlobalSearch(contact, q)) return true;
           if (contact.company_id == null) return false;
           const company = companiesById.get(contact.company_id);
@@ -221,6 +228,7 @@ export function ConnectionsCompaniesDesktop({
     checkedCompanyIds,
     contactSortKey,
     contactSortDir,
+    state.quickFilters,
   ]);
 
   function handleContactSort(key: ContactSortKey) {
@@ -382,6 +390,7 @@ export function ConnectionsCompaniesDesktop({
         countries={state.countries}
         cities={state.cities}
         relationshipTypeSlot={<ConnectionsRelationshipTypeFilters />}
+        coverageMode="property-sector"
         onAfterReset={() => setCompanyColumnSearch("")}
       />
 

@@ -40,6 +40,9 @@ export const COVERAGE_OPTIONS = [
   "Service Carrier",
 ] as const;
 
+/** Asset-class subset of coverage used by the Contacts Property Sector filter. */
+export const PROPERTY_SECTOR_OPTIONS = ["Commercial", "Industrial", "Residential"] as const;
+
 export const ACTIVITY_TYPES = [
   "Call",
   "WhatsApp",

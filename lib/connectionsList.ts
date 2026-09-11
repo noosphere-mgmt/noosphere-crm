@@ -88,16 +88,31 @@ export function contactsWithoutCompany(contacts: Contact[]): Contact[] {
   return contacts.filter((contact) => contact.company_id == null);
 }
 
+export function coverageMatchesAny(coverage: string[] | null | undefined, selected: string[]): boolean {
+  if (selected.length === 0) return true;
+  const values = new Set((coverage ?? []).map((value) => value.toLowerCase()));
+  return selected.some((item) => values.has(item.toLowerCase()));
+}
+
+/** OR-match against contact coverage and/or the affiliated company's coverage. */
+export function contactMatchesPropertySectors(
+  contact: Pick<Contact, "coverage">,
+  selected: string[],
+  companyCoverage?: string[] | null,
+): boolean {
+  if (selected.length === 0) return true;
+  return coverageMatchesAny(contact.coverage, selected) || coverageMatchesAny(companyCoverage, selected);
+}
+
 export function matchesQuickFilters(
   row: { country?: string | null; city?: string | null; coverage?: string[] | null },
   filters: ConnectionsQuickFilters,
 ): boolean {
   const countryQ = filters.country.trim().toLowerCase();
   const cityQ = filters.city.trim().toLowerCase();
-  const coverageValues = (row.coverage ?? []).map((value) => value.toLowerCase());
   if (countryQ && !fuzzyMatch(row.country, countryQ)) return false;
   if (cityQ && !fuzzyMatch(row.city, cityQ)) return false;
-  if (filters.coverage.length > 0 && !filters.coverage.some((selected) => coverageValues.includes(selected.toLowerCase()))) return false;
+  if (filters.coverage.length > 0 && !coverageMatchesAny(row.coverage, filters.coverage)) return false;
   return true;
 }
 
@@ -190,12 +205,15 @@ export function contactMatchesGlobalSearch(row: Contact, query: string): boolean
   );
 }
 
-export function contactMatchesQuickFilters(row: Contact, filters: ConnectionsQuickFilters): boolean {
+export function contactMatchesQuickFilters(
+  row: Contact,
+  filters: ConnectionsQuickFilters,
+  companyCoverage?: string[] | null,
+): boolean {
   const countryQ = filters.country.trim().toLowerCase();
   const cityQ = filters.city.trim().toLowerCase();
-  const coverageValues = (row.coverage ?? []).map((value) => value.toLowerCase());
   if (countryQ && !fuzzyMatch(row.company_country, countryQ)) return false;
   if (cityQ && !fuzzyMatch(row.company_city, cityQ)) return false;
-  if (filters.coverage.length > 0 && !filters.coverage.some((selected) => coverageValues.includes(selected.toLowerCase()))) return false;
+  if (!contactMatchesPropertySectors(row, filters.coverage, companyCoverage)) return false;
   return true;
 }

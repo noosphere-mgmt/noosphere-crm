@@ -2,7 +2,9 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CoverageMultiSelect } from "@/components/admin/connections/CoverageMultiSelect";
+import { PropertySectorMultiSelect } from "@/components/admin/connections/PropertySectorMultiSelect";
 import { connectionsGlassClasses } from "@/lib/connectionsGlassTheme";
+import { COVERAGE_OPTIONS } from "@/lib/connectionsValues";
 import {
   EMPTY_CONNECTIONS_QUICK_FILTERS,
   parseConnectionsRoleFilter,
@@ -25,6 +27,7 @@ export function ConnectionsSearchToolbarDesktop({
   relationshipTypeSlot,
   hideSearch = false,
   onAfterReset,
+  coverageMode = "coverage",
 }: {
   searchQuery: string;
   onSearchChange: (value: string) => void;
@@ -38,6 +41,7 @@ export function ConnectionsSearchToolbarDesktop({
   hideSearch?: boolean;
   /** Extra reset work (e.g. clear company-column search). */
   onAfterReset?: () => void;
+  coverageMode?: "coverage" | "property-sector";
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -98,10 +102,18 @@ export function ConnectionsSearchToolbarDesktop({
           <div className="flex min-w-0 flex-wrap items-center gap-1.5">{relationshipTypeSlot}</div>
         ) : null}
 
-        <CoverageMultiSelect
-          value={quickFilters.coverage}
-          onChange={(coverage) => onQuickFiltersChange({ ...quickFilters, coverage })}
-        />
+        {coverageMode === "property-sector" ? (
+          <PropertySectorMultiSelect
+            value={quickFilters.coverage}
+            onChange={(coverage) => onQuickFiltersChange({ ...quickFilters, coverage })}
+          />
+        ) : (
+          <CoverageMultiSelect
+            options={COVERAGE_OPTIONS}
+            value={quickFilters.coverage}
+            onChange={(coverage) => onQuickFiltersChange({ ...quickFilters, coverage })}
+          />
+        )}
 
         <select
           aria-label="Filter by country"

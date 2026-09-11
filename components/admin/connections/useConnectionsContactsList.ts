@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSyncListingExportIds } from "@/components/admin/ModuleListingExportContext";
 import { useConnectionsListSelection } from "@/components/admin/connections/ConnectionsListSelectionContext";
-import { formatCoverage } from "@/lib/connectionsDisplay";
+import { formatCoverage, type ConnectionCompanyListRow } from "@/lib/connectionsDisplay";
 import { getContactLabel } from "@/lib/contactName";
 import {
   contactMatchesGlobalSearch,
@@ -22,7 +22,7 @@ function compareText(a: string, b: string, dir: SortDir): number {
   return dir === "asc" ? cmp : -cmp;
 }
 
-export function useConnectionsContactsList(rows: Contact[]) {
+export function useConnectionsContactsList(rows: Contact[], companies: ConnectionCompanyListRow[] = []) {
   const searchParams = useSearchParams();
   const { selected, toggleOne, toggleAll, selectedCount } = useConnectionsListSelection();
   const [sortKey, setSortKey] = useState<SortKey>("name");
@@ -39,9 +39,25 @@ export function useConnectionsContactsList(rows: Contact[]) {
     [rows],
   );
 
+  const companyCoverageById = useMemo(() => {
+    const map = new Map<number, string[]>();
+    for (const company of companies) {
+      map.set(company.id, company.coverage ?? []);
+    }
+    return map;
+  }, [companies]);
+
   const displayedRows = useMemo(() => {
     const filtered = rows.filter((row) => {
-      if (!contactMatchesQuickFilters(row, quickFilters)) return false;
+      if (
+        !contactMatchesQuickFilters(
+          row,
+          quickFilters,
+          row.company_id != null ? companyCoverageById.get(row.company_id) : undefined,
+        )
+      ) {
+        return false;
+      }
       if (!contactMatchesGlobalSearch(row, searchQuery)) return false;
       return true;
     });
@@ -59,7 +75,7 @@ export function useConnectionsContactsList(rows: Contact[]) {
           return 0;
       }
     });
-  }, [rows, quickFilters, searchQuery, sortKey, sortDir]);
+  }, [rows, quickFilters, searchQuery, sortKey, sortDir, companyCoverageById]);
 
   const selectionIds = useMemo(
     () => displayedRows.map((r) => String(r.id)),

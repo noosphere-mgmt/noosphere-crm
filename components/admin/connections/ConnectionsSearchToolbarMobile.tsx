@@ -3,7 +3,9 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ConnectionsRelationshipTypeFilters } from "@/components/admin/connections/ConnectionsRelationshipTypeFilters";
 import { CoverageMultiSelect } from "@/components/admin/connections/CoverageMultiSelect";
+import { PropertySectorMultiSelect } from "@/components/admin/connections/PropertySectorMultiSelect";
 import { connectionsGlassClasses } from "@/lib/connectionsGlassTheme";
+import { COVERAGE_OPTIONS } from "@/lib/connectionsValues";
 import {
   EMPTY_CONNECTIONS_QUICK_FILTERS,
   parseConnectionsRoleFilter,
@@ -82,6 +84,7 @@ export function ConnectionsSearchToolbarMobile({
           <ConnectionsRelationshipTypeFilters compact />
           <CoverageMultiSelect
             compact
+            options={COVERAGE_OPTIONS}
             value={quickFilters.coverage}
             onChange={(coverage) => onQuickFiltersChange({ ...quickFilters, coverage })}
           />
@@ -91,8 +94,8 @@ export function ConnectionsSearchToolbarMobile({
   }
 
   return (
-    <div className="mb-2">
-      <div className="flex items-center gap-1.5">
+    <div className="mb-2 space-y-1.5">
+      <div className="flex min-w-0 items-center gap-1.5">
         <input
           type="search"
           value={searchQuery}
@@ -109,6 +112,13 @@ export function ConnectionsSearchToolbarMobile({
         >
           Reset all
         </button>
+      </div>
+      <div className="min-w-0">
+        <PropertySectorMultiSelect
+          compact
+          value={quickFilters.coverage}
+          onChange={(coverage) => onQuickFiltersChange({ ...quickFilters, coverage })}
+        />
       </div>
     </div>
   );

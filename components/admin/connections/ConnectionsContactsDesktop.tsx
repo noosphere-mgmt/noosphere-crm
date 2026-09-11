@@ -25,6 +25,7 @@ export function ConnectionsContactsDesktop({
       />
       <ConnectionsSearchToolbarDesktop
         variant="contacts"
+        coverageMode="property-sector"
         searchQuery={state.searchQuery}
         onSearchChange={state.setSearchQuery}
         quickFilters={state.quickFilters}

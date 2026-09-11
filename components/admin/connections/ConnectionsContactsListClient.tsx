@@ -17,7 +17,7 @@ function ContactsSplitDesktop({
   contacts: Contact[];
   onNewContact: (companyId?: number) => void;
 }) {
-  const state = useConnectionsCompaniesList(companies, contacts);
+  const state = useConnectionsCompaniesList(companies, contacts, { matchCoverageViaContacts: true });
   return (
     <ConnectionsCompaniesDesktop state={state} contacts={contacts} onNewContact={onNewContact} />
   );
@@ -25,14 +25,16 @@ function ContactsSplitDesktop({
 
 function ContactsFlatMobile({
   rows,
+  companies,
   onOpenContact,
   onNewContact,
 }: {
   rows: Contact[];
+  companies: ConnectionCompanyListRow[];
   onOpenContact: (id: number | string) => void;
   onNewContact: () => void;
 }) {
-  const state = useConnectionsContactsList(rows);
+  const state = useConnectionsContactsList(rows, companies);
   return (
     <ConnectionsContactsMobile
       state={state}
@@ -59,6 +61,7 @@ export function ConnectionsContactsListClient({
       mobile={
         <ContactsFlatMobile
           rows={rows}
+          companies={companies}
           onOpenContact={onOpenContact}
           onNewContact={() => onNewContact()}
         />

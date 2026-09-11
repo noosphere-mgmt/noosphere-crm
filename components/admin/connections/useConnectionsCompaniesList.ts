@@ -12,6 +12,7 @@ import {
 import {
   companyMatchesRole,
   companyMatchesSearchWithContacts,
+  coverageMatchesAny,
   EMPTY_CONNECTIONS_QUICK_FILTERS,
   matchesQuickFilters,
   parseConnectionsRoleFilter,
@@ -34,7 +35,9 @@ function compareNum(a: number, b: number, dir: SortDir): number {
 export function useConnectionsCompaniesList(
   rows: ConnectionCompanyListRow[],
   contacts: Contact[] = [],
+  options?: { matchCoverageViaContacts?: boolean },
 ) {
+  const matchCoverageViaContacts = options?.matchCoverageViaContacts === true;
   const searchParams = useSearchParams();
   const roleFilter = parseConnectionsRoleFilter(searchParams.get("role"));
   const { selected, toggleOne, toggleAll, selectedCount } = useConnectionsListSelection();
@@ -69,7 +72,18 @@ export function useConnectionsCompaniesList(
 
     const filtered = rows.filter((row) => {
       if (!companyMatchesRole(row.roles, roleFilter)) return false;
-      if (!matchesQuickFilters(row, quickFilters)) return false;
+      if (matchCoverageViaContacts) {
+        if (!matchesQuickFilters(row, { ...quickFilters, coverage: [] })) return false;
+        if (quickFilters.coverage.length > 0) {
+          const viaCompany = coverageMatchesAny(row.coverage, quickFilters.coverage);
+          const viaContacts = (contactsByCompanyId.get(row.id) ?? []).some((contact) =>
+            coverageMatchesAny(contact.coverage, quickFilters.coverage),
+          );
+          if (!viaCompany && !viaContacts) return false;
+        }
+      } else if (!matchesQuickFilters(row, quickFilters)) {
+        return false;
+      }
       if (!companyMatchesSearchWithContacts(row, contactsByCompanyId.get(row.id), searchQuery)) {
         return false;
       }
@@ -94,7 +108,7 @@ export function useConnectionsCompaniesList(
           return 0;
       }
     });
-  }, [rows, contactsByCompanyId, quickFilters, roleFilter, searchQuery, sortKey, sortDir]);
+  }, [rows, contactsByCompanyId, quickFilters, roleFilter, searchQuery, sortKey, sortDir, matchCoverageViaContacts]);
 
   const selectionIds = useMemo(
     () => displayedRows.map((r) => String(r.id)),
