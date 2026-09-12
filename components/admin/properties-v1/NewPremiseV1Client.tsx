@@ -7,7 +7,9 @@ import { createPremisesV1Action } from "@/app/admin/properties/actions";
 import { ModuleStickyEditBar } from "@/components/admin/ModuleActionBar";
 import { PremisesV1EditForm } from "@/components/admin/properties-v1/PremisesDrawer";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
+import { OptionTypeahead } from "@/components/admin/OptionTypeahead";
 import { toCompanyV1SelectOptions } from "@/lib/companyV1Display";
+import { buildingTypeaheadOptionFromProperty } from "@/lib/typeaheadOptions";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
 import type { ContactV1Option } from "@/lib/repos/contactsV1";
 import type { PremisesV1 } from "@/lib/repos/premisesV1";
@@ -132,6 +134,10 @@ export function NewPremiseV1Client({
   );
   const premises = useMemo(() => emptyPremisesV1(propertyId), [propertyId]);
   const companyOptions = useMemo(() => toCompanyV1SelectOptions(companies), [companies]);
+  const buildingOptions = useMemo(
+    () => properties.map(buildingTypeaheadOptionFromProperty),
+    [properties],
+  );
   const formId = "premises-form-new";
   const returnTo = presetPropertyId
     ? `/admin/properties/buildings?property=${encodeURIComponent(presetPropertyId)}&mode=view`
@@ -164,22 +170,17 @@ export function NewPremiseV1Client({
       </header>
 
       <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-        <label className="block text-sm font-medium text-slate-700">
-          Building
-          <select
-            className={selectClass}
-            value={propertyId}
-            onChange={(e) => setPropertyId(e.target.value)}
-            required
-          >
-            {properties.map((p) => (
-              <option key={p.property_id} value={p.property_id}>
-                {p.bldg_name_en?.trim() || p.property_id}
-                {p.district_en ? ` · ${p.district_en}` : ""}
-              </option>
-            ))}
-          </select>
-        </label>
+        <OptionTypeahead
+          label="Building"
+          value={propertyId}
+          onChange={setPropertyId}
+          options={buildingOptions}
+          placeholder="Search building name, address, or ID…"
+          allowEmpty={false}
+          required
+          inputClassName={selectClass}
+          labelClassName="block text-sm font-medium text-slate-700"
+        />
       </section>
 
       {propertyId ? (

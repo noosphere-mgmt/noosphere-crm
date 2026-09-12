@@ -87,7 +87,10 @@ export function TextAreaField({
   if (isDisabled) {
     return (
       <div>
-        <ViewField label={label} value={defaultValue} />
+        <div className={inlineReadOnlyClass()}>
+          <dt className={viewLabelClass}>{label}</dt>
+          <dd className={`${viewValueClass} whitespace-pre-wrap`}>{displayOrDash(defaultValue)}</dd>
+        </div>
         <input type="hidden" name={name} value={defaultValue ?? ""} />
       </div>
     );

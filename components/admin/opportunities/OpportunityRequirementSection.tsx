@@ -34,11 +34,21 @@ import type { Opportunity } from "@/lib/types/entities";
 
 const fieldGrid = "grid grid-cols-2 gap-x-3 gap-y-2.5";
 
-function ViewField({ label, value }: { label: string; value: string }) {
+function ViewField({
+  label,
+  value,
+  multiline = false,
+}: {
+  label: string;
+  value: string;
+  multiline?: boolean;
+}) {
   return (
     <div className="min-w-0">
       <dt className="text-[11px] font-medium uppercase tracking-wide text-slate-500">{label}</dt>
-      <dd className="mt-0.5 text-sm text-slate-900">{value?.trim() || "—"}</dd>
+      <dd className={`mt-0.5 text-sm text-slate-900 ${multiline ? "whitespace-pre-wrap leading-relaxed" : ""}`}>
+        {value?.trim() || "—"}
+      </dd>
     </div>
   );
 }
@@ -193,7 +203,7 @@ export function OpportunityRequirementSection({
         defaultValue={opportunity.requirement_summary ?? ""}
       />
     ) : (
-      <ViewField label="Special Requirement" value={opportunity.requirement_summary ?? ""} />
+      <ViewField multiline label="Special Requirement" value={opportunity.requirement_summary ?? ""} />
     );
   }
 
@@ -351,7 +361,7 @@ export function OpportunityRequirementSection({
           ) : null}
           {isBuy ? <ViewField label="Funding Status" value={fundingLabel} /> : null}
           <div className="col-span-2">
-            <ViewField label="Special Requirement" value={opportunity.requirement_summary ?? ""} />
+            <ViewField multiline label="Special Requirement" value={opportunity.requirement_summary ?? ""} />
           </div>
         </dl>
       )}

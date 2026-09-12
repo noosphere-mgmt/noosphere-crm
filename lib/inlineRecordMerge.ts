@@ -291,6 +291,12 @@ export function applyOpportunityPatch(
     case "primary_contact_id":
       input.primary_contact_id = parseOptionalInt(value);
       break;
+    case "referrer_company_id":
+      input.referrer_company_id = parseOptionalInt(value);
+      break;
+    case "referrer_contact_id":
+      input.referrer_contact_id = parseOptionalInt(value);
+      break;
     case "budget_max":
       input.budget_max = parseOptionalNumber(value);
       break;

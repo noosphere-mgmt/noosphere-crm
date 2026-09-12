@@ -3,21 +3,28 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
+import { patchOpportunityFieldAction } from "@/app/admin/opportunities/actions";
 import {
   createOpportunityPartyAction,
   deleteOpportunityPartyAction,
   updateOpportunityPartyAction,
 } from "@/app/admin/opportunities/workspaceActions";
+import {
+  OpportunityIntroducedByFields,
+  introducedByDisplayName,
+} from "@/components/admin/opportunities/OpportunityIntroducedByFields";
 import { TextAreaField } from "@/components/admin/AdminFormFields";
 import { ContactFormDrawer } from "@/components/admin/connections/ContactFormDrawer";
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
 import { AdminEntityLink } from "@/components/admin/AdminEntityLink";
 import { OpportunityPartyContactSelect } from "@/components/admin/opportunities/OpportunityPartyContactSelect";
+import { OptionTypeahead } from "@/components/admin/OptionTypeahead";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import { companyFullPageHref, contactFullPageHref } from "@/lib/crmDetailNav";
 import { OPPORTUNITY_PARTY_ROLES } from "@/lib/opportunityValues";
 import { partyRoleLabel } from "@/lib/opportunityPartiesDisplay";
-import { toLegacyCompanySelectOptions, toLegacyContactSelectOptions, resolveCompanySelectValue, resolveContactSelectValue, opportunityPrimaryContactLabel } from "@/lib/crmSelectOptions";
+import { toLegacyContactSelectOptions, resolveCompanySelectValue, resolveContactSelectValue, opportunityPrimaryContactLabel } from "@/lib/crmSelectOptions";
+import { companyTypeaheadOptions } from "@/lib/typeaheadOptions";
 import type { CompanyOption } from "@/lib/repos/companies";
 import type { OpportunityDetailData } from "@/lib/repos/opportunityDetail";
 import type { OpportunityParty } from "@/lib/types/entities";
@@ -29,6 +36,7 @@ export function OpportunityPartiesTab({ data }: { data: OpportunityDetailData })
   const theme = moduleAccentClasses("opportunities");
   const { opportunity, parties, companies, contacts } = data;
   const [editingId, setEditingId] = useState<number | "new" | null>(null);
+  const [editingIntroducedBy, setEditingIntroducedBy] = useState(false);
   const [contactDrawerOpen, setContactDrawerOpen] = useState(false);
   const [contactDrawerCompanyId, setContactDrawerCompanyId] = useState<number | undefined>();
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -45,7 +53,7 @@ export function OpportunityPartiesTab({ data }: { data: OpportunityDetailData })
 
   function PartyForm({ party }: { party?: OpportunityParty }) {
     const companyOptions = useMemo(
-      () => toLegacyCompanySelectOptions(companies as CompanyOption[]),
+      () => companyTypeaheadOptions(companies as CompanyOption[]),
       [companies],
     );
     const contactOptions = useMemo(
@@ -82,21 +90,20 @@ export function OpportunityPartiesTab({ data }: { data: OpportunityDetailData })
         className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3"
       >
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <label className="block text-sm">
-            <span className="text-xs font-medium uppercase text-slate-500">Company</span>
-            <select
-              name="company_id"
-              value={companyId}
-              onChange={(e) => setCompanyId(e.target.value)}
-              required
-              className={selectClass}
-            >
-              <option value="">— Select —</option>
-              {companyOptions.map((c) => (
-                <option key={c.value} value={c.value}>{c.label}</option>
-              ))}
-            </select>
-          </label>
+          <OptionTypeahead
+            label="Company"
+            name="company_id"
+            value={companyId}
+            onChange={setCompanyId}
+            options={companyOptions}
+            instanceKey={`party-${party?.id ?? "new"}`}
+            placeholder="Search company…"
+            emptyLabel="— Select —"
+            allowEmpty
+            required
+            inputClassName={selectClass}
+            labelClassName="text-xs font-medium uppercase text-slate-500"
+          />
           <OpportunityPartyContactSelect
             instanceKey={`party-${party?.id ?? "new"}-${companyId}`}
             companyId={companyId}
@@ -182,9 +189,83 @@ export function OpportunityPartiesTab({ data }: { data: OpportunityDetailData })
 
       <section className="grid gap-2 sm:grid-cols-[1fr_auto_1fr_auto_1fr] sm:items-stretch">
         <div className="rounded-xl border border-amber-200 bg-amber-50/50 px-4 py-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">Introduced by</p>
-          <p className="mt-1 text-sm font-semibold text-slate-900">{opportunity.referrer_contact_name ?? opportunity.referrer_company_name ?? "Direct / not recorded"}</p>
-          {opportunity.referrer_contact_name && opportunity.referrer_company_name ? <p className="text-xs text-slate-600">{opportunity.referrer_company_name}</p> : null}
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">Introduced by</p>
+            {!editingIntroducedBy ? (
+              <button
+                type="button"
+                onClick={() => setEditingIntroducedBy(true)}
+                className="text-xs font-semibold text-amber-800 hover:underline"
+              >
+                Edit
+              </button>
+            ) : null}
+          </div>
+          {editingIntroducedBy ? (
+            <form
+              className="mt-2 space-y-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const formData = new FormData(event.currentTarget);
+                startTransition(async () => {
+                  setSaveMessage(null);
+                  setSaveError(null);
+                  const companyValue = String(formData.get("referrer_company_id") ?? "").trim();
+                  const contactValue = String(formData.get("referrer_contact_id") ?? "").trim();
+                  const companyResult = await patchOpportunityFieldAction(
+                    opportunity.id,
+                    "referrer_company_id",
+                    JSON.stringify(companyValue || null),
+                  );
+                  if (!companyResult.ok) {
+                    setSaveError(companyResult.error);
+                    return;
+                  }
+                  const contactResult = await patchOpportunityFieldAction(
+                    opportunity.id,
+                    "referrer_contact_id",
+                    JSON.stringify(contactValue || null),
+                  );
+                  if (!contactResult.ok) {
+                    setSaveError(contactResult.error);
+                    return;
+                  }
+                  router.refresh();
+                  setEditingIntroducedBy(false);
+                  setSaveMessage("Introduced by updated.");
+                });
+              }}
+            >
+              <div className="grid gap-2">
+                <OpportunityIntroducedByFields
+                  companies={companies as CompanyOption[]}
+                  contacts={contacts}
+                  defaultCompanyId={opportunity.referrer_company_id}
+                  defaultContactId={opportunity.referrer_contact_id}
+                  instanceKey={`parties-${opportunity.id}`}
+                />
+              </div>
+              <div className="flex gap-2">
+                <button type="submit" disabled={pending} className={theme.primaryButton}>
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingIntroducedBy(false)}
+                  className="rounded-lg px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          ) : (
+            <>
+              <p className="mt-1 text-sm font-semibold text-slate-900">{introducedByDisplayName(opportunity)}</p>
+              {opportunity.referrer_contact_name && opportunity.referrer_company_name ? (
+                <p className="text-xs text-slate-600">{opportunity.referrer_company_name}</p>
+              ) : null}
+            </>
+          )}
         </div>
         <div className="hidden items-center text-slate-300 sm:flex" aria-hidden>→</div>
         <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 px-4 py-3">

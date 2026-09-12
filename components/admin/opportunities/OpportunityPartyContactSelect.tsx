@@ -24,6 +24,7 @@ export function OpportunityPartyContactSelect({
   disabled = false,
   placeholder = "Search contact…",
   emptyLabel = "—",
+  label = "Contact",
 }: {
   companyId: string;
   contacts: ContactOption[];
@@ -38,6 +39,7 @@ export function OpportunityPartyContactSelect({
   disabled?: boolean;
   placeholder?: string;
   emptyLabel?: string;
+  label?: string;
 }) {
   const listId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -223,7 +225,7 @@ export function OpportunityPartyContactSelect({
   return (
     <div>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Contact</span>
+        <span className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</span>
         {onNewContact ? (
           <button
             type="button"

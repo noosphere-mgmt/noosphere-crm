@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { FormField, SelectField, TextAreaField } from "@/components/admin/AdminFormFields";
+import { OptionTypeahead } from "@/components/admin/OptionTypeahead";
 import { useFormEditing } from "@/components/admin/ModuleActionBar";
 import { COVERAGE_OPTIONS } from "@/lib/connectionsValues";
 import { suggestDisplayName } from "@/lib/contactName";
 import { COMPANY_ROLE_LABELS, COMPANY_ROLES, PREFERRED_LANGUAGES } from "@/lib/lookups";
-import { toLegacyCompanySelectOptions, resolveCompanySelectValue } from "@/lib/crmSelectOptions";
+import { resolveCompanySelectValue } from "@/lib/crmSelectOptions";
+import { companyTypeaheadOptions } from "@/lib/typeaheadOptions";
 import { DEFAULT_PHONE_AREA_CODE, PHONE_AREA_CODES } from "@/lib/phoneAreaCodes";
 import type { CompanyOption } from "@/lib/repos/companies";
 import type { CompanyRole, Contact } from "@/lib/types/entities";
@@ -170,11 +172,12 @@ function StatusFields({ defaults }: { defaults?: Contact }) {
 
 export function ContactFormFields({ defaults, companies, fixedCompanyId, layout = "default" }: Props) {
   const editing = useFormEditing();
-  const companyOptions = toLegacyCompanySelectOptions(companies);
+  const companyOptions = companyTypeaheadOptions(companies);
   const selectedCompanyValue =
     fixedCompanyId != null
       ? resolveCompanySelectValue(companies, fixedCompanyId)
       : resolveCompanySelectValue(companies, defaults?.company_id);
+  const [companyId, setCompanyId] = useState(selectedCompanyValue);
   const [firstName, setFirstName] = useState(defaults?.first_name ?? "");
   const [lastName, setLastName] = useState(defaults?.last_name ?? "");
   const [displayName, setDisplayName] = useState(
@@ -197,15 +200,18 @@ export function ContactFormFields({ defaults, companies, fixedCompanyId, layout 
     fixedCompanyId != null ? (
       <input type="hidden" name="company_id" value={fixedCompanyRef ?? ""} />
     ) : (
-      <SelectField
+      <OptionTypeahead
         label="Company"
         name="company_id"
-        defaultValue={selectedCompanyValue}
-        placeholder="No Company"
-        options={companyOptions.map((c) => ({
-          value: c.value,
-          label: c.label,
-        }))}
+        value={companyId}
+        onChange={setCompanyId}
+        options={companyOptions}
+        instanceKey={defaults?.id != null ? `contact-${defaults.id}` : "contact-new"}
+        placeholder="Search company…"
+        emptyLabel="No Company"
+        allowEmpty
+        disabled={!editing}
+        inputClassName="mt-0.5 w-full rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-900 shadow-sm"
       />
     );
 

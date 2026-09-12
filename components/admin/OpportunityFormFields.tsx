@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { FormField, TextAreaField } from "@/components/admin/AdminFormFields";
 import { OpportunityRequirementFields, OpportunitySalesRoleSelect, fieldGrid, labelClass, selectClass } from "@/components/admin/opportunities/OpportunityRequirementFields";
+import { OpportunityIntroducedByFields } from "@/components/admin/opportunities/OpportunityIntroducedByFields";
 import { OpportunityPartyContactSelect } from "@/components/admin/opportunities/OpportunityPartyContactSelect";
 import { useFormEditing } from "@/components/admin/ModuleActionBar";
 import {
@@ -97,24 +98,16 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
         </div>
       ) : null}
       <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-        <p className="mb-3 text-sm font-medium text-slate-800">Referrer & Admin</p>
+        <p className="mb-3 text-sm font-medium text-slate-800">Introduced by</p>
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="block text-sm font-medium text-slate-700">
-            Referrer Company
-            <select
-              name="referrer_company_id"
-              defaultValue={resolveCompanySelectValue(companies, defaults?.referrer_company_id)}
-              disabled={!editing}
-              className={editing ? selectClass : selectReadOnlyClass}
-            >
-              <option value="">— None —</option>
-              {companyOptions.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <OpportunityIntroducedByFields
+            companies={companies}
+            contacts={contacts}
+            defaultCompanyId={defaults?.referrer_company_id}
+            defaultContactId={defaults?.referrer_contact_id}
+            disabled={!editing}
+            instanceKey={`create-${defaults?.id ?? "new"}`}
+          />
           <CrmStaffSelect label="Opportunity Owner" name="relationship_owner" defaultValue={defaults?.relationship_owner} defaultToPrimary={!defaults} disabled={!editing} />
         </div>
       </div>

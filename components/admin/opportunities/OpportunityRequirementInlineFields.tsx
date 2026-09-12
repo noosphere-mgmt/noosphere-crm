@@ -113,7 +113,6 @@ function LeaseRequirementInline({
           label="Requirement Summary"
           value={opportunity.requirement_summary}
           onSave={save("requirement_summary")}
-          compact
           fullWidth
         />
       </div>
@@ -176,7 +175,6 @@ function BuyRequirementInline({
           label="Requirement Summary"
           value={opportunity.requirement_summary}
           onSave={save("requirement_summary")}
-          compact
           fullWidth
         />
       </div>
@@ -200,7 +198,6 @@ export function OpportunityRequirementInlineFields({
           label="Requirement Summary"
           value={opportunity.requirement_summary}
           onSave={save("requirement_summary")}
-          compact
           fullWidth
         />
       </div>

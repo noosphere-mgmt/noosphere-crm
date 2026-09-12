@@ -46,7 +46,7 @@ function SummaryBlock({ label, value }: { label: string; value: string }) {
   return (
     <div className="pt-1">
       <dt className={labelClass}>{label}</dt>
-      <dd className="mt-1 text-sm font-normal leading-relaxed text-slate-900 line-clamp-4">{value || "—"}</dd>
+      <dd className="mt-1 whitespace-pre-wrap text-sm font-normal leading-relaxed text-slate-900">{value || "—"}</dd>
     </div>
   );
 }

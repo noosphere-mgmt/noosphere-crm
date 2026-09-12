@@ -52,6 +52,17 @@ export function OpportunityInlineOverview({ data }: { data: OpportunityDetailDat
     return historical ? [historical, ...selectable.filter((contact) => contact.id !== historical.id)] : selectable;
   }, [contacts, companies, opportunity.company_id, opportunity.primary_contact_id]);
 
+  const referrerContacts = useMemo(() => {
+    const companyValue = resolveCompanySelectValue(companies as CompanyOption[], opportunity.referrer_company_id);
+    const selectable = selectableContactsForCompany(contacts, companyValue, companies as CompanyOption[]);
+    const currentValue = resolveContactSelectValue(contacts, opportunity.referrer_contact_id);
+    const historical = contacts.find(
+      (contact) =>
+        resolveContactSelectValue(contacts, contact.id) === currentValue && !isSelectableContact(contact),
+    );
+    return historical ? [historical, ...selectable.filter((contact) => contact.id !== historical.id)] : selectable;
+  }, [contacts, companies, opportunity.referrer_company_id, opportunity.referrer_contact_id]);
+
   const contactOptions = useMemo(() => {
     const labels = new Map(
       toLegacyContactSelectOptions(companyContacts).map((option) => [option.value, option.label] as const),
@@ -67,6 +78,22 @@ export function OpportunityInlineOverview({ data }: { data: OpportunityDetailDat
       }),
     ];
   }, [companyContacts, contacts]);
+
+  const referrerContactOptions = useMemo(() => {
+    const labels = new Map(
+      toLegacyContactSelectOptions(referrerContacts).map((option) => [option.value, option.label] as const),
+    );
+    return [
+      { value: "", label: "Direct / none" },
+      ...referrerContacts.map((contact) => {
+        const value = resolveContactSelectValue(contacts, contact.id);
+        return {
+          value,
+          label: labels.get(value) ?? contact.contact_name,
+        };
+      }),
+    ];
+  }, [referrerContacts, contacts]);
 
   const save = useCallback(
     (field: string) => async (value: unknown) => {
@@ -96,6 +123,19 @@ export function OpportunityInlineOverview({ data }: { data: OpportunityDetailDat
           value={resolveContactSelectValue(contacts, opportunity.primary_contact_id)}
           options={contactOptions}
           onSave={(value) => save("primary_contact_id")(value || null)}
+        />
+        <InlineCompanyPickerField
+          label="Introduced by company"
+          companyId={opportunity.referrer_company_id}
+          companyName={opportunity.referrer_company_name ?? null}
+          companies={companies as CompanyOption[]}
+          onSave={(businessId) => save("referrer_company_id")(businessId)}
+        />
+        <InlineSelectField
+          label="Introduced by contact"
+          value={resolveContactSelectValue(contacts, opportunity.referrer_contact_id)}
+          options={referrerContactOptions}
+          onSave={(value) => save("referrer_contact_id")(value || null)}
         />
         <InlineSelectField
           label="Lead/Opp Source"
@@ -163,7 +203,6 @@ export function OpportunityInlineOverview({ data }: { data: OpportunityDetailDat
           label="Internal Remarks"
           value={opportunity.remarks}
           onSave={save("remarks")}
-          compact
           fullWidth
         />
       </DrawerOverviewCard>

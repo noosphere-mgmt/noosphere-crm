@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { patchOpportunityFieldAction } from "@/app/admin/opportunities/actions";
 import { FormField, TextAreaField } from "@/components/admin/AdminFormFields";
 import { AdminEntityLink } from "@/components/admin/AdminEntityLink";
+import { OpportunityIntroducedByFields, introducedByDisplayName } from "@/components/admin/opportunities/OpportunityIntroducedByFields";
 import { OpportunityPartyContactSelect } from "@/components/admin/opportunities/OpportunityPartyContactSelect";
 import { OpportunityRequirementSection } from "@/components/admin/opportunities/OpportunityRequirementSection";
 import { OpportunityRequirementIntake } from "@/components/admin/opportunities/OpportunityRequirementIntake";
@@ -223,12 +224,6 @@ export function OpportunityOverviewFields({
   return (
     <div className="grid w-full min-w-0 items-start gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)_minmax(240px,0.85fr)]">
       {!editing ? <input type="hidden" name="client_name" value={opportunity.client_name} /> : null}
-      {opportunity.referrer_company_id ? (
-        <input type="hidden" name="referrer_company_id" value={opportunity.referrer_company_id} />
-      ) : null}
-      {opportunity.referrer_contact_id ? (
-        <input type="hidden" name="referrer_contact_id" value={opportunity.referrer_contact_id} />
-      ) : null}
 
       <div className="flex min-w-0 flex-col gap-3">
         <Section title="Client">
@@ -295,6 +290,13 @@ export function OpportunityOverviewFields({
                 </select>
               </label>
               <CrmStaffSelect label="Owner" name="relationship_owner" defaultValue={opportunity.relationship_owner} />
+              <OpportunityIntroducedByFields
+                companies={companies}
+                contacts={contacts}
+                defaultCompanyId={opportunity.referrer_company_id}
+                defaultContactId={opportunity.referrer_contact_id}
+                instanceKey={`overview-${opportunity.id}`}
+              />
               {closed ? (
                 <OutcomeReasonField
                   label={outcomeReasonLabel}
@@ -342,6 +344,28 @@ export function OpportunityOverviewFields({
               <ClientValue label="Lead/Opp Source" value={OPPORTUNITY_SOURCE_LABELS[opportunity.lead_source ?? "direct"]} />
               <ClientValue label="Sales Role" value={opportunitySalesRoleLabel(opportunity.sales_role)} />
               <ClientValue label="Owner" value={opportunity.relationship_owner} />
+              <ClientValue
+                label="Introduced by"
+                value={
+                  opportunity.referrer_contact_name ? (
+                    <AdminEntityLink
+                      href={contactFullPageHref(opportunity.referrer_contact_id)}
+                      className="underline-offset-2 hover:underline"
+                    >
+                      {introducedByDisplayName(opportunity)}
+                    </AdminEntityLink>
+                  ) : opportunity.referrer_company_name ? (
+                    <AdminEntityLink
+                      href={companyFullPageHref(opportunity.referrer_company_id)}
+                      className="underline-offset-2 hover:underline"
+                    >
+                      {introducedByDisplayName(opportunity)}
+                    </AdminEntityLink>
+                  ) : (
+                    introducedByDisplayName(opportunity)
+                  )
+                }
+              />
               {closed ? (
                 <OutcomeReasonField
                   label={outcomeReasonLabel}
@@ -398,7 +422,7 @@ export function OpportunityOverviewFields({
             {editing ? (
               <TextAreaField label="Remarks" name="remarks" defaultValue={opportunity.remarks ?? ""} />
             ) : (
-              <p className="line-clamp-4 text-sm leading-relaxed whitespace-pre-wrap text-slate-800">
+              <p className="text-sm leading-relaxed whitespace-pre-wrap text-slate-800">
                 {opportunity.remarks?.trim() || "—"}
               </p>
             )}

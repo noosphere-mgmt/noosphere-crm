@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { PremisesRelationshipsEditor } from "@/components/admin/PremisesRelationshipsEditor";
 import { FormEditingContext, ModuleActionBar } from "@/components/admin/ModuleActionBar";
 import { SelectField } from "@/components/admin/AdminFormFields";
+import { OptionTypeahead } from "@/components/admin/OptionTypeahead";
+import { buildingTypeaheadOptionFromSelect } from "@/lib/typeaheadOptions";
 import { InlineEditProvider } from "@/components/admin/inline/InlineEditProvider";
 import { buildCompanyV1LabelMap, toCompanyV1SelectOptions } from "@/lib/companyV1Display";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
@@ -268,6 +270,11 @@ function PremisesEditForm({
     setLinkedPropertyId(propertyId || premises.property_id);
   }, [propertyId, premises.property_id, premises.premises_id]);
 
+  const buildingOptions = useMemo(
+    () => (propertyOptions ?? []).map(buildingTypeaheadOptionFromSelect),
+    [propertyOptions],
+  );
+
   const showLeaseTerms = marketMode === "lease" || marketMode === "lease_or_sale";
   const showSaleTerms = marketMode === "sale" || marketMode === "lease_or_sale";
   const showOfficeType = isOfficePremisesPropertyType(propertyType);
@@ -304,22 +311,19 @@ function PremisesEditForm({
         <input type="hidden" name="operating_model" value={legacyOperatingModel} />
         {propertyOptions && propertyOptions.length > 0 ? (
           <Card title="Building">
-            <label className="block text-sm font-medium text-slate-700">
-              Linked building
-              <select
-                className={inputClass}
-                name="property_id"
-                value={linkedPropertyId}
-                onChange={(e) => setLinkedPropertyId(e.target.value)}
-                required
-              >
-                {propertyOptions.map((p) => (
-                  <option key={p.property_id} value={p.property_id}>
-                    {p.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <OptionTypeahead
+              label="Linked building"
+              name="property_id"
+              value={linkedPropertyId}
+              onChange={setLinkedPropertyId}
+              options={buildingOptions}
+              instanceKey={`premises-${premises.premises_id || "new"}-${propertyId}`}
+              placeholder="Search building name, address, or ID…"
+              allowEmpty={false}
+              required
+              inputClassName={inputClass}
+              labelClassName="block text-sm font-medium text-slate-700"
+            />
           </Card>
         ) : null}
         <Card title="Market & availability">
