@@ -1,7 +1,12 @@
 "use client";
 
+import { useTransition } from "react";
 import Link from "next/link";
-import { deleteOpportunityFromDetailAction } from "@/app/admin/opportunities/actions";
+import { useRouter } from "next/navigation";
+import {
+  deleteOpportunityFromDetailAction,
+  duplicateOpportunityAction,
+} from "@/app/admin/opportunities/actions";
 import { IconTrash, IconX } from "@/components/admin/ModuleActionIcons";
 import { moduleActionButtonClass } from "@/components/admin/ModuleActionBar";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
@@ -27,9 +32,29 @@ export function OpportunityWorkspaceHeader({
   returnTo?: string;
 }) {
   const theme = moduleAccentClasses("opportunities");
+  const router = useRouter();
+  const [isCloning, startClone] = useTransition();
   const { opportunity } = data;
   const remove = deleteOpportunityFromDetailAction.bind(null, opportunity.id);
   const backLabel = adminReturnToLabel(returnTo, "Opportunities");
+
+  function onClone() {
+    startClone(async () => {
+      const result = await duplicateOpportunityAction(opportunity.id);
+      if (!result.ok) {
+        window.alert(result.error);
+        return;
+      }
+      router.push(
+        opportunityWorkspaceHref(
+          { id: result.opportunity_id, business_id: result.business_id },
+          "overview",
+          undefined,
+          returnTo,
+        ),
+      );
+    });
+  }
 
   return (
     <header className="border-b border-slate-200 bg-white px-1 pb-2 pt-1">
@@ -48,6 +73,16 @@ export function OpportunityWorkspaceHeader({
               Edit
             </Link>
           ) : null}
+          <button
+            type="button"
+            disabled={isCloning}
+            onClick={onClone}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-semibold text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 sm:px-3"
+            aria-label="Clone opportunity"
+            title="Clone opportunity"
+          >
+            Clone
+          </button>
           <form action={remove}>
             <button
               type="submit"

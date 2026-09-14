@@ -1,5 +1,8 @@
 "use client";
 
+import { useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { duplicateOpportunityAction } from "@/app/admin/opportunities/actions";
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
 import { SortableTableHeader } from "@/components/admin/SortableTableHeader";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
@@ -11,8 +14,8 @@ import { buildOpportunitiesReturnTo } from "@/lib/opportunitiesDrawerNav";
 import { opportunityWorkspaceHref } from "@/lib/opportunityWorkspaceNav";
 import { OPPORTUNITY_STATUS_COLORS, opportunityStatusChip } from "@/lib/opportunityStatusTheme";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
+import { opportunityChineseDisplayName } from "@/lib/opportunitiesList";
 import type { Opportunity } from "@/lib/types/entities";
-import { useSearchParams } from "next/navigation";
 import {
   formatOpportunityMoney,
   isRealisedWonRevenue,
@@ -45,8 +48,28 @@ export function OpportunitiesListDesktop({
   } = state;
   const theme = moduleAccentClasses("opportunities");
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const [isCloning, startClone] = useTransition();
   const listReturnTo = buildOpportunitiesReturnTo(searchParams);
   const colCount = 9;
+
+  function onClone(row: Opportunity) {
+    startClone(async () => {
+      const result = await duplicateOpportunityAction(row.id);
+      if (!result.ok) {
+        window.alert(result.error);
+        return;
+      }
+      router.push(
+        opportunityWorkspaceHref(
+          { id: result.opportunity_id, business_id: result.business_id },
+          "overview",
+          undefined,
+          listReturnTo,
+        ),
+      );
+    });
+  }
 
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
@@ -86,7 +109,10 @@ export function OpportunitiesListDesktop({
               </td>
             </tr>
           ) : (
-            displayedRows.map((row) => (
+            displayedRows.map((row) => {
+              const clientZh = opportunityChineseDisplayName(row.client_name, row.linked_company_name_zh);
+              const companyZh = opportunityChineseDisplayName(row.linked_company_name, row.linked_company_name_zh);
+              return (
               <tr
                 key={row.id}
                 className="border-t border-slate-100"
@@ -111,6 +137,9 @@ export function OpportunitiesListDesktop({
                       {row.district_preference ? ` – ${row.district_preference.split(/[,;/|]/)[0]?.trim()}` : ""}
                     </span>
                   </AdminEntityLink>
+                  {clientZh ? (
+                    <p className="mt-0.5 truncate text-xs text-slate-500">{clientZh}</p>
+                  ) : null}
                   <RecordBusinessId id={row.business_id ?? row.v1_opportunity_id} className="mt-0.5 block" />
                 </td>
                 <td className="px-3 py-1.5 text-slate-700">
@@ -121,6 +150,9 @@ export function OpportunitiesListDesktop({
                   >
                     {row.linked_company_name}
                   </AdminEntityLink>
+                  {companyZh ? (
+                    <p className="mt-0.5 truncate text-xs text-slate-500">{companyZh}</p>
+                  ) : null}
                 </td>
                 <td className="px-3 py-1.5 text-slate-700">
                   <AdminEntityLink
@@ -156,10 +188,13 @@ export function OpportunitiesListDesktop({
                     module="opportunities"
                     onView={() => onOpenWorkspace(row)}
                     editHref={opportunityWorkspaceHref(row, "overview", "edit", listReturnTo)}
+                    onDuplicate={isCloning ? undefined : () => onClone(row)}
+                    duplicateLabel="Clone"
                   />
                 </td>
               </tr>
-            ))
+              );
+            })
           )}
         </tbody>
       </table>

@@ -310,6 +310,7 @@ export type Opportunity = {
   updated_at: string;
   linked_company_name?: string | null;
   linked_company_business_id?: string | null;
+  linked_company_name_zh?: string | null;
   primary_contact_name?: string | null;
   primary_contact_business_id?: string | null;
   primary_contact_is_active?: boolean | null;

@@ -9,7 +9,10 @@ import {
   MobileSwipeToDeleteRow,
 } from "@/components/admin/mobile/MobileSwipeToDeleteRow";
 import { OPPORTUNITY_STATUS_LABELS } from "@/lib/lookups";
-import { formatOpportunityExpectedFee } from "@/lib/opportunitiesList";
+import {
+  formatOpportunityExpectedFee,
+  opportunityChineseDisplayName,
+} from "@/lib/opportunitiesList";
 import {
   formatOpportunityMoney,
   isRealisedWonRevenue,
@@ -59,6 +62,7 @@ export function OpportunitiesListMobile({
               row.primary_contact_name,
               row.district_preference?.split(/[,;/|]/)[0]?.trim(),
             ].filter(Boolean);
+            const clientZh = opportunityChineseDisplayName(row.client_name, row.linked_company_name_zh);
             return (
               <MobileSwipeToDeleteRow
                 key={row.id}
@@ -78,6 +82,9 @@ export function OpportunitiesListMobile({
                       <p className="min-w-0 break-words text-sm font-semibold text-[#4F7468]">
                         {row.client_name}
                       </p>
+                      {clientZh ? (
+                        <p className="mt-0.5 min-w-0 break-words text-xs text-slate-500">{clientZh}</p>
+                      ) : null}
                     </div>
                     <span
                       className={`${statusChip.className} shrink-0 whitespace-nowrap`}

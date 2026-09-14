@@ -578,6 +578,7 @@ export type PremisesFlatRow = {
   operator_name: string | null;
   landlord_name: string | null;
   occupant_name: string | null;
+  source_name: string | null;
 };
 
 export async function deletePremisesV1(premisesIds: string[]): Promise<void> {
@@ -606,6 +607,7 @@ export type PremisesListItem = PremisesV1 & {
   operator_name: string | null;
   landlord_name: string | null;
   occupant_name: string | null;
+  source_name: string | null;
 };
 
 const flatJoin = `
@@ -615,6 +617,7 @@ const flatJoin = `
   LEFT JOIN companies_v1 landlord ON ${sqlJoinV1Company("landlord", "p.landlord_company_id")}
   LEFT JOIN companies_v1 owner ON ${sqlJoinV1Company("owner", "p.owner_company_id")}
   LEFT JOIN companies_v1 occupant ON ${sqlJoinV1Company("occupant", "p.current_tenant_company_id")}
+  LEFT JOIN companies_v1 source ON ${sqlJoinV1Company("source", "p.source_company_id")}
   LEFT JOIN companies_v1 bldg_owner ON ${sqlJoinV1Company("bldg_owner", "pr.owner_company_id")}`;
 
 const flatJoinOptionalBuilding = `
@@ -624,6 +627,7 @@ const flatJoinOptionalBuilding = `
   LEFT JOIN companies_v1 landlord ON ${sqlJoinV1Company("landlord", "p.landlord_company_id")}
   LEFT JOIN companies_v1 owner ON ${sqlJoinV1Company("owner", "p.owner_company_id")}
   LEFT JOIN companies_v1 occupant ON ${sqlJoinV1Company("occupant", "p.current_tenant_company_id")}
+  LEFT JOIN companies_v1 source ON ${sqlJoinV1Company("source", "p.source_company_id")}
   LEFT JOIN companies_v1 bldg_owner ON ${sqlJoinV1Company("bldg_owner", "pr.owner_company_id")}`;
 
 function premisesFlatWhere(filters: PremisesFlatFilters): { where: string; params: unknown[] } {
@@ -727,6 +731,9 @@ function premisesFlatWhere(filters: PremisesFlatFilters): { where: string; param
       OR occupant.company_name_en ILIKE $${i}
       OR occupant.company_name_zh ILIKE $${i}
       OR occupant.business_id ILIKE $${i}
+      OR source.company_name_en ILIKE $${i}
+      OR source.company_name_zh ILIKE $${i}
+      OR source.business_id ILIKE $${i}
       OR bldg_owner.company_name_en ILIKE $${i}
       OR bldg_owner.company_name_zh ILIKE $${i}
       OR bldg_owner.business_id ILIKE $${i}
@@ -850,6 +857,9 @@ function premisesFlatWhere(filters: PremisesFlatFilters): { where: string; param
       OR occupant.company_name_en ILIKE $${i}
       OR occupant.company_name_zh ILIKE $${i}
       OR occupant.business_id ILIKE $${i}
+      OR source.company_name_en ILIKE $${i}
+      OR source.company_name_zh ILIKE $${i}
+      OR source.business_id ILIKE $${i}
       OR bldg_owner.company_name_en ILIKE $${i}
       OR bldg_owner.company_name_zh ILIKE $${i}
       OR bldg_owner.business_id ILIKE $${i}
@@ -921,7 +931,8 @@ export async function listPremisesFlat(filters: PremisesFlatFilters = {}): Promi
        COALESCE(p.currency, 'HKD') AS currency,
        c.company_name_en AS operator_name,
        COALESCE(NULLIF(TRIM(landlord.company_name_en), ''), owner.company_name_en) AS landlord_name,
-       occupant.company_name_en AS occupant_name
+       occupant.company_name_en AS occupant_name,
+       source.company_name_en AS source_name
      ${flatJoin}
      ${where}
      ORDER BY p.last_verified_date DESC NULLS LAST, pr.bldg_name_en ASC NULLS LAST, p.floor ASC NULLS LAST, p.unit ASC NULLS LAST`,
@@ -1003,7 +1014,8 @@ export async function listPremisesFullFiltered(filters: PremisesFlatFilters = {}
        pr.district_en,
        c.company_name_en AS operator_name,
        COALESCE(NULLIF(TRIM(landlord.company_name_en), ''), owner.company_name_en) AS landlord_name,
-       occupant.company_name_en AS occupant_name
+       occupant.company_name_en AS occupant_name,
+       source.company_name_en AS source_name
      ${flatJoin}
      ${where}
      ORDER BY p.last_verified_date DESC NULLS LAST, pr.bldg_name_en ASC NULLS LAST, p.floor ASC NULLS LAST, p.unit ASC NULLS LAST`,
@@ -1084,7 +1096,8 @@ export async function getPremisesListItemByRef(raw: string): Promise<PremisesLis
        pr.district_en,
        c.company_name_en AS operator_name,
        COALESCE(NULLIF(TRIM(landlord.company_name_en), ''), owner.company_name_en) AS landlord_name,
-       occupant.company_name_en AS occupant_name
+       occupant.company_name_en AS occupant_name,
+       source.company_name_en AS source_name
      ${flatJoinOptionalBuilding}
      WHERE p.premises_id = $1 OR p.business_id = $1
      LIMIT 1`,

@@ -243,9 +243,13 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                         operatorName={row.operator_name}
                         landlordName={row.landlord_name}
                         occupantName={row.occupant_name}
+                        sourceName={row.source_name}
                         operatorId={row.operator_company_id}
                         landlordId={row.landlord_company_id || row.owner_company_id}
                         occupantId={row.current_tenant_company_id}
+                        sourceId={row.source_company_id}
+                        ownerId={row.owner_company_id}
+                        relationshipLines={row.relationship_lines}
                         companies={companies}
                       />
                     </td>

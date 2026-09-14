@@ -139,7 +139,7 @@ export function usePremisesFlatList(
       const listLabel = formatPremisesListLabel(row.building_name_en, row.floor, row.unit).toLowerCase();
       if (!fuzzyMatch(listLabel === "—" ? "" : listLabel, premisesQ)) return false;
       if (!fuzzyMatch(row.district_en, districtQ)) return false;
-      const related = formatPremisesRelatedCompaniesSearchText(row);
+      const related = formatPremisesRelatedCompaniesSearchText(row, props.companies);
       if (!fuzzyMatch(related, operatorQ)) return false;
       return true;
     });
@@ -155,8 +155,8 @@ export function usePremisesFlatList(
           return compareText(a.district_en ?? "", b.district_en ?? "", sortDir);
         case "operator":
           return compareText(
-            formatPremisesRelatedCompaniesSearchText(a),
-            formatPremisesRelatedCompaniesSearchText(b),
+            formatPremisesRelatedCompaniesSearchText(a, props.companies),
+            formatPremisesRelatedCompaniesSearchText(b, props.companies),
             sortDir,
           );
         case "subtype":
@@ -177,7 +177,7 @@ export function usePremisesFlatList(
     });
 
     return sorted;
-  }, [props.rows, colFilters, sortKey, sortDir]);
+  }, [props.rows, props.companies, colFilters, sortKey, sortDir]);
 
   const displayedIds = useMemo(() => displayedRows.map((r) => r.premises_id), [displayedRows]);
   useSyncListingExportIds(displayedIds);

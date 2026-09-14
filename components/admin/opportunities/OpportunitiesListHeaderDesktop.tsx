@@ -1,7 +1,11 @@
 "use client";
 
 import { useMemo, useTransition } from "react";
-import { bulkDeleteOpportunitiesAction } from "@/app/admin/opportunities/actions";
+import { useRouter } from "next/navigation";
+import {
+  bulkDeleteOpportunitiesAction,
+  bulkDuplicateOpportunitiesAction,
+} from "@/app/admin/opportunities/actions";
 import { ModuleListingBulkActions } from "@/components/admin/ModuleBulkActionButtons";
 import { OpportunitiesModuleHeader } from "@/components/admin/opportunities/OpportunitiesModuleHeader";
 import { useOpportunitiesListSelection } from "@/components/admin/opportunities/OpportunitiesListSelectionContext";
@@ -9,7 +13,8 @@ import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 
 export function OpportunitiesListHeaderDesktop({ onNewOpportunity, onCaptureRequirement }: { onNewOpportunity: () => void; onCaptureRequirement: () => void }) {
   const theme = moduleAccentClasses("opportunities");
-  const { someSelected, selectedCount, selected } = useOpportunitiesListSelection();
+  const router = useRouter();
+  const { someSelected, selectedCount, selected, toggleAll } = useOpportunitiesListSelection();
   const [isPending, startTransition] = useTransition();
 
   const selectedIds = useMemo(() => [...selected], [selected]);
@@ -21,6 +26,21 @@ export function OpportunitiesListHeaderDesktop({ onNewOpportunity, onCaptureRequ
     formData.set("opportunity_ids", selectedIds.join(","));
     startTransition(() => {
       void bulkDeleteOpportunitiesAction(formData);
+    });
+  }
+
+  function onBulkClone() {
+    if (!someSelected) return;
+    const formData = new FormData();
+    formData.set("opportunity_ids", selectedIds.join(","));
+    startTransition(async () => {
+      const result = await bulkDuplicateOpportunitiesAction(formData);
+      if (!result.ok) {
+        window.alert(result.error);
+        return;
+      }
+      toggleAll(selectedIds, false);
+      router.refresh();
     });
   }
 
@@ -36,6 +56,8 @@ export function OpportunitiesListHeaderDesktop({ onNewOpportunity, onCaptureRequ
             selectedIds={selectedIds}
             isPending={isPending}
             onDelete={onBulkDelete}
+            onCopy={onBulkClone}
+            copyTitle="Clone selected"
           />
           <button type="button" onClick={onCaptureRequirement}
             className="rounded-lg border border-violet-300 bg-violet-50 px-3 py-2 text-sm font-semibold text-violet-800 hover:bg-violet-100">

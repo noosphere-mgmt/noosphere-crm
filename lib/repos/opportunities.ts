@@ -1,5 +1,7 @@
 import { query } from "@/lib/db";
 import { allocateNextBusinessId, ensureLegacyBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
+import { opportunityToInput } from "@/lib/inlineRecordMerge";
+import { isClosedOpportunityStatus } from "@/lib/openOpportunityStatus";
 import {
   normalizeCategoryPreference,
   normalizeSpaceFormPreference,
@@ -36,6 +38,7 @@ const opportunitySelect = `
   ) AS has_viewing_premises,
   lc.company_name AS linked_company_name,
   lc.business_id AS linked_company_business_id,
+  COALESCE(NULLIF(TRIM(lc.company_name_zh), ''), NULLIF(TRIM(lc.company_name_cn), '')) AS linked_company_name_zh,
   pc.contact_name AS primary_contact_name,
   pc.business_id AS primary_contact_business_id,
   pc.is_active AS primary_contact_is_active,
@@ -211,6 +214,63 @@ export async function createOpportunity(input: OpportunityInput): Promise<number
     legacyNumeric: id,
   });
   return id;
+}
+
+function opportunityCopyName(name: string): string {
+  const label = name.trim() || "Opportunity";
+  return label.endsWith(" (copy)") ? label : `${label} (copy)`;
+}
+
+async function copyOpportunityRelatedRows(sourceId: number, newId: number): Promise<void> {
+  await query(
+    `INSERT INTO opportunity_parties (
+       opportunity_id, company_id, contact_id, role, partnership_mode, fee_note,
+       collect_fee_amount, collect_fee_percent, paid_out_fee_amount, paid_out_fee_percent,
+       collect_fee_status, remarks
+     )
+     SELECT $2, company_id, contact_id, role, partnership_mode, fee_note,
+            collect_fee_amount, collect_fee_percent, paid_out_fee_amount, paid_out_fee_percent,
+            'expected', remarks
+       FROM opportunity_parties
+      WHERE opportunity_id = $1
+      ORDER BY id`,
+    [sourceId, newId],
+  );
+
+  await query(
+    `INSERT INTO opportunity_proposed_premises (
+       opportunity_id, premises_id, rank, preference, status,
+       proposed_price, proposed_price_psf, client_comment, advisor_comment, remarks,
+       related_company_id, related_contact_id, related_role, partnership_mode,
+       collect_fee_amount, collect_fee_basis, collect_fee_from_company_id, collect_fee_status,
+       paid_out_fee_amount, paid_out_fee_basis, paid_out_to_company_id, paid_out_status, fee_remarks
+     )
+     SELECT $2, premises_id, rank, preference, 'shortlisted',
+            proposed_price, proposed_price_psf, client_comment, advisor_comment, remarks,
+            related_company_id, related_contact_id, related_role, partnership_mode,
+            collect_fee_amount, collect_fee_basis, collect_fee_from_company_id, 'expected',
+            paid_out_fee_amount, paid_out_fee_basis, paid_out_to_company_id, 'expected', fee_remarks
+       FROM opportunity_proposed_premises
+      WHERE opportunity_id = $1
+      ORDER BY id`,
+    [sourceId, newId],
+  );
+}
+
+export async function duplicateOpportunity(id: number): Promise<number> {
+  const row = await getOpportunity(id);
+  if (!row) throw new Error("Opportunity not found");
+
+  const input = opportunityToInput(row);
+  input.client_name = opportunityCopyName(input.client_name);
+  if (isClosedOpportunityStatus(input.status ?? "qualifying")) {
+    input.status = "qualifying";
+    input.lost_reason = null;
+  }
+
+  const newId = await createOpportunity(input);
+  await copyOpportunityRelatedRows(id, newId);
+  return newId;
 }
 
 export async function updateOpportunity(id: number, input: OpportunityInput): Promise<void> {

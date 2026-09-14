@@ -3,18 +3,25 @@
 import Link from "next/link";
 import { lookupCompanyV1BusinessId } from "@/lib/companyV1Display";
 import { companyFullPageHref } from "@/lib/crmDetailNav";
-import { premisesRelatedCompanies } from "@/lib/premisesDisplay";
+import {
+  listPremisesRelatedCompanyLines,
+  type PremisesRelatedCompaniesSource,
+  type RelatedCompanyRole,
+} from "@/lib/premisesDisplay";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
+import type { PremisesRelationshipLine } from "@/lib/v1ListValues";
 
-type RelatedRole = "operator" | "landlord" | "occupant";
-
-const ROLE_STYLE: Record<RelatedRole, { className: string; title: string }> = {
-  operator: { className: "text-[#1D4ED8]", title: "Operator" },
-  landlord: { className: "text-slate-600", title: "Owner / Landlord" },
-  occupant: { className: "text-[#0E7490]", title: "Current Occupant" },
+const ROLE_STYLE: Record<RelatedCompanyRole, string> = {
+  operator: "text-[#1D4ED8]",
+  landlord: "text-slate-600",
+  occupant: "text-[#0E7490]",
+  source: "text-[#B45309]",
+  bldg_mgmt: "text-[#475569]",
+  referrer: "text-[#6D28D9]",
+  other: "text-slate-500",
 };
 
-function RoleSymbol({ role }: { role: RelatedRole }) {
+function RoleSymbol({ role }: { role: RelatedCompanyRole }) {
   const className = "h-3 w-3 shrink-0";
   if (role === "landlord") {
     return (
@@ -33,10 +40,45 @@ function RoleSymbol({ role }: { role: RelatedRole }) {
       </svg>
     );
   }
+  if (role === "occupant") {
+    return (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+        <circle cx="12" cy="8" r="3.5" />
+        <path d="M5 20a7 7 0 0 1 14 0" />
+      </svg>
+    );
+  }
+  if (role === "source") {
+    return (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    );
+  }
+  if (role === "bldg_mgmt") {
+    return (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+        <path d="M3 21h18" />
+        <path d="M5 21V7l7-4 7 4v14" />
+        <path d="M9 21v-4h6v4" />
+      </svg>
+    );
+  }
+  if (role === "referrer") {
+    return (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+        <path d="M5 12h14" />
+        <path d="m12 5 7 7-7 7" />
+      </svg>
+    );
+  }
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
-      <circle cx="12" cy="8" r="3.5" />
-      <path d="M5 20a7 7 0 0 1 14 0" />
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
     </svg>
   );
 }
@@ -44,24 +86,28 @@ function RoleSymbol({ role }: { role: RelatedRole }) {
 function CompanyLine({
   role,
   value,
+  title,
   href,
 }: {
-  role: RelatedRole;
+  role: RelatedCompanyRole;
   value: string;
+  title: string;
   href: string | null;
 }) {
-  const style = ROLE_STYLE[role];
   const body = (
     <>
       <RoleSymbol role={role} />
       <span className="truncate">{value}</span>
-      <span className="sr-only">{style.title}</span>
+      {role === "operator" || role === "landlord" || role === "occupant" ? null : (
+        <span className="shrink-0 text-[10px] font-medium text-slate-400">{title}</span>
+      )}
+      <span className="sr-only">{title}</span>
     </>
   );
-  const className = `flex min-w-0 items-center gap-1 ${style.className}`;
+  const className = `flex min-w-0 items-center gap-1 ${ROLE_STYLE[role]}`;
   if (!href) {
     return (
-      <p className={className} title={style.title}>
+      <p className={className} title={title}>
         {body}
       </p>
     );
@@ -69,7 +115,7 @@ function CompanyLine({
   return (
     <Link
       href={href}
-      title={style.title}
+      title={title}
       className={`${className} underline-offset-2 hover:underline`}
       onClick={(e) => e.stopPropagation()}
     >
@@ -90,60 +136,56 @@ export function PremisesRelatedCompaniesCell({
   operatorName,
   landlordName,
   occupantName,
+  sourceName,
   operatorId,
   landlordId,
   occupantId,
+  sourceId,
+  ownerId,
+  relationshipLines,
   companies,
 }: {
   operatorName?: string | null;
   landlordName?: string | null;
   occupantName?: string | null;
+  sourceName?: string | null;
   operatorId?: string | null;
   landlordId?: string | null;
   occupantId?: string | null;
+  sourceId?: string | null;
+  ownerId?: string | null;
+  relationshipLines?: PremisesRelationshipLine[] | null;
   companies?: CompanyV1Option[];
 }) {
-  const related = premisesRelatedCompanies({
+  const source: PremisesRelatedCompaniesSource = {
     operator_name: operatorName,
     landlord_name: landlordName,
     occupant_name: occupantName,
-  });
-  const operatorKey = (operatorId ?? "").trim();
-  const landlordKey = (landlordId ?? "").trim();
-  const landlord =
-    related.landlord &&
-    related.landlord !== related.operator &&
-    (!operatorKey || !landlordKey || landlordKey !== operatorKey)
-      ? related.landlord
-      : null;
+    source_name: sourceName,
+    operator_company_id: operatorId,
+    landlord_company_id: landlordId,
+    owner_company_id: ownerId,
+    current_tenant_company_id: occupantId,
+    source_company_id: sourceId,
+    relationship_lines: relationshipLines,
+  };
+  const lines = listPremisesRelatedCompanyLines(source, companies);
 
-  if (!related.operator && !landlord && !related.occupant) {
+  if (lines.length === 0) {
     return <span className="text-slate-400">—</span>;
   }
 
   return (
     <div className="min-w-0 space-y-0.5 text-xs leading-snug">
-      {landlord ? (
+      {lines.map((line) => (
         <CompanyLine
-          role="landlord"
-          value={landlord}
-          href={companyHref(companies, landlordId)}
+          key={`${line.role}:${line.companyId ?? line.name}`}
+          role={line.role}
+          value={line.name}
+          title={line.title}
+          href={companyHref(companies, line.companyId)}
         />
-      ) : null}
-      {related.operator ? (
-        <CompanyLine
-          role="operator"
-          value={related.operator}
-          href={companyHref(companies, operatorId)}
-        />
-      ) : null}
-      {related.occupant ? (
-        <CompanyLine
-          role="occupant"
-          value={related.occupant}
-          href={companyHref(companies, occupantId)}
-        />
-      ) : null}
+      ))}
     </div>
   );
 }

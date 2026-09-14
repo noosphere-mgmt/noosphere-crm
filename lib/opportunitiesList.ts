@@ -222,12 +222,24 @@ export function opportunityMatchesDashboardStage(
   return true;
 }
 
+/** Chinese company name for list subtitles; omit when it duplicates the English line. */
+export function opportunityChineseDisplayName(
+  englishName: string | null | undefined,
+  chineseName: string | null | undefined,
+): string | null {
+  const zh = chineseName?.trim() || "";
+  const en = englishName?.trim() || "";
+  if (!zh || zh === en) return null;
+  return zh;
+}
+
 export function opportunityMatchesGlobalSearch(row: Opportunity, query: string): boolean {
   const q = query.trim().toLowerCase();
   if (!q) return true;
   const haystack = [
     row.client_name,
     row.linked_company_name,
+    row.linked_company_name_zh,
     row.company_name,
     row.primary_contact_name,
     row.district_preference,

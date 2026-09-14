@@ -304,9 +304,13 @@ export function PropertiesV1Client({
                           lookupCompanyV1Name(companies, p.owner_company_id)
                         }
                         occupantName={lookupCompanyV1Name(companies, p.current_tenant_company_id)}
+                        sourceName={lookupCompanyV1Name(companies, p.source_company_id)}
                         operatorId={p.operator_company_id}
                         landlordId={p.landlord_company_id || p.owner_company_id}
                         occupantId={p.current_tenant_company_id}
+                        sourceId={p.source_company_id}
+                        ownerId={p.owner_company_id}
+                        relationshipLines={p.relationship_lines}
                         companies={companies}
                       />
                     </td>

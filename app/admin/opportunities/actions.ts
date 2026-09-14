@@ -16,6 +16,7 @@ import { getContact } from "@/lib/repos/contacts";
 import {
   createOpportunity,
   deleteOpportunity,
+  duplicateOpportunity,
   bulkDeleteOpportunities,
   getOpportunity,
   updateOpportunity,
@@ -253,6 +254,33 @@ export async function patchOpportunityFieldAction(
   }
 }
 
+export type OpportunityCloneResult =
+  | { ok: true; opportunity_id: number; business_id: string | null; created_count: number }
+  | { ok: false; error: string };
+
+function revalidateClonedOpportunity(id: number, businessId?: string | null) {
+  revalidatePath("/admin/opportunities");
+  revalidatePath("/admin/companies");
+  revalidatePath(`/admin/opportunities/${id}`);
+  if (businessId) revalidatePath(`/admin/opportunities/${businessId}`);
+}
+
+export async function duplicateOpportunityAction(opportunityId: number): Promise<OpportunityCloneResult> {
+  try {
+    const newId = await duplicateOpportunity(opportunityId);
+    const created = await getOpportunity(newId);
+    revalidateClonedOpportunity(newId, created?.business_id);
+    return {
+      ok: true,
+      opportunity_id: newId,
+      business_id: created?.business_id ?? null,
+      created_count: 1,
+    };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to clone opportunity" };
+  }
+}
+
 export async function deleteOpportunityFromDetailAction(id: number) {
   await deleteOpportunity(id);
   revalidatePath("/admin/opportunities");
@@ -281,4 +309,28 @@ export async function bulkDeleteOpportunitiesAction(formData: FormData) {
   revalidatePath("/admin/opportunities");
   revalidatePath("/admin/companies");
   redirect("/admin/opportunities");
+}
+
+export async function bulkDuplicateOpportunitiesAction(formData: FormData): Promise<OpportunityCloneResult> {
+  try {
+    const ids = parseIdList(String(formData.get("opportunity_ids") ?? ""));
+    if (ids.length === 0) return { ok: false, error: "No opportunities selected" };
+
+    const created: number[] = [];
+    for (const id of ids) {
+      created.push(await duplicateOpportunity(id));
+    }
+
+    const first = await getOpportunity(created[0]!);
+    revalidatePath("/admin/opportunities");
+    revalidatePath("/admin/companies");
+    return {
+      ok: true,
+      opportunity_id: created[0]!,
+      business_id: first?.business_id ?? null,
+      created_count: created.length,
+    };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to clone opportunities" };
+  }
 }
