@@ -1,5 +1,5 @@
 import { query } from "@/lib/db";
-import { sqlJoinV1Company } from "@/lib/import/lookupSql";
+import { sqlJoinV1Company, sqlSafeJsonbArray } from "@/lib/import/lookupSql";
 import { buildingTypeMatchValues, normalizeBuildingType } from "@/lib/lookups";
 import {
   coercePropertyV1PatchForDb,
@@ -199,7 +199,7 @@ export async function listPropertiesV1(filters: PropertiesListFilters = {}): Pro
       )
       OR EXISTS (
         SELECT 1
-        FROM jsonb_array_elements(COALESCE(properties_v1.building_relationship_lines, '[]'::jsonb)) AS rel(line)
+        FROM jsonb_array_elements(${sqlSafeJsonbArray("properties_v1.building_relationship_lines")}) AS rel(line)
         JOIN companies_v1 related_company
           ON ${sqlJoinV1Company("related_company", "rel.line->>'company_id'")}
         WHERE related_company.company_name_en ILIKE ${qParam}
@@ -241,7 +241,7 @@ export async function listPropertiesV1(filters: PropertiesListFilters = {}): Pro
       )
       OR EXISTS (
         SELECT 1
-        FROM jsonb_array_elements(COALESCE(building_relationship_lines, '[]'::jsonb)) AS rel(line)
+        FROM jsonb_array_elements(${sqlSafeJsonbArray("building_relationship_lines")}) AS rel(line)
         JOIN companies_v1 related_company
           ON ${sqlJoinV1Company("related_company", "rel.line->>'company_id'")}
         WHERE related_company.company_name_en ILIKE ${companyParam}
@@ -512,13 +512,7 @@ export async function listPropertyV1SelectOptions(): Promise<PropertyV1SelectOpt
              )),
              ' '
            )
-           FROM jsonb_array_elements(
-             CASE
-               WHEN jsonb_typeof(COALESCE(p.building_relationship_lines, '[]'::jsonb)) = 'array'
-               THEN COALESCE(p.building_relationship_lines, '[]'::jsonb)
-               ELSE '[]'::jsonb
-             END
-           ) AS rel(line)
+           FROM jsonb_array_elements(${sqlSafeJsonbArray("p.building_relationship_lines")}) AS rel(line)
            JOIN companies_v1 rel_co
              ON ${sqlJoinV1Company("rel_co", "rel.line->>'company_id'")}
            WHERE COALESCE(rel.line->>'role', '') ILIKE '%owner%'

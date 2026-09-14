@@ -16,7 +16,9 @@ import {
 } from "@/lib/premisesDetailDisplay";
 import { asArray } from "@/lib/asArray";
 import { asCompanyV1Options, asContactV1Options } from "@/lib/premisesClientData";
-import { toCompanyV1SelectOptions } from "@/lib/companyV1Display";
+import { OptionTypeahead } from "@/components/admin/OptionTypeahead";
+import { coerceCompanyIdToSelectValue, toCompanyV1SelectOptions } from "@/lib/companyV1Display";
+import { companyV1TypeaheadOptions } from "@/lib/typeaheadOptions";
 import { toContactV1SelectOptions } from "@/lib/contactV1Display";
 import {
   coerceRelationshipLinesForSelect,
@@ -88,21 +90,18 @@ function RelationshipLineFields({
           ))}
         </select>
       </label>
-      <label className="block text-sm font-medium text-slate-700">
-        Company
-        <select
-          className={selectClass}
-          value={line.company_id ?? ""}
-          onChange={(e) => onChange({ company_id: e.target.value || null, contact_id: null })}
-        >
-          <option value="">— Select company —</option>
-          {companyOptions.map((c) => (
-            <option key={c.value} value={c.value}>
-              {c.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      <OptionTypeahead
+        label="Company"
+        value={coerceCompanyIdToSelectValue(line.company_id, companyOptions)}
+        onChange={(value) => onChange({ company_id: value || null, contact_id: null })}
+        options={companyV1TypeaheadOptions(companyOptions)}
+        placeholder="Search company…"
+        emptyLabel="— Select company —"
+        allowEmpty
+        instanceKey={`premises-rel-company-${index}`}
+        inputClassName={selectClass}
+        labelClassName="block text-sm font-medium text-slate-700"
+      />
       <label className="block text-sm font-medium text-slate-700">
         Contact
         <select

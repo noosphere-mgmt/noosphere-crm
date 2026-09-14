@@ -29,6 +29,15 @@ export function sqlJoinV1Company(companyV1Alias: string, fkExpr: string): string
   return `(${companyV1Alias}.business_id = ${fkExpr}::text OR ${companyV1Alias}.company_id = ${fkExpr}::text)`;
 }
 
+/** Coerce jsonb/text to a JSON array so jsonb_array_elements cannot throw on `{}` or scalars. */
+export function sqlSafeJsonbArray(expr: string): string {
+  return `(CASE
+    WHEN jsonb_typeof(COALESCE((${expr})::jsonb, '[]'::jsonb)) = 'array'
+    THEN COALESCE((${expr})::jsonb, '[]'::jsonb)
+    ELSE '[]'::jsonb
+  END)`;
+}
+
 /** Join contacts_v1.contact_id (TEXT) to a FK column that may be TEXT or legacy BIGINT. */
 export function sqlJoinV1Contact(contactV1Alias: string, fkExpr: string): string {
   return `${contactV1Alias}.contact_id = ${fkExpr}::text`;

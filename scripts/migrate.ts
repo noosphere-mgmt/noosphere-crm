@@ -357,6 +357,10 @@ async function main(): Promise<void> {
   await query(migratePhase82);
   console.log("Phase 82 building merge archive and audit applied.");
 
+  const migratePhase83 = await readSql("schema-migrate-phase83-safe-relationship-jsonb-arrays.sql");
+  await query(migratePhase83);
+  console.log("Phase 83 relationship JSONB arrays normalized.");
+
   const crosswalkCompanies = await query<{ n: string }>(
     `SELECT COUNT(*)::text AS n FROM business_id_crosswalk WHERE entity_type = 'company'`,
   );

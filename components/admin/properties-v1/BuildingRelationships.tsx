@@ -7,7 +7,9 @@ import {
   normalizeBuildingRelationships,
   type BuildingRelationshipLine,
 } from "@/lib/buildingRelationships";
-import type { CompanyV1SelectOption } from "@/lib/companyV1Display";
+import { OptionTypeahead } from "@/components/admin/OptionTypeahead";
+import { coerceCompanyIdToSelectValue, type CompanyV1SelectOption } from "@/lib/companyV1Display";
+import { companyV1TypeaheadOptions } from "@/lib/typeaheadOptions";
 
 export function BuildingRelationshipsEditor({
   value,
@@ -23,6 +25,7 @@ export function BuildingRelationshipsEditor({
   const [lines, setLines] = useState<BuildingRelationshipLine[]>(() => normalizeBuildingRelationships(value));
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const companyTypeahead = useMemo(() => companyV1TypeaheadOptions(companyOptions), [companyOptions]);
 
   useEffect(() => {
     setLines(normalizeBuildingRelationships(value));
@@ -76,23 +79,22 @@ export function BuildingRelationshipsEditor({
               <option key={role}>{role}</option>
             ))}
           </select>
-          <select
-            className="rounded border border-slate-300 bg-white px-2 py-1.5 text-sm"
-            value={line.company_id}
-            disabled={pending}
-            onChange={(e) => {
-              const company_id = e.target.value;
-              if (onSave) updateAndPersist(index, { company_id });
-              else updateLocal(index, { company_id });
-            }}
-          >
-            <option value="">Select company</option>
-            {companyOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <div className="min-w-0">
+            <OptionTypeahead
+              value={coerceCompanyIdToSelectValue(line.company_id, companyOptions)}
+              onChange={(company_id) => {
+                if (onSave) updateAndPersist(index, { company_id });
+                else updateLocal(index, { company_id });
+              }}
+              options={companyTypeahead}
+              placeholder="Search company…"
+              emptyLabel="Select company"
+              allowEmpty
+              disabled={pending}
+              instanceKey={`building-rel-company-${index}`}
+              inputClassName="w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-sm"
+            />
+          </div>
           <input
             className="rounded border border-slate-300 bg-white px-2 py-1.5 text-sm"
             value={line.remarks}

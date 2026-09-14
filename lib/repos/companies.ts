@@ -107,13 +107,15 @@ export async function listCompanies(roleFilter?: CompanyRole): Promise<Company[]
 export type CompanyOption = {
   id: number;
   company_name: string;
+  company_name_zh?: string | null;
+  company_name_cn?: string | null;
   business_id?: string | null;
   v1_company_id?: string | null;
 };
 
 export const listCompanyOptions = cache(async function listCompanyOptions(): Promise<CompanyOption[]> {
   return query<CompanyOption>(
-    `SELECT c.id, c.company_name,
+    `SELECT c.id, c.company_name, c.company_name_zh, c.company_name_cn,
             COALESCE(cv.business_id, c.business_id) AS business_id,
             cv.company_id AS v1_company_id
      FROM companies c
@@ -128,7 +130,7 @@ export async function listCompanyOptionsByRole(
 ): Promise<CompanyOption[]> {
   if (role) {
     const filtered = await query<CompanyOption>(
-      `SELECT c.id, c.company_name,
+      `SELECT c.id, c.company_name, c.company_name_zh, c.company_name_cn,
               COALESCE(cv.business_id, c.business_id) AS business_id,
               cv.company_id AS v1_company_id
        FROM companies c

@@ -42,14 +42,15 @@ type ModuleActionBarProps = {
   module?: AdminModuleKey;
 };
 
-function triggerSave({ formId, onSave }: Pick<ModuleActionBarProps, "formId" | "onSave">) {
-  if (onSave) {
-    onSave();
+export function submitHtmlForm(form: HTMLFormElement) {
+  const invalid = form.querySelector<HTMLElement>(":invalid");
+  if (invalid) {
+    invalid.scrollIntoView({ block: "center", behavior: "smooth" });
+    invalid.focus();
+    form.reportValidity();
     return;
   }
-  if (formId) {
-    (document.getElementById(formId) as HTMLFormElement | null)?.requestSubmit();
-  }
+  form.requestSubmit();
 }
 
 export function ModuleEditActions({
@@ -62,9 +63,29 @@ export function ModuleEditActions({
   return (
     <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
       <button
-        type="button"
+        type={formId && !onSave ? "submit" : "button"}
+        form={formId && !onSave ? formId : undefined}
         className={moduleActionButtonClass.save}
-        onClick={() => triggerSave({ formId, onSave })}
+        onClick={(e) => {
+          if (onSave) {
+            e.preventDefault();
+            onSave();
+            return;
+          }
+          if (!formId) return;
+          const form = document.getElementById(formId);
+          if (!(form instanceof HTMLFormElement)) {
+            e.preventDefault();
+            return;
+          }
+          const invalid = form.querySelector<HTMLElement>(":invalid");
+          if (invalid) {
+            e.preventDefault();
+            invalid.scrollIntoView({ block: "center", behavior: "smooth" });
+            invalid.focus();
+            form.reportValidity();
+          }
+        }}
         aria-label={saveLabel}
         title={saveLabel}
       >

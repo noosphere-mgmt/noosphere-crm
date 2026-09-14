@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { PremisesRelationshipsEditor } from "@/components/admin/PremisesRelationshipsEditor";
-import { FormEditingContext, ModuleActionBar } from "@/components/admin/ModuleActionBar";
+import { FormEditingContext, ModuleActionBar, submitHtmlForm } from "@/components/admin/ModuleActionBar";
 import { SelectField } from "@/components/admin/AdminFormFields";
 import { OptionTypeahead } from "@/components/admin/OptionTypeahead";
 import { buildingTypeaheadOptionFromSelect } from "@/lib/typeaheadOptions";
@@ -61,6 +61,7 @@ import {
   monthlyRentFieldLabel,
   packageFeesNote,
   parsePackageOffers,
+  SERVICED_OFFICE_OFFER_PRICE_LINES,
   SERVICED_OFFICE_OFFERS,
   SERVICED_OFFICE_PRICE_TIERS,
 } from "@/lib/premisesCommercial";
@@ -223,6 +224,7 @@ function PremisesEditForm({
   companyOptions,
   contacts,
   returnTo,
+  onRegisterSubmit,
 }: {
   premises: PremisesV1;
   propertyId: string;
@@ -233,9 +235,18 @@ function PremisesEditForm({
   companyOptions: ReturnType<typeof toCompanyV1SelectOptions>;
   contacts: ContactV1Option[];
   returnTo?: string;
+  onRegisterSubmit?: (submit: () => void) => void;
 }) {
+  const formRef = useRef<HTMLFormElement>(null);
   const pid = premises.premises_id;
   const formId = isNew ? "premises-form-new" : `premises-form-${pid}`;
+  const submitForm = useCallback(() => {
+    if (formRef.current) submitHtmlForm(formRef.current);
+  }, []);
+
+  useEffect(() => {
+    onRegisterSubmit?.(submitForm);
+  }, [onRegisterSubmit, submitForm]);
   const [linkedPropertyId, setLinkedPropertyId] = useState(propertyId || premises.property_id);
   const formAction = isNew
     ? createAction!.bind(null, linkedPropertyId)
@@ -299,6 +310,7 @@ function PremisesEditForm({
   return (
     <FormEditingContext.Provider value={true}>
       <form
+        ref={formRef}
         id={formId}
         action={formAction}
         className="space-y-3"
@@ -480,8 +492,29 @@ function PremisesEditForm({
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Monthly Rent" name="monthly_rent" type="number" defaultValue={premises.monthly_rent} />
                 <Field label="Annual Rent" name="annual_rent" type="number" defaultValue={premises.annual_rent} />
+                {SERVICED_OFFICE_OFFER_PRICE_LINES.flatMap((line) => [
+                  <Field
+                    key={line.mthField}
+                    label={`${line.label} / mth`}
+                    name={line.mthField}
+                    type="number"
+                    defaultValue={premises[line.mthField]}
+                  />,
+                  <Field
+                    key={line.yrField}
+                    label={`${line.label} / yr`}
+                    name={line.yrField}
+                    type="number"
+                    defaultValue={premises[line.yrField]}
+                  />,
+                ])}
               </div>
-              {SERVICED_OFFICE_PRICE_TIERS.flatMap((tier) => [
+              {SERVICED_OFFICE_PRICE_TIERS.filter(
+                (tier) =>
+                  !SERVICED_OFFICE_OFFER_PRICE_LINES.some(
+                    (line) => line.mthField === tier.mthField || line.yrField === tier.yrField,
+                  ),
+              ).flatMap((tier) => [
                 <input key={tier.mthField} type="hidden" name={tier.mthField} value={premises[tier.mthField] ?? ""} />,
                 <input key={tier.yrField} type="hidden" name={tier.yrField} value={premises[tier.yrField] ?? ""} />,
               ])}
@@ -586,6 +619,11 @@ function PremisesEditForm({
           <input type="hidden" name="discovery_status" value={premises.discovery_status ?? ""} />
           <input type="hidden" name="access_status" value={premises.access_status ?? ""} />
           <input type="hidden" name="address_confidence" value={premises.address_confidence ?? ""} />
+          <div className="flex justify-start border-t border-slate-200 pt-4">
+            <button type="submit" className="inline-flex items-center justify-center rounded-lg border border-slate-900 bg-slate-900 px-3 py-1.5 text-sm font-semibold text-white hover:border-slate-800 hover:bg-slate-800">
+              Save
+            </button>
+          </div>
         </div>
       </form>
     </FormEditingContext.Provider>
@@ -648,6 +686,8 @@ export function PremisesDrawer({
     return formatPremisesName(buildingName, premises.floor, premises.unit);
   }, [premises, buildingName]);
 
+  const submitRef = useRef<(() => void) | null>(null);
+
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -702,14 +742,27 @@ export function PremisesDrawer({
             fullEditHref={fullEditHref}
           />
         ) : (
-          <div className="sticky top-0 z-10 flex shrink-0 items-start justify-between gap-3 border-b border-slate-200 bg-white px-4 py-4 sm:px-5">
+          <div className="sticky top-0 z-20 flex shrink-0 items-start justify-between gap-3 border-b border-slate-200 bg-white px-4 py-4 sm:px-5">
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Edit premises</p>
               <h2 className="mt-0.5 text-lg font-semibold tracking-tight text-slate-900">{title}</h2>
               <RecordBusinessId id={safePremises.business_id} className="mt-0.5 block" />
               <p className="mt-1 text-sm text-slate-600">{buildingSubtitle}</p>
             </div>
-            <ModuleActionBar mode="edit" formId={formId} onCancel={() => onModeChange("view")} module="properties" />
+            <ModuleActionBar
+              mode="edit"
+              formId={formId}
+              onSave={() => {
+                if (submitRef.current) {
+                  submitRef.current();
+                  return;
+                }
+                const form = document.getElementById(formId);
+                if (form instanceof HTMLFormElement) submitHtmlForm(form);
+              }}
+              onCancel={() => onModeChange("view")}
+              module="properties"
+            />
           </div>
         )}
 
@@ -746,6 +799,9 @@ export function PremisesDrawer({
               companyOptions={companyOptions}
               contacts={safeContacts}
               returnTo={returnTo}
+              onRegisterSubmit={(submit) => {
+                submitRef.current = submit;
+              }}
             />
           )}
         </div>

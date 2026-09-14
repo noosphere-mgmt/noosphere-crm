@@ -3,7 +3,9 @@
 import { useMemo, useState } from "react";
 import { asArray } from "@/lib/asArray";
 import { asContactV1Options } from "@/lib/premisesClientData";
-import type { CompanyV1SelectOption } from "@/lib/companyV1Display";
+import { OptionTypeahead } from "@/components/admin/OptionTypeahead";
+import { coerceCompanyIdToSelectValue, type CompanyV1SelectOption } from "@/lib/companyV1Display";
+import { companyV1TypeaheadOptions } from "@/lib/typeaheadOptions";
 import { toContactV1SelectOptions } from "@/lib/contactV1Display";
 import {
   coerceRelationshipLinesForSelect,
@@ -88,23 +90,18 @@ export function PremisesRelationshipsEditor({
                 ))}
               </select>
             </label>
-            <label className="block text-sm font-medium text-slate-700">
-              Company
-              <select
-                className={selectClass}
-                value={line.company_id ?? ""}
-                onChange={(e) =>
-                  updateLine(index, { company_id: e.target.value || null, contact_id: null })
-                }
-              >
-                <option value="">— Select company —</option>
-                {companyOptions.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <OptionTypeahead
+              label="Company"
+              value={coerceCompanyIdToSelectValue(line.company_id, companyOptions)}
+              onChange={(value) => updateLine(index, { company_id: value || null, contact_id: null })}
+              options={companyV1TypeaheadOptions(companyOptions)}
+              placeholder="Search company…"
+              emptyLabel="— Select company —"
+              allowEmpty
+              instanceKey={`premises-form-rel-company-${index}`}
+              inputClassName={selectClass}
+              labelClassName="block text-sm font-medium text-slate-700"
+            />
             <label className="block text-sm font-medium text-slate-700">
               Contact
               <select

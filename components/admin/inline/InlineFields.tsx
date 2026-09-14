@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { OptionTypeahead } from "@/components/admin/OptionTypeahead";
 import { useInlineEdit } from "@/components/admin/inline/InlineEditProvider";
+import { companyTypeaheadOptions } from "@/lib/typeaheadOptions";
 import {
   displayOrDash,
   inlineFieldShellClass,
@@ -905,24 +907,16 @@ export function InlineCompanyPickerField({
   onSave: SaveFn;
 }) {
   const { editHighlight, runSave, editing, setEditing, beginEdit } = useGatedInlineEdit();
-  const [query, setQuery] = useState("");
   const currentBusinessId =
     companies.find((c) => c.id === companyId)?.business_id?.trim() ?? "";
   const [draftBusinessId, setDraftBusinessId] = useState(currentBusinessId);
   const panelRef = useRef<HTMLDivElement>(null);
-
-  const filtered = companies.filter(
-    (c) =>
-      c.business_id &&
-      c.company_name.toLowerCase().includes(query.trim().toLowerCase()),
-  );
   const companyLabel = (c: { company_name: string; business_id?: string | null }) =>
     formatLabelWithBusinessId(c.company_name, c.business_id);
 
   useEffect(() => {
     if (!editing) {
       setDraftBusinessId(currentBusinessId);
-      setQuery("");
     }
   }, [companyId, currentBusinessId, editing]);
 
@@ -949,51 +943,21 @@ export function InlineCompanyPickerField({
   if (editing) {
     return (
       <div ref={panelRef} className={inlineViewFieldClass()}>
-        <FieldLabel>{label}</FieldLabel>
-        <input
-          type="search"
-          value={query}
-          placeholder="Search companies…"
-          className={inlineInputClass}
-          onChange={(e) => setQuery(e.target.value)}
-          autoFocus
+        <OptionTypeahead
+          label={label}
+          value={draftBusinessId}
+          onChange={(next) => {
+            setDraftBusinessId(next);
+            void commit(next);
+          }}
+          options={companyTypeaheadOptions(companies)}
+          placeholder="Search company…"
+          emptyLabel="No Company"
+          allowEmpty
+          instanceKey={`inline-company-${companyId ?? "none"}`}
+          inputClassName={inlineInputClass}
+          labelClassName="whitespace-nowrap text-xs font-medium uppercase tracking-wide text-slate-500"
         />
-        <ul className="mt-1 max-h-40 overflow-y-auto rounded border border-slate-200 bg-white text-sm shadow-sm">
-          <li>
-            <button
-              type="button"
-              className={`block w-full px-2 py-1.5 text-left hover:bg-slate-50 ${
-                !draftBusinessId ? "bg-violet-50 font-medium text-violet-900" : ""
-              }`}
-              onClick={() => {
-                setDraftBusinessId("");
-                void commit("");
-              }}
-            >
-              No Company
-            </button>
-          </li>
-          {filtered.length === 0 ? (
-            <li className="px-2 py-2 text-slate-500">No matches</li>
-          ) : (
-            filtered.map((c) => (
-              <li key={c.business_id!}>
-                <button
-                  type="button"
-                  className={`block w-full px-2 py-1.5 text-left hover:bg-slate-50 ${
-                    c.business_id === draftBusinessId ? "bg-violet-50 font-medium text-violet-900" : ""
-                  }`}
-                  onClick={() => {
-                    setDraftBusinessId(c.business_id!);
-                    void commit(c.business_id!);
-                  }}
-                >
-                  {companyLabel(c)}
-                </button>
-              </li>
-            ))
-          )}
-        </ul>
       </div>
     );
   }

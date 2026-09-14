@@ -65,6 +65,7 @@ function OptionTypeaheadInner({
 }) {
   const listId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
+  const menuRef = useRef<HTMLUListElement>(null);
   const optionByValue = useMemo(() => {
     const map = new Map<string, TypeaheadOption>();
     for (const option of options) map.set(option.value, option);
@@ -75,13 +76,16 @@ function OptionTypeaheadInner({
   const [query, setQuery] = useState(selectedLabel);
   const [userHighlight, setUserHighlight] = useState<number | null>(null);
   const [menuRect, setMenuRect] = useState<{ top: number; left: number; width: number } | null>(null);
+  const browsingSelectedRef = useRef(false);
 
   const syncMenuPosition = useCallback(() => {
     const el = inputRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
+    const headerSafeTop = 88;
+    const top = rect.bottom + 4 < headerSafeTop ? headerSafeTop : rect.bottom + 4;
     setMenuRect({
-      top: rect.bottom + 4,
+      top,
       left: rect.left,
       width: rect.width,
     });
@@ -113,21 +117,31 @@ function OptionTypeaheadInner({
     if (!open || disabled) return;
     syncMenuPosition();
     const onScrollOrResize = () => syncMenuPosition();
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (inputRef.current?.contains(target) || menuRef.current?.contains(target)) return;
+      setOpen(false);
+    };
     window.addEventListener("scroll", onScrollOrResize, true);
     window.addEventListener("resize", onScrollOrResize);
+    document.addEventListener("pointerdown", onPointerDown);
     return () => {
       window.removeEventListener("scroll", onScrollOrResize, true);
       window.removeEventListener("resize", onScrollOrResize);
+      document.removeEventListener("pointerdown", onPointerDown);
     };
   }, [disabled, open, syncMenuPosition]);
 
   function closeWithLabel(labelText: string) {
+    browsingSelectedRef.current = false;
     setQuery(labelText);
     setOpen(false);
     setUserHighlight(null);
   }
 
   function selectValue(next: string) {
+    browsingSelectedRef.current = false;
     onChange(next);
     closeWithLabel(next ? optionByValue.get(next)?.label ?? "" : "");
   }
@@ -158,6 +172,7 @@ function OptionTypeaheadInner({
     open && !disabled && menuRect && typeof document !== "undefined"
       ? createPortal(
           <ul
+            ref={menuRef}
             id={listId}
             role="listbox"
             className="max-h-56 overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
@@ -224,18 +239,20 @@ function OptionTypeaheadInner({
       {name ? <input type="hidden" name={name} value={value} /> : null}
       <input
         ref={inputRef}
-        type="search"
+        type="text"
         role="combobox"
         aria-expanded={open}
         aria-controls={listId}
         aria-autocomplete="list"
         autoComplete="off"
+        aria-label={label ?? placeholder}
         disabled={disabled}
-        required={required && !value}
+        required={required && !value && !open}
         value={query}
         placeholder={placeholder}
         className={disabled ? readOnlyClass : inputClassName ?? defaultInputClass}
         onChange={(e) => {
+          browsingSelectedRef.current = false;
           setQuery(e.target.value);
           setUserHighlight(null);
           setOpen(true);
@@ -243,11 +260,26 @@ function OptionTypeaheadInner({
         }}
         onFocus={() => {
           if (disabled) return;
+          if (selectedLabel && query.trim() === selectedLabel.trim()) {
+            browsingSelectedRef.current = true;
+            setQuery("");
+          }
+          setOpen(true);
+          syncMenuPosition();
+        }}
+        onClick={() => {
+          if (disabled) return;
           setOpen(true);
           syncMenuPosition();
         }}
         onBlur={() => {
           window.setTimeout(() => {
+            if (browsingSelectedRef.current && !query.trim()) {
+              browsingSelectedRef.current = false;
+              closeWithLabel(selectedLabel);
+              return;
+            }
+            browsingSelectedRef.current = false;
             commitQuery();
           }, 120);
         }}

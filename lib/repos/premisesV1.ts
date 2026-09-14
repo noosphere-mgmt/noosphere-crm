@@ -1,5 +1,5 @@
 import { query } from "@/lib/db";
-import { sqlJoinV1Company } from "@/lib/import/lookupSql";
+import { sqlJoinV1Company, sqlSafeJsonbArray } from "@/lib/import/lookupSql";
 import { buildingTypeMatchValues } from "@/lib/lookups";
 import {
   coercePremisesV1PatchForDb,
@@ -732,7 +732,7 @@ function premisesFlatWhere(filters: PremisesFlatFilters): { where: string; param
       OR bldg_owner.business_id ILIKE $${i}
       OR EXISTS (
         SELECT 1
-        FROM jsonb_array_elements(COALESCE(pr.building_relationship_lines, '[]'::jsonb)) AS brel(line)
+        FROM jsonb_array_elements(${sqlSafeJsonbArray("pr.building_relationship_lines")}) AS brel(line)
         JOIN companies_v1 brel_co
           ON ${sqlJoinV1Company("brel_co", "brel.line->>'company_id'")}
         WHERE (
@@ -855,7 +855,7 @@ function premisesFlatWhere(filters: PremisesFlatFilters): { where: string; param
       OR bldg_owner.business_id ILIKE $${i}
       OR EXISTS (
         SELECT 1
-        FROM jsonb_array_elements(COALESCE(p.relationship_lines::jsonb, '[]'::jsonb)) AS rel(line)
+        FROM jsonb_array_elements(${sqlSafeJsonbArray("p.relationship_lines")}) AS rel(line)
         JOIN companies_v1 rel_co
           ON ${sqlJoinV1Company("rel_co", "rel.line->>'company_id'")}
         WHERE rel_co.company_name_en ILIKE $${i}
@@ -864,7 +864,7 @@ function premisesFlatWhere(filters: PremisesFlatFilters): { where: string; param
       )
       OR EXISTS (
         SELECT 1
-        FROM jsonb_array_elements(COALESCE(pr.building_relationship_lines, '[]'::jsonb)) AS brel(line)
+        FROM jsonb_array_elements(${sqlSafeJsonbArray("pr.building_relationship_lines")}) AS brel(line)
         JOIN companies_v1 brel_co
           ON ${sqlJoinV1Company("brel_co", "brel.line->>'company_id'")}
         WHERE (

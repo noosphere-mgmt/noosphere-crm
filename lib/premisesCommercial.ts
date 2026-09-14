@@ -42,6 +42,24 @@ export const SERVICED_OFFICE_PRICE_TIERS = [
   },
 ] as const;
 
+/** Offer-aligned price lines shown on serviced / shared office premises. */
+export const SERVICED_OFFICE_OFFER_PRICE_LINES = [
+  {
+    key: "private_room",
+    label: "Private Room",
+    offer: "Private Rooms",
+    mthField: "price_pax_mth_room_window",
+    yrField: "price_pax_yr_room_window",
+  },
+  {
+    key: "workstation",
+    label: "Workstation",
+    offer: "Open Desk",
+    mthField: "price_pax_mth_workstation",
+    yrField: "price_pax_yr_workstation",
+  },
+] as const;
+
 export type ServicedOfficePriceTierKey = (typeof SERVICED_OFFICE_PRICE_TIERS)[number]["key"];
 export type ServicedOfficePriceField =
   | (typeof SERVICED_OFFICE_PRICE_TIERS)[number]["mthField"]
@@ -115,6 +133,22 @@ export function packageFeesNote(operatingModel: string | null | undefined): stri
   return "Serviced / shared office: package fee in monthly rent. Management fee and government rates are 0.";
 }
 
+export function formatServicedOfficeOfferPrices(
+  row: {
+    currency?: string | null;
+    price_pax_mth_room_window?: string | null;
+    price_pax_mth_workstation?: string | null;
+  },
+): string | null {
+  const currency = row.currency ?? "HKD";
+  const parts = SERVICED_OFFICE_OFFER_PRICE_LINES.flatMap((line) => {
+    const amount = row[line.mthField];
+    if (!amount?.trim()) return [];
+    return [`${line.label} ${formatMoney(amount, currency)}`];
+  });
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
 export function getPremisesRowPriceDisplay(
   row: {
     inventory_status: string | null;
@@ -123,6 +157,10 @@ export function getPremisesRowPriceDisplay(
     asking_sale_price: string | null;
     sale_price_psf: string | null;
     currency: string | null;
+    product_subtype?: string | null;
+    operating_model?: string | null;
+    price_pax_mth_room_window?: string | null;
+    price_pax_mth_workstation?: string | null;
   },
   options?: { psfAsCurrency?: boolean },
 ): { price: string; psf: string } {
@@ -133,6 +171,12 @@ export function getPremisesRowPriceDisplay(
       price: formatMoney(row.asking_sale_price, currency),
       psf: formatPsfValue(row.sale_price_psf, currency),
     };
+  }
+  if (isServicedOrSharedOffice(row)) {
+    const offerPrices = formatServicedOfficeOfferPrices(row);
+    if (offerPrices) {
+      return { price: offerPrices, psf: formatPsfValue(row.rent_psf, currency) };
+    }
   }
   return {
     price: formatMoney(row.monthly_rent, currency),

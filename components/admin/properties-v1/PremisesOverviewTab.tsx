@@ -13,8 +13,10 @@ import { formatMoney, formatPsf } from "@/lib/formatCurrency";
 import { formatPremisesName, formatVerifiedDate } from "@/lib/premisesDisplay";
 import {
   isPackageOperatingModel,
+  isServicedOrSharedOffice,
   monthlyRentFieldLabel,
   packageFeesNote,
+  SERVICED_OFFICE_OFFER_PRICE_LINES,
 } from "@/lib/premisesCommercial";
 import {
   isListingIntentForLease,
@@ -128,6 +130,20 @@ export function PremisesOverviewTab({
           <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
             <PremisesField label={rentLabel} value={formatMoney(premises.monthly_rent, currency)} />
             <PremisesField label="Rent PSF" value={formatPsf(premises.rent_psf, currency)} />
+            {isServicedOrSharedOffice(premises)
+              ? SERVICED_OFFICE_OFFER_PRICE_LINES.flatMap((line) => [
+                  <PremisesField
+                    key={line.mthField}
+                    label={`${line.label} / mth`}
+                    value={formatMoney(premises[line.mthField], currency)}
+                  />,
+                  <PremisesField
+                    key={line.yrField}
+                    label={`${line.label} / yr`}
+                    value={formatMoney(premises[line.yrField], currency)}
+                  />,
+                ])
+              : null}
             <PremisesField
               label="Management fee"
               value={

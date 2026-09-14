@@ -1,6 +1,6 @@
 import { query } from "@/lib/db";
 import { buildingWorkspaceHref } from "@/lib/buildingWorkspaceNav";
-import { sqlJoinV1Company } from "@/lib/import/lookupSql";
+import { sqlJoinV1Company, sqlSafeJsonbArray } from "@/lib/import/lookupSql";
 import { formatPremisesName } from "@/lib/premisesDisplay";
 import { premisesWorkspaceHref } from "@/lib/premisesWorkspaceNav";
 
@@ -132,7 +132,7 @@ export async function listCompanyLinkedProperties(
          (
            SELECT ARRAY_AGG(DISTINCT NULLIF(TRIM(line->>'relationship_type'), ''))
            FILTER (WHERE NULLIF(TRIM(line->>'company_id'), '') = ANY($1::text[]))
-           FROM jsonb_array_elements(COALESCE(p.relationship_lines::jsonb, '[]'::jsonb)) AS line
+           FROM jsonb_array_elements(${sqlSafeJsonbArray("p.relationship_lines")}) AS line
          ) AS line_roles,
          op_co.company_name_en AS operator_name,
          COALESCE(NULLIF(TRIM(ll_co.company_name_en), ''), own_co.company_name_en) AS landlord_name,
@@ -161,7 +161,7 @@ export async function listCompanyLinkedProperties(
           OR NULLIF(TRIM(p.source_company_id), '') = ANY($1::text[])
           OR EXISTS (
             SELECT 1
-            FROM jsonb_array_elements(COALESCE(p.relationship_lines::jsonb, '[]'::jsonb)) AS line
+            FROM jsonb_array_elements(${sqlSafeJsonbArray("p.relationship_lines")}) AS line
             WHERE NULLIF(TRIM(line->>'company_id'), '') = ANY($1::text[])
           )
        ORDER BY pr.bldg_name_en ASC NULLS LAST, p.floor ASC NULLS LAST, p.unit ASC NULLS LAST, p.premises_id ASC`,
@@ -194,7 +194,7 @@ export async function listCompanyLinkedProperties(
          (
            SELECT ARRAY_AGG(DISTINCT NULLIF(TRIM(line->>'role'), ''))
            FILTER (WHERE NULLIF(TRIM(line->>'company_id'), '') = ANY($1::text[]))
-           FROM jsonb_array_elements(COALESCE(pr.building_relationship_lines::jsonb, '[]'::jsonb)) AS line
+           FROM jsonb_array_elements(${sqlSafeJsonbArray("pr.building_relationship_lines")}) AS line
          ) AS line_roles,
          op_co.company_name_en AS operator_name,
          own_co.company_name_en AS landlord_name,
@@ -212,7 +212,7 @@ export async function listCompanyLinkedProperties(
           OR NULLIF(TRIM(pr.management_company_id), '') = ANY($1::text[])
           OR EXISTS (
             SELECT 1
-            FROM jsonb_array_elements(COALESCE(pr.building_relationship_lines::jsonb, '[]'::jsonb)) AS line
+            FROM jsonb_array_elements(${sqlSafeJsonbArray("pr.building_relationship_lines")}) AS line
             WHERE NULLIF(TRIM(line->>'company_id'), '') = ANY($1::text[])
           )
        ORDER BY pr.bldg_name_en ASC NULLS LAST, pr.property_id ASC`,

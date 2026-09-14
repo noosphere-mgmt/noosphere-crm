@@ -7,7 +7,8 @@ import {
   removeContactCompanyAffiliationAction,
   setPrimaryContactCompanyAffiliationAction,
 } from "@/app/admin/contacts/affiliationActions";
-import { toLegacyCompanySelectOptions } from "@/lib/crmSelectOptions";
+import { OptionTypeahead } from "@/components/admin/OptionTypeahead";
+import { companyTypeaheadOptions } from "@/lib/typeaheadOptions";
 import { companyFullPageHref } from "@/lib/crmDetailNav";
 import type { CompanyOption } from "@/lib/repos/companies";
 import type { ContactCompanyAffiliation } from "@/lib/repos/contactCompanyAffiliations";
@@ -28,13 +29,15 @@ export function ContactCompanyAffiliationsCard({
   const [jobTitle, setJobTitle] = useState("");
   const [role, setRole] = useState("");
   const [isPrimary, setIsPrimary] = useState(affiliations.length === 0);
-  const options = toLegacyCompanySelectOptions(companies);
   const linked = new Set(
     affiliations
       .map((a) => a.company_business_id?.trim() || String(a.company_id))
       .filter(Boolean),
   );
-  const available = options.filter((o) => !linked.has(o.value));
+  const availableCompanies = companies.filter((company) => {
+    const value = company.business_id?.trim() || String(company.id);
+    return !linked.has(value);
+  });
 
   function refresh() {
     router.refresh();
@@ -145,21 +148,20 @@ export function ContactCompanyAffiliationsCard({
       )}
 
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="block text-xs font-medium text-slate-600 sm:col-span-2">
-          Company
-          <select
+        <div className="block text-xs font-medium text-slate-600 sm:col-span-2">
+          <OptionTypeahead
+            label="Company"
             value={companyId}
-            onChange={(e) => setCompanyId(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm"
-          >
-            <option value="">Select company…</option>
-            {available.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </label>
+            onChange={setCompanyId}
+            options={companyTypeaheadOptions(availableCompanies)}
+            placeholder="Search company…"
+            emptyLabel="Select company…"
+            allowEmpty
+            instanceKey={`contact-affiliation-${contactId}-${availableCompanies.length}`}
+            inputClassName="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm"
+            labelClassName="block text-xs font-medium text-slate-600"
+          />
+        </div>
         <label className="block text-xs font-medium text-slate-600">
           Job title
           <input

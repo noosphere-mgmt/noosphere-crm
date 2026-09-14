@@ -10,10 +10,39 @@ export type TypeaheadOption = {
 };
 
 export function companyTypeaheadOptions(companies: CompanyOption[]): TypeaheadOption[] {
-  return toLegacyCompanySelectOptions(companies).map((option) => ({
+  const byValue = new Map(companies.map((company) => {
+    const businessId = company.business_id?.trim() || null;
+    return [businessId ?? String(company.id), company] as const;
+  }));
+  return toLegacyCompanySelectOptions(companies).map((option) => {
+    const company = byValue.get(option.value);
+    return {
+      value: option.value,
+      label: option.label,
+      searchText: [
+        option.label,
+        option.value,
+        option.businessId,
+        company?.company_name,
+        company?.company_name_zh,
+        company?.company_name_cn,
+        company?.v1_company_id,
+      ]
+        .filter(Boolean)
+        .join(" "),
+    };
+  });
+}
+
+export function companyV1TypeaheadOptions(
+  options: Array<{ value: string; label: string; businessId?: string; v1Id?: string }>,
+): TypeaheadOption[] {
+  return options.map((option) => ({
     value: option.value,
     label: option.label,
-    searchText: [option.label, option.value, option.businessId].filter(Boolean).join(" "),
+    searchText: [option.label, option.value, option.businessId, option.v1Id]
+      .filter(Boolean)
+      .join(" "),
   }));
 }
 
