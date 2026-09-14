@@ -109,8 +109,11 @@ export async function deleteProposedPremisesAction(opportunityId: number, formDa
     .split(",")
     .map((s) => Number.parseInt(s.trim(), 10))
     .filter((n) => Number.isFinite(n) && n > 0);
-  await deleteProposedPremisesLines(ids);
+  const premisesIds = await deleteProposedPremisesLines(ids, opportunityId);
   revalidateOpportunity(opportunityId);
+  for (const premisesId of premisesIds) {
+    await revalidateProposedPremisesContexts(premisesId, opportunityId);
+  }
 }
 
 export async function updateProposedPremisesLineAction(lineId: number, formData: FormData) {

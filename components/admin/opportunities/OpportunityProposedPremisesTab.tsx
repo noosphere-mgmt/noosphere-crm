@@ -67,14 +67,31 @@ export function OpportunityProposedPremisesTab({
     });
   }
 
-  function handleBulkDelete() {
-    if (selectedIds.size === 0) return;
+  function removeLines(ids: number[], label: string) {
+    if (ids.length === 0) return;
+    const message =
+      ids.length === 1
+        ? `Remove “${label}” from this opportunity? The premises record itself is kept.`
+        : `Remove ${ids.length} proposed premises from this opportunity? The premises records themselves are kept.`;
+    if (!window.confirm(message)) return;
     const fd = new FormData();
-    fd.set("line_ids", [...selectedIds].join(","));
+    fd.set("line_ids", ids.join(","));
     startTransition(async () => {
       await deleteProposedPremisesAction(opportunity.id, fd);
-      setSelectedIds(new Set());
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        for (const id of ids) next.delete(id);
+        return next;
+      });
+      if (selectedLineId != null && ids.includes(selectedLineId)) setSelectedLineId(null);
     });
+  }
+
+  function handleBulkDelete() {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    const first = proposedPremises.find((row) => row.id === ids[0]);
+    removeLines(ids, first ? formatProposedPremisesLabel(first) : "selected premises");
   }
 
   function handleCreateProposal() {
@@ -208,13 +225,23 @@ export function OpportunityProposedPremisesTab({
                     </Link>
                     <p className="mt-0.5 truncate text-xs text-slate-500">{row.operator_name ?? row.owner_name ?? "Operator / owner not recorded"}</p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedLineId(row.id)}
-                    className="shrink-0 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-700"
-                  >
-                    Edit
-                  </button>
+                  <div className="flex shrink-0 flex-col gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedLineId(row.id)}
+                      className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-700"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeLines([row.id], formatProposedPremisesLabel(row))}
+                      disabled={pending}
+                      className="rounded-lg border border-rose-200 px-2.5 py-1.5 text-xs font-semibold text-rose-700 disabled:opacity-40"
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
 
                 <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-slate-100 pt-3">
@@ -265,7 +292,7 @@ export function OpportunityProposedPremisesTab({
               <th className="px-3 py-1.5 font-medium">Status</th>
               <th className="px-3 py-1.5 font-medium">Preference</th>
               <th className="px-3 py-1.5 font-medium">Remarks</th>
-              <th className="w-16 px-3 py-1.5 font-medium">Actions</th>
+              <th className="w-24 px-3 py-1.5 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -284,6 +311,7 @@ export function OpportunityProposedPremisesTab({
                   selected={selectedIds.has(row.id)}
                   onToggleSelect={() => toggleRow(row.id)}
                   onEdit={() => setSelectedLineId(row.id)}
+                  onRemove={() => removeLines([row.id], formatProposedPremisesLabel(row))}
                 />
               ))
             )}
@@ -309,6 +337,11 @@ export function OpportunityProposedPremisesTab({
         line={selectedLine}
         opportunityId={opportunity.id}
         onClose={() => setSelectedLineId(null)}
+        onRemove={
+          selectedLine
+            ? () => removeLines([selectedLine.id], formatProposedPremisesLabel(selectedLine))
+            : undefined
+        }
       />
     </div>
   );

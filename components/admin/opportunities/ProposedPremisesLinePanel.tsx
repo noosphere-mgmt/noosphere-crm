@@ -2,8 +2,9 @@
 
 import { useTransition } from "react";
 import { updateProposedPremisesLineAction } from "@/app/admin/opportunities/workspaceActions";
+import { IconTrash } from "@/components/admin/ModuleActionIcons";
 import { FormField, TextAreaField } from "@/components/admin/AdminFormFields";
-import { FormEditingContext } from "@/components/admin/ModuleActionBar";
+import { FormEditingContext, moduleActionButtonClass } from "@/components/admin/ModuleActionBar";
 import {
   PremisesField,
   PremisesSectionCard,
@@ -47,10 +48,12 @@ export function ProposedPremisesLinePanel({
   line,
   opportunityId,
   onClose,
+  onRemove,
 }: {
   line: OpportunityProposedPremises | null;
   opportunityId: number;
   onClose: () => void;
+  onRemove?: () => void;
 }) {
   const [pending, startTransition] = useTransition();
 
@@ -98,14 +101,28 @@ export function ProposedPremisesLinePanel({
                 {proposedPrice !== "—" ? <PremisesSnapshotChip>{proposedPrice}</PremisesSnapshotChip> : null}
               </div>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg p-1.5 text-lg leading-none text-slate-400 hover:bg-slate-100"
-              aria-label="Close"
-            >
-              ×
-            </button>
+            <div className="flex shrink-0 items-center gap-1">
+              {onRemove ? (
+                <button
+                  type="button"
+                  onClick={onRemove}
+                  disabled={pending}
+                  className={`${moduleActionButtonClass.delete} disabled:cursor-not-allowed disabled:opacity-40`}
+                  aria-label="Remove from opportunity"
+                  title="Remove from opportunity"
+                >
+                  <IconTrash />
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-lg p-1.5 text-lg leading-none text-slate-400 hover:bg-slate-100"
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
           </div>
         </div>
 

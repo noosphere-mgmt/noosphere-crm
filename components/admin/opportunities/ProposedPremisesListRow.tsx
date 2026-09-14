@@ -34,12 +34,14 @@ export function ProposedPremisesListRow({
   selected,
   onToggleSelect,
   onEdit,
+  onRemove,
 }: {
   row: OpportunityProposedPremises;
   opportunityId: number;
   selected: boolean;
   onToggleSelect: () => void;
   onEdit: () => void;
+  onRemove: () => void;
 }) {
   const theme = moduleAccentClasses("opportunities");
   const [pending, startTransition] = useTransition();
@@ -177,7 +179,12 @@ export function ProposedPremisesListRow({
         />
       </td>
       <td className="px-3 py-1.5">
-        <ModuleRowActions module="opportunities" onEdit={onEdit} />
+        <ModuleRowActions
+          module="opportunities"
+          onEdit={onEdit}
+          onDelete={pending ? undefined : onRemove}
+          deleteLabel="Remove"
+        />
       </td>
     </tr>
   );

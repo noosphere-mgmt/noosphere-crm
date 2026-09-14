@@ -216,9 +216,18 @@ export async function patchProposedPremisesLine(
   await updateProposedPremisesLine(id, { ...proposedPremisesLineToInput(line), ...patch });
 }
 
-export async function deleteProposedPremisesLines(ids: number[]): Promise<void> {
-  if (ids.length === 0) return;
-  await query(`DELETE FROM opportunity_proposed_premises WHERE id = ANY($1::bigint[])`, [ids]);
+export async function deleteProposedPremisesLines(
+  ids: number[],
+  opportunityId: number,
+): Promise<string[]> {
+  if (ids.length === 0) return [];
+  const rows = await query<{ premises_id: string }>(
+    `DELETE FROM opportunity_proposed_premises
+      WHERE id = ANY($1::bigint[]) AND opportunity_id = $2
+      RETURNING premises_id`,
+    [ids, opportunityId],
+  );
+  return rows.map((row) => row.premises_id);
 }
 
 export type PremisesProposedOpportunityRow = OpportunityProposedPremises & {
