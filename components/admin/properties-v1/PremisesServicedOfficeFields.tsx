@@ -5,7 +5,7 @@ import { PremisesSectionCard } from "@/components/admin/properties-v1/premisesDr
 import {
   isServicedOrSharedOffice,
   parsePackageOffers,
-  SERVICED_OFFICE_OFFER_PRICE_LINES,
+  SERVICED_OFFICE_INDEX_PRICE_LINES,
   SERVICED_OFFICE_OFFERS,
 } from "@/lib/premisesCommercial";
 import type { PremisesV1 } from "@/lib/repos/premisesV1";
@@ -81,22 +81,16 @@ export function PremisesServicedOfficeFields({
           onSave={save("annual_rent")}
         />
       </div>
-      <div className="mt-3 grid gap-2.5">
-        {SERVICED_OFFICE_OFFER_PRICE_LINES.map((line) => (
-          <div key={line.key} className="grid grid-cols-2 gap-2.5">
-            <InlineTextField
-              label={`${line.label} / mth`}
-              value={premises[line.mthField]}
-              type="number"
-              onSave={save(line.mthField)}
-            />
-            <InlineTextField
-              label={`${line.label} / yr`}
-              value={premises[line.yrField]}
-              type="number"
-              onSave={save(line.yrField)}
-            />
-          </div>
+      <p className="mb-2 mt-3 text-xs text-slate-500">Index prices for floor listings (1 person / month).</p>
+      <div className="grid grid-cols-2 gap-2.5">
+        {SERVICED_OFFICE_INDEX_PRICE_LINES.map((line) => (
+          <InlineTextField
+            key={line.key}
+            label={line.label}
+            value={premises[line.mthField]}
+            type="number"
+            onSave={save(line.mthField)}
+          />
         ))}
       </div>
     </PremisesSectionCard>

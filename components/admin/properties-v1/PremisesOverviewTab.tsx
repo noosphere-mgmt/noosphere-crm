@@ -16,7 +16,7 @@ import {
   isServicedOrSharedOffice,
   monthlyRentFieldLabel,
   packageFeesNote,
-  SERVICED_OFFICE_OFFER_PRICE_LINES,
+  SERVICED_OFFICE_INDEX_PRICE_LINES,
 } from "@/lib/premisesCommercial";
 import {
   isListingIntentForLease,
@@ -128,21 +128,22 @@ export function PremisesOverviewTab({
       {forLease ? (
         <PremisesSectionCard title="Pricing / lease terms">
           <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-            <PremisesField label={rentLabel} value={formatMoney(premises.monthly_rent, currency)} />
+            <PremisesField
+              label={isServicedOrSharedOffice(premises) ? "Monthly Rent" : rentLabel}
+              value={formatMoney(premises.monthly_rent, currency)}
+            />
+            {isServicedOrSharedOffice(premises) ? (
+              <PremisesField label="Annual Rent" value={formatMoney(premises.annual_rent, currency)} />
+            ) : null}
             <PremisesField label="Rent PSF" value={formatPsf(premises.rent_psf, currency)} />
             {isServicedOrSharedOffice(premises)
-              ? SERVICED_OFFICE_OFFER_PRICE_LINES.flatMap((line) => [
+              ? SERVICED_OFFICE_INDEX_PRICE_LINES.map((line) => (
                   <PremisesField
                     key={line.mthField}
-                    label={`${line.label} / mth`}
+                    label={line.label}
                     value={formatMoney(premises[line.mthField], currency)}
-                  />,
-                  <PremisesField
-                    key={line.yrField}
-                    label={`${line.label} / yr`}
-                    value={formatMoney(premises[line.yrField], currency)}
-                  />,
-                ])
+                  />
+                ))
               : null}
             <PremisesField
               label="Management fee"

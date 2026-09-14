@@ -61,9 +61,10 @@ import {
   monthlyRentFieldLabel,
   packageFeesNote,
   parsePackageOffers,
-  SERVICED_OFFICE_OFFER_PRICE_LINES,
+  SERVICED_OFFICE_INDEX_PRICE_LINES,
   SERVICED_OFFICE_OFFERS,
   SERVICED_OFFICE_PRICE_TIERS,
+  servicedOfficeHiddenPriceFields,
 } from "@/lib/premisesCommercial";
 import { normalizeListingIntent } from "@/lib/premisesListing";
 import { parseSpaceForm } from "@/lib/premisesClassification";
@@ -492,32 +493,22 @@ function PremisesEditForm({
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Monthly Rent" name="monthly_rent" type="number" defaultValue={premises.monthly_rent} />
                 <Field label="Annual Rent" name="annual_rent" type="number" defaultValue={premises.annual_rent} />
-                {SERVICED_OFFICE_OFFER_PRICE_LINES.flatMap((line) => [
+              </div>
+              <p className="mb-2 mt-4 text-xs text-slate-500">Index prices for floor listings (1 person / month).</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {SERVICED_OFFICE_INDEX_PRICE_LINES.map((line) => (
                   <Field
                     key={line.mthField}
-                    label={`${line.label} / mth`}
+                    label={line.label}
                     name={line.mthField}
                     type="number"
                     defaultValue={premises[line.mthField]}
-                  />,
-                  <Field
-                    key={line.yrField}
-                    label={`${line.label} / yr`}
-                    name={line.yrField}
-                    type="number"
-                    defaultValue={premises[line.yrField]}
-                  />,
-                ])}
+                  />
+                ))}
               </div>
-              {SERVICED_OFFICE_PRICE_TIERS.filter(
-                (tier) =>
-                  !SERVICED_OFFICE_OFFER_PRICE_LINES.some(
-                    (line) => line.mthField === tier.mthField || line.yrField === tier.yrField,
-                  ),
-              ).flatMap((tier) => [
-                <input key={tier.mthField} type="hidden" name={tier.mthField} value={premises[tier.mthField] ?? ""} />,
-                <input key={tier.yrField} type="hidden" name={tier.yrField} value={premises[tier.yrField] ?? ""} />,
-              ])}
+              {servicedOfficeHiddenPriceFields().map((field) => (
+                <input key={field} type="hidden" name={field} value={premises[field] ?? ""} />
+              ))}
             </Card>
           ) : (
             <>

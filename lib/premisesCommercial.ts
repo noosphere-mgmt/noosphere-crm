@@ -42,21 +42,22 @@ export const SERVICED_OFFICE_PRICE_TIERS = [
   },
 ] as const;
 
-/** Offer-aligned price lines shown on serviced / shared office premises. */
-export const SERVICED_OFFICE_OFFER_PRICE_LINES = [
+/** Monthly 1-person index prices for serviced / shared office floor listings. */
+export const SERVICED_OFFICE_INDEX_PRICE_LINES = [
   {
-    key: "private_room",
-    label: "Private Room",
-    offer: "Private Rooms",
+    key: "room_internal",
+    label: "Internal/person",
+    mthField: "price_pax_mth_room_internal",
+  },
+  {
+    key: "room_window",
+    label: "External/person",
     mthField: "price_pax_mth_room_window",
-    yrField: "price_pax_yr_room_window",
   },
   {
     key: "workstation",
     label: "Workstation",
-    offer: "Open Desk",
     mthField: "price_pax_mth_workstation",
-    yrField: "price_pax_yr_workstation",
   },
 ] as const;
 
@@ -64,6 +65,19 @@ export type ServicedOfficePriceTierKey = (typeof SERVICED_OFFICE_PRICE_TIERS)[nu
 export type ServicedOfficePriceField =
   | (typeof SERVICED_OFFICE_PRICE_TIERS)[number]["mthField"]
   | (typeof SERVICED_OFFICE_PRICE_TIERS)[number]["yrField"];
+
+/** Price columns kept on save but not shown (yearly + unused virtual-address tiers). */
+export function servicedOfficeHiddenPriceFields(): ServicedOfficePriceField[] {
+  const visibleMth = new Set<ServicedOfficePriceField>(
+    SERVICED_OFFICE_INDEX_PRICE_LINES.map((line) => line.mthField),
+  );
+  const hidden: ServicedOfficePriceField[] = [];
+  for (const tier of SERVICED_OFFICE_PRICE_TIERS) {
+    if (!visibleMth.has(tier.mthField)) hidden.push(tier.mthField);
+    hidden.push(tier.yrField);
+  }
+  return hidden;
+}
 
 export function parsePackageOffers(raw: string | null | undefined): ServicedOfficeOffer[] {
   if (!raw?.trim()) return [];
@@ -136,12 +150,13 @@ export function packageFeesNote(operatingModel: string | null | undefined): stri
 export function formatServicedOfficeOfferPrices(
   row: {
     currency?: string | null;
+    price_pax_mth_room_internal?: string | null;
     price_pax_mth_room_window?: string | null;
     price_pax_mth_workstation?: string | null;
   },
 ): string | null {
   const currency = row.currency ?? "HKD";
-  const parts = SERVICED_OFFICE_OFFER_PRICE_LINES.flatMap((line) => {
+  const parts = SERVICED_OFFICE_INDEX_PRICE_LINES.flatMap((line) => {
     const amount = row[line.mthField];
     if (!amount?.trim()) return [];
     return [`${line.label} ${formatMoney(amount, currency)}`];
@@ -159,6 +174,7 @@ export function getPremisesRowPriceDisplay(
     currency: string | null;
     product_subtype?: string | null;
     operating_model?: string | null;
+    price_pax_mth_room_internal?: string | null;
     price_pax_mth_room_window?: string | null;
     price_pax_mth_workstation?: string | null;
   },
@@ -172,7 +188,7 @@ export function getPremisesRowPriceDisplay(
       psf: formatPsfValue(row.sale_price_psf, currency),
     };
   }
-  if (isServicedOrSharedOffice(row)) {
+  if (isServicedOrSharedOffice(row) && !row.monthly_rent?.trim()) {
     const offerPrices = formatServicedOfficeOfferPrices(row);
     if (offerPrices) {
       return { price: offerPrices, psf: formatPsfValue(row.rent_psf, currency) };
