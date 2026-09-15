@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import { FormField } from "@/components/admin/AdminFormFields";
 import { useFormEditing } from "@/components/admin/ModuleActionBar";
-import { InlineTextField } from "@/components/admin/inline/InlineFields";
+import { InlineMoneyField } from "@/components/admin/inline/InlineFields";
 import {
   formatOpportunityMoney,
+  formatOpportunityMoneyDraft,
+  formatOpportunityMoneyInput,
   isRealisedWonRevenue,
   opportunityNetProfit,
   parseOpportunityMoney,
@@ -25,12 +27,12 @@ export function OpportunityCommissionSection({
   }>;
 }) {
   const editing = useFormEditing();
-  const [incomeDraft, setIncomeDraft] = useState(opportunity.commission_income ?? "");
-  const [costsDraft, setCostsDraft] = useState(opportunity.related_costs ?? "");
+  const [incomeDraft, setIncomeDraft] = useState(() => formatOpportunityMoneyInput(opportunity.commission_income));
+  const [costsDraft, setCostsDraft] = useState(() => formatOpportunityMoneyInput(opportunity.related_costs));
 
   useEffect(() => {
-    setIncomeDraft(opportunity.commission_income ?? "");
-    setCostsDraft(opportunity.related_costs ?? "");
+    setIncomeDraft(formatOpportunityMoneyInput(opportunity.commission_income));
+    setCostsDraft(formatOpportunityMoneyInput(opportunity.related_costs));
   }, [opportunity.id, opportunity.commission_income, opportunity.related_costs]);
 
   const income = parseOpportunityMoney(editing ? incomeDraft : opportunity.commission_income);
@@ -54,33 +56,31 @@ export function OpportunityCommissionSection({
           <FormField
             label="Commission / Income (HKD)"
             name="commission_income"
-            type="number"
+            type="text"
+            inputMode="decimal"
             value={incomeDraft}
-            onChange={(e) => setIncomeDraft(e.target.value)}
+            onChange={(e) => setIncomeDraft(formatOpportunityMoneyDraft(e.target.value))}
           />
           <FormField
             label="Related Costs (HKD)"
             name="related_costs"
-            type="number"
+            type="text"
+            inputMode="decimal"
             value={costsDraft}
-            onChange={(e) => setCostsDraft(e.target.value)}
+            onChange={(e) => setCostsDraft(formatOpportunityMoneyDraft(e.target.value))}
           />
         </div>
       ) : onSaveField ? (
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <InlineTextField
+          <InlineMoneyField
             label="Commission / Income (HKD)"
-            type="number"
             value={opportunity.commission_income}
             onSave={onSaveField("commission_income")}
-            useGrouping={false}
           />
-          <InlineTextField
+          <InlineMoneyField
             label="Related Costs (HKD)"
-            type="number"
             value={opportunity.related_costs}
             onSave={onSaveField("related_costs")}
-            useGrouping={false}
           />
         </div>
       ) : (

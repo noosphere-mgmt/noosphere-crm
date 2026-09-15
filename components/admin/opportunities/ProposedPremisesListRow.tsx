@@ -5,6 +5,7 @@ import { useEffect, useState, useTransition } from "react";
 import { patchProposedPremisesLineInlineAction } from "@/app/admin/opportunities/workspaceActions";
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
+import { PremisesRelatedCompaniesCell } from "@/components/admin/properties-v1/PremisesRelatedCompaniesCell";
 import {
   formatProposedPremisesLabel,
   formatProposedPremisesListMeta,
@@ -16,6 +17,7 @@ import {
   proposedPremisesListingPrice,
   proposedPremisesListingRemarks,
   proposedPremisesPropertiesHref,
+  proposedPremisesRelatedCompaniesProps,
   proposedPremisesTourDateSource,
 } from "@/lib/proposedPremisesDisplay";
 import { formatThousands, parseNumericInput } from "@/lib/formatCurrency";
@@ -107,7 +109,9 @@ export function ProposedPremisesListRow({
         </Link>
         {meta ? <p className="mt-0.5 text-xs text-slate-500">{meta}</p> : null}
       </td>
-      <td className="px-3 py-1.5 text-slate-700">{row.operator_name ?? row.owner_name ?? "—"}</td>
+      <td className="min-w-0 max-w-[14rem] px-3 py-1.5 text-slate-700">
+        <PremisesRelatedCompaniesCell {...proposedPremisesRelatedCompaniesProps(row)} />
+      </td>
       <td className="whitespace-nowrap px-3 py-1.5">
         <input
           type="text"

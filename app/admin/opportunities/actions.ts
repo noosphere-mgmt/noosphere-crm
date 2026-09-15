@@ -30,6 +30,7 @@ import { OPPORTUNITY_LEAD_TYPES } from "@/lib/lookups";
 import { isClosedOpportunityStatus } from "@/lib/openOpportunityStatus";
 import type { OpportunityLeadType } from "@/lib/types/entities";
 import { normalizeOpportunitySource } from "@/lib/opportunitySourceValues";
+import { parseOpportunityMoney } from "@/lib/opportunityFinancials";
 import {
   isLeaseLikeSalesRole,
   isNonPropertySalesRole,
@@ -133,8 +134,8 @@ async function opportunityInputFromForm(formData: FormData) {
     next_action_date: parseOptionalString(formData.get("next_action_date")),
     requirement_summary: parseOptionalString(formData.get("requirement_summary")),
     remarks: parseOptionalString(formData.get("remarks")),
-    commission_income: parseOptionalDecimal(formData.get("commission_income")),
-    related_costs: parseOptionalDecimal(formData.get("related_costs")),
+    commission_income: parseOpportunityMoney(formData.get("commission_income")),
+    related_costs: parseOpportunityMoney(formData.get("related_costs")),
   };
 }
 

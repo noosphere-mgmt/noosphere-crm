@@ -142,6 +142,7 @@ export function PremisesRelatedCompaniesCell({
   ownerId,
   relationshipLines,
   companies,
+  roles,
 }: {
   operatorName?: string | null;
   landlordName?: string | null;
@@ -154,6 +155,7 @@ export function PremisesRelatedCompaniesCell({
   ownerId?: string | null;
   relationshipLines?: PremisesRelationshipLine[] | null;
   companies?: CompanyV1Option[];
+  roles?: RelatedCompanyRole[];
 }) {
   const source: PremisesRelatedCompaniesSource = {
     operator_name: operatorName,
@@ -167,7 +169,9 @@ export function PremisesRelatedCompaniesCell({
     source_company_id: sourceId,
     relationship_lines: relationshipLines,
   };
-  const lines = listPremisesRelatedCompanyLines(source, companies);
+  const lines = listPremisesRelatedCompanyLines(source, companies)
+    .filter((line) => !roles || roles.includes(line.role))
+    .sort((a, b) => (roles ? roles.indexOf(a.role) - roles.indexOf(b.role) : 0));
 
   if (lines.length === 0) {
     return <span className="text-slate-400">—</span>;

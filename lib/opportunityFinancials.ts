@@ -77,6 +77,34 @@ export function formatOpportunityMoney(value: OpportunityMoneyAmount | string | 
   }).format(n);
 }
 
+/** Editable amount: 1,234.56 — no currency symbol. */
+export function formatOpportunityMoneyInput(value: unknown): string {
+  const n = parseOpportunityMoney(value);
+  if (n == null) return "";
+  return new Intl.NumberFormat("en-HK", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n);
+}
+
+/** Live input draft: grouping plus at most two decimal places. */
+export function formatOpportunityMoneyDraft(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+  if (trimmed === "-" || trimmed === "." || trimmed === "-.") return trimmed === "." || trimmed === "-." ? `${trimmed.startsWith("-") ? "-" : ""}0.` : trimmed;
+  const negative = trimmed.startsWith("-");
+  const body = trimmed.replace(/-/g, "").replace(/[^\d.]/g, "");
+  if (!body) return negative ? "-" : "";
+  const firstDot = body.indexOf(".");
+  const intRaw = ((firstDot === -1 ? body : body.slice(0, firstDot)).replace(/^0+(?=\d)/, "") || "0").slice(0, 12);
+  const keepDot = firstDot !== -1;
+  const decRaw = keepDot ? body.slice(firstDot + 1).replace(/\./g, "").slice(0, 2) : "";
+  const grouped = new Intl.NumberFormat("en-HK", { maximumFractionDigits: 0 }).format(Number.parseInt(intRaw, 10) || 0);
+  const sign = negative ? "-" : "";
+  if (!keepDot) return `${sign}${grouped}`;
+  return `${sign}${grouped}.${decRaw}`;
+}
+
 /** Compact Home/KPI display: HK$950, HK$420K, HK$4.2M. Full amount stays on `formatOpportunityMoney`. */
 export function formatOpportunityMoneyCompact(value: OpportunityMoneyAmount | string | undefined): string {
   const n = parseOpportunityMoney(value);

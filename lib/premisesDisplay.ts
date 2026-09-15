@@ -82,6 +82,7 @@ function trimName(value: string | null | undefined): string | null {
 export type PremisesRelatedCompaniesSource = {
   operator_name?: string | null;
   landlord_name?: string | null;
+  owner_name?: string | null;
   occupant_name?: string | null;
   source_name?: string | null;
   operator_company_id?: string | null;
@@ -138,7 +139,7 @@ export function listPremisesRelatedCompanyLines(
   }
 
   push("operator", row.operator_company_id, row.operator_name);
-  push("landlord", row.landlord_company_id || row.owner_company_id, row.landlord_name);
+  push("landlord", row.landlord_company_id || row.owner_company_id, row.landlord_name ?? row.owner_name);
   push("occupant", row.current_tenant_company_id, row.occupant_name);
   push("source", row.source_company_id, row.source_name);
 

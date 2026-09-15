@@ -3,6 +3,7 @@ import type { ContactInput } from "@/lib/repos/contacts";
 import type { OpportunityInput } from "@/lib/repos/opportunities";
 import { syncContactDerivedNames } from "@/lib/contactName";
 import { parseOpportunityFundingStatus, parseOpportunityStatus } from "@/lib/opportunityFormParsing";
+import { parseOpportunityMoney } from "@/lib/opportunityFinancials";
 import {
   normalizeCategoryPreference,
   normalizeSpaceFormPreference,
@@ -203,7 +204,8 @@ export function applyContactPatch(
 
 function parseOptionalNumber(value: unknown): number | null {
   if (value == null || value === "") return null;
-  const n = typeof value === "number" ? value : Number.parseFloat(String(value));
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  const n = Number.parseFloat(String(value).replace(/,/g, ""));
   return Number.isFinite(n) ? n : null;
 }
 
@@ -339,10 +341,10 @@ export function applyOpportunityPatch(
       input.lost_reason = value ? String(value).trim() || null : null;
       break;
     case "commission_income":
-      input.commission_income = parseOptionalNumber(value);
+      input.commission_income = parseOpportunityMoney(value);
       break;
     case "related_costs":
-      input.related_costs = parseOptionalNumber(value);
+      input.related_costs = parseOpportunityMoney(value);
       break;
     case "property_type":
     case "workspace_type": {

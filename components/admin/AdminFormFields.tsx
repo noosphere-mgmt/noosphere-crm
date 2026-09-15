@@ -28,6 +28,7 @@ export function FormField({
   onChange,
   required,
   type = "text",
+  inputMode,
   disabled,
 }: {
   label: string;
@@ -37,6 +38,7 @@ export function FormField({
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   required?: boolean;
   type?: string;
+  inputMode?: "none" | "text" | "tel" | "url" | "email" | "numeric" | "decimal" | "search";
   disabled?: boolean;
 }) {
   const editing = useFormEditing();
@@ -58,11 +60,12 @@ export function FormField({
       <span className={viewLabelClass}>{label}</span>
       <input
         type={type}
+        inputMode={inputMode ?? (type === "number" ? "decimal" : undefined)}
         step={type === "number" ? "any" : undefined}
         name={name}
         {...(controlled ? { value, onChange } : { defaultValue })}
         required={required}
-        className={inputClass}
+        className={`${inputClass}${inputMode === "decimal" ? " tabular-nums" : ""}`}
       />
     </label>
   );

@@ -10,6 +10,7 @@ import {
   PremisesSectionCard,
   PremisesSnapshotChip,
 } from "@/components/admin/properties-v1/premisesDrawerUi";
+import { PremisesRelatedCompaniesCell } from "@/components/admin/properties-v1/PremisesRelatedCompaniesCell";
 import {
   formatProposedPremisesAskingPrice,
   formatProposedPremisesListingIntent,
@@ -23,6 +24,7 @@ import {
   proposedPremisesEffectiveTourDate,
   proposedPremisesListingRemarks,
   proposedPremisesPriceFieldLabel,
+  proposedPremisesRelatedCompaniesProps,
   proposedPremisesTourDateSource,
 } from "@/lib/proposedPremisesDisplay";
 import { monthlyRentFieldLabel } from "@/lib/premisesCommercial";
@@ -146,7 +148,12 @@ export function ProposedPremisesLinePanel({
                 <dl className={`${grid2} sm:grid-cols-3`}>
                   <PremisesField label="Building" value={line.building_name ?? "—"} />
                   <PremisesField label="Space" value={space} />
-                  <PremisesField label="Operator / owner" value={line.operator_name ?? line.owner_name ?? "—"} />
+                  <div className="sm:col-span-3">
+                    <dt className="text-xs text-slate-500">Operator / Owner / Agent</dt>
+                    <dd className="mt-0.5 text-sm font-medium text-slate-900">
+                      <PremisesRelatedCompaniesCell {...proposedPremisesRelatedCompaniesProps(line)} />
+                    </dd>
+                  </div>
                   <PremisesField
                     label="Area"
                     value={line.gross_area_sqft ? `${line.gross_area_sqft} sq ft` : "—"}

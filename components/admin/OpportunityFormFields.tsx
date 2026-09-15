@@ -26,6 +26,7 @@ import type { Opportunity, OpportunityStatus } from "@/lib/types/entities";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { OPPORTUNITY_SOURCES, OPPORTUNITY_SOURCE_LABELS } from "@/lib/opportunitySourceValues";
 import { CrmStaffSelect } from "@/components/admin/CrmStaffSelect";
+import { formatOpportunityMoneyDraft, formatOpportunityMoneyInput } from "@/lib/opportunityFinancials";
 
 type Props = {
   defaults?: Opportunity;
@@ -34,6 +35,28 @@ type Props = {
 };
 
 const selectReadOnlyClass = "mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800";
+
+function MoneyFormField({
+  label,
+  name,
+  defaultValue,
+}: {
+  label: string;
+  name: string;
+  defaultValue?: string | null;
+}) {
+  const [draft, setDraft] = useState(() => formatOpportunityMoneyInput(defaultValue));
+  return (
+    <FormField
+      label={label}
+      name={name}
+      type="text"
+      inputMode="decimal"
+      value={draft}
+      onChange={(e) => setDraft(formatOpportunityMoneyDraft(e.target.value))}
+    />
+  );
+}
 
 export function OpportunityFormFields({ defaults, companies, contacts }: Props) {
   const editing = useFormEditing();
@@ -186,17 +209,15 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
       <div className="rounded-lg border border-slate-200 bg-white p-4">
         <p className="mb-3 text-sm font-medium text-slate-800">Financials</p>
         <dl className={fieldGrid}>
-          <FormField
+          <MoneyFormField
             label="Commission / Income (HKD)"
             name="commission_income"
-            type="number"
-            defaultValue={defaults?.commission_income ?? ""}
+            defaultValue={defaults?.commission_income}
           />
-          <FormField
+          <MoneyFormField
             label="Related Costs (HKD)"
             name="related_costs"
-            type="number"
-            defaultValue={defaults?.related_costs ?? ""}
+            defaultValue={defaults?.related_costs}
           />
         </dl>
       </div>

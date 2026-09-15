@@ -11,13 +11,16 @@ import { OpportunityMatchBoard } from "@/components/admin/opportunities/Opportun
 import { PremisesSelectorModal } from "@/components/admin/opportunities/PremisesSelectorModal";
 import { ProposedPremisesLinePanel } from "@/components/admin/opportunities/ProposedPremisesLinePanel";
 import { ProposedPremisesListRow } from "@/components/admin/opportunities/ProposedPremisesListRow";
+import { PremisesRelatedCompaniesCell } from "@/components/admin/properties-v1/PremisesRelatedCompaniesCell";
 import {
   formatProposedPremisesArea,
   formatProposedPremisesLabel,
   formatProposedPremisesProposedPrice,
+  formatProposedPremisesRelatedCompanies,
   formatProposedPremisesTourDate,
   proposedPremisesListingRemarks,
   proposedPremisesPropertiesHref,
+  proposedPremisesRelatedCompaniesProps,
 } from "@/lib/proposedPremisesDisplay";
 import {
   normalizeProposedPremisesStatus,
@@ -192,7 +195,7 @@ export function OpportunityProposedPremisesTab({
               <tbody>
                 {[
                   ["Area / capacity", (row: (typeof selectedRows)[number]) => [formatProposedPremisesArea(row), row.workstation_count ? `${row.workstation_count} desks` : row.capacity_pax ? `${row.capacity_pax} pax` : null].filter(Boolean).join(" · ")],
-                  ["Operator / owner", (row: (typeof selectedRows)[number]) => row.operator_name ?? row.owner_name ?? "—"],
+                  ["Operator / Owner / Agent", (row: (typeof selectedRows)[number]) => formatProposedPremisesRelatedCompanies(row)],
                   ["Price", (row: (typeof selectedRows)[number]) => formatProposedPremisesProposedPrice(row)],
                   ["Status", (row: (typeof selectedRows)[number]) => PROPOSED_PREMISES_STATUS_LABELS[normalizeProposedPremisesStatus(row.status)]],
                   ["Preference", (row: (typeof selectedRows)[number]) => row.preference ? `${row.preference[0].toUpperCase()}${row.preference.slice(1)}` : "—"],
@@ -229,6 +232,7 @@ export function OpportunityProposedPremisesTab({
               : row.capacity_pax
                 ? `${row.capacity_pax} pax`
                 : "—";
+            const relatedCompanies = formatProposedPremisesRelatedCompanies(row);
             return (
               <article
                 key={`mobile-${row.id}`}
@@ -255,7 +259,13 @@ export function OpportunityProposedPremisesTab({
                     >
                       {formatProposedPremisesLabel(row)}
                     </Link>
-                    <p className="mt-0.5 truncate text-xs text-slate-500">{row.operator_name ?? row.owner_name ?? "Operator / owner not recorded"}</p>
+                    {relatedCompanies === "—" ? (
+                      <p className="mt-0.5 text-xs text-slate-500">Operator / Owner / Agent not recorded</p>
+                    ) : (
+                      <div className="mt-1">
+                        <PremisesRelatedCompaniesCell {...proposedPremisesRelatedCompaniesProps(row)} />
+                      </div>
+                    )}
                   </div>
                   <div className="flex shrink-0 flex-col gap-1.5">
                     <button
@@ -318,7 +328,7 @@ export function OpportunityProposedPremisesTab({
             <tr>
               <th className="w-10 px-3 py-1.5" />
               <th className="px-3 py-1.5 font-medium">Premises</th>
-              <th className="px-3 py-1.5 font-medium">Operator / Owner</th>
+              <th className="px-3 py-1.5 font-medium">Operator / Owner / Agent</th>
               <th className="px-3 py-1.5 font-medium">Price</th>
               <th className="px-3 py-1.5 font-medium">Tour date</th>
               <th className="px-3 py-1.5 font-medium">Status</th>

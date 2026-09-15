@@ -22,6 +22,11 @@ import {
   telHref,
   whatsAppHrefFromParts,
 } from "@/lib/phoneAreaCodes";
+import {
+  formatOpportunityMoneyDraft,
+  formatOpportunityMoneyInput,
+  parseOpportunityMoney,
+} from "@/lib/opportunityFinancials";
 
 type SaveFn = (value: unknown) => Promise<{ ok: boolean; error?: string }>;
 
@@ -156,6 +161,84 @@ export function InlineTextField({
     >
       {!hideLabel ? <FieldLabel>{label}</FieldLabel> : null}
       <FieldValue>{type === "number" && useGrouping ? formatInlineNumber(value) : displayOrDash(value)}</FieldValue>
+    </div>
+  );
+}
+
+export function InlineMoneyField({
+  label,
+  value,
+  onSave,
+}: {
+  label: string;
+  value: string | null;
+  onSave: SaveFn;
+}) {
+  const { editHighlight, runSave, editing, setEditing, beginEdit } = useGatedInlineEdit();
+  const [draft, setDraft] = useState(() => formatOpportunityMoneyInput(value));
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!editing) setDraft(formatOpportunityMoneyInput(value));
+  }, [value, editing]);
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
+
+  async function commit() {
+    const parsed = parseOpportunityMoney(draft);
+    const next = parsed == null ? null : parsed.toFixed(2);
+    const prev = parseOpportunityMoney(value);
+    const prevText = prev == null ? null : prev.toFixed(2);
+    if (next === prevText) {
+      setDraft(formatOpportunityMoneyInput(value));
+      setEditing(false);
+      return;
+    }
+    const ok = await runSave(() => onSave(next));
+    if (ok) setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <div className={inlineFieldShellClass(editHighlight, true)}>
+        <FieldLabel>{label}</FieldLabel>
+        <input
+          ref={inputRef}
+          type="text"
+          inputMode="decimal"
+          value={draft}
+          className={`${inlineInputClass} tabular-nums`}
+          onChange={(e) => setDraft(formatOpportunityMoneyDraft(e.target.value))}
+          onBlur={() => {
+            setDraft(formatOpportunityMoneyInput(draft) || draft);
+            void commit();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              void commit();
+            }
+            if (e.key === "Escape") {
+              setDraft(formatOpportunityMoneyInput(value));
+              setEditing(false);
+            }
+          }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={inlineFieldShellClass(editHighlight, false)}
+      {...editableFieldProps(editHighlight, beginEdit)}
+    >
+      <FieldLabel>{label}</FieldLabel>
+      <FieldValue>
+        <span className="tabular-nums">{formatOpportunityMoneyInput(value) || "—"}</span>
+      </FieldValue>
     </div>
   );
 }

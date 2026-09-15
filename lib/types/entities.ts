@@ -391,6 +391,13 @@ export type OpportunityProposedPremises = {
   site_tour_activity_date?: string | null;
   operator_name?: string | null;
   owner_name?: string | null;
+  landlord_name?: string | null;
+  source_name?: string | null;
+  operator_company_id?: string | null;
+  owner_company_id?: string | null;
+  landlord_company_id?: string | null;
+  source_company_id?: string | null;
+  relationship_lines?: import("@/lib/v1ListValues").PremisesRelationshipLine[] | null;
   related_company_name?: string | null;
   related_contact_name?: string | null;
   collect_fee_from_company_name?: string | null;

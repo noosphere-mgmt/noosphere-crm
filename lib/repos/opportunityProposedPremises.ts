@@ -1,5 +1,6 @@
 import { query } from "@/lib/db";
 import { sqlJoinV1Company } from "@/lib/import/lookupSql";
+import { normalizePremisesRelationshipLines } from "@/lib/premisesRelationships";
 import type {
   FeeStatus,
   OpportunityProposedPremises,
@@ -49,8 +50,15 @@ const select = `
   p.offer_status,
   COALESCE(p.currency, 'HKD') AS currency,
   p.operating_model,
+  p.operator_company_id,
+  p.owner_company_id,
+  p.landlord_company_id,
+  p.source_company_id,
+  p.relationship_lines,
   op_co.company_name_en AS operator_name,
-  own_co.company_name_en AS owner_name,
+  COALESCE(own_co.company_name_en, land_co.company_name_en) AS owner_name,
+  land_co.company_name_en AS landlord_name,
+  src_co.company_name_en AS source_name,
   tour_act.site_tour_activity_date::text AS site_tour_activity_date,
   rel_co.company_name AS related_company_name,
   rel_ct.contact_name AS related_contact_name,
@@ -63,7 +71,9 @@ const from = `
   JOIN premises_v1 p ON p.premises_id = opp.premises_id
   JOIN properties_v1 pr ON pr.property_id = p.property_id
   LEFT JOIN companies_v1 op_co ON ${sqlJoinV1Company("op_co", "p.operator_company_id")}
-  LEFT JOIN companies_v1 own_co ON ${sqlJoinV1Company("own_co", "COALESCE(p.operator_company_id, p.owner_company_id, p.landlord_company_id)")}
+  LEFT JOIN companies_v1 own_co ON ${sqlJoinV1Company("own_co", "p.owner_company_id")}
+  LEFT JOIN companies_v1 land_co ON ${sqlJoinV1Company("land_co", "p.landlord_company_id")}
+  LEFT JOIN companies_v1 src_co ON ${sqlJoinV1Company("src_co", "p.source_company_id")}
   LEFT JOIN companies rel_co ON rel_co.id = opp.related_company_id
   LEFT JOIN contacts rel_ct ON rel_ct.id = opp.related_contact_id
   LEFT JOIN companies cfc ON cfc.id = opp.collect_fee_from_company_id
@@ -123,10 +133,17 @@ function inputValues(input: ProposedPremisesInput) {
   ];
 }
 
+function decorateProposedPremises(row: OpportunityProposedPremises): OpportunityProposedPremises {
+  return {
+    ...row,
+    relationship_lines: normalizePremisesRelationshipLines(row.relationship_lines),
+  };
+}
+
 export async function listProposedPremisesForOpportunity(
   opportunityId: number,
 ): Promise<OpportunityProposedPremises[]> {
-  return query<OpportunityProposedPremises>(
+  const rows = await query<OpportunityProposedPremises>(
     `SELECT ${select} ${from}
      WHERE opp.opportunity_id = $1
      ORDER BY
@@ -135,6 +152,7 @@ export async function listProposedPremisesForOpportunity(
        opp.id ASC`,
     [opportunityId],
   );
+  return rows.map(decorateProposedPremises);
 }
 
 export async function getProposedPremisesLine(id: number): Promise<OpportunityProposedPremises | null> {
@@ -142,7 +160,7 @@ export async function getProposedPremisesLine(id: number): Promise<OpportunityPr
     `SELECT ${select} ${from} WHERE opp.id = $1`,
     [id],
   );
-  return rows[0] ?? null;
+  return rows[0] ? decorateProposedPremises(rows[0]) : null;
 }
 
 export async function addProposedPremises(
@@ -245,7 +263,7 @@ const opportunityJoin = `
 export async function listProposedPremisesForPremises(
   premisesId: string,
 ): Promise<PremisesProposedOpportunityRow[]> {
-  return query<PremisesProposedOpportunityRow>(
+  const rows = await query<PremisesProposedOpportunityRow>(
     `SELECT ${select},
        o.client_name AS opportunity_client_name,
        o.district_preference AS opportunity_district,
@@ -257,6 +275,7 @@ export async function listProposedPremisesForPremises(
      ORDER BY opp.tour_date DESC NULLS LAST, opp.id DESC`,
     [premisesId],
   );
+  return rows.map((row) => ({ ...row, ...decorateProposedPremises(row) }));
 }
 
 export type PremisesFeeLineRow = {

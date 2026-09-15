@@ -2,7 +2,62 @@ import { formatMoney, formatThousands, parseNumericInput } from "@/lib/formatCur
 import { getPremisesRowPriceDisplay, monthlyRentFieldLabel } from "@/lib/premisesCommercial";
 import { formatListingStatus, normalizeListingIntent } from "@/lib/premisesListing";
 import type { OpportunityProposedPremises } from "@/lib/types/entities";
-import { formatPremisesName } from "@/lib/premisesDisplay";
+import {
+  formatPremisesName,
+  listPremisesRelatedCompanyLines,
+  type RelatedCompanyRole,
+} from "@/lib/premisesDisplay";
+
+export const PROPOSED_PREMISES_RELATED_ROLES: RelatedCompanyRole[] = ["operator", "landlord", "source"];
+
+export type ProposedPremisesRelatedCompaniesRow = Pick<
+  OpportunityProposedPremises,
+  | "operator_name"
+  | "owner_name"
+  | "landlord_name"
+  | "source_name"
+  | "operator_company_id"
+  | "owner_company_id"
+  | "landlord_company_id"
+  | "source_company_id"
+  | "relationship_lines"
+>;
+
+export function proposedPremisesRelatedCompaniesProps(row: ProposedPremisesRelatedCompaniesRow) {
+  return {
+    operatorName: row.operator_name,
+    landlordName: row.landlord_name ?? row.owner_name,
+    sourceName: row.source_name,
+    operatorId: row.operator_company_id,
+    landlordId: row.landlord_company_id || row.owner_company_id,
+    sourceId: row.source_company_id,
+    ownerId: row.owner_company_id,
+    relationshipLines: row.relationship_lines,
+    roles: PROPOSED_PREMISES_RELATED_ROLES,
+  };
+}
+
+export function formatProposedPremisesRelatedCompanies(row: ProposedPremisesRelatedCompaniesRow): string {
+  const text = listPremisesRelatedCompanyLines({
+    operator_name: row.operator_name,
+    landlord_name: row.landlord_name ?? row.owner_name,
+    owner_name: row.owner_name,
+    source_name: row.source_name,
+    operator_company_id: row.operator_company_id,
+    landlord_company_id: row.landlord_company_id || row.owner_company_id,
+    owner_company_id: row.owner_company_id,
+    source_company_id: row.source_company_id,
+    relationship_lines: row.relationship_lines,
+  })
+    .filter((line) => PROPOSED_PREMISES_RELATED_ROLES.includes(line.role))
+    .sort(
+      (a, b) =>
+        PROPOSED_PREMISES_RELATED_ROLES.indexOf(a.role) - PROPOSED_PREMISES_RELATED_ROLES.indexOf(b.role),
+    )
+    .map((line) => line.name)
+    .join(" · ");
+  return text || "—";
+}
 
 function isSaleListing(row: Pick<OpportunityProposedPremises, "inventory_status">): boolean {
   return row.inventory_status?.toLowerCase().includes("sale") ?? false;

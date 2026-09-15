@@ -5,6 +5,7 @@ import { patchOpportunityFieldAction } from "@/app/admin/opportunities/actions";
 import { DrawerOverviewCard } from "@/components/admin/connections/DrawerOverviewCard";
 import {
   InlineCompanyPickerField,
+  InlineMoneyField,
   InlineSelectField,
   InlineTextAreaField,
   InlineTextField,
@@ -208,19 +209,15 @@ export function OpportunityInlineOverview({ data }: { data: OpportunityDetailDat
       </DrawerOverviewCard>
 
       <DrawerOverviewCard title="Financials" columns={3} dense={false} className="w-full">
-        <InlineTextField
+        <InlineMoneyField
           label="Commission / Income (HKD)"
-          type="number"
           value={opportunity.commission_income}
           onSave={save("commission_income")}
-          useGrouping={false}
         />
-        <InlineTextField
+        <InlineMoneyField
           label="Related Costs (HKD)"
-          type="number"
           value={opportunity.related_costs}
           onSave={save("related_costs")}
-          useGrouping={false}
         />
         <div className="min-w-0 py-1">
           <dt className={labelClass}>Net Profit</dt>

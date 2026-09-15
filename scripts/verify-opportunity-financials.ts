@@ -10,6 +10,8 @@ import { query } from "../lib/db";
 import { applyOpportunityPatch, opportunityToInput } from "../lib/inlineRecordMerge";
 import {
   formatOpportunityMoney,
+  formatOpportunityMoneyDraft,
+  formatOpportunityMoneyInput,
   isRealisedWonRevenue,
   opportunityFinancials,
   opportunityNetProfit,
@@ -149,6 +151,11 @@ function testUnitCalculations(): void {
   const formatted = formatOpportunityMoney(1234.5);
   assert.match(formatted, /1,234\.50/);
   assert.ok(formatted.includes("HK$") || formatted.includes("HKD"));
+  assert.equal(formatOpportunityMoneyInput(1234.5), "1,234.50");
+  assert.equal(formatOpportunityMoneyInput("10000"), "10,000.00");
+  assert.equal(formatOpportunityMoneyDraft("1234.5"), "1,234.5");
+  assert.equal(formatOpportunityMoneyDraft("1,234.56"), "1,234.56");
+  assert.equal(parseOpportunityMoney("1,234.56"), 1234.56);
   console.log("OK  unit: parse, net profit, won vs pipeline reporting");
 
   const kpiNow = new Date("2026-09-11T00:00:00");
