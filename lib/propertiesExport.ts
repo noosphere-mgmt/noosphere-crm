@@ -2,12 +2,14 @@ import type { PropertyListRow } from "@/components/admin/properties-v1/Propertie
 import { formatPropertyV1AddressEn } from "@/lib/composeAddress";
 import { buildCsvContent, downloadCsvInBrowser } from "@/lib/csvEncoding";
 import { buildExportFilename } from "@/lib/import/exportFilename";
+import { formatBuildingTypeLabel } from "@/lib/lookups";
 
 export function exportPropertiesV1Csv(rows: PropertyListRow[]): void {
-  const headers = ["ID", "Building", "District", "Title", "Address", "Premises", "Updated"];
+  const headers = ["ID", "Building", "Building Type", "District", "Title", "Address", "Premises", "Updated"];
   const data = rows.map((r) => [
     r.property_id,
     r.bldg_name_en ?? "",
+    formatBuildingTypeLabel(r.building_type),
     r.district_en ?? "",
     r.title ?? "",
     formatPropertyV1AddressEn(r),

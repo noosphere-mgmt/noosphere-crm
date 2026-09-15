@@ -12,6 +12,7 @@ import type { CompanyV1Option } from "@/lib/repos/companiesV1";
 import type { ContactV1Option } from "@/lib/repos/contactsV1";
 import { ListingRecordCount } from "@/components/admin/ListingRecordCount";
 import { MobileCard, MobileCardList, MobileCardMeta } from "@/components/admin/mobile/MobileCard";
+import { formatBuildingTypeLabel } from "@/lib/lookups";
 
 export type BuildingLookupRow = Pick<
   PropertyV1,
@@ -19,6 +20,7 @@ export type BuildingLookupRow = Pick<
   | "business_id"
   | "bldg_name_en"
   | "bldg_name_zh"
+  | "building_type"
   | "district_en"
   | "full_address_en"
   | "full_address_zh"
@@ -48,6 +50,7 @@ function BuildingRow({
   const count = row.inventory_count ?? 0;
   const location = [...new Set([district, row.city_en?.trim()].filter(Boolean))].join(" · ");
   const address = row.full_address_en?.trim() || row.full_address_zh?.trim() || location;
+  const buildingType = formatBuildingTypeLabel(row.building_type);
   const cityTone = row.city_en?.trim()
     ? "border-l-4 border-[#D5DED1] border-l-[#91A88F] bg-white shadow-[0_4px_14px_rgba(105,124,101,0.10)]"
     : "border-l-4 border-l-[#AAB7A7] bg-white";
@@ -60,7 +63,9 @@ function BuildingRow({
           {row.bldg_name_zh?.trim() ? (
             <p className="mt-0.5 break-words text-sm font-medium text-slate-700">{row.bldg_name_zh.trim()}</p>
           ) : null}
-          <MobileCardMeta>{address || "Address not recorded"}</MobileCardMeta>
+          <MobileCardMeta>
+            {[buildingType, address || "Address not recorded"].filter(Boolean).join(" · ")}
+          </MobileCardMeta>
         </div>
         <div className="shrink-0 text-right">
           <span className="inline-flex min-w-12 justify-center rounded-full bg-[#E3EAE0] px-2.5 py-1 text-xs font-bold text-[#506753]">

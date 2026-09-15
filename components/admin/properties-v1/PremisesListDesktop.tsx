@@ -33,6 +33,7 @@ function PremisesSortableHeader({
   activeKey,
   sortDir,
   onSort,
+  className,
   filterValue,
   onFilterChange,
   filterPlaceholder,
@@ -42,6 +43,7 @@ function PremisesSortableHeader({
   activeKey: SortKey;
   sortDir: "asc" | "desc";
   onSort: (key: SortKey) => void;
+  className?: string;
   filterValue?: string;
   onFilterChange?: (value: string) => void;
   filterPlaceholder?: string;
@@ -53,6 +55,7 @@ function PremisesSortableHeader({
       activeKey={activeKey}
       sortDir={sortDir}
       onSort={onSort}
+      className={className}
     >
       {onFilterChange ? (
         <input
@@ -131,7 +134,7 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
             : ADMIN_LIST_SCROLL_VIEWPORT_CLASS
         } rounded-xl border border-[#BFDBFE]/70 bg-white`}
       >
-        <table className="min-w-full text-sm">
+        <table className="w-full table-fixed text-sm">
           <thead className="sticky top-0 z-10 bg-[#F8FBFF] text-left text-slate-600 shadow-[inset_0_-1px_0_0_rgb(191,219,254)]">
             <tr>
               <th className="w-10 px-3 py-1.5 align-top">
@@ -149,6 +152,7 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                 activeKey={sortKey}
                 sortDir={sortDir}
                 onSort={handleSort}
+                className="w-[36%]"
               />
               <PremisesSortableHeader
                 label="Related Companies"
@@ -156,6 +160,7 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                 activeKey={sortKey}
                 sortDir={sortDir}
                 onSort={handleSort}
+                className="w-[16%]"
               />
               <PremisesSortableHeader
                 label="Subtype"
@@ -163,6 +168,7 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                 activeKey={sortKey}
                 sortDir={sortDir}
                 onSort={handleSort}
+                className="w-[11%]"
               />
               <PremisesSortableHeader
                 label="Gross area"
@@ -170,6 +176,7 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                 activeKey={sortKey}
                 sortDir={sortDir}
                 onSort={handleSort}
+                className="w-[7%]"
               />
               <PremisesSortableHeader
                 label={priceHeaders.price}
@@ -177,6 +184,7 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                 activeKey={sortKey}
                 sortDir={sortDir}
                 onSort={handleSort}
+                className="w-[10%]"
               />
               <PremisesSortableHeader
                 label="Updated"
@@ -184,8 +192,9 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                 activeKey={sortKey}
                 sortDir={sortDir}
                 onSort={handleSort}
+                className="w-[8%]"
               />
-              <th className="w-24 px-3 py-1.5 align-top font-medium">Actions</th>
+              <th className="w-[7%] px-3 py-1.5 align-top font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -215,14 +224,14 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                         className="rounded border-slate-300"
                       />
                     </td>
-                    <td className="px-3 py-1.5">
-                      <div className="flex items-start gap-2">
+                    <td className="min-w-0 px-3 py-1.5">
+                      <div className="flex min-w-0 items-start gap-2">
                         <PremisesCentreStatusIcon status={row.centre_status} />
                         <div className="min-w-0">
                           <button
                             type="button"
                             onClick={() => openView(row.premises_id)}
-                            className={`text-left text-sm font-medium underline-offset-2 hover:underline ${theme.link}`}
+                            className={`break-words text-left text-sm font-medium underline-offset-2 hover:underline ${theme.link}`}
                           >
                             {formatPremisesListLabel(row.building_name_en, row.floor, row.unit)}
                           </button>
@@ -238,7 +247,7 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-1.5 text-slate-700">
+                    <td className="min-w-0 overflow-hidden px-3 py-1.5 text-slate-700">
                       <PremisesRelatedCompaniesCell
                         operatorName={row.operator_name}
                         landlordName={row.landlord_name}
@@ -253,11 +262,13 @@ export function PremisesListDesktop(props: PremisesListComponentProps) {
                         companies={companies}
                       />
                     </td>
-                    <td className="px-3 py-1.5 text-slate-700">
+                    <td className="truncate px-3 py-1.5 text-slate-700" title={premisesProductSubtypeLabel(row.product_subtype, row.asset_class)}>
                       {premisesProductSubtypeLabel(row.product_subtype, row.asset_class)}
                     </td>
-                    <td className="px-3 py-1.5 text-slate-700">{formatAreaSqft(row.gross_area_sqft)}</td>
-                    <td className="px-3 py-1.5 text-slate-700">{prices.price}</td>
+                    <td className="px-3 py-1.5 tabular-nums text-slate-700">{formatAreaSqft(row.gross_area_sqft)}</td>
+                    <td className="truncate px-3 py-1.5 tabular-nums text-slate-700" title={prices.price}>
+                      {prices.price}
+                    </td>
                     <td className="whitespace-nowrap px-3 py-1.5 text-slate-700">{formatPremisesUpdatedAt(row.updated_at)}</td>
                     <td className="px-3 py-1.5">
                       <ModuleRowActions

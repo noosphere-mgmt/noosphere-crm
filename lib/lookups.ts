@@ -25,6 +25,11 @@ export function normalizeBuildingType(raw: unknown): string | null {
   return BUILDING_TYPE_ALIASES[s.toLowerCase()] ?? s;
 }
 
+/** Canonical label for lists; empty when unset. */
+export function formatBuildingTypeLabel(value: string | null | undefined): string {
+  return normalizeBuildingType(value) ?? "";
+}
+
 /** Canonical value plus legacy labels so filters still match unmigrated rows. */
 export function buildingTypeMatchValues(raw: unknown): string[] {
   const canonical = normalizeBuildingType(raw);

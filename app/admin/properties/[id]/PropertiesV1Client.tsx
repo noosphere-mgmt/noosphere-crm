@@ -252,16 +252,16 @@ export function PropertiesV1Client({
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
+        <table className="w-full table-fixed text-sm">
           <thead className="bg-slate-50 text-left text-slate-600">
             <tr>
-              <th className="px-3 py-1.5 font-medium">Premises</th>
-              <th className="px-3 py-1.5 font-medium">Related Companies</th>
-              <th className="px-3 py-1.5 font-medium">Gross area</th>
-              <th className="px-3 py-1.5 font-medium">Rent / Sales Price</th>
-              <th className="px-3 py-1.5 font-medium">Fit Out</th>
-              <th className="px-3 py-1.5 font-medium">View</th>
-              <th className="w-16 px-3 py-1.5 font-medium">Actions</th>
+              <th className="w-[36%] px-3 py-1.5 font-medium">Premises</th>
+              <th className="w-[18%] px-3 py-1.5 font-medium">Related Companies</th>
+              <th className="w-[8%] px-3 py-1.5 font-medium">Gross area</th>
+              <th className="w-[12%] px-3 py-1.5 font-medium">Rent / Sale</th>
+              <th className="w-[10%] px-3 py-1.5 font-medium">Fit Out</th>
+              <th className="w-[8%] px-3 py-1.5 font-medium">View</th>
+              <th className="w-[8%] px-3 py-1.5 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -282,13 +282,13 @@ export function PropertiesV1Client({
                 const { price } = getPremisesRowPriceDisplay(p);
                 return (
                   <tr key={p.premises_id} className="border-t border-slate-100">
-                    <td className="px-3 py-1.5">
-                      <div className="flex items-start gap-2">
+                    <td className="min-w-0 px-3 py-1.5">
+                      <div className="flex min-w-0 items-start gap-2">
                         <PremisesCentreStatusIcon status={p.centre_status} />
                         <div className="min-w-0">
                           <button
                             type="button"
-                            className={`text-left ${theme.link}`}
+                            className={`break-words text-left ${theme.link}`}
                             onClick={() => openView(p.premises_id)}
                           >
                             {formatPremisesCompactLabel(p.floor, p.unit)}
@@ -296,7 +296,7 @@ export function PropertiesV1Client({
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-1.5 text-slate-700">
+                    <td className="min-w-0 overflow-hidden px-3 py-1.5 text-slate-700">
                       <PremisesRelatedCompaniesCell
                         operatorName={lookupCompanyV1Name(companies, p.operator_company_id)}
                         landlordName={
@@ -314,8 +314,10 @@ export function PropertiesV1Client({
                         companies={companies}
                       />
                     </td>
-                    <td className="px-3 py-1.5 text-slate-700">{formatAreaSqft(p.gross_area_sqft)}</td>
-                    <td className="px-3 py-1.5 text-slate-700">{price}</td>
+                    <td className="px-3 py-1.5 tabular-nums text-slate-700">{formatAreaSqft(p.gross_area_sqft)}</td>
+                    <td className="truncate px-3 py-1.5 tabular-nums text-slate-700" title={price}>
+                      {price}
+                    </td>
                     <td className="px-3 py-1.5 text-slate-700">{chip(p.fit_out_condition)}</td>
                     <td className="px-3 py-1.5 text-slate-700">{chip(p.view_type)}</td>
                     <td className="px-3 py-1.5">

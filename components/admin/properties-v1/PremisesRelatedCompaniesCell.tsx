@@ -94,20 +94,18 @@ function CompanyLine({
   title: string;
   href: string | null;
 }) {
+  const tooltip = `${value} · ${title}`;
   const body = (
     <>
       <RoleSymbol role={role} />
-      <span className="truncate">{value}</span>
-      {role === "operator" || role === "landlord" || role === "occupant" ? null : (
-        <span className="shrink-0 text-[10px] font-medium text-slate-400">{title}</span>
-      )}
+      <span className="min-w-0 truncate">{value}</span>
       <span className="sr-only">{title}</span>
     </>
   );
-  const className = `flex min-w-0 items-center gap-1 ${ROLE_STYLE[role]}`;
+  const className = `flex min-w-0 max-w-full items-center gap-1 ${ROLE_STYLE[role]}`;
   if (!href) {
     return (
-      <p className={className} title={title}>
+      <p className={className} title={tooltip}>
         {body}
       </p>
     );
@@ -115,7 +113,7 @@ function CompanyLine({
   return (
     <Link
       href={href}
-      title={title}
+      title={tooltip}
       className={`${className} underline-offset-2 hover:underline`}
       onClick={(e) => e.stopPropagation()}
     >

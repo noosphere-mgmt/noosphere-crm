@@ -19,6 +19,7 @@ import { ADMIN_LIST_SCROLL_VIEWPORT_CLASS } from "@/lib/adminListViewport";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import { usePropertiesListSelection } from "@/components/admin/properties-v1/PropertiesListSelectionContext";
 import { formatPropertyV1AddressEn } from "@/lib/composeAddress";
+import { formatBuildingTypeLabel } from "@/lib/lookups";
 import type { PropertyV1, PropertyV1SelectOption } from "@/lib/repos/propertiesV1";
 import type { PremisesV1 } from "@/lib/repos/premisesV1";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
@@ -26,6 +27,7 @@ import type { ContactV1Option } from "@/lib/repos/contactsV1";
 
 type BuildingSortKey =
   | "building"
+  | "building_type"
   | "district"
   | "title"
   | "address"
@@ -38,6 +40,7 @@ export type PropertyListRow = Pick<
   | "business_id"
   | "bldg_name_en"
   | "bldg_name_zh"
+  | "building_type"
   | "district_en"
   | "title"
   | "street_no"
@@ -91,6 +94,12 @@ export function PropertiesFlatListClient({
       switch (sortKey) {
         case "building":
           return compareSortText(a.bldg_name_en, b.bldg_name_en, sortDir);
+        case "building_type":
+          return compareSortText(
+            formatBuildingTypeLabel(a.building_type),
+            formatBuildingTypeLabel(b.building_type),
+            sortDir,
+          );
         case "district":
           return compareSortText(a.district_en, b.district_en, sortDir);
         case "title":
@@ -185,6 +194,7 @@ export function PropertiesFlatListClient({
                 />
               </th>
               <SortableTableHeader label="Building" sortKey="building" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+              <SortableTableHeader label="Building Type" sortKey="building_type" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
               <SortableTableHeader label="District" sortKey="district" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
               <SortableTableHeader label="Title" sortKey="title" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
               <SortableTableHeader label="Address" sortKey="address" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
@@ -196,7 +206,7 @@ export function PropertiesFlatListClient({
           <tbody>
             {sortedRows.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={9} className="px-4 py-8 text-center text-slate-500">
                   {emptyMessage}
                 </td>
               </tr>
@@ -225,6 +235,7 @@ export function PropertiesFlatListClient({
                       />
                     </button>
                   </td>
+                  <td className="px-3 py-1.5 text-slate-700">{formatBuildingTypeLabel(row.building_type) || "—"}</td>
                   <td className="px-3 py-1.5 text-slate-700">{row.district_en ?? "—"}</td>
                   <td className="px-3 py-1.5 text-slate-700">{row.title ?? "—"}</td>
                   <td className="px-3 py-1.5 text-slate-700">{formatPropertyV1AddressEn(row) || "—"}</td>
