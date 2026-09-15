@@ -4,8 +4,10 @@
  */
 import assert from "node:assert/strict";
 import { asArray } from "../lib/asArray";
+import { listPremisesRelatedCompanyLines } from "../lib/premisesDisplay";
 import { countPremisesRelationships, normalizePremisesRelationshipLines } from "../lib/premisesRelationships";
 import { normalizePremisesV1Client } from "../lib/premisesClientData";
+import type { CompanyV1Option } from "../lib/repos/companiesV1";
 import type { PremisesV1 } from "../lib/repos/premisesV1";
 
 function basePremises(overrides: Partial<PremisesV1> = {}): PremisesV1 {
@@ -139,9 +141,52 @@ async function testDatabaseIfAvailable() {
   }
 }
 
+function testRelatedCompanyListingDoesNotRepeatEnglishName() {
+  const companies: CompanyV1Option[] = [
+    {
+      company_id: "COMP-2026-0044",
+      business_id: "C100044",
+      company_name_en: "Midland Realty",
+      legacy_company_id: 44,
+    },
+    {
+      company_id: "COMP-2026-0009",
+      business_id: "C100009",
+      company_name_en: "CFG",
+      legacy_company_id: 9,
+    },
+  ];
+
+  const sourceAgent = listPremisesRelatedCompanyLines(
+    {
+      source_company_id: "C100044",
+      source_name: "Midland Realty",
+      relationship_lines: [{ relationship_type: "Source Agent", company_id: "COMP-2026-0044", contact_id: null, contact_role: null, partnership_mode: null, source_url: null, source_file: null, remarks: null }],
+    },
+    companies,
+  );
+  assert.equal(sourceAgent.length, 1);
+  assert.equal(sourceAgent[0]?.role, "source");
+  assert.equal(sourceAgent[0]?.name, "Midland Realty");
+  assert.equal(sourceAgent[0]?.companyId, "C100044");
+
+  const operator = listPremisesRelatedCompanyLines(
+    {
+      operator_company_id: "C100009",
+      operator_name: "CFG",
+      relationship_lines: [{ relationship_type: "Operator", company_id: "COMP-2026-0009", contact_id: null, contact_role: null, partnership_mode: null, source_url: null, source_file: null, remarks: null }],
+    },
+    companies,
+  );
+  assert.equal(operator.length, 1);
+  assert.equal(operator[0]?.role, "operator");
+  assert.equal(operator[0]?.name, "CFG");
+}
+
 async function main() {
   testAsArray();
   testProductionCrashCase();
+  testRelatedCompanyListingDoesNotRepeatEnglishName();
   await testDatabaseIfAvailable();
   console.log("verify-premises-relationship-lines: passed");
 }

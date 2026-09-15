@@ -1,4 +1,4 @@
-import { lookupCompanyV1Name } from "@/lib/companyV1Display";
+import { lookupCompanyV1BusinessId, lookupCompanyV1Name } from "@/lib/companyV1Display";
 import {
   isCurrentOccupantRelationshipType,
   isOwnerLandlordRelationshipType,
@@ -103,10 +103,6 @@ export function premisesRelatedCompanies(row: PremisesRelatedCompaniesSource): P
   };
 }
 
-function companyKey(id: string | null | undefined, name: string | null | undefined): string {
-  return `${(id ?? "").trim().toLowerCase()}|${(name ?? "").trim().toLowerCase()}`;
-}
-
 /** All related companies for the listing cell, including Source Agent and other roles. */
 export function listPremisesRelatedCompanyLines(
   row: PremisesRelatedCompaniesSource,
@@ -116,13 +112,25 @@ export function listPremisesRelatedCompanyLines(
   const seen = new Set<string>();
 
   const push = (role: RelatedCompanyRole, companyId: string | null | undefined, name: string | null | undefined) => {
-    const id = companyId?.trim() || null;
-    const resolved = trimName(name) ?? (id ? lookupCompanyV1Name(companies, id) : null);
+    const rawId = companyId?.trim() || null;
+    const canonicalId = (rawId ? lookupCompanyV1BusinessId(companies, rawId) : null) || rawId;
+    const resolved =
+      trimName(name) ??
+      (rawId ? lookupCompanyV1Name(companies, rawId) : null) ??
+      (canonicalId ? lookupCompanyV1Name(companies, canonicalId) : null);
     if (!resolved) return;
-    const key = `${role}:${companyKey(id, resolved)}`;
-    if (seen.has(key)) return;
-    seen.add(key);
-    lines.push({ role, name: resolved, companyId: id, title: RELATED_COMPANY_ROLE_TITLE[role] });
+    const identityKeys = [
+      canonicalId ? `${role}:id:${canonicalId.toLowerCase()}` : null,
+      `${role}:name:${resolved.toLowerCase()}`,
+    ].filter((key): key is string => Boolean(key));
+    if (identityKeys.some((key) => seen.has(key))) return;
+    for (const key of identityKeys) seen.add(key);
+    lines.push({
+      role,
+      name: resolved,
+      companyId: canonicalId,
+      title: RELATED_COMPANY_ROLE_TITLE[role],
+    });
   };
 
   for (const line of normalizePremisesRelationshipLines(row.relationship_lines)) {
