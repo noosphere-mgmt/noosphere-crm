@@ -33,6 +33,16 @@ export function proposedPremisesEffectivePrice(
   return proposedPremisesListingPrice(row);
 }
 
+/** Cap for proposed-price inputs: 100,000,000,000 (formatted 15 characters). */
+export const MAX_PROPOSED_PREMISES_PRICE = 100_000_000_000;
+export const PROPOSED_PREMISES_PRICE_INPUT_MAX_LENGTH = 15;
+
+export function clampProposedPremisesPrice(value: number | null): number | null {
+  if (value == null || !Number.isFinite(value)) return null;
+  if (value < 0) return 0;
+  return Math.min(value, MAX_PROPOSED_PREMISES_PRICE);
+}
+
 /** Editable price with thousand separators; empty when unset. */
 export function formatProposedPremisesPriceInput(
   row: Pick<
@@ -40,7 +50,13 @@ export function formatProposedPremisesPriceInput(
     "proposed_price" | "monthly_rent" | "asking_sale_price" | "inventory_status"
   >,
 ): string {
-  return formatThousands(proposedPremisesEffectivePrice(row));
+  return formatThousands(clampProposedPremisesPrice(parseNumericInput(proposedPremisesEffectivePrice(row))));
+}
+
+export function formatProposedPremisesPriceDraft(raw: string): string {
+  const digits = raw.replace(/[^\d]/g, "").slice(0, 12);
+  if (!digits) return "";
+  return formatThousands(clampProposedPremisesPrice(Number.parseInt(digits, 10)));
 }
 
 export function proposedPremisesEffectiveTourDate(

@@ -9,6 +9,7 @@ import {
   FEE_STATUSES,
   OPPORTUNITY_PARTY_ROLES,
 } from "@/lib/opportunityValues";
+import { clampProposedPremisesPrice } from "@/lib/proposedPremisesDisplay";
 import {
   addProposedPremises,
   deleteProposedPremisesLines,
@@ -128,7 +129,7 @@ export async function updateProposedPremisesLineAction(lineId: number, formData:
       "shortlisted",
     ) as ProposedPremisesStatus,
     tour_date: parseOptionalString(formData.get("tour_date")),
-    proposed_price: parseOptionalDecimal(formData.get("proposed_price")),
+    proposed_price: clampProposedPremisesPrice(parseOptionalDecimal(formData.get("proposed_price"))),
     proposed_price_psf: parseOptionalDecimal(formData.get("proposed_price_psf")),
     client_comment: parseOptionalString(formData.get("client_comment")),
     advisor_comment: parseOptionalString(formData.get("advisor_comment")),
@@ -157,7 +158,7 @@ export async function patchProposedPremisesLineInlineAction(
   const patch: Parameters<typeof patchProposedPremisesLine>[1] = {};
 
   if (formData.has("proposed_price")) {
-    patch.proposed_price = parseOptionalDecimal(formData.get("proposed_price"));
+    patch.proposed_price = clampProposedPremisesPrice(parseOptionalDecimal(formData.get("proposed_price")));
   }
   if (formData.has("tour_date")) {
     patch.tour_date = parseOptionalString(formData.get("tour_date"));

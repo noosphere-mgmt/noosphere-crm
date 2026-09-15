@@ -8,7 +8,9 @@ import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import {
   formatProposedPremisesLabel,
   formatProposedPremisesListMeta,
+  formatProposedPremisesPriceDraft,
   formatProposedPremisesPriceInput,
+  PROPOSED_PREMISES_PRICE_INPUT_MAX_LENGTH,
   proposedPremisesEffectivePrice,
   proposedPremisesEffectiveTourDate,
   proposedPremisesListingPrice,
@@ -28,6 +30,8 @@ import type { OpportunityProposedPremises } from "@/lib/types/entities";
 
 const cellInput =
   "w-full min-w-0 rounded border border-slate-200 bg-white px-1.5 py-1 text-sm text-slate-800 focus:border-blue-300 focus:outline-none focus:ring-1 focus:ring-blue-100";
+const priceInput =
+  "box-content w-[16ch] max-w-full rounded border border-slate-200 bg-white px-1.5 py-1 text-sm tabular-nums text-slate-800 focus:border-blue-300 focus:outline-none focus:ring-1 focus:ring-blue-100";
 const cellSelect = `${cellInput} pr-6`;
 
 export function ProposedPremisesListRow({
@@ -104,17 +108,16 @@ export function ProposedPremisesListRow({
         {meta ? <p className="mt-0.5 text-xs text-slate-500">{meta}</p> : null}
       </td>
       <td className="px-3 py-1.5 text-slate-700">{row.operator_name ?? row.owner_name ?? "—"}</td>
-      <td className="px-3 py-1.5">
+      <td className="whitespace-nowrap px-3 py-1.5">
         <input
           type="text"
           inputMode="numeric"
-          className={`${cellInput} tabular-nums`}
+          size={PROPOSED_PREMISES_PRICE_INPUT_MAX_LENGTH}
+          maxLength={PROPOSED_PREMISES_PRICE_INPUT_MAX_LENGTH}
+          className={priceInput}
           value={price}
           placeholder={listingPrice || "—"}
-          onChange={(e) => {
-            const digits = e.target.value.replace(/[^\d]/g, "");
-            setPrice(digits ? formatThousands(digits) : "");
-          }}
+          onChange={(e) => setPrice(formatProposedPremisesPriceDraft(e.target.value))}
           onBlur={(e) => {
             const next = parseNumericInput(e.target.value);
             const stored = parseNumericInput(row.proposed_price) ?? parseNumericInput(proposedPremisesEffectivePrice(row));

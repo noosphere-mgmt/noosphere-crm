@@ -15,15 +15,16 @@ import {
   formatProposedPremisesListingIntent,
   formatProposedPremisesListingStatus,
   formatProposedPremisesProposedPrice,
+  formatProposedPremisesPriceDraft,
   formatProposedPremisesPriceInput,
   formatProposedPremisesSpace,
   formatProposedPremisesTourDate,
+  PROPOSED_PREMISES_PRICE_INPUT_MAX_LENGTH,
   proposedPremisesEffectiveTourDate,
   proposedPremisesListingRemarks,
   proposedPremisesPriceFieldLabel,
   proposedPremisesTourDateSource,
 } from "@/lib/proposedPremisesDisplay";
-import { formatThousands } from "@/lib/formatCurrency";
 import { monthlyRentFieldLabel } from "@/lib/premisesCommercial";
 import {
   FEE_STATUSES,
@@ -166,10 +167,11 @@ export function ProposedPremisesLinePanel({
                       inputMode="numeric"
                       name="proposed_price"
                       defaultValue={effectivePrice}
-                      className={`${selectClass} tabular-nums`}
+                      size={PROPOSED_PREMISES_PRICE_INPUT_MAX_LENGTH}
+                      maxLength={PROPOSED_PREMISES_PRICE_INPUT_MAX_LENGTH}
+                      className="mt-1 box-content w-[16ch] max-w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm tabular-nums"
                       onBlur={(e) => {
-                        const formatted = formatThousands(e.target.value);
-                        e.target.value = formatted;
+                        e.target.value = formatProposedPremisesPriceDraft(e.target.value);
                       }}
                     />
                   </label>
