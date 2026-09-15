@@ -8,6 +8,7 @@ import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import {
   formatProposedPremisesLabel,
   formatProposedPremisesListMeta,
+  formatProposedPremisesPriceInput,
   proposedPremisesEffectivePrice,
   proposedPremisesEffectiveTourDate,
   proposedPremisesListingPrice,
@@ -15,6 +16,7 @@ import {
   proposedPremisesPropertiesHref,
   proposedPremisesTourDateSource,
 } from "@/lib/proposedPremisesDisplay";
+import { formatThousands, parseNumericInput } from "@/lib/formatCurrency";
 import {
   PROPOSED_PREMISES_PREFERENCES,
   PROPOSED_PREMISES_PREFERENCE_LABELS,
@@ -46,15 +48,15 @@ export function ProposedPremisesListRow({
   const theme = moduleAccentClasses("opportunities");
   const [pending, startTransition] = useTransition();
   const [remarks, setRemarks] = useState(() => proposedPremisesListingRemarks(row));
-  const [price, setPrice] = useState(() => proposedPremisesEffectivePrice(row));
+  const [price, setPrice] = useState(() => formatProposedPremisesPriceInput(row));
   const [tourDate, setTourDate] = useState(() => proposedPremisesEffectiveTourDate(row));
-  const listingPrice = proposedPremisesListingPrice(row);
+  const listingPrice = formatThousands(proposedPremisesListingPrice(row));
   const tourSource = proposedPremisesTourDateSource(row);
   const meta = formatProposedPremisesListMeta(row);
   const workflowStatus = normalizeProposedPremisesStatus(row.status);
 
   useEffect(() => {
-    setPrice(proposedPremisesEffectivePrice(row));
+    setPrice(formatProposedPremisesPriceInput(row));
     setTourDate(proposedPremisesEffectiveTourDate(row));
     setRemarks(proposedPremisesListingRemarks(row));
   }, [
@@ -82,7 +84,7 @@ export function ProposedPremisesListRow({
   }
 
   return (
-    <tr className={`border-t border-slate-100 align-top ${pending ? "opacity-60" : ""}`}>
+    <tr className={`border-t border-slate-100 align-top ${pending ? "opacity-60" : ""} ${workflowStatus === "rejected" ? "bg-slate-50" : ""}`}>
       <td className="px-3 py-1.5">
         <input
           type="checkbox"
@@ -104,15 +106,21 @@ export function ProposedPremisesListRow({
       <td className="px-3 py-1.5 text-slate-700">{row.operator_name ?? row.owner_name ?? "—"}</td>
       <td className="px-3 py-1.5">
         <input
-          type="number"
-          className={cellInput}
+          type="text"
+          inputMode="numeric"
+          className={`${cellInput} tabular-nums`}
           value={price}
           placeholder={listingPrice || "—"}
-          onChange={(e) => setPrice(e.target.value)}
+          onChange={(e) => {
+            const digits = e.target.value.replace(/[^\d]/g, "");
+            setPrice(digits ? formatThousands(digits) : "");
+          }}
           onBlur={(e) => {
-            const next = e.target.value.trim();
-            const stored = row.proposed_price?.trim() || listingPrice || "";
-            if (next !== stored) save({ proposed_price: next });
+            const next = parseNumericInput(e.target.value);
+            const stored = parseNumericInput(row.proposed_price) ?? parseNumericInput(proposedPremisesEffectivePrice(row));
+            const nextText = next == null ? "" : String(next);
+            const storedText = stored == null ? "" : String(stored);
+            if (nextText !== storedText) save({ proposed_price: nextText });
           }}
         />
       </td>

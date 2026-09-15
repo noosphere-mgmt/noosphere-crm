@@ -42,6 +42,7 @@ export function OpportunityProposedPremisesTab({
   const [selectedLineId, setSelectedLineId] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [compareOpen, setCompareOpen] = useState(false);
+  const [hideRejected, setHideRejected] = useState(true);
   const [pending, startTransition] = useTransition();
 
   const selectedLine = useMemo(
@@ -56,6 +57,18 @@ export function OpportunityProposedPremisesTab({
   const selectedRows = useMemo(
     () => proposedPremises.filter((row) => selectedIds.has(row.id)),
     [proposedPremises, selectedIds],
+  );
+  const rejectedCount = useMemo(
+    () =>
+      proposedPremises.filter((row) => normalizeProposedPremisesStatus(row.status) === "rejected").length,
+    [proposedPremises],
+  );
+  const visiblePremises = useMemo(
+    () =>
+      hideRejected
+        ? proposedPremises.filter((row) => normalizeProposedPremisesStatus(row.status) !== "rejected")
+        : proposedPremises,
+    [hideRejected, proposedPremises],
   );
 
   function toggleRow(id: number) {
@@ -130,6 +143,15 @@ export function OpportunityProposedPremisesTab({
             Compare ({selectedIds.size}) {compareOpen ? "▴" : "▾"}
           </button>
         ) : null}
+        {rejectedCount > 0 ? (
+          <button
+            type="button"
+            onClick={() => setHideRejected((hidden) => !hidden)}
+            className={theme.secondaryButton}
+          >
+            {hideRejected ? `Show rejected (${rejectedCount})` : "Hide rejected"}
+          </button>
+        ) : null}
         {selectedIds.size > 0 ? (
           <button
             type="button"
@@ -194,8 +216,12 @@ export function OpportunityProposedPremisesTab({
           <div className="rounded-xl border border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-500">
             No proposed premises yet. Use Noosphere AI shortlist or + Add Premises.
           </div>
+        ) : visiblePremises.length === 0 ? (
+          <div className="rounded-xl border border-slate-200 bg-white px-4 py-10 text-center text-sm text-slate-500">
+            Rejected premises are hidden.
+          </div>
         ) : (
-          proposedPremises.map((row) => {
+          visiblePremises.map((row) => {
             const status = normalizeProposedPremisesStatus(row.status);
             const remarks = proposedPremisesListingRemarks(row);
             const capacity = row.workstation_count
@@ -206,7 +232,13 @@ export function OpportunityProposedPremisesTab({
             return (
               <article
                 key={`mobile-${row.id}`}
-                className={`rounded-xl border bg-white p-3 shadow-sm ${selectedIds.has(row.id) ? "border-emerald-300 ring-1 ring-emerald-100" : "border-slate-200"}`}
+                className={`rounded-xl border bg-white p-3 shadow-sm ${
+                  selectedIds.has(row.id)
+                    ? "border-emerald-300 ring-1 ring-emerald-100"
+                    : status === "rejected"
+                      ? "border-slate-200 bg-slate-50"
+                      : "border-slate-200"
+                }`}
               >
                 <div className="flex items-start gap-3">
                   <input
@@ -302,8 +334,14 @@ export function OpportunityProposedPremisesTab({
                   No proposed premises yet. Use Noosphere AI shortlist or + Add Premises.
                 </td>
               </tr>
+            ) : visiblePremises.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="px-4 py-10 text-center text-slate-500">
+                  Rejected premises are hidden.
+                </td>
+              </tr>
             ) : (
-              proposedPremises.map((row) => (
+              visiblePremises.map((row) => (
                 <ProposedPremisesListRow
                   key={row.id}
                   row={row}

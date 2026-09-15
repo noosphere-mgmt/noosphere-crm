@@ -15,14 +15,15 @@ import {
   formatProposedPremisesListingIntent,
   formatProposedPremisesListingStatus,
   formatProposedPremisesProposedPrice,
+  formatProposedPremisesPriceInput,
   formatProposedPremisesSpace,
   formatProposedPremisesTourDate,
-  proposedPremisesEffectivePrice,
   proposedPremisesEffectiveTourDate,
   proposedPremisesListingRemarks,
   proposedPremisesPriceFieldLabel,
   proposedPremisesTourDateSource,
 } from "@/lib/proposedPremisesDisplay";
+import { formatThousands } from "@/lib/formatCurrency";
 import { monthlyRentFieldLabel } from "@/lib/premisesCommercial";
 import {
   FEE_STATUSES,
@@ -63,7 +64,7 @@ export function ProposedPremisesLinePanel({
   const space = formatProposedPremisesSpace(line);
   const askingPrice = formatProposedPremisesAskingPrice(line);
   const proposedPrice = formatProposedPremisesProposedPrice(line);
-  const effectivePrice = proposedPremisesEffectivePrice(line);
+  const effectivePrice = formatProposedPremisesPriceInput(line);
   const tourDate = proposedPremisesEffectiveTourDate(line);
   const tourSource = proposedPremisesTourDateSource(line);
   const remarks = proposedPremisesListingRemarks(line);
@@ -161,10 +162,15 @@ export function ProposedPremisesLinePanel({
                   <label className="block min-w-0 text-sm">
                     <span className="text-xs text-slate-500">{priceLabel}</span>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       name="proposed_price"
                       defaultValue={effectivePrice}
-                      className={selectClass}
+                      className={`${selectClass} tabular-nums`}
+                      onBlur={(e) => {
+                        const formatted = formatThousands(e.target.value);
+                        e.target.value = formatted;
+                      }}
                     />
                   </label>
                   <label className="block min-w-0 text-sm">

@@ -45,7 +45,7 @@ function parseOptionalId(v: FormDataEntryValue | null): number | null {
 }
 
 function parseOptionalDecimal(v: FormDataEntryValue | null): number | null {
-  const s = String(v ?? "").trim();
+  const s = String(v ?? "").trim().replace(/,/g, "");
   if (!s) return null;
   const n = Number.parseFloat(s);
   return Number.isFinite(n) ? n : null;

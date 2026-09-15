@@ -54,11 +54,25 @@ export function formatCurrencyPsf(
   }).format(n);
 }
 
+export function parseNumericInput(value: string | number | null | undefined): number | null {
+  if (value == null || String(value).trim() === "") return null;
+  const n =
+    typeof value === "number"
+      ? value
+      : Number.parseFloat(String(value).replace(/,/g, ""));
+  return Number.isFinite(n) ? n : null;
+}
+
+export function formatThousands(value: string | number | null | undefined): string {
+  const n = parseNumericInput(value);
+  if (n == null) return "";
+  return new Intl.NumberFormat("en-HK", { maximumFractionDigits: 0 }).format(n);
+}
+
 export function formatAreaSqft(value: string | number | null | undefined): string {
   if (value == null || String(value).trim() === "") return "—";
-  const n = typeof value === "number" ? value : Number.parseFloat(String(value).replace(/,/g, ""));
-  if (!Number.isFinite(n)) return String(value);
-  return new Intl.NumberFormat("en-HK", { maximumFractionDigits: 0 }).format(n);
+  const formatted = formatThousands(value);
+  return formatted || String(value);
 }
 
 export const V1_CURRENCIES = ["HKD", "USD", "CNY"] as const;

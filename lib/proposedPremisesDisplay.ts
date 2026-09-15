@@ -1,4 +1,4 @@
-import { formatMoney } from "@/lib/formatCurrency";
+import { formatMoney, formatThousands, parseNumericInput } from "@/lib/formatCurrency";
 import { getPremisesRowPriceDisplay, monthlyRentFieldLabel } from "@/lib/premisesCommercial";
 import { formatListingStatus, normalizeListingIntent } from "@/lib/premisesListing";
 import type { OpportunityProposedPremises } from "@/lib/types/entities";
@@ -9,9 +9,7 @@ function isSaleListing(row: Pick<OpportunityProposedPremises, "inventory_status"
 }
 
 function parsePriceAmount(value: string | null | undefined): number | null {
-  if (!value?.trim()) return null;
-  const n = Number.parseFloat(value);
-  return Number.isFinite(n) ? n : null;
+  return parseNumericInput(value);
 }
 
 /** Listing price from premises when no proposal override is stored. */
@@ -33,6 +31,16 @@ export function proposedPremisesEffectivePrice(
   const proposed = parsePriceAmount(row.proposed_price);
   if (proposed != null && proposed > 0) return String(proposed);
   return proposedPremisesListingPrice(row);
+}
+
+/** Editable price with thousand separators; empty when unset. */
+export function formatProposedPremisesPriceInput(
+  row: Pick<
+    OpportunityProposedPremises,
+    "proposed_price" | "monthly_rent" | "asking_sale_price" | "inventory_status"
+  >,
+): string {
+  return formatThousands(proposedPremisesEffectivePrice(row));
 }
 
 export function proposedPremisesEffectiveTourDate(
