@@ -33,7 +33,7 @@ export function DashboardPipelineBubbleChart({
   pipelineValue: number;
 }) {
   const rootRef = useRef<HTMLElement>(null);
-  const [horizon, setHorizon] = useState<PipelineChartHorizon>("next_6_months");
+  const [horizon, setHorizon] = useState<PipelineChartHorizon>("next_3_months");
   const [hoverId, setHoverId] = useState<number | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const visiblePoints = useMemo(
@@ -44,7 +44,10 @@ export function DashboardPipelineBubbleChart({
     () => visiblePoints.reduce((sum, point) => sum + point.value, 0),
     [visiblePoints],
   );
-  const plot = useMemo(() => layoutPipelineOpportunityChart(visiblePoints), [visiblePoints]);
+  const plot = useMemo(
+    () => layoutPipelineOpportunityChart(visiblePoints, new Date(), horizon === "next_3_months" ? 3 : 6),
+    [horizon, visiblePoints],
+  );
   const hover = plot.bubbles.find((bubble) => bubble.id === hoverId) ?? null;
   const selected = plot.bubbles.find((bubble) => bubble.id === selectedId) ?? null;
 
@@ -76,6 +79,7 @@ export function DashboardPipelineBubbleChart({
           <div className="flex shrink-0 items-center gap-1" role="group" aria-label="Pipeline horizon">
             {(
               [
+                ["next_3_months", "Next 3-Mth"],
                 ["next_6_months", "Next 6-Mth"],
                 ["all", "All"],
               ] as const

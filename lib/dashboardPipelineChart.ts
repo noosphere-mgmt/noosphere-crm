@@ -61,6 +61,7 @@ function bubbleRadius(value: number, maxValue: number): number {
 export function layoutPipelineOpportunityChart(
   points: PipelineOpportunityPoint[],
   now = new Date(),
+  minMonths = 6,
 ): PipelineChartLayout {
   const { width, height } = PIPELINE_CHART_SIZE;
   const pad = PIPELINE_CHART_PAD;
@@ -78,10 +79,10 @@ export function layoutPipelineOpportunityChart(
     : monthStart(now);
   let maxDate = scheduledDates.length
     ? monthStart(new Date(Math.max(...scheduledDates.map((date) => date.getTime()))))
-    : addMonths(monthStart(now), 5);
+    : addMonths(monthStart(now), Math.max(0, minMonths - 1));
   const monthSpan = (maxDate.getFullYear() - minDate.getFullYear()) * 12 + (maxDate.getMonth() - minDate.getMonth());
-  if (scheduledDates.length && monthSpan < 5) {
-    maxDate = addMonths(minDate, 5);
+  if (scheduledDates.length && monthSpan < minMonths - 1) {
+    maxDate = addMonths(minDate, minMonths - 1);
   }
 
   const maxT = addMonths(maxDate, 1).getTime();

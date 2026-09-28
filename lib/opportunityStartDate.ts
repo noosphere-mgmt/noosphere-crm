@@ -106,9 +106,9 @@ export function opportunityMatchesDateWindow(
   return date <= addCalendarMonths(today, months);
 }
 
-export type PipelineChartHorizon = "next_6_months" | "all";
+export type PipelineChartHorizon = "next_3_months" | "next_6_months" | "all";
 
-/** Bubble chart: Next 6-Mth uses Expected Close Date. All keeps the current pipeline. */
+/** Bubble chart horizons use Expected Close Date. All keeps the current pipeline. */
 export function pipelinePointInHorizon(
   point: { expectedClose?: string | null },
   horizon: PipelineChartHorizon,
@@ -117,7 +117,7 @@ export function pipelinePointInHorizon(
   if (horizon === "all") return true;
   return opportunityMatchesDateWindow(
     { expected_close_date: point.expectedClose },
-    "next_6_months",
+    horizon,
     today,
   );
 }

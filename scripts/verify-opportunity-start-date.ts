@@ -89,6 +89,9 @@ function testCalendarWindows(): void {
   const closingSoon = { expectedClose: inTwoMonths };
   const closingLater = { expectedClose: inEightMonths };
   const unscheduled = { expectedClose: null };
+  assert.equal(pipelinePointInHorizon(closingSoon, "next_3_months", TODAY), true);
+  assert.equal(pipelinePointInHorizon(closingLater, "next_3_months", TODAY), false);
+  assert.equal(pipelinePointInHorizon({ expectedClose: inFiveMonths }, "next_3_months", TODAY), false);
   assert.equal(pipelinePointInHorizon(closingSoon, "next_6_months", TODAY), true);
   assert.equal(pipelinePointInHorizon(closingLater, "next_6_months", TODAY), false);
   assert.equal(pipelinePointInHorizon(unscheduled, "next_6_months", TODAY), false);
