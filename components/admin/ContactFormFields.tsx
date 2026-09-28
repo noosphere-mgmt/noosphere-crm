@@ -201,7 +201,7 @@ export function ContactFormFields({ defaults, companies, fixedCompanyId, layout 
       <input type="hidden" name="company_id" value={fixedCompanyRef ?? ""} />
     ) : (
       <OptionTypeahead
-        label="Company"
+        label="Primary Company"
         name="company_id"
         value={companyId}
         onChange={setCompanyId}

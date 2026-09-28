@@ -1,3 +1,4 @@
+import { isActiveOpportunityStart } from "@/lib/opportunityStartDate";
 import type { Opportunity, OpportunityStatus } from "@/lib/types/entities";
 
 export type OpportunityMoneyAmount = number | null;
@@ -146,9 +147,18 @@ export function summariseWonOpportunityFinancials(
 }
 
 export function summariseEstimatedPipelineFinancials(
-  rows: Array<Pick<Opportunity, "status" | "commission_income" | "related_costs" | "net_profit">>,
+  rows: Array<
+    Pick<Opportunity, "status" | "commission_income" | "related_costs" | "net_profit"> & {
+      start_date?: string | null;
+    }
+  >,
 ): OpportunityFinancials & { opp_count: number } {
-  const open = rows.filter((row) => row.status !== "closed_won" && row.status !== "closed_lost");
+  const open = rows.filter(
+    (row) =>
+      row.status !== "closed_won" &&
+      row.status !== "closed_lost" &&
+      isActiveOpportunityStart(row.start_date),
+  );
   let commission_income: OpportunityMoneyAmount = null;
   let related_costs: OpportunityMoneyAmount = null;
   for (const row of open) {

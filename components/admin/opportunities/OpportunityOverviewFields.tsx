@@ -261,6 +261,9 @@ export function OpportunityOverviewFields({
                 contactOptions={contactOptions}
                 defaultContactId={resolveContactSelectValue(contacts, opportunity.primary_contact_id)}
                 fieldName="primary_contact_id"
+                label="Prime Contact"
+                scope="prime"
+                savedCompanyId={savedCompanyId}
                 emptyLabel="— Select contact —"
               />
               <input type="hidden" name="lead_type" value={opportunity.lead_type ?? "direct_client"} />
@@ -327,7 +330,7 @@ export function OpportunityOverviewFields({
                 }
               />
               <ClientValue
-                label="Contact"
+                label="Prime Contact"
                 value={
                   opportunity.primary_contact_name ? (
                     <AdminEntityLink

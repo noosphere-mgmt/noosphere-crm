@@ -7,11 +7,14 @@ import {
   layoutPipelineOpportunityChart,
   PIPELINE_CHART_PAD,
   PIPELINE_CHART_SIZE,
+  PIPELINE_MONTH_LABEL_SIZE,
+  PIPELINE_PERCENT_LABEL_SIZE,
   PIPELINE_UNSCHEDULED_BAND,
 } from "@/lib/dashboardPipelineChart";
 import { PIPELINE_STATUS_COLOURS, type PipelineOpportunityPoint } from "@/lib/dashboardPipelineStages";
 import { formatOpportunityActionDate, OPPORTUNITY_STATUS_LABELS } from "@/lib/lookups";
 import { formatOpportunityMoney, formatOpportunityMoneyCompact } from "@/lib/opportunityFinancials";
+import { pipelinePointInHorizon, type PipelineChartHorizon } from "@/lib/opportunityStartDate";
 
 const { width: WIDTH, height: HEIGHT } = PIPELINE_CHART_SIZE;
 
@@ -30,9 +33,18 @@ export function DashboardPipelineBubbleChart({
   pipelineValue: number;
 }) {
   const rootRef = useRef<HTMLElement>(null);
+  const [horizon, setHorizon] = useState<PipelineChartHorizon>("next_6_months");
   const [hoverId, setHoverId] = useState<number | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const plot = useMemo(() => layoutPipelineOpportunityChart(points), [points]);
+  const visiblePoints = useMemo(
+    () => points.filter((point) => pipelinePointInHorizon(point, horizon)),
+    [horizon, points],
+  );
+  const visibleValue = useMemo(
+    () => visiblePoints.reduce((sum, point) => sum + point.value, 0),
+    [visiblePoints],
+  );
+  const plot = useMemo(() => layoutPipelineOpportunityChart(visiblePoints), [visiblePoints]);
   const hover = plot.bubbles.find((bubble) => bubble.id === hoverId) ?? null;
   const selected = plot.bubbles.find((bubble) => bubble.id === selectedId) ?? null;
 
@@ -58,10 +70,39 @@ export function DashboardPipelineBubbleChart({
       ref={rootRef}
       className="flex h-full min-h-0 min-w-0 max-w-full flex-col rounded-2xl border border-slate-200/80 bg-white px-2.5 py-2 shadow-[0_1px_2px_rgba(15,23,42,0.05)] lg:px-3 lg:py-2.5"
     >
-      <div className="mb-0.5 flex min-w-0 items-baseline justify-between gap-2 lg:mb-1">
-        <h2 className="min-w-0 text-sm font-semibold tracking-tight text-slate-900">Pipeline Analysis</h2>
+      <div className="mb-0.5 flex min-w-0 items-center justify-between gap-2 lg:mb-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <h2 className="min-w-0 text-sm font-semibold tracking-tight text-slate-900">Pipeline Analysis</h2>
+          <div className="flex shrink-0 items-center gap-1" role="group" aria-label="Pipeline horizon">
+            {(
+              [
+                ["next_6_months", "Next 6-Mth"],
+                ["all", "All"],
+              ] as const
+            ).map(([value, label]) => {
+              const selected = horizon === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => {
+                    setHorizon(value);
+                    setSelectedId(null);
+                  }}
+                  className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                    selected ? "bg-violet-700 text-white" : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
         <p className="shrink-0 text-[11px] tabular-nums text-slate-500">
-          {formatCount(points.length)} active · {formatOpportunityMoneyCompact(pipelineValue)}
+          {formatCount(visiblePoints.length)} active ·{" "}
+          {formatOpportunityMoneyCompact(horizon === "all" ? pipelineValue : visibleValue)}
           {plot.unscheduledCount > 0 ? ` · ${formatCount(plot.unscheduledCount)} unscheduled` : ""}
         </p>
       </div>
@@ -79,7 +120,14 @@ export function DashboardPipelineBubbleChart({
           {plot.gridY.map((tick) => (
             <g key={tick.value}>
               <line x1={plot.plotLeft} x2={WIDTH - 12} y1={tick.y} y2={tick.y} stroke="#e2e8f0" strokeWidth="1" />
-              <text x={plot.plotLeft - 6} y={tick.y + 3} textAnchor="end" className="fill-slate-400" fontSize="8">
+              <text
+                x={PIPELINE_CHART_PAD.left - 8}
+                y={tick.y}
+                textAnchor="end"
+                dominantBaseline="middle"
+                className="fill-slate-600"
+                fontSize={PIPELINE_PERCENT_LABEL_SIZE}
+              >
                 {tick.label}
               </text>
             </g>
@@ -94,22 +142,18 @@ export function DashboardPipelineBubbleChart({
               rx="6"
             />
           ) : null}
-          {plot.gridX.map((tick, index) => {
-            const isLast = index === plot.gridX.length - 1;
-            const isFirst = index === 0;
-            return (
+          {plot.gridX.map((tick) => (
               <text
                 key={`${tick.label}-${tick.x}`}
                 x={tick.x}
-                y={HEIGHT - 10}
-                textAnchor={isLast ? "end" : isFirst ? "start" : "middle"}
-                className="fill-slate-400"
-                fontSize="7.5"
+                y={HEIGHT - 14}
+                textAnchor="middle"
+                className="fill-slate-600"
+                fontSize={PIPELINE_MONTH_LABEL_SIZE}
               >
                 {tick.label}
               </text>
-            );
-          })}
+            ))}
           <text
             x="11"
             y={HEIGHT / 2}

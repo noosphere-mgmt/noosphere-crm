@@ -173,7 +173,7 @@ export function OpportunityCommercialHeader({ opportunity }: { opportunity: Oppo
 
   return (
     <section className="w-full min-w-0 sm:w-auto sm:min-w-[28rem]">
-      <dl className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-5">
+      <dl className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-6">
         <Metric
           label="Status"
           tone="border-violet-100 bg-violet-50/70"
@@ -217,6 +217,18 @@ export function OpportunityCommercialHeader({ opportunity }: { opportunity: Oppo
               {probability != null ? `${probability}%` : "—"}
             </span>
           </div>
+        </Metric>
+        <Metric
+          label="Start Date"
+          tone="border-indigo-100 bg-indigo-50/70"
+          hint="When active work begins. Empty means already active."
+        >
+          <QuickTextControl
+            type="date"
+            value={opportunity.start_date?.slice(0, 10) ?? null}
+            displayValue={formatOpportunityActionDate(opportunity.start_date)}
+            onSave={(value) => saveField("start_date", value)}
+          />
         </Metric>
         <Metric
           label="Expected Close"

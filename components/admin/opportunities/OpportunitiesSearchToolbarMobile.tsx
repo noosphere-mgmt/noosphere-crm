@@ -1,23 +1,26 @@
 "use client";
 
 import { OpportunitiesSalesCopilot } from "@/components/admin/opportunities/OpportunitiesSalesCopilot";
-import { OpportunitiesViewScope } from "@/components/admin/opportunities/OpportunitiesViewScope";
+import { OpportunitiesStartWindow } from "@/components/admin/opportunities/OpportunitiesStartWindow";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import type { OpportunitiesListStatusFilter } from "@/lib/opportunitiesList";
+import type { OpportunityPrimaryFilter, OpportunityStartWindow } from "@/lib/opportunityStartDate";
 import type { Opportunity } from "@/lib/types/entities";
 
 export function OpportunitiesSearchToolbarMobile({
   searchQuery,
   onSearchChange,
   listStatusFilter,
-  onListStatusFilterChange,
+  startWindow,
+  onPrimaryFilterChange,
   usingLegacyStatusFilter,
   rows,
 }: {
   searchQuery: string;
   onSearchChange: (value: string) => void;
   listStatusFilter: OpportunitiesListStatusFilter;
-  onListStatusFilterChange: (filter: OpportunitiesListStatusFilter) => void;
+  startWindow: OpportunityStartWindow;
+  onPrimaryFilterChange: (filter: OpportunityPrimaryFilter) => void;
   usingLegacyStatusFilter?: boolean;
   rows: Opportunity[];
 }) {
@@ -38,9 +41,10 @@ export function OpportunitiesSearchToolbarMobile({
         </div>
         <OpportunitiesSalesCopilot rows={rows} />
       </div>
-      <OpportunitiesViewScope
+      <OpportunitiesStartWindow
         listStatusFilter={listStatusFilter}
-        onListStatusFilterChange={onListStatusFilterChange}
+        startWindow={startWindow}
+        onPrimaryFilterChange={onPrimaryFilterChange}
         usingLegacyStatusFilter={usingLegacyStatusFilter}
       />
     </div>

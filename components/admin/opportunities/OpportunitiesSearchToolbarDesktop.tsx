@@ -1,16 +1,18 @@
 "use client";
 
 import { OpportunitiesSalesCopilot } from "@/components/admin/opportunities/OpportunitiesSalesCopilot";
-import { OpportunitiesViewScope } from "@/components/admin/opportunities/OpportunitiesViewScope";
+import { OpportunitiesStartWindow } from "@/components/admin/opportunities/OpportunitiesStartWindow";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
 import type { OpportunitiesListStatusFilter } from "@/lib/opportunitiesList";
+import type { OpportunityPrimaryFilter, OpportunityStartWindow } from "@/lib/opportunityStartDate";
 import type { Opportunity } from "@/lib/types/entities";
 
 export function OpportunitiesSearchToolbarDesktop({
   searchQuery,
   onSearchChange,
   listStatusFilter,
-  onListStatusFilterChange,
+  startWindow,
+  onPrimaryFilterChange,
   usingLegacyStatusFilter,
   dashboardStage,
   rows,
@@ -18,7 +20,8 @@ export function OpportunitiesSearchToolbarDesktop({
   searchQuery: string;
   onSearchChange: (value: string) => void;
   listStatusFilter: OpportunitiesListStatusFilter;
-  onListStatusFilterChange: (filter: OpportunitiesListStatusFilter) => void;
+  startWindow: OpportunityStartWindow;
+  onPrimaryFilterChange: (filter: OpportunityPrimaryFilter) => void;
   usingLegacyStatusFilter?: boolean;
   dashboardStage?: string;
   rows: Opportunity[];
@@ -42,9 +45,10 @@ export function OpportunitiesSearchToolbarDesktop({
       </div>
 
       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
-        <OpportunitiesViewScope
+        <OpportunitiesStartWindow
           listStatusFilter={listStatusFilter}
-          onListStatusFilterChange={onListStatusFilterChange}
+          startWindow={startWindow}
+          onPrimaryFilterChange={onPrimaryFilterChange}
           usingLegacyStatusFilter={usingLegacyStatusFilter}
         />
         {usingLegacyStatusFilter ? (

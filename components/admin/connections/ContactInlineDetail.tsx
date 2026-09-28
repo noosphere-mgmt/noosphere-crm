@@ -91,7 +91,7 @@ export function ContactInlineDetail({
         <InlineTextField label="Last Name" value={contact.last_name} onSave={save("last_name")} />
         <InlineTextField label="Chinese Name" value={contact.chinese_name} onSave={save("chinese_name")} />
         <InlineCompanyPickerField
-          label="Company"
+          label="Primary Company"
           companyId={contact.company_id}
           companyName={contact.company_name ?? null}
           companies={companies}

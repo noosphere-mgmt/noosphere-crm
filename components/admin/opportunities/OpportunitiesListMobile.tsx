@@ -18,6 +18,7 @@ import {
   isRealisedWonRevenue,
   opportunityFinancials,
 } from "@/lib/opportunityFinancials";
+import { isActiveOpportunityStart } from "@/lib/opportunityStartDate";
 import { opportunityStatusChip } from "@/lib/opportunityStatusTheme";
 
 function formatDateLabel(value: string | null | undefined): string {
@@ -48,7 +49,7 @@ export function OpportunitiesListMobile({
       <div className="space-y-2">
         {displayedRows.length === 0 ? (
           <p className="px-4 py-6 text-center text-sm text-slate-500">
-            {rows.length === 0 ? "No opportunities yet." : "No opportunities match your search."}
+            {rows.length === 0 ? "No opportunities yet." : "No opportunities match these filters."}
           </p>
         ) : (
           displayedRows.map((row) => {
@@ -62,6 +63,9 @@ export function OpportunitiesListMobile({
               row.primary_contact_name,
               row.district_preference?.split(/[,;/|]/)[0]?.trim(),
             ].filter(Boolean);
+            if (row.start_date && !isActiveOpportunityStart(row.start_date)) {
+              meta.push(`Starts ${formatDateLabel(row.start_date)}`);
+            }
             const clientZh = opportunityChineseDisplayName(row.client_name, row.linked_company_name_zh);
             return (
               <MobileSwipeToDeleteRow

@@ -1,3 +1,5 @@
+import { applyPrimeContactRule } from "@/lib/opportunityPrimeContact";
+import { contactIsEligiblePrimeContact } from "@/lib/repos/contactRelatedCompanies";
 import { query } from "@/lib/db";
 import { allocateNextBusinessId, ensureLegacyBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
 import { opportunityToInput } from "@/lib/inlineRecordMerge";
@@ -20,7 +22,7 @@ const opportunitySelect = `
   o.id, o.client_name, o.lead_type, COALESCE(o.lead_source, 'direct') AS lead_source, o.company_name,
   o.company_id, o.primary_contact_id, o.referrer_company_id, o.referrer_contact_id,
   o.sales_role, o.lease_term,
-  o.expected_close_date::text, o.lost_reason, o.relationship_owner,
+  o.expected_close_date::text, o.start_date::text, o.lost_reason, o.relationship_owner,
   o.budget_min::text, o.budget_max::text, o.required_area_sqft::text,
   o.required_capacity_pax, o.district_preference, o.workspace_type,
   o.property_type, o.property_category_preference, o.property_type_preference,
@@ -87,6 +89,7 @@ export type OpportunityInput = {
   sales_role?: OpportunitySalesRole;
   lease_term?: string | null;
   expected_close_date?: string | null;
+  start_date?: string | null;
   lost_reason?: string | null;
   relationship_owner?: string | null;
   budget_min?: number | null;
@@ -125,6 +128,7 @@ function opportunityValues(input: OpportunityInput) {
     normalizeOpportunitySalesRole(input.sales_role),
     input.lease_term?.trim() || null,
     input.expected_close_date?.trim() || null,
+    input.start_date?.trim() || null,
     input.lost_reason?.trim() || null,
     input.relationship_owner?.trim() || null,
     input.budget_min ?? null,
@@ -190,19 +194,20 @@ export async function getOpportunity(id: number): Promise<Opportunity | null> {
 }
 
 export async function createOpportunity(input: OpportunityInput): Promise<number> {
+  await applyPrimeContactRule(input, null);
   const businessId = await allocateNextBusinessId("opportunity");
   const rows = await query<{ id: string }>(
     `INSERT INTO opportunities (
        client_name, lead_type, lead_source, company_name, company_id, primary_contact_id, referrer_company_id,
        referrer_contact_id, sales_role, lease_term,
-       expected_close_date, lost_reason, relationship_owner,
+       expected_close_date, start_date, lost_reason, relationship_owner,
        budget_min, budget_max, required_area_sqft,
        required_capacity_pax, district_preference, workspace_type, property_type,
        property_category_preference, property_type_preference,
        target_yield, funding_status, move_in_date,
        status, waiting_for, next_action, next_action_date,
        requirement_summary, remarks, commission_income, related_costs, business_id
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34)
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35)
      RETURNING id::text AS id`,
     [...opportunityValues(input), businessId],
   );
@@ -262,6 +267,10 @@ export async function duplicateOpportunity(id: number): Promise<number> {
   if (!row) throw new Error("Opportunity not found");
 
   const input = opportunityToInput(row);
+  if (input.company_id && input.primary_contact_id) {
+    const eligible = await contactIsEligiblePrimeContact(input.primary_contact_id, input.company_id);
+    if (!eligible) input.primary_contact_id = null;
+  }
   input.client_name = opportunityCopyName(input.client_name);
   if (isClosedOpportunityStatus(input.status ?? "qualifying")) {
     input.status = "qualifying";
@@ -275,19 +284,21 @@ export async function duplicateOpportunity(id: number): Promise<number> {
 
 export async function updateOpportunity(id: number, input: OpportunityInput): Promise<void> {
   const legacyId = Number(id);
+  const existing = await getOpportunity(legacyId);
+  await applyPrimeContactRule(input, existing);
   await query(
     `UPDATE opportunities SET
        client_name = $2, lead_type = $3, lead_source = $4, company_name = $5, company_id = $6, primary_contact_id = $7,
        referrer_company_id = $8, referrer_contact_id = $9, sales_role = $10, lease_term = $11,
-       expected_close_date = $12, lost_reason = $13,
-       relationship_owner = $14, budget_min = $15, budget_max = $16,
-       required_area_sqft = $17, required_capacity_pax = $18, district_preference = $19,
-       workspace_type = $20, property_type = $21,
-       property_category_preference = $22, property_type_preference = $23,
-       target_yield = $24, funding_status = $25,
-       move_in_date = $26, status = $27,
-       waiting_for = $28, next_action = $29, next_action_date = $30,
-       requirement_summary = $31, remarks = $32, commission_income = $33, related_costs = $34
+       expected_close_date = $12, start_date = $13, lost_reason = $14,
+       relationship_owner = $15, budget_min = $16, budget_max = $17,
+       required_area_sqft = $18, required_capacity_pax = $19, district_preference = $20,
+       workspace_type = $21, property_type = $22,
+       property_category_preference = $23, property_type_preference = $24,
+       target_yield = $25, funding_status = $26,
+       move_in_date = $27, status = $28,
+       waiting_for = $29, next_action = $30, next_action_date = $31,
+       requirement_summary = $32, remarks = $33, commission_income = $34, related_costs = $35
      WHERE id = $1`,
     [legacyId, ...opportunityValues(input)],
   );

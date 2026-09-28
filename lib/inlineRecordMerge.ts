@@ -228,6 +228,7 @@ export function opportunityToInput(opportunity: Opportunity): OpportunityInput {
     sales_role: opportunity.sales_role ?? "to_lease",
     lease_term: opportunity.lease_term,
     expected_close_date: opportunity.expected_close_date,
+    start_date: opportunity.start_date,
     lost_reason: opportunity.lost_reason,
     relationship_owner: opportunity.relationship_owner,
     budget_min: parseOptionalNumber(opportunity.budget_min),
@@ -326,6 +327,9 @@ export function applyOpportunityPatch(
       }
       break;
     }
+    case "start_date":
+      input.start_date = value ? String(value).trim() || null : null;
+      break;
     case "move_in_date": {
       const date = value ? String(value).trim() || null : null;
       input.move_in_date = date;

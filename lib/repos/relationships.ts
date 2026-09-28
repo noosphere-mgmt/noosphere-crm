@@ -305,6 +305,28 @@ export type RelationshipSearchHit = {
   subtitle: string | null;
 };
 
+export async function listActiveCompanyContactLinks(): Promise<{ company_id: number; contact_id: number }[]> {
+  const rows = await query<{ company_id: string; contact_id: string }>(
+    `SELECT co.id::text AS company_id, c.id::text AS contact_id
+     FROM relationships r
+     JOIN companies co
+       ON co.id::text = CASE WHEN r.from_entity_type = 'company' THEN r.from_entity_id ELSE r.to_entity_id END
+       OR co.business_id = CASE WHEN r.from_entity_type = 'company' THEN r.from_entity_id ELSE r.to_entity_id END
+     JOIN contacts c
+       ON c.id::text = CASE WHEN r.from_entity_type = 'contact' THEN r.from_entity_id ELSE r.to_entity_id END
+       OR c.business_id = CASE WHEN r.from_entity_type = 'contact' THEN r.from_entity_id ELSE r.to_entity_id END
+     WHERE r.status = 'Active'
+       AND (
+         (r.from_entity_type = 'company' AND r.to_entity_type = 'contact')
+         OR (r.from_entity_type = 'contact' AND r.to_entity_type = 'company')
+       )`,
+  );
+  return rows.map((row) => ({
+    company_id: Number(row.company_id),
+    contact_id: Number(row.contact_id),
+  }));
+}
+
 export async function searchRelationshipEntities(
   partyType: EntityType,
   q: string,

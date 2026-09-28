@@ -35,7 +35,8 @@ export function OpportunitiesMobile({
         searchQuery={state.searchQuery}
         onSearchChange={state.setSearchQuery}
         listStatusFilter={state.listStatusFilter}
-        onListStatusFilterChange={state.setListStatusFilter}
+        startWindow={state.startWindow}
+        onPrimaryFilterChange={state.setPrimaryFilter}
         usingLegacyStatusFilter={state.usingLegacyStatusFilter}
         rows={state.rows}
       />

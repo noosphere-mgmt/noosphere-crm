@@ -99,7 +99,12 @@ function LeaseRequirementInline({
         type="number"
       />
       <InlineDateField
-        label="Est. Start Date"
+        label="Start Date"
+        value={opportunity.start_date ?? null}
+        onSave={save("start_date")}
+      />
+      <InlineDateField
+        label="Expected Close Date"
         value={opportunity.expected_close_date}
         onSave={save("expected_close_date")}
       />
@@ -170,6 +175,16 @@ function BuyRequirementInline({
           onSave={save("funding_status")}
         />
       ) : null}
+      <InlineDateField
+        label="Start Date"
+        value={opportunity.start_date ?? null}
+        onSave={save("start_date")}
+      />
+      <InlineDateField
+        label="Expected Close Date"
+        value={opportunity.expected_close_date}
+        onSave={save("expected_close_date")}
+      />
       <div className="col-span-full">
         <InlineTextAreaField
           label="Requirement Summary"
@@ -193,14 +208,26 @@ export function OpportunityRequirementInlineFields({
 }) {
   if (isNonPropertySalesRole(salesRole)) {
     return (
-      <div className="col-span-full">
-        <InlineTextAreaField
-          label="Requirement Summary"
-          value={opportunity.requirement_summary}
-          onSave={save("requirement_summary")}
-          fullWidth
+      <>
+        <InlineDateField
+          label="Start Date"
+          value={opportunity.start_date ?? null}
+          onSave={save("start_date")}
         />
-      </div>
+        <InlineDateField
+          label="Expected Close Date"
+          value={opportunity.expected_close_date}
+          onSave={save("expected_close_date")}
+        />
+        <div className="col-span-full">
+          <InlineTextAreaField
+            label="Requirement Summary"
+            value={opportunity.requirement_summary}
+            onSave={save("requirement_summary")}
+            fullWidth
+          />
+        </div>
+      </>
     );
   }
 

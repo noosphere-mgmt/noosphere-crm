@@ -1,4 +1,5 @@
 import { parseOpportunityMoney, summariseWonOpportunityFinancials } from "@/lib/opportunityFinancials";
+import { isActiveOpportunityStart } from "@/lib/opportunityStartDate";
 import { OPPORTUNITY_STATUS_LABELS } from "@/lib/lookups";
 import { OPPORTUNITY_STATUS_COLORS } from "@/lib/opportunityStatusTheme";
 import type { Opportunity, OpportunityStatus } from "@/lib/types/entities";
@@ -74,7 +75,12 @@ export type PipelineValueSegment = {
 };
 
 export function pipelineValueSegments(rows: Opportunity[]): PipelineValueSegment[] {
-  const open = rows.filter((row) => row.status !== "closed_won" && row.status !== "closed_lost");
+  const open = rows.filter(
+    (row) =>
+      row.status !== "closed_won" &&
+      row.status !== "closed_lost" &&
+      isActiveOpportunityStart(row.start_date),
+  );
   const total = open.reduce((sum, row) => sum + (parseOpportunityMoney(row.commission_income) ?? 0), 0);
   return PIPELINE_STATUSES.map((status) => {
     const matches = open.filter((row) => row.status === status);

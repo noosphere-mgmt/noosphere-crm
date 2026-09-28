@@ -1,6 +1,7 @@
 import { query } from "@/lib/db";
 import { sqlJoinV1Company } from "@/lib/import/lookupSql";
 import { OPEN_OPPORTUNITY_STATUS_SQL } from "@/lib/openOpportunityStatus";
+import { currentPipelineStartSql, isActiveOpportunityStart } from "@/lib/opportunityStartDate";
 import { getChannelTreeData, type ChannelEntityType } from "@/lib/repos/channelTree";
 
 export type DashboardPipelineKpis = {
@@ -117,6 +118,7 @@ export type DashboardData = {
 };
 
 const OPEN_STATUS_SQL = OPEN_OPPORTUNITY_STATUS_SQL;
+const CURRENT_PIPELINE_START_SQL = currentPipelineStartSql("o");
 
 /** Max rows returned per dashboard table — keeps page load fast at scale. */
 export const DASHBOARD_TABLE_LIMIT = 10;
@@ -160,19 +162,20 @@ async function fetchPipelineKpis(): Promise<DashboardPipelineKpis> {
        WHERE status = 'viewing'
      )
      SELECT
-       COUNT(*) FILTER (WHERE o.status NOT IN ${OPEN_STATUS_SQL})::text AS open_count,
+       COUNT(*) FILTER (WHERE o.status NOT IN ${OPEN_STATUS_SQL} AND ${CURRENT_PIPELINE_START_SQL})::text AS open_count,
        COUNT(*) FILTER (WHERE o.status IN (
          'proposal_reviewing'
-       ))::text AS proposal_sent_count,
+       ) AND ${CURRENT_PIPELINE_START_SQL})::text AS proposal_sent_count,
        (SELECT COUNT(*)::text FROM viewing_opps vo
          JOIN opportunities ox ON ox.id = vo.opportunity_id
-         WHERE ox.status NOT IN ${OPEN_STATUS_SQL}) AS viewing_count,
-       COUNT(*) FILTER (WHERE o.status = 'negotiating')::text AS negotiation_count,
+         WHERE ox.status NOT IN ${OPEN_STATUS_SQL}
+           AND ${currentPipelineStartSql("ox")}) AS viewing_count,
+       COUNT(*) FILTER (WHERE o.status = 'negotiating' AND ${CURRENT_PIPELINE_START_SQL})::text AS negotiation_count,
        COUNT(*) FILTER (
          WHERE o.status = 'closed_won'
            AND date_trunc('month', o.updated_at) = date_trunc('month', CURRENT_DATE)
        )::text AS won_this_month_count,
-       COALESCE(SUM(of.net_fee) FILTER (WHERE o.status NOT IN ${OPEN_STATUS_SQL}), 0)::text AS expected_fee_pipeline
+       COALESCE(SUM(of.net_fee) FILTER (WHERE o.status NOT IN ${OPEN_STATUS_SQL} AND ${CURRENT_PIPELINE_START_SQL}), 0)::text AS expected_fee_pipeline
      FROM opportunities o
      LEFT JOIN opp_fees of ON of.opportunity_id = o.id`,
   );
@@ -220,6 +223,7 @@ async function fetchAttentionRequired(): Promise<DashboardAttentionRow[]> {
      LEFT JOIN last_activity la ON la.opportunity_id = o.id
      LEFT JOIN opp_fees of ON of.opportunity_id = o.id
      WHERE o.status NOT IN ${OPEN_STATUS_SQL}
+       AND ${CURRENT_PIPELINE_START_SQL}
        AND (la.last_date IS NULL OR (CURRENT_DATE - la.last_date::date) >= 14)
      ORDER BY la.last_date ASC NULLS FIRST, o.client_name ASC
      LIMIT ${DASHBOARD_TABLE_LIMIT}`,
@@ -311,6 +315,7 @@ async function fetchRevenuePipeline(): Promise<{
        FROM opportunities o
        LEFT JOIN opportunity_proposed_premises pp ON pp.opportunity_id = o.id
        WHERE o.status NOT IN ('closed_lost')
+         AND (o.status = 'closed_won' OR ${CURRENT_PIPELINE_START_SQL})
        GROUP BY o.id, o.status
      ),
      bucketed AS (
@@ -387,6 +392,7 @@ async function fetchTopReferrers(): Promise<DashboardReferrerPerformanceRow[]> {
        SELECT DISTINCT
          o.id::text AS opportunity_id,
          o.status,
+         o.start_date::text AS start_date,
          CASE WHEN rr.contact_id IS NOT NULL THEN 'contact' ELSE 'company' END AS entity_type,
          COALESCE(rr.contact_id, rr.company_id)::text AS entity_id,
          CASE WHEN rr.contact_id IS NOT NULL THEN COALESCE(ct.business_id, ctv.business_id) ELSE COALESCE(c.business_id, cv.business_id) END AS business_id,
@@ -401,7 +407,7 @@ async function fetchTopReferrers(): Promise<DashboardReferrerPerformanceRow[]> {
     ),
   ]);
 
-  type OpportunityCredit = { id: number; status: string };
+  type OpportunityCredit = { id: number; status: string; start_date: string | null };
   const entities = new Map(tree.entities.map((entity) => [entity.key, entity]));
   const children = new Map<string, string[]>();
   for (const edge of tree.introductions) {
@@ -424,7 +430,11 @@ async function fetchTopReferrers(): Promise<DashboardReferrerPerformanceRow[]> {
       });
     }
     const credits = direct.get(key) ?? new Map<number, OpportunityCredit>();
-    credits.set(opportunityId, { id: opportunityId, status: String(row.status) });
+    credits.set(opportunityId, {
+      id: opportunityId,
+      status: String(row.status),
+      start_date: row.start_date != null ? String(row.start_date).slice(0, 10) : null,
+    });
     direct.set(key, credits);
   }
 
@@ -448,7 +458,11 @@ async function fetchTopReferrers(): Promise<DashboardReferrerPerformanceRow[]> {
         business_id: entity.business_id,
         party_name: entity.name,
         total_opps: opportunities.length,
-        active_opps: opportunities.filter((opportunity) => !["closed_won", "closed_lost"].includes(opportunity.status)).length,
+        active_opps: opportunities.filter(
+          (opportunity) =>
+            !["closed_won", "closed_lost"].includes(opportunity.status) &&
+            isActiveOpportunityStart(opportunity.start_date),
+        ).length,
         won_opps: opportunities.filter((opportunity) => opportunity.status === "closed_won").length,
       };
     })
@@ -464,7 +478,7 @@ async function fetchTopAgents(): Promise<DashboardPartyPerformanceRow[]> {
        op.contact_id::text,
        COALESCE(ct.contact_name, c.company_name) AS party_name,
        COUNT(DISTINCT o.id)::text AS total_opps,
-       COUNT(DISTINCT o.id) FILTER (WHERE o.status NOT IN ${OPEN_STATUS_SQL})::text AS active_opps,
+       COUNT(DISTINCT o.id) FILTER (WHERE o.status NOT IN ${OPEN_STATUS_SQL} AND ${CURRENT_PIPELINE_START_SQL})::text AS active_opps,
        COUNT(DISTINCT o.id) FILTER (WHERE o.status = 'closed_won')::text AS won_opps,
        COALESCE(SUM(op.collect_fee_amount), 0)::text AS expected_fee,
        COALESCE(SUM(
@@ -557,7 +571,7 @@ async function fetchRelationshipNetwork(): Promise<DashboardRelationshipNode[]> 
        c.id::text AS company_id,
        c.company_name,
        (SELECT COUNT(*)::text FROM opportunities o
-         WHERE o.company_id = c.id AND o.status NOT IN ${OPEN_STATUS_SQL}) AS active_opps,
+         WHERE o.company_id = c.id AND o.status NOT IN ${OPEN_STATUS_SQL} AND ${CURRENT_PIPELINE_START_SQL}) AS active_opps,
        (SELECT COUNT(*)::text FROM opportunities o
          WHERE o.company_id = c.id AND o.status = 'closed_won') AS won_opps
      FROM relationships r

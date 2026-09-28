@@ -361,6 +361,18 @@ async function main(): Promise<void> {
   await query(migratePhase83);
   console.log("Phase 83 relationship JSONB arrays normalized.");
 
+  const migratePhase84 = await readSql("schema-migrate-phase84-opportunity-start-date.sql");
+  await query(migratePhase84);
+  console.log("Phase 84 opportunity start date applied.");
+
+  const migratePhase85 = await readSql("schema-migrate-phase85-contact-related-companies.sql");
+  await query(migratePhase85);
+  console.log("Phase 85 contact related companies applied.");
+
+  const migratePhase86 = await readSql("schema-migrate-phase86-company-agencies.sql");
+  await query(migratePhase86);
+  console.log("Phase 86 company agencies applied.");
+
   const crosswalkCompanies = await query<{ n: string }>(
     `SELECT COUNT(*)::text AS n FROM business_id_crosswalk WHERE entity_type = 'company'`,
   );

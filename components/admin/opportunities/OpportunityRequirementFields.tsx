@@ -153,12 +153,6 @@ function LeaseRequirementEdit({
           defaultValue={opportunity.required_capacity_pax?.toString() ?? ""}
         />
         <BudgetFields opportunity={opportunity} />
-        <FormField
-          label="Est. Start Date"
-          name="expected_close_date"
-          type="date"
-          defaultValue={opportunity.expected_close_date?.slice(0, 10) ?? ""}
-        />
         <FormField label="Lease Term" name="lease_term" defaultValue={opportunity.lease_term ?? ""} />
       </dl>
       <TextAreaField
@@ -243,7 +237,6 @@ function LeaseRequirementView({ opportunity }: { opportunity: Opportunity }) {
         />
         <CompactField label="Desks" value={opportunity.required_capacity_pax?.toString() ?? ""} />
         <CompactField label="Budget" value={formatOpportunityBudget(opportunity.budget_max, opportunity.budget_min)} />
-        <CompactField label="Est. Start Date" value={opportunity.expected_close_date?.slice(0, 10) ?? ""} />
         <CompactField label="Lease Term" value={opportunity.lease_term ?? ""} />
       </dl>
       <SummaryBlock label="Requirement Summary" value={opportunity.requirement_summary ?? ""} />

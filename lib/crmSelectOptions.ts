@@ -1,3 +1,4 @@
+import { primeContactContext, type ContactRelatedCompanyRef } from "@/lib/contactRelatedCompanies";
 import type { CompanyV1Option } from "@/lib/repos/companiesV1";
 import type { ContactV1Option } from "@/lib/repos/contactsV1";
 import { isPermanentBusinessId } from "@/lib/businessIds";
@@ -27,6 +28,23 @@ export function formatContactOptionLabel(
   isActive?: boolean | null,
 ): string {
   return `${formatLabelWithBusinessId(name, businessId)}${contactVisibilitySuffix(isActive)}`;
+}
+
+export function formatPrimeContactOptionLabel(
+  contact: {
+    contact_name: string;
+    business_id?: string | null;
+    is_active?: boolean | null;
+    company_id?: number | null;
+    primary_company_name?: string | null;
+    related_companies?: ContactRelatedCompanyRef[] | null;
+  },
+  opportunityCompanyId: number | null | undefined,
+  companies?: { id: number; company_name: string }[],
+): string {
+  const base = formatContactOptionLabel(contact.contact_name, contact.business_id, contact.is_active);
+  const context = primeContactContext(contact, opportunityCompanyId, companies);
+  return context ? `${base} — ${context}` : base;
 }
 
 export function opportunityPrimaryContactLabel(opportunity: {

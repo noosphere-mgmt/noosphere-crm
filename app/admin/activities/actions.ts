@@ -23,6 +23,7 @@ import {
   normalizeOptionalLegacyOpportunityId,
   normalizeOptionalPremisesId,
 } from "@/lib/crmRefResolve";
+import { resolveRecordOwner } from "@/lib/crmOwner";
 import { getDefaultCrmOwnerName } from "@/lib/repos/crmUsers";
 
 function parseOptionalString(v: FormDataEntryValue | null): string | null {
@@ -89,7 +90,7 @@ export type ActivityActionResult =
 export async function createActivityAction(formData: FormData): Promise<ActivityActionResult> {
   try {
     const input = await activityInputFromForm(formData);
-    input.owner ??= await getDefaultCrmOwnerName();
+    input.owner = resolveRecordOwner(input.owner, await getDefaultCrmOwnerName());
     const opportunityRef = parseOptionalString(formData.get("opportunity_id"));
     const premisesIds = parsePremisesIds(formData);
     const isSiteTour = input.activity_type === "Site Tour" || input.activity_type === "Site Inspection";

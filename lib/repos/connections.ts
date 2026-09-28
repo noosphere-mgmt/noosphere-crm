@@ -2,6 +2,7 @@ import { query } from "@/lib/db";
 import { sqlContactDisplayName } from "@/lib/contactName";
 import type { ConnectionCompanyListRow } from "@/lib/connectionsDisplay";
 import { OPEN_OPPORTUNITY_STATUS_SQL } from "@/lib/openOpportunityStatus";
+import { currentPipelineStartSql } from "@/lib/opportunityStartDate";
 
 const companySelect = `
   c.id, c.company_name, c.company_name_zh, c.company_name_cn, c.roles,
@@ -45,6 +46,7 @@ export async function listConnectionCompanies(): Promise<ConnectionCompanyListRo
        LEFT JOIN opportunity_parties op ON op.opportunity_id = o.id AND op.company_id = c.id
        WHERE (o.company_id = c.id OR op.company_id = c.id)
          AND o.status NOT IN ${OPEN_OPPORTUNITY_STATUS_SQL}
+         AND ${currentPipelineStartSql("o")}
      ) opp ON TRUE
      ORDER BY c.company_name ASC, c.id ASC`,
   );

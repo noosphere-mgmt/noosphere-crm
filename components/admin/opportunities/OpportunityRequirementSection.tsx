@@ -196,14 +196,39 @@ export function OpportunityRequirementSection({
   const showCapacity = isLease && (showResidential || showCommercial);
 
   if (profService) {
-    return editing ? (
-      <TextAreaField
-        label="Special Requirement"
-        name="requirement_summary"
-        defaultValue={opportunity.requirement_summary ?? ""}
-      />
-    ) : (
-      <ViewField multiline label="Special Requirement" value={opportunity.requirement_summary ?? ""} />
+    return (
+      <div className="space-y-3">
+        {editing ? (
+          <div className={fieldGrid}>
+            <FormField
+              label="Start Date"
+              name="start_date"
+              type="date"
+              defaultValue={opportunity.start_date?.slice(0, 10) ?? ""}
+            />
+            <FormField
+              label="Expected Close Date"
+              name="expected_close_date"
+              type="date"
+              defaultValue={opportunity.expected_close_date?.slice(0, 10) ?? ""}
+            />
+          </div>
+        ) : (
+          <dl className={fieldGrid}>
+            <ViewField label="Start Date" value={opportunity.start_date?.slice(0, 10) ?? ""} />
+            <ViewField label="Expected Close Date" value={opportunity.expected_close_date?.slice(0, 10) ?? ""} />
+          </dl>
+        )}
+        {editing ? (
+          <TextAreaField
+            label="Special Requirement"
+            name="requirement_summary"
+            defaultValue={opportunity.requirement_summary ?? ""}
+          />
+        ) : (
+          <ViewField multiline label="Special Requirement" value={opportunity.requirement_summary ?? ""} />
+        )}
+      </div>
     );
   }
 
@@ -258,6 +283,18 @@ export function OpportunityRequirementSection({
 
       {editing ? (
         <div className={fieldGrid}>
+          <FormField
+            label="Start Date"
+            name="start_date"
+            type="date"
+            defaultValue={opportunity.start_date?.slice(0, 10) ?? ""}
+          />
+          <FormField
+            label="Expected Close Date"
+            name="expected_close_date"
+            type="date"
+            defaultValue={opportunity.expected_close_date?.slice(0, 10) ?? ""}
+          />
           <FormField
             label="Location"
             name="district_preference"
@@ -328,6 +365,8 @@ export function OpportunityRequirementSection({
         </div>
       ) : (
         <dl className={fieldGrid}>
+          <ViewField label="Start Date" value={opportunity.start_date?.slice(0, 10) ?? ""} />
+          <ViewField label="Expected Close Date" value={opportunity.expected_close_date?.slice(0, 10) ?? ""} />
           <ViewField label="Location" value={opportunity.district_preference ?? ""} />
           <ViewField
             label={isSaleCase ? "Target Area" : "Area"}

@@ -1,9 +1,12 @@
 import { query } from "@/lib/db";
 import { allocateNextBusinessId, ensureLegacyBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
+import { resolveContactName, sqlContactDisplayName, syncContactDerivedNames } from "@/lib/contactName";
+import type { ContactRelatedCompanyRef } from "@/lib/contactRelatedCompanies";
 import { sqlContactListVisible } from "@/lib/contactVisibility";
 import { coerceLegacyContactId } from "@/lib/entityRefGuards";
-import { resolveContactName, sqlContactDisplayName, syncContactDerivedNames } from "@/lib/contactName";
 import { normalizePhoneAreaCode } from "@/lib/phoneAreaCodes";
+import { listActiveCompanyContactLinks } from "@/lib/repos/relationships";
+import { assertPrimaryCompanyNotRelated } from "@/lib/repos/contactRelatedCompanies";
 import type { CompanyRole, Contact } from "@/lib/types/entities";
 
 const contactSelect = `
@@ -128,6 +131,7 @@ export async function listContacts(companyId?: number): Promise<Contact[]> {
        LEFT JOIN opportunity_parties op ON op.opportunity_id = o.id AND op.contact_id = c.id
        WHERE (o.primary_contact_id = c.id OR op.contact_id = c.id)
          AND o.status NOT IN ('closed_won', 'closed_lost')
+         AND (o.start_date IS NULL OR o.start_date <= CURRENT_DATE)
      ) opp ON TRUE
      WHERE ${sqlContactListVisible("c")}
      ORDER BY co.company_name ASC, c.is_primary DESC, ${sqlContactDisplayName("c")} ASC`,
@@ -144,6 +148,10 @@ export type ContactOption = {
   is_active?: boolean;
   business_id?: string | null;
   v1_contact_id?: string | null;
+  primary_company_name?: string | null;
+  /** Other companies whose opportunity contact list includes this person, via an agency link. */
+  linked_company_ids?: number[];
+  related_companies?: ContactRelatedCompanyRef[];
 };
 
 const contactOptionSelect = `
@@ -155,10 +163,20 @@ const contactOptionSelect = `
           c.is_primary,
           c.is_active,
           COALESCE(c.business_id, cm.business_id) AS business_id,
-          cm.contact_id AS v1_contact_id
+          cm.contact_id AS v1_contact_id,
+          co.company_name AS primary_company_name,
+          COALESCE(rel.related_companies, '[]'::jsonb) AS related_companies
    FROM contacts c
    LEFT JOIN companies co ON co.id::text = c.company_id::text
    LEFT JOIN contacts_v1 cm ON cm.legacy_contact_id = c.id
+   LEFT JOIN LATERAL (
+     SELECT jsonb_agg(
+              jsonb_build_object('company_id', r.company_id, 'role', r.relationship_role)
+              ORDER BY r.id
+            ) AS related_companies
+     FROM contact_related_companies r
+     WHERE r.contact_id = c.id
+   ) rel ON TRUE
 `;
 
 async function queryContactOptions(whereSql: string, params: unknown[] = []): Promise<ContactOption[]> {
@@ -168,11 +186,35 @@ async function queryContactOptions(whereSql: string, params: unknown[] = []): Pr
      ORDER BY company_id, c.is_primary DESC, ${sqlContactDisplayName("c")} ASC`,
     params,
   );
-  return rows.map((row) => ({
-    ...row,
-    id: Number(row.id),
-    company_id: row.company_id == null ? null : Number(row.company_id),
-  }));
+  const links = await listActiveCompanyContactLinks().catch(() => []);
+  const companiesByContact = new Map<number, number[]>();
+  for (const link of links) {
+    const current = companiesByContact.get(link.contact_id) ?? [];
+    if (!current.includes(link.company_id)) current.push(link.company_id);
+    companiesByContact.set(link.contact_id, current);
+  }
+  return rows.map((row) => {
+    const companyId = row.company_id == null ? null : Number(row.company_id);
+    const linked = (companiesByContact.get(Number(row.id)) ?? []).filter((id) => id !== companyId);
+    return {
+      ...row,
+      id: Number(row.id),
+      company_id: companyId,
+      linked_company_ids: linked,
+      related_companies: normalizeRelatedCompanies(row.related_companies),
+    };
+  });
+}
+
+function normalizeRelatedCompanies(value: unknown): ContactRelatedCompanyRef[] {
+  const rows = Array.isArray(value) ? value : [];
+  return rows.flatMap((row) => {
+    if (!row || typeof row !== "object") return [];
+    const companyId = Number((row as { company_id?: unknown }).company_id);
+    const role = String((row as { role?: unknown }).role ?? "").trim();
+    if (!Number.isFinite(companyId) || companyId <= 0 || !role) return [];
+    return [{ company_id: companyId, role }];
+  });
 }
 
 function uniqueContactIds(includeIds?: Array<number | string | null | undefined>): number[] {
@@ -288,6 +330,7 @@ async function assignContactBusinessId(contactId: number): Promise<string> {
 }
 
 export async function updateContact(id: number, input: ContactInput): Promise<void> {
+  await assertPrimaryCompanyNotRelated(id, input.company_id);
   if (input.is_primary) {
     await clearPrimaryForCompany(input.company_id, id);
   }

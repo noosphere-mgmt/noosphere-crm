@@ -299,18 +299,61 @@ CREATE TRIGGER trg_contacts_updated_at
 BEFORE UPDATE ON contacts
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
+-- Related companies are external associations. contacts.company_id stays the one primary company.
+CREATE TABLE IF NOT EXISTS contact_related_companies (
+  id                 BIGSERIAL PRIMARY KEY,
+  contact_id         BIGINT NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+  company_id         BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  relationship_role  TEXT NOT NULL,
+  notes              TEXT NULL,
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (contact_id, company_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_contact_related_companies_contact
+  ON contact_related_companies(contact_id);
+CREATE INDEX IF NOT EXISTS idx_contact_related_companies_company
+  ON contact_related_companies(company_id);
+
+DROP TRIGGER IF EXISTS trg_contact_related_companies_updated_at ON contact_related_companies;
+CREATE TRIGGER trg_contact_related_companies_updated_at
+BEFORE UPDATE ON contact_related_companies
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- An agency company can cover many client companies. Agency people stay contacts of the agency.
+CREATE TABLE IF NOT EXISTS company_agencies (
+  id                 BIGSERIAL PRIMARY KEY,
+  company_id         BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  agency_company_id  BIGINT NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (company_id, agency_company_id),
+  CHECK (company_id <> agency_company_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_company_agencies_company ON company_agencies(company_id);
+CREATE INDEX IF NOT EXISTS idx_company_agencies_agency ON company_agencies(agency_company_id);
+
+DROP TRIGGER IF EXISTS trg_company_agencies_updated_at ON company_agencies;
+CREATE TRIGGER trg_company_agencies_updated_at
+BEFORE UPDATE ON company_agencies
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
 -- Opportunity CRM FKs (columns added in phase 6 migration for existing DBs)
 ALTER TABLE opportunities
   ADD COLUMN IF NOT EXISTS company_id BIGINT NULL REFERENCES companies(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS primary_contact_id BIGINT NULL REFERENCES contacts(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS referrer_company_id BIGINT NULL REFERENCES companies(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS expected_close_date DATE NULL,
+  ADD COLUMN IF NOT EXISTS start_date DATE NULL,
   ADD COLUMN IF NOT EXISTS lost_reason TEXT NULL,
   ADD COLUMN IF NOT EXISTS relationship_owner TEXT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_opportunities_company ON opportunities(company_id);
 CREATE INDEX IF NOT EXISTS idx_opportunities_primary_contact ON opportunities(primary_contact_id);
 CREATE INDEX IF NOT EXISTS idx_opportunities_referrer ON opportunities(referrer_company_id);
+CREATE INDEX IF NOT EXISTS idx_opportunities_start_date ON opportunities(start_date);
 
 -- Import Workbench IW-1 (see schema-migrate-phase7-import-iw1.sql for incremental apply)
 CREATE TABLE IF NOT EXISTS import_runs (

@@ -1,8 +1,10 @@
 import type { PipelineOpportunityPoint } from "@/lib/dashboardPipelineStages";
 
 export const PIPELINE_CHART_SIZE = { width: 680, height: 292 };
-export const PIPELINE_CHART_PAD = { left: 38, right: 12, top: 8, bottom: 32 };
+export const PIPELINE_CHART_PAD = { left: 68, right: 12, top: 16, bottom: 44 };
 export const PIPELINE_UNSCHEDULED_BAND = 72;
+export const PIPELINE_MONTH_LABEL_SIZE = 17;
+export const PIPELINE_PERCENT_LABEL_SIZE = 17;
 
 export type LaidPipelineBubble = PipelineOpportunityPoint & {
   x: number;
@@ -39,7 +41,8 @@ function addMonths(date: Date, months: number): Date {
 const MONTH_TICKS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] as const;
 
 function formatMonthTick(date: Date): string {
-  return `${MONTH_TICKS[date.getMonth()]} ${date.getFullYear()}`;
+  const year = String(date.getFullYear()).slice(-2);
+  return `${MONTH_TICKS[date.getMonth()]} ${year}`;
 }
 
 function chanceY(chance: number | null, plotTop: number, plotH: number): number {
@@ -81,9 +84,19 @@ export function layoutPipelineOpportunityChart(
     maxDate = addMonths(minDate, 5);
   }
 
-  const minT = minDate.getTime();
   const maxT = addMonths(maxDate, 1).getTime();
-  const spanT = Math.max(1, maxT - minT);
+  const months: Date[] = [];
+  for (let cursor = new Date(minDate); cursor.getTime() < maxT; cursor = addMonths(cursor, 1)) {
+    months.push(new Date(cursor));
+  }
+  const slotW = plotW / Math.max(1, months.length);
+  const xForDate = (date: Date) => {
+    const index = (date.getFullYear() - minDate.getFullYear()) * 12 + (date.getMonth() - minDate.getMonth());
+    const slot = Math.min(months.length - 1, Math.max(0, index));
+    const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+    const dayFraction = (Math.min(daysInMonth, Math.max(1, date.getDate())) - 0.5) / daysInMonth;
+    return plotLeft + (slot + dayFraction) * slotW;
+  };
   const maxValue = Math.max(0, ...points.map((point) => point.value));
 
   const unscheduledByChance = new Map<number, number>();
@@ -106,7 +119,7 @@ export function layoutPipelineOpportunityChart(
       const key = `${point.expectedClose}-${point.chance ?? "na"}`;
       const index = dateKeyCounts.get(key) ?? 0;
       dateKeyCounts.set(key, index + 1);
-      x = plotLeft + ((closeDate.getTime() - minT) / spanT) * plotW;
+      x = xForDate(closeDate);
       if (index > 0) x += (index % 2 === 0 ? 1 : -1) * Math.min(12, 6 + index * 3);
     }
     return {
@@ -130,13 +143,12 @@ export function layoutPipelineOpportunityChart(
   if (hasUnscheduledBand) {
     gridX.push({ label: "No date", x: unscheduledLabelX });
   }
-  for (let cursor = new Date(minDate); cursor.getTime() < maxT; cursor = addMonths(cursor, 1)) {
-    const midMonth = new Date(cursor.getFullYear(), cursor.getMonth(), 15);
-    const x = plotLeft + ((midMonth.getTime() - minT) / spanT) * plotW;
-    if (hasUnscheduledBand && x < plotLeft + 8) continue;
+  for (let index = 0; index < months.length; index += 1) {
+    const month = months[index];
+    if (!month) continue;
     gridX.push({
-      label: formatMonthTick(cursor),
-      x,
+      label: formatMonthTick(month),
+      x: plotLeft + (index + 0.5) * slotW,
     });
   }
 

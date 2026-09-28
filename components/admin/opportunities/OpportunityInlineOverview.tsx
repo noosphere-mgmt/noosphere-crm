@@ -20,7 +20,7 @@ import {
   closedOutcomeReasonLabel,
   isClosedOpportunityStatus,
 } from "@/lib/openOpportunityStatus";
-import { selectableContactsForCompany } from "@/lib/contactCompanyFilter";
+import { resolveSelectedCompany, selectableContactsForCompany, selectablePrimeContactsForCompany } from "@/lib/contactCompanyFilter";
 import { isSelectableContact } from "@/lib/contactVisibility";
 import { partiesSummaryRows } from "@/lib/opportunityPartiesDisplay";
 import {
@@ -35,7 +35,7 @@ import {
 } from "@/lib/opportunityValues";
 import { OPPORTUNITY_SOURCES, OPPORTUNITY_SOURCE_LABELS } from "@/lib/opportunitySourceValues";
 import type { OpportunityDetailData } from "@/lib/repos/opportunityDetail";
-import { toLegacyContactSelectOptions, resolveCompanySelectValue, resolveContactSelectValue } from "@/lib/crmSelectOptions";
+import { toLegacyContactSelectOptions, resolveCompanySelectValue, resolveContactSelectValue, formatPrimeContactOptionLabel } from "@/lib/crmSelectOptions";
 import type { CompanyOption } from "@/lib/repos/companies";
 
 export function OpportunityInlineOverview({ data }: { data: OpportunityDetailData }) {
@@ -44,13 +44,14 @@ export function OpportunityInlineOverview({ data }: { data: OpportunityDetailDat
 
   const companyContacts = useMemo(() => {
     const companyValue = resolveCompanySelectValue(companies as CompanyOption[], opportunity.company_id);
-    const selectable = selectableContactsForCompany(contacts, companyValue, companies as CompanyOption[]);
+    const selectable = selectablePrimeContactsForCompany(contacts, companyValue, companies as CompanyOption[]);
     const currentValue = resolveContactSelectValue(contacts, opportunity.primary_contact_id);
-    const historical = contacts.find(
-      (contact) =>
-        resolveContactSelectValue(contacts, contact.id) === currentValue && !isSelectableContact(contact),
-    );
-    return historical ? [historical, ...selectable.filter((contact) => contact.id !== historical.id)] : selectable;
+    const current = contacts.find((contact) => resolveContactSelectValue(contacts, contact.id) === currentValue);
+    const withCurrent =
+      current && !selectable.some((contact) => contact.id === current.id)
+        ? [current, ...selectable]
+        : selectable;
+    return withCurrent;
   }, [contacts, companies, opportunity.company_id, opportunity.primary_contact_id]);
 
   const referrerContacts = useMemo(() => {
@@ -65,20 +66,16 @@ export function OpportunityInlineOverview({ data }: { data: OpportunityDetailDat
   }, [contacts, companies, opportunity.referrer_company_id, opportunity.referrer_contact_id]);
 
   const contactOptions = useMemo(() => {
-    const labels = new Map(
-      toLegacyContactSelectOptions(companyContacts).map((option) => [option.value, option.label] as const),
-    );
+    const companyValue = resolveCompanySelectValue(companies as CompanyOption[], opportunity.company_id);
+    const opportunityCompanyId = resolveSelectedCompany(companyValue, companies as CompanyOption[])?.id ?? null;
     return [
       { value: "", label: "—" },
-      ...companyContacts.map((contact) => {
-        const value = resolveContactSelectValue(contacts, contact.id);
-        return {
-          value,
-          label: labels.get(value) ?? contact.contact_name,
-        };
-      }),
+      ...companyContacts.map((contact) => ({
+        value: resolveContactSelectValue(contacts, contact.id),
+        label: formatPrimeContactOptionLabel(contact, opportunityCompanyId, companies as CompanyOption[]),
+      })),
     ];
-  }, [companyContacts, contacts]);
+  }, [companyContacts, companies, contacts, opportunity.company_id]);
 
   const referrerContactOptions = useMemo(() => {
     const labels = new Map(
@@ -120,7 +117,7 @@ export function OpportunityInlineOverview({ data }: { data: OpportunityDetailDat
           onSave={(businessId) => save("company_id")(businessId)}
         />
         <InlineSelectField
-          label="Contact"
+          label="Prime Contact"
           value={resolveContactSelectValue(contacts, opportunity.primary_contact_id)}
           options={contactOptions}
           onSave={(value) => save("primary_contact_id")(value || null)}

@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { contactMatchesSelectSearch, selectableContactsForCompany } from "@/lib/contactCompanyFilter";
+import { contactMatchesSelectSearch, resolveSelectedCompany, selectableContactsForCompany, selectablePrimeContactsForCompany } from "@/lib/contactCompanyFilter";
+import { formatPrimeContactOptionLabel } from "@/lib/crmSelectOptions";
 import { isSelectableContact } from "@/lib/contactVisibility";
 import { resolveContactSelectValue, type LegacyContactSelectOption } from "@/lib/crmSelectOptions";
 import type { CompanyOption } from "@/lib/repos/companies";
@@ -25,6 +26,8 @@ export function OpportunityPartyContactSelect({
   placeholder = "Search contact…",
   emptyLabel = "—",
   label = "Contact",
+  scope = "company",
+  savedCompanyId,
 }: {
   companyId: string;
   contacts: ContactOption[];
@@ -40,27 +43,52 @@ export function OpportunityPartyContactSelect({
   placeholder?: string;
   emptyLabel?: string;
   label?: string;
+  /** Prime contact lists the company's contacts plus contacts related to that company. */
+  scope?: "company" | "prime";
+  /** Company value loaded with the opportunity. Keeps a historical prime contact until the company changes. */
+  savedCompanyId?: string;
 }) {
   const listId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
-  const filtered = useMemo(
-    () => selectableContactsForCompany(contacts, companyId, companies),
-    [contacts, companyId, companies],
+  const opportunityCompany = useMemo(
+    () => (scope === "prime" ? resolveSelectedCompany(companyId, companies) : null),
+    [companyId, companies, scope],
   );
+  const baseFiltered = useMemo(
+    () =>
+      scope === "prime"
+        ? selectablePrimeContactsForCompany(contacts, companyId, companies)
+        : selectableContactsForCompany(contacts, companyId, companies),
+    [contacts, companyId, companies, scope],
+  );
+  const filtered = useMemo(() => {
+    const keepSaved = scope === "prime" && Boolean(savedCompanyId) && companyId === savedCompanyId && Boolean(defaultContactId);
+    if (!keepSaved) return baseFiltered;
+    const saved = contacts.find((contact) => resolveContactSelectValue(contacts, contact.id) === defaultContactId);
+    if (!saved || baseFiltered.some((contact) => contact.id === saved.id)) return baseFiltered;
+    return [saved, ...baseFiltered];
+  }, [baseFiltered, companyId, contacts, defaultContactId, savedCompanyId, scope]);
   const optionByValue = useMemo(() => {
     const map = new Map<string, LegacyContactSelectOption>();
     for (const option of contactOptions) map.set(option.value, option);
     return map;
   }, [contactOptions]);
+  const labelFor = useCallback(
+    (contact: (typeof contacts)[number]) => {
+      const value = resolveContactSelectValue(contacts, contact.id);
+      if (scope !== "prime") return optionByValue.get(value)?.label ?? contact.contact_name;
+      return formatPrimeContactOptionLabel(contact, opportunityCompany?.id ?? null, companies);
+    },
+    [companies, contacts, opportunityCompany?.id, optionByValue, scope],
+  );
   const [contactId, setContactId] = useState(defaultContactId ?? "");
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState(
-    () => contactOptions.find((option) => option.value === defaultContactId)?.label ?? "",
-  );
+  const [query, setQuery] = useState("");
   const [highlight, setHighlight] = useState(0);
   const [menuRect, setMenuRect] = useState<{ top: number; left: number; width: number } | null>(null);
   const contactEnabled = !disabled && (allowWithoutCompany || Boolean(companyId));
-  const selectedLabel = contactId ? optionByValue.get(contactId)?.label ?? "" : "";
+  const selectedContact = contacts.find((contact) => resolveContactSelectValue(contacts, contact.id) === contactId);
+  const selectedLabel = selectedContact ? labelFor(selectedContact) : "";
 
   const syncMenuPosition = useCallback(() => {
     const el = inputRef.current;
@@ -76,9 +104,10 @@ export function OpportunityPartyContactSelect({
   useEffect(() => {
     const nextId = defaultContactId ?? "";
     setContactId(nextId);
-    setQuery(contactOptions.find((option) => option.value === nextId)?.label ?? "");
+    const contact = contacts.find((row) => resolveContactSelectValue(contacts, row.id) === nextId);
+    setQuery(contact ? labelFor(contact) : "");
     setOpen(false);
-  }, [instanceKey, defaultContactId]);
+  }, [instanceKey, defaultContactId, contacts, labelFor]);
 
   useEffect(() => {
     setContactId((current) => {
@@ -105,9 +134,13 @@ export function OpportunityPartyContactSelect({
     const term = query.trim() === selectedLabel.trim() ? "" : query;
     return filtered.filter((contact) => {
       const value = resolveContactSelectValue(contacts, contact.id);
-      return contactMatchesSelectSearch(contact, term, optionByValue.get(value));
+      const label = labelFor(contact);
+      return (
+        contactMatchesSelectSearch(contact, term, optionByValue.get(value)) ||
+        label.toLocaleLowerCase().includes(term.trim().toLocaleLowerCase())
+      );
     });
-  }, [contacts, filtered, optionByValue, query, selectedLabel]);
+  }, [contacts, filtered, labelFor, optionByValue, query, selectedLabel]);
 
   useEffect(() => {
     const selectedIndex = visible.findIndex(
@@ -193,7 +226,7 @@ export function OpportunityPartyContactSelect({
             ) : (
               visible.map((contact, index) => {
                 const value = resolveContactSelectValue(contacts, contact.id);
-                const label = optionByValue.get(value)?.label ?? contact.contact_name;
+                const label = labelFor(contact);
                 const optionIndex = index + 1;
                 return (
                   <li key={contact.id}>

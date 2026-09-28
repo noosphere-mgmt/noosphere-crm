@@ -37,7 +37,8 @@ export function OpportunitiesDesktop({
         searchQuery={state.searchQuery}
         onSearchChange={state.setSearchQuery}
         listStatusFilter={state.listStatusFilter}
-        onListStatusFilterChange={state.setListStatusFilter}
+        startWindow={state.startWindow}
+        onPrimaryFilterChange={state.setPrimaryFilter}
         usingLegacyStatusFilter={state.usingLegacyStatusFilter}
         dashboardStage={state.dashboardStage}
         rows={state.rows}

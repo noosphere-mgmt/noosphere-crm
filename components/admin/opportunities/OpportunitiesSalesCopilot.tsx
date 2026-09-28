@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { isActiveOpportunityStart } from "@/lib/opportunityStartDate";
 import { opportunityWorkspaceHref } from "@/lib/opportunityWorkspaceNav";
 import type { Opportunity } from "@/lib/types/entities";
 
@@ -22,6 +23,7 @@ function daysSince(value: string | null | undefined, now: number): number | null
 
 function insightFor(row: Opportunity, now: number): Insight | null {
   if (row.status === "closed_won" || row.status === "closed_lost") return null;
+  if (!isActiveOpportunityStart(row.start_date)) return null;
   if (!row.activity_count || !row.last_activity_date) {
     return { row, score: 100, label: "No footprint yet", detail: "No call, meeting, introduction, viewing or proposal has been recorded." };
   }

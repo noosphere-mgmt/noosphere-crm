@@ -54,6 +54,7 @@ const FIELD_KEYS = [
   "required_capacity_pax",
   "budget_max",
   "budget_min",
+  "start_date",
   "expected_close_date",
   "move_in_date",
   "lease_term",
@@ -104,6 +105,7 @@ const SELECT = `
   o.required_capacity_pax,
   o.budget_max::text AS budget_max,
   o.budget_min::text AS budget_min,
+  o.start_date::text AS start_date,
   o.expected_close_date::text AS expected_close_date,
   o.move_in_date::text AS move_in_date,
   o.lease_term,
@@ -156,6 +158,7 @@ function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
   if ("budget" in values) p.budget_max = values.budget;
   if ("budget_min" in values) p.budget_min = values.budget_min;
   if ("budget_max" in values) p.budget_max = values.budget_max;
+  if ("start_date" in values) p.start_date = values.start_date;
   if ("est_start_date" in values) p.expected_close_date = values.est_start_date;
   if ("expected_close_date" in values) p.expected_close_date = values.expected_close_date;
   if ("internal_remarks" in values) p.remarks = values.internal_remarks;
@@ -221,6 +224,7 @@ const FIELD_LABELS: Partial<Record<(typeof FIELD_KEYS)[number], string>> = {
   required_capacity_pax: "Capacity",
   budget_max: "Budget (HKD)",
   budget_min: "Budget Min (HKD)",
+  start_date: "Start Date",
   expected_close_date: "Expected Close",
   move_in_date: "Move-In Date",
   lease_term: "Lease Term",
@@ -430,10 +434,10 @@ export const opportunitiesImportDefinition: ImportObjectDefinition = {
          company_id, primary_contact_id, lead_source, district_preference,
          property_category_preference, property_type_preference,
          workspace_type, required_capacity_pax, required_area_sqft, budget_max,
-         target_yield, funding_status, expected_close_date, move_in_date,
+         target_yield, funding_status, start_date, expected_close_date, move_in_date,
          lease_term, requirement_summary, remarks, external_ref, import_run_id,
          business_id
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25)
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26)
        RETURNING id::text`,
       [
         v.client_name ?? values.opportunity_name ?? "",
@@ -453,6 +457,7 @@ export const opportunitiesImportDefinition: ImportObjectDefinition = {
         v.budget_max ?? null,
         v.target_yield ?? null,
         v.funding_status ?? null,
+        v.start_date ?? null,
         v.expected_close_date ?? null,
         v.move_in_date ?? null,
         v.lease_term ?? null,

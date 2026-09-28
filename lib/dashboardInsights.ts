@@ -1,4 +1,5 @@
 import { formatOpportunityActionDate, OPPORTUNITY_STATUS_LABELS } from "@/lib/lookups";
+import { isActiveOpportunityStart } from "@/lib/opportunityStartDate";
 import { formatOpportunityMoneyCompact, parseOpportunityMoney } from "@/lib/opportunityFinancials";
 import type { DashboardReferrerPerformanceRow } from "@/lib/repos/dashboard";
 import type { Opportunity } from "@/lib/types/entities";
@@ -28,6 +29,7 @@ type InsightDeal = Pick<
   | "created_at"
   | "linked_company_name"
   | "company_name"
+  | "start_date"
 >;
 
 function daysBetween(dateText: string | null | undefined, now: Date): number | null {
@@ -55,7 +57,11 @@ function daysUntil(dateText: string | null | undefined, now: Date): number | nul
 }
 
 function isOpen(deal: InsightDeal): boolean {
-  return deal.status !== "closed_won" && deal.status !== "closed_lost";
+  return (
+    deal.status !== "closed_won" &&
+    deal.status !== "closed_lost" &&
+    isActiveOpportunityStart(deal.start_date)
+  );
 }
 
 function insight(kind: DashboardInsightKind, label: string, text: string): DashboardInsight {

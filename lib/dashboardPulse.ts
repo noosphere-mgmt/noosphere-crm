@@ -1,3 +1,4 @@
+import { isActiveOpportunityStart } from "@/lib/opportunityStartDate";
 import type { Opportunity } from "@/lib/types/entities";
 import {
   parseOpportunityMoney,
@@ -48,6 +49,7 @@ export function buildDashboardPulseMetrics(
       | "net_profit"
       | "id"
       | "last_activity_date"
+      | "start_date"
     >
   >,
   now = new Date(),
@@ -59,7 +61,12 @@ export function buildDashboardPulseMetrics(
   ).length;
   const won = deals.filter((deal) => deal.status === "closed_won");
   const lost = deals.filter((deal) => deal.status === "closed_lost");
-  const open = deals.filter((deal) => deal.status !== "closed_won" && deal.status !== "closed_lost");
+  const open = deals.filter(
+    (deal) =>
+      deal.status !== "closed_won" &&
+      deal.status !== "closed_lost" &&
+      isActiveOpportunityStart(deal.start_date),
+  );
   const closed = won.length + lost.length;
   const wonFinancials = summariseWonOpportunityFinancials(deals);
   const avgWon =

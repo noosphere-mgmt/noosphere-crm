@@ -76,7 +76,11 @@ export function CompanyContactsTabClient({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900">Contacts</h3>
+          <p className="mt-0.5 text-xs text-slate-500">People whose primary company is {companyName}.</p>
+        </div>
         <button type="button" onClick={openDrawer} className={theme.primaryButton}>
           New contact
         </button>

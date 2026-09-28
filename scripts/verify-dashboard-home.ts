@@ -140,7 +140,7 @@ function testPerOpportunityChartUsesDateAndChance(): void {
   assert.ok(scheduled.y < unscheduled.y);
   assert.equal(scheduled.chance, 25);
   assert.equal(unscheduled.chance, 10);
-  assert.ok(layout.gridX.some((tick) => /Sep 2026/i.test(tick.label)));
+  assert.ok(layout.gridX.some((tick) => /Sep 26/i.test(tick.label)));
   console.log("OK  bubble chart uses expected close date, existing chance, and value size");
 }
 
@@ -232,6 +232,29 @@ function testDashboardInsights(): void {
   console.log("OK  dashboard insights are rule-based and not KPI repeats");
 }
 
+function testFutureStartIsOutsideCurrentPipeline(): void {
+  const deals = [
+    deal({ id: 1, client_name: "Already active", status: "qualifying", commission_income: "1000", start_date: null }),
+    deal({ id: 2, client_name: "Starts today", status: "sourcing", commission_income: "2000", start_date: "2026-09-28" }),
+    deal({ id: 3, client_name: "Future renewal", status: "qualifying", commission_income: "9000", start_date: "2027-07-24" }),
+    deal({ id: 4, client_name: "Won earlier", status: "closed_won", commission_income: "4000", start_date: "2027-01-01" }),
+  ];
+  const now = new Date(2026, 8, 28, 12, 0, 0);
+  const pipeline = summariseEstimatedPipelineFinancials(deals);
+  const pulse = buildDashboardPulseMetrics(deals, now);
+  const points = buildPipelineOpportunityPoints(deals);
+  const insights = buildDashboardInsights(deals, [], now);
+  assert.equal(pipeline.commission_income, 3000);
+  assert.equal(pipeline.opp_count, 2);
+  assert.equal(pulse.pipeline_value, 3000);
+  assert.equal(pulse.active_count, 2);
+  assert.equal(pulse.won_count, 1);
+  assert.equal(points.length, 2);
+  assert.ok(points.every((point) => point.name !== "Future renewal"));
+  assert.doesNotMatch(insights.pipeline.text, /Future renewal/);
+  console.log("OK  future start dates stay out of current pipeline; won history remains");
+}
+
 function testCompactMoney(): void {
   assert.equal(formatOpportunityMoneyCompact(null), "—");
   assert.equal(formatOpportunityMoneyCompact(950), "HK$950");
@@ -247,6 +270,7 @@ function main(): void {
   testPerOpportunityChartUsesDateAndChance();
   testBusinessPulse();
   testDashboardInsights();
+  testFutureStartIsOutsideCurrentPipeline();
   testCompactMoney();
 }
 

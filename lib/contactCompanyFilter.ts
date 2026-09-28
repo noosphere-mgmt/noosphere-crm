@@ -1,4 +1,5 @@
 import { isPermanentBusinessId } from "@/lib/businessIds";
+import { contactEligibleAsPrimeContact } from "@/lib/contactRelatedCompanies";
 import { isSelectableContact } from "@/lib/contactVisibility";
 import { compareContactDisplayNames, type LegacyContactSelectOption } from "@/lib/crmSelectOptions";
 import type { ContactOption } from "@/lib/repos/contacts";
@@ -46,6 +47,21 @@ export function contactMatchesSelectSearch(
   return haystack.some((part) => part != null && String(part).toLocaleLowerCase().includes(q));
 }
 
+export function resolveSelectedCompany(
+  companyRef: number | string | null | undefined,
+  companies?: { id: number; business_id?: string | null; v1_company_id?: string | null }[],
+): { id: number; business_id?: string | null; v1_company_id?: string | null } | null {
+  const ref = String(companyRef ?? "").trim();
+  if (!ref) return null;
+  if (isPermanentBusinessId("company", ref)) {
+    return companies?.find((company) => company.business_id === ref || company.v1_company_id === ref) ?? null;
+  }
+  const legacyCompanyId = parseCompanyId(companyRef);
+  const selected = companies?.find((company) => company.id === legacyCompanyId);
+  if (selected) return selected;
+  return legacyCompanyId != null ? { id: legacyCompanyId } : null;
+}
+
 /**
  * Contacts available for a company context.
  * - No company selected → all contacts (people can exist without a company).
@@ -59,14 +75,7 @@ export function contactsForCompany(
   const ref = String(companyRef ?? "").trim();
   if (!ref) return sortContactsAlphabetically(contacts);
 
-  let selectedCompany: { id: number; business_id?: string | null; v1_company_id?: string | null } | undefined;
-  if (isPermanentBusinessId("company", ref)) {
-    selectedCompany = companies?.find((c) => c.business_id === ref || c.v1_company_id === ref);
-  } else {
-    const legacyCompanyId = parseCompanyId(companyRef);
-    selectedCompany = companies?.find((c) => c.id === legacyCompanyId);
-    if (!selectedCompany && legacyCompanyId != null) selectedCompany = { id: legacyCompanyId };
-  }
+  const selectedCompany = resolveSelectedCompany(companyRef, companies);
 
   if (!selectedCompany) return sortContactsAlphabetically(contacts);
 
@@ -89,6 +98,35 @@ export function contactsForCompany(
     else companyContacts.push(contact);
   }
   return [...sortContactsAlphabetically(companyContacts), ...sortContactsAlphabetically(unaffiliated)];
+}
+
+/**
+ * Prime contact choices for an opportunity company.
+ * The company's own contacts, plus contacts related to that company.
+ */
+export function primeContactsForOpportunityCompany(
+  contacts: ContactOption[],
+  companyRef: number | string | null | undefined,
+  companies?: { id: number; business_id?: string | null; v1_company_id?: string | null }[],
+): ContactOption[] {
+  const selectedCompany = resolveSelectedCompany(companyRef, companies);
+  if (!selectedCompany) return sortContactsAlphabetically(contacts);
+  const direct: ContactOption[] = [];
+  const related: ContactOption[] = [];
+  for (const contact of contacts) {
+    if (!contactEligibleAsPrimeContact(contact, selectedCompany.id)) continue;
+    if (Number(contact.company_id) === Number(selectedCompany.id)) direct.push(contact);
+    else related.push(contact);
+  }
+  return [...sortContactsAlphabetically(direct), ...sortContactsAlphabetically(related)];
+}
+
+export function selectablePrimeContactsForCompany(
+  contacts: ContactOption[],
+  companyRef: number | string | null | undefined,
+  companies?: { id: number; business_id?: string | null; v1_company_id?: string | null }[],
+): ContactOption[] {
+  return primeContactsForOpportunityCompany(contacts, companyRef, companies).filter(isSelectableContact);
 }
 
 /** Company-scoped picker list excluding inactive/archived Contact-list records. */

@@ -1,5 +1,6 @@
 import { query } from "@/lib/db";
 import { OPEN_OPPORTUNITY_STATUS_SQL } from "@/lib/openOpportunityStatus";
+import { currentPipelineStartSql } from "@/lib/opportunityStartDate";
 import { OPPORTUNITY_PARTY_ROLE_LABELS } from "@/lib/opportunityValues";
 import type { OpportunityLeadType, OpportunitySalesRole, OpportunityStatus } from "@/lib/types/entities";
 
@@ -143,7 +144,8 @@ export async function countOpenLinkedOpportunitiesForCompany(companyId: number):
      FROM opportunities o
      LEFT JOIN opportunity_parties op ON op.opportunity_id = o.id AND op.company_id = $1
      WHERE (o.company_id = $1 OR op.company_id = $1)
-       AND o.status NOT IN ${OPEN_OPPORTUNITY_STATUS_SQL}`,
+       AND o.status NOT IN ${OPEN_OPPORTUNITY_STATUS_SQL}
+       AND ${currentPipelineStartSql("o")}`,
     [companyId],
   );
   return rows[0]?.n ?? 0;
@@ -155,7 +157,8 @@ export async function countOpenLinkedOpportunitiesForContact(contactId: number):
      FROM opportunities o
      LEFT JOIN opportunity_parties op ON op.opportunity_id = o.id AND op.contact_id = $1
      WHERE (o.primary_contact_id = $1 OR op.contact_id = $1)
-       AND o.status NOT IN ${OPEN_OPPORTUNITY_STATUS_SQL}`,
+       AND o.status NOT IN ${OPEN_OPPORTUNITY_STATUS_SQL}
+       AND ${currentPipelineStartSql("o")}`,
     [contactId],
   );
   return rows[0]?.n ?? 0;

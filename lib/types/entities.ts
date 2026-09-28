@@ -283,6 +283,8 @@ export type Opportunity = {
   sales_role: OpportunitySalesRole;
   lease_term: string | null;
   expected_close_date: string | null;
+  /** When active work should begin. NULL means already active. */
+  start_date?: string | null;
   lost_reason: string | null;
   relationship_owner: string | null;
   budget_min: string | null;

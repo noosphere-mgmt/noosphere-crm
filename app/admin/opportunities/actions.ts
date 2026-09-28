@@ -36,7 +36,9 @@ import {
   isNonPropertySalesRole,
   isSaleCaseSalesRole,
 } from "@/lib/opportunityValues";
+import { resolveRecordOwner } from "@/lib/crmOwner";
 import { getDefaultCrmOwnerName } from "@/lib/repos/crmUsers";
+import { todayDateString } from "@/lib/opportunityStartDate";
 
 function parseOptionalDecimal(v: FormDataEntryValue | null): number | null {
   const s = String(v ?? "").trim();
@@ -101,6 +103,7 @@ async function opportunityInputFromForm(formData: FormData) {
     sales_role: salesRole,
     lease_term: isLeaseLike ? parseOptionalString(formData.get("lease_term")) : null,
     expected_close_date: parseOptionalString(formData.get("expected_close_date")),
+    start_date: parseOptionalString(formData.get("start_date")),
     lost_reason: isClosedOpportunityStatus(status)
       ? parseOptionalString(formData.get("lost_reason"))
       : null,
@@ -141,7 +144,8 @@ async function opportunityInputFromForm(formData: FormData) {
 
 export async function createOpportunityAction(formData: FormData) {
   const input = await opportunityInputFromForm(formData);
-  input.relationship_owner ??= await getDefaultCrmOwnerName();
+  input.start_date ??= todayDateString();
+  input.relationship_owner = resolveRecordOwner(input.relationship_owner, await getDefaultCrmOwnerName());
   const id = await createOpportunity(input);
   revalidatePath("/admin/opportunities");
   revalidatePath("/admin/companies");
@@ -170,6 +174,7 @@ export async function updateOpportunityAction(id: number, formData: FormData) {
     ["sales_role", existing.sales_role],
     ["lease_term", existing.lease_term],
     ["expected_close_date", existing.expected_close_date],
+    ["start_date", existing.start_date],
     ["lost_reason", existing.lost_reason],
     ["relationship_owner", existing.relationship_owner],
     ["budget_max", existing.budget_max],

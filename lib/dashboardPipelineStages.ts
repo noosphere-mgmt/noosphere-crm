@@ -1,4 +1,5 @@
 import { dealWorkspaceHref, opportunitiesHref } from "@/lib/dashboardLinks";
+import { isActiveOpportunityStart } from "@/lib/opportunityStartDate";
 import { OPPORTUNITY_STATUS_LABELS, OPPORTUNITY_STATUS_PROBABILITY } from "@/lib/lookups";
 import { parseOpportunityMoney } from "@/lib/opportunityFinancials";
 import type { Opportunity, OpportunityStatus } from "@/lib/types/entities";
@@ -19,19 +20,27 @@ export const DASHBOARD_PIPELINE_STAGES: DashboardPipelineStage[] = [
 ];
 
 export function countDealsByPipelineStage(
-  deals: { status: OpportunityStatus }[],
+  deals: Array<{ status: OpportunityStatus; start_date?: string | null }>,
   stage: DashboardPipelineStage,
 ): number {
-  return deals.filter((d) => stage.statuses.includes(d.status)).length;
+  return deals.filter(
+    (deal) => stage.statuses.includes(deal.status) && isActiveOpportunityStart(deal.start_date),
+  ).length;
 }
 
 /** Unweighted potential for deals in a stage. Status is not a probability. */
 export function sumUnweightedPipelineValue(
-  deals: Array<{ status: OpportunityStatus; commission_income?: string | number | null }>,
+  deals: Array<{
+    status: OpportunityStatus;
+    commission_income?: string | number | null;
+    start_date?: string | null;
+  }>,
   stage: DashboardPipelineStage,
 ): number {
   return deals
-    .filter((deal) => stage.statuses.includes(deal.status))
+    .filter(
+      (deal) => stage.statuses.includes(deal.status) && isActiveOpportunityStart(deal.start_date),
+    )
     .reduce((sum, deal) => sum + (parseOpportunityMoney(deal.commission_income) ?? 0), 0);
 }
 
@@ -39,8 +48,15 @@ export function pipelineStageHref(stage: DashboardPipelineStage): string {
   return opportunitiesHref({ status: stage.statuses.join(",") });
 }
 
-export function countOpenDeals(deals: { status: OpportunityStatus }[]): number {
-  return deals.filter((d) => d.status !== "closed_won" && d.status !== "closed_lost").length;
+export function countOpenDeals(
+  deals: Array<{ status: OpportunityStatus; start_date?: string | null }>,
+): number {
+  return deals.filter(
+    (deal) =>
+      deal.status !== "closed_won" &&
+      deal.status !== "closed_lost" &&
+      isActiveOpportunityStart(deal.start_date),
+  ).length;
 }
 
 /** Open workflow statuses for the Home chevron row — excludes closed outcomes. */
@@ -70,9 +86,10 @@ export const PIPELINE_STATUS_COLOURS: Record<string, string> = {
  * viewing flag; it is not a win-probability and does not replace status.
  */
 export function buildDashboardPipelineBlocks(
-  deals: Array<Pick<Opportunity, "status" | "commission_income" | "has_viewing_premises">>,
+  deals: Array<Pick<Opportunity, "status" | "commission_income" | "has_viewing_premises" | "start_date">>,
 ): DashboardPipelineBlock[] {
-  const open = deals.filter((deal) => deal.status !== "closed_won" && deal.status !== "closed_lost");
+  const current = deals.filter((deal) => isActiveOpportunityStart(deal.start_date));
+  const open = current.filter((deal) => deal.status !== "closed_won" && deal.status !== "closed_lost");
   const viewingDeals = open.filter((deal) => deal.has_viewing_premises);
   const viewing: DashboardPipelineBlock = {
     id: "viewing",
@@ -90,8 +107,8 @@ export function buildDashboardPipelineBlocks(
       id: stage.id,
       label: stage.label,
       href: pipelineStageHref(stage),
-      count: countDealsByPipelineStage(deals, stage),
-      value: sumUnweightedPipelineValue(deals, stage),
+      count: countDealsByPipelineStage(current, stage),
+      value: sumUnweightedPipelineValue(current, stage),
       colour: PIPELINE_STATUS_COLOURS[stage.id] ?? "#64748b",
     });
   }
@@ -124,11 +141,17 @@ export function buildPipelineOpportunityPoints(
       | "linked_company_name"
       | "company_name"
       | "business_id"
+      | "start_date"
     >
   >,
 ): PipelineOpportunityPoint[] {
   return deals
-    .filter((deal) => deal.status !== "closed_won" && deal.status !== "closed_lost")
+    .filter(
+      (deal) =>
+        deal.status !== "closed_won" &&
+        deal.status !== "closed_lost" &&
+        isActiveOpportunityStart(deal.start_date),
+    )
     .map((deal) => ({
       id: deal.id,
       name: deal.client_name,

@@ -105,7 +105,7 @@ export function OpportunitiesListDesktop({
           ) : displayedRows.length === 0 ? (
             <tr>
               <td colSpan={colCount} className="px-4 py-8 text-center text-slate-500">
-                No opportunities match your search.
+                No opportunities match these filters.
               </td>
             </tr>
           ) : (
@@ -164,6 +164,9 @@ export function OpportunitiesListDesktop({
                 </td>
                 <td className="px-3 py-1.5 text-slate-700">
                   <p className="tabular-nums">{formatDateLabel(row.expected_close_date)}</p>
+                  {row.start_date ? (
+                    <p className="mt-0.5 text-[11px] text-slate-500">Start {formatDateLabel(row.start_date)}</p>
+                  ) : null}
                 </td>
                 <td className="px-3 py-1.5">
                   <span {...opportunityStatusChip(row.status)}>{OPPORTUNITY_STATUS_LABELS[row.status]}</span>

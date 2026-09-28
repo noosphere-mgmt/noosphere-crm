@@ -27,6 +27,7 @@ import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { OPPORTUNITY_SOURCES, OPPORTUNITY_SOURCE_LABELS } from "@/lib/opportunitySourceValues";
 import { CrmStaffSelect } from "@/components/admin/CrmStaffSelect";
 import { formatOpportunityMoneyDraft, formatOpportunityMoneyInput } from "@/lib/opportunityFinancials";
+import { todayDateString } from "@/lib/opportunityStartDate";
 
 type Props = {
   defaults?: Opportunity;
@@ -60,6 +61,7 @@ function MoneyFormField({
 
 export function OpportunityFormFields({ defaults, companies, contacts }: Props) {
   const editing = useFormEditing();
+  const [defaultCreateDate] = useState(() => todayDateString());
   const companyOptions = useMemo(() => toLegacyCompanySelectOptions(companies), [companies]);
   const contactOptions = useMemo(() => toLegacyContactSelectOptions(contacts), [contacts]);
   const [companyId, setCompanyId] = useState(
@@ -83,6 +85,7 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
     sales_role: salesRole,
     lease_term: defaults?.lease_term ?? null,
     expected_close_date: defaults?.expected_close_date ?? null,
+    start_date: defaults?.start_date ?? defaultCreateDate,
     lost_reason: defaults?.lost_reason ?? null,
     relationship_owner: defaults?.relationship_owner ?? null,
     budget_min: null,
@@ -164,6 +167,9 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
             contactOptions={contactOptions}
             defaultContactId={resolveContactSelectValue(contacts, defaults?.primary_contact_id)}
             fieldName="primary_contact_id"
+            label="Prime Contact"
+            scope="prime"
+            savedCompanyId={resolveCompanySelectValue(companies, defaults?.company_id)}
             disabled={!editing}
             emptyLabel="— Select contact —"
           />
@@ -198,6 +204,18 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
               defaultValue={defaults?.lost_reason ?? ""}
             />
           ) : null}
+          <FormField
+            label="Start Date"
+            name="start_date"
+            type="date"
+            defaultValue={defaults?.start_date?.slice(0, 10) ?? defaultCreateDate}
+          />
+          <FormField
+            label="Expected Close Date"
+            name="expected_close_date"
+            type="date"
+            defaultValue={defaults?.expected_close_date?.slice(0, 10) ?? ""}
+          />
         </dl>
       </div>
 

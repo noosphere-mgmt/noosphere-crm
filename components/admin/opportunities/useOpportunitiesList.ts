@@ -20,6 +20,12 @@ import {
   type OpportunitiesListStatusFilter,
   type OpportunitiesQuickFilters,
 } from "@/lib/opportunitiesList";
+import {
+  opportunityMatchesDateWindow,
+  parseOpportunityStartWindow,
+  type OpportunityPrimaryFilter,
+  type OpportunityStartWindow,
+} from "@/lib/opportunityStartDate";
 import type { Opportunity, OpportunityStatus } from "@/lib/types/entities";
 
 type SortKey = "opportunity" | "company" | "contact" | "expected_close" | "status" | "updated";
@@ -45,20 +51,35 @@ export function useOpportunitiesList(
     ...EMPTY_OPPORTUNITIES_QUICK_FILTERS,
     statuses: initialLegacyStatuses,
   });
+  const [startWindow, setStartWindowState] = useState<OpportunityStartWindow>(() => {
+    const horizon = searchParams.get("horizon");
+    if (horizon) return parseOpportunityStartWindow(horizon);
+    return initialListStatusFilter === "won" ||
+      initialListStatusFilter === "lost" ||
+      initialListStatusFilter === "closed" ||
+      initialListStatusFilter === "all"
+      ? "all"
+      : "active";
+  });
+
+  const rowsInStartWindow = useMemo(
+    () => rows.filter((row) => opportunityMatchesDateWindow(row, startWindow)),
+    [rows, startWindow],
+  );
 
   const statusFilterCounts = useMemo(
     () => ({
-      all: countOpportunitiesListStatusFilter(rows, "all"),
-      active: countOpportunitiesListStatusFilter(rows, "active"),
-      qualifying: countOpportunitiesListStatusFilter(rows, "qualifying"),
-      sourcing: countOpportunitiesListStatusFilter(rows, "sourcing"),
-      proposal_reviewing: countOpportunitiesListStatusFilter(rows, "proposal_reviewing"),
-      negotiating: countOpportunitiesListStatusFilter(rows, "negotiating"),
+      all: countOpportunitiesListStatusFilter(rowsInStartWindow, "all"),
+      active: countOpportunitiesListStatusFilter(rowsInStartWindow, "active"),
+      qualifying: countOpportunitiesListStatusFilter(rowsInStartWindow, "qualifying"),
+      sourcing: countOpportunitiesListStatusFilter(rowsInStartWindow, "sourcing"),
+      proposal_reviewing: countOpportunitiesListStatusFilter(rowsInStartWindow, "proposal_reviewing"),
+      negotiating: countOpportunitiesListStatusFilter(rowsInStartWindow, "negotiating"),
       won: countOpportunitiesListStatusFilter(rows, "won"),
       lost: countOpportunitiesListStatusFilter(rows, "lost"),
       closed: countOpportunitiesListStatusFilter(rows, "closed"),
     }),
-    [rows],
+    [rows, rowsInStartWindow],
   );
 
   const syncListParams = useCallback(
@@ -67,6 +88,7 @@ export function useOpportunitiesList(
       dashboardStage?: OpportunitiesDashboardStage | undefined;
       legacyStatuses?: OpportunityStatus[];
       kpiFilter?: OpportunitiesKpiFilter | null;
+      startWindow?: OpportunityStartWindow;
     }) => {
       const params = new URLSearchParams(searchParams.toString());
       params.delete("opportunity");
@@ -79,6 +101,10 @@ export function useOpportunitiesList(
       const stage = next.dashboardStage !== undefined ? next.dashboardStage : dashboardStage;
       const legacy = next.legacyStatuses ?? quickFilters.statuses;
       const kpi = next.kpiFilter !== undefined ? next.kpiFilter : kpiFilter;
+      const horizon = next.startWindow ?? startWindow;
+
+      if (horizon === "active") params.delete("horizon");
+      else params.set("horizon", horizon);
 
       if (legacy.length > 0) {
         params.set("status", legacy.join(","));
@@ -95,17 +121,28 @@ export function useOpportunitiesList(
       const qs = params.toString();
       router.replace(qs ? `/admin/opportunities?${qs}` : "/admin/opportunities");
     },
-    [dashboardStage, kpiFilter, listStatusFilter, quickFilters.statuses, router, searchParams],
+    [dashboardStage, kpiFilter, listStatusFilter, quickFilters.statuses, router, searchParams, startWindow],
   );
 
-  const setListStatusFilter = useCallback(
-    (filter: OpportunitiesListStatusFilter) => {
-      setListStatusFilterState(filter);
+  const setPrimaryFilter = useCallback(
+    (filter: OpportunityPrimaryFilter) => {
+      const nextStartWindow: OpportunityStartWindow =
+        filter === "won" || filter === "lost" || filter === "all" ? "all" : filter;
+      const nextStatus: OpportunitiesListStatusFilter =
+        filter === "won" || filter === "lost"
+          ? filter
+          : filter === "all"
+            ? "all"
+            : "active";
+
+      setStartWindowState(nextStartWindow);
+      setListStatusFilterState(nextStatus);
       setKpiFilterState(null);
       setDashboardStageState(undefined);
       setQuickFiltersState(EMPTY_OPPORTUNITIES_QUICK_FILTERS);
       syncListParams({
-        listStatusFilter: filter,
+        listStatusFilter: nextStatus,
+        startWindow: nextStartWindow,
         dashboardStage: undefined,
         legacyStatuses: [],
         kpiFilter: null,
@@ -114,15 +151,39 @@ export function useOpportunitiesList(
     [syncListParams],
   );
 
+  const setListStatusFilter = useCallback(
+    (filter: OpportunitiesListStatusFilter) => {
+      const nextStartWindow =
+        filter === "won" || filter === "lost" || filter === "closed" || filter === "all"
+          ? "all"
+          : startWindow;
+      setListStatusFilterState(filter);
+      setStartWindowState(nextStartWindow);
+      setKpiFilterState(null);
+      setDashboardStageState(undefined);
+      setQuickFiltersState(EMPTY_OPPORTUNITIES_QUICK_FILTERS);
+      syncListParams({
+        listStatusFilter: filter,
+        startWindow: nextStartWindow,
+        dashboardStage: undefined,
+        legacyStatuses: [],
+        kpiFilter: null,
+      });
+    },
+    [startWindow, syncListParams],
+  );
+
   const setKpiFilter = useCallback(
     (kpi: OpportunitiesKpiFilter) => {
       if (kpiFilter === kpi) {
         setKpiFilterState(null);
         setListStatusFilterState("all");
+        setStartWindowState("all");
         setDashboardStageState(undefined);
         setQuickFiltersState(EMPTY_OPPORTUNITIES_QUICK_FILTERS);
         syncListParams({
           listStatusFilter: "all",
+          startWindow: "all",
           dashboardStage: undefined,
           legacyStatuses: [],
           kpiFilter: null,
@@ -130,12 +191,16 @@ export function useOpportunitiesList(
         return;
       }
       const status = statusFilterForKpi(kpi);
+      const nextStartWindow: OpportunityStartWindow =
+        kpi === "pipeline_estimate" ? "active" : "all";
       setKpiFilterState(kpi);
       setListStatusFilterState(status);
+      setStartWindowState(nextStartWindow);
       setDashboardStageState(undefined);
       setQuickFiltersState(EMPTY_OPPORTUNITIES_QUICK_FILTERS);
       syncListParams({
         listStatusFilter: status,
+        startWindow: nextStartWindow,
         dashboardStage: undefined,
         legacyStatuses: [],
         kpiFilter: kpi,
@@ -164,6 +229,7 @@ export function useOpportunitiesList(
         if (!opportunityMatchesListStatusFilter(row, listStatusFilter)) return false;
         if (kpiFilter === "won_payouts" && parseOpportunityMoney(row.related_costs) == null) return false;
       }
+      if (!opportunityMatchesDateWindow(row, startWindow)) return false;
       if (!opportunityMatchesGlobalSearch(row, searchQuery)) return false;
       return true;
     });
@@ -190,7 +256,7 @@ export function useOpportunitiesList(
           return 0;
       }
     });
-  }, [rows, quickFilters, searchQuery, sortKey, sortDir, dashboardStage, listStatusFilter, kpiFilter]);
+  }, [rows, quickFilters, searchQuery, sortKey, sortDir, dashboardStage, listStatusFilter, kpiFilter, startWindow]);
 
   const displayedIds = useMemo(() => displayedRows.map((r) => String(r.id)), [displayedRows]);
   useSyncListingExportIds(displayedIds);
@@ -223,6 +289,8 @@ export function useOpportunitiesList(
     setKpiFilter,
     statusFilterCounts,
     dashboardStage,
+    startWindow,
+    setPrimaryFilter,
     usingLegacyStatusFilter,
     displayedRows,
     displayedIds,

@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminDashboardPage() {
   let error: string | null = null;
   let viewData: Parameters<typeof DashboardV2>[0]["data"] | null = null;
-  let ownerName = "Teresa";
+  let ownerName: string | undefined;
 
   try {
     const [dashboard, deals, owner] = await Promise.all([
@@ -18,7 +18,7 @@ export default async function AdminDashboardPage() {
       getDefaultCrmOwnerName(),
     ]);
     viewData = { dashboard, deals };
-    ownerName = owner;
+    ownerName = owner ?? undefined;
   } catch (err) {
     error = err instanceof Error ? err.message : "Failed to load dashboard";
   }

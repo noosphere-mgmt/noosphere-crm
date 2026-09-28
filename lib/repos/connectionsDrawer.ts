@@ -12,6 +12,7 @@ import {
   listLinkedOpportunitiesForContact,
   type LinkedOpportunityRow,
 } from "@/lib/repos/connectionOpportunities";
+import { listContactCompanyAffiliations, type ContactCompanyAffiliation } from "@/lib/repos/contactCompanyAffiliations";
 import { getContact, listContacts } from "@/lib/repos/contacts";
 import { getCompanyCrmSummary, type CompanyCrmSummary } from "@/lib/repos/companyCrmSummary";
 import {
@@ -22,7 +23,6 @@ import { getContactCrmSummary, type ContactCrmSummary } from "@/lib/repos/contac
 import { lookupV1CompanyId } from "@/lib/companyDrawerResolve";
 import { lookupV1ContactId, resolveLegacyCompanyIdFromContactRef } from "@/lib/contactDrawerResolve";
 import { coerceLegacyContactId } from "@/lib/entityRefGuards";
-import { listContactCompanyAffiliations, type ContactCompanyAffiliation } from "@/lib/repos/contactCompanyAffiliations";
 import { listEntityRelationships } from "@/lib/repos/relationships";
 import type { EntityRelationshipRow } from "@/lib/entityRelationships";
 import type { Asset, Company, Contact } from "@/lib/types/entities";
