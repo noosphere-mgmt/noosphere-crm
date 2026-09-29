@@ -1,6 +1,15 @@
 import { OPPORTUNITY_STATUS_LABELS } from "@/lib/lookups";
+import { isClosedOpportunityStatus } from "@/lib/openOpportunityStatus";
 import { normalizeOpportunityStatus } from "@/lib/opportunityStatusModel";
 import { formatMoney, formatAreaSqft } from "@/lib/formatCurrency";
+import {
+  addCalendarMonths,
+  isActiveOpportunityStart,
+  isOpportunityExpectedCloseCurrent,
+  opportunityStartDate,
+  todayDateString,
+  type OpportunityStartWindow,
+} from "@/lib/opportunityStartDate";
 import type { Opportunity, OpportunityStatus } from "@/lib/types/entities";
 
 export type OpportunitiesListStatusFilter =
@@ -121,6 +130,30 @@ export function opportunityMatchesListStatusFilter(
     case "closed":
       return row.status === "closed_won" || row.status === "closed_lost";
   }
+}
+
+/**
+ * Opportunity List view: Active, Open, Next 3 Mth, Next 6 Mth, All.
+ * End/valid date is expected_close_date. Closed means closed_won or closed_lost.
+ */
+export function opportunityMatchesListQuickFilter(
+  row: {
+    status?: string | null;
+    start_date?: string | null;
+    expected_close_date?: string | null;
+  },
+  filter: OpportunityStartWindow,
+  today = todayDateString(),
+): boolean {
+  if (filter === "all") return true;
+  if (isClosedOpportunityStatus(row.status ?? "")) return false;
+  if (!isOpportunityExpectedCloseCurrent(row.expected_close_date, today)) return false;
+  if (filter === "open") return true;
+  if (filter === "active") return isActiveOpportunityStart(row.start_date, today);
+  const start = opportunityStartDate(row.start_date);
+  if (!start || start <= today) return false;
+  const months = filter === "next_3_months" ? 3 : 6;
+  return start <= addCalendarMonths(today, months);
 }
 
 export function countOpportunitiesListStatusFilter(

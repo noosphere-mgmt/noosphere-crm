@@ -12,6 +12,7 @@ import {
   EMPTY_OPPORTUNITIES_QUICK_FILTERS,
   opportunityMatchesDashboardStage,
   opportunityMatchesGlobalSearch,
+  opportunityMatchesListQuickFilter,
   opportunityMatchesListStatusFilter,
   opportunityMatchesQuickFilters,
   statusFilterForKpi,
@@ -21,7 +22,6 @@ import {
   type OpportunitiesQuickFilters,
 } from "@/lib/opportunitiesList";
 import {
-  opportunityMatchesDateWindow,
   parseOpportunityStartWindow,
   type OpportunityPrimaryFilter,
   type OpportunityStartWindow,
@@ -63,7 +63,7 @@ export function useOpportunitiesList(
   });
 
   const rowsInStartWindow = useMemo(
-    () => rows.filter((row) => opportunityMatchesDateWindow(row, startWindow)),
+    () => rows.filter((row) => opportunityMatchesListQuickFilter(row, startWindow)),
     [rows, startWindow],
   );
 
@@ -229,7 +229,7 @@ export function useOpportunitiesList(
         if (!opportunityMatchesListStatusFilter(row, listStatusFilter)) return false;
         if (kpiFilter === "won_payouts" && parseOpportunityMoney(row.related_costs) == null) return false;
       }
-      if (!opportunityMatchesDateWindow(row, startWindow)) return false;
+      if (!opportunityMatchesListQuickFilter(row, startWindow)) return false;
       if (!opportunityMatchesGlobalSearch(row, searchQuery)) return false;
       return true;
     });

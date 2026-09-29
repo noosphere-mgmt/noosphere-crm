@@ -10,6 +10,7 @@ import {
   resolveRecordOwner,
 } from "../lib/crmOwner";
 import { summariseEstimatedPipelineFinancials, summariseWonOpportunityFinancials } from "../lib/opportunityFinancials";
+import { opportunityMatchesListQuickFilter } from "../lib/opportunitiesList";
 import {
   addCalendarMonths,
   isActiveOpportunityStart,
@@ -60,6 +61,110 @@ function deal(overrides: Partial<Opportunity> = {}): Opportunity {
     updated_at: "2026-09-28T00:00:00.000Z",
     ...overrides,
   };
+}
+
+function matches(
+  row: { status?: string | null; start_date?: string | null; expected_close_date?: string | null },
+  filter: "active" | "open" | "next_3_months" | "next_6_months" | "all",
+): boolean {
+  return opportunityMatchesListQuickFilter(row, filter, TODAY);
+}
+
+function testListQuickFilters(): void {
+  const yesterday = "2026-09-27";
+  const nextMonth = addCalendarMonths(TODAY, 1);
+  const inThreeMonths = addCalendarMonths(TODAY, 3);
+  const inFiveMonths = addCalendarMonths(TODAY, 5);
+  const inSixMonths = addCalendarMonths(TODAY, 6);
+  const validEnd = addCalendarMonths(TODAY, 8);
+  const filters = ["active", "open", "next_3_months", "next_6_months", "all"] as const;
+
+  const expect = (
+    label: string,
+    row: { status?: string | null; start_date?: string | null; expected_close_date?: string | null },
+    expected: Record<(typeof filters)[number], boolean>,
+  ) => {
+    for (const filter of filters) {
+      assert.equal(matches(row, filter), expected[filter], `${label} / ${filter}`);
+    }
+  };
+
+  expect("A started yesterday", {
+    status: "qualifying",
+    start_date: yesterday,
+    expected_close_date: validEnd,
+  }, { active: true, open: true, next_3_months: false, next_6_months: false, all: true });
+
+  expect("B blank start", {
+    status: "sourcing",
+    start_date: null,
+    expected_close_date: validEnd,
+  }, { active: true, open: true, next_3_months: false, next_6_months: false, all: true });
+
+  expect("B blank start and blank end", {
+    status: "negotiating",
+    start_date: null,
+    expected_close_date: null,
+  }, { active: true, open: true, next_3_months: false, next_6_months: false, all: true });
+
+  expect("C starts next month", {
+    status: "proposal_reviewing",
+    start_date: nextMonth,
+    expected_close_date: validEnd,
+  }, { active: false, open: true, next_3_months: true, next_6_months: true, all: true });
+
+  expect("D starts in five months", {
+    status: "qualifying",
+    start_date: inFiveMonths,
+    expected_close_date: validEnd,
+  }, { active: false, open: true, next_3_months: false, next_6_months: true, all: true });
+
+  expect("E future start with expired end", {
+    status: "qualifying",
+    start_date: nextMonth,
+    expected_close_date: yesterday,
+  }, { active: false, open: false, next_3_months: false, next_6_months: false, all: true });
+
+  expect("F closed won", {
+    status: "closed_won",
+    start_date: yesterday,
+    expected_close_date: validEnd,
+  }, { active: false, open: false, next_3_months: false, next_6_months: false, all: true });
+
+  expect("F closed lost still inside next six", {
+    status: "closed_lost",
+    start_date: inFiveMonths,
+    expected_close_date: validEnd,
+  }, { active: false, open: false, next_3_months: false, next_6_months: false, all: true });
+
+  expect("start today stays active", {
+    status: "qualifying",
+    start_date: TODAY,
+    expected_close_date: validEnd,
+  }, { active: true, open: true, next_3_months: false, next_6_months: false, all: true });
+
+  expect("end date today has not expired", {
+    status: "qualifying",
+    start_date: yesterday,
+    expected_close_date: TODAY,
+  }, { active: true, open: true, next_3_months: false, next_6_months: false, all: true });
+
+  assert.equal(inThreeMonths <= addCalendarMonths(TODAY, 3), true);
+  assert.equal(matches({
+    status: "qualifying",
+    start_date: inThreeMonths,
+    expected_close_date: validEnd,
+  }, "next_3_months"), true, "start on the 3-month horizon is included");
+  assert.equal(matches({
+    status: "qualifying",
+    start_date: inSixMonths,
+    expected_close_date: validEnd,
+  }, "next_6_months"), true, "start on the 6-month horizon is included");
+  assert.equal(matches({
+    status: "qualifying",
+    start_date: inSixMonths,
+    expected_close_date: validEnd,
+  }, "next_3_months"), false, "6-month horizon is outside next 3");
 }
 
 function testActiveRule(): void {
@@ -158,8 +263,9 @@ function testOwnerDefault(): void {
   assert.equal(resolveRecordOwner("  ", named?.display_name), named?.display_name);
 }
 
+testListQuickFilters();
 testActiveRule();
 testCalendarWindows();
 testPipelineAndHistory();
 testOwnerDefault();
-console.log("OK  opportunity start date, pipeline, calendar windows, history, and owner defaults");
+console.log("OK  opportunity start date, list filters, pipeline, calendar windows, history, and owner defaults");

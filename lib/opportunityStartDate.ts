@@ -4,10 +4,14 @@
  * current pipeline until that calendar day.
  */
 
-export type OpportunityStartWindow = "active" | "next_3_months" | "next_6_months" | "all";
+export type OpportunityStartWindow = "active" | "open" | "next_3_months" | "next_6_months" | "all";
+
+/** Dashboard forecast windows. Next 3 / Next 6 stay on Expected Close Date. */
+export type OpportunityForecastWindow = "active" | "next_3_months" | "next_6_months" | "all";
 
 export const OPPORTUNITY_START_WINDOWS: OpportunityStartWindow[] = [
   "active",
+  "open",
   "next_3_months",
   "next_6_months",
   "all",
@@ -15,8 +19,9 @@ export const OPPORTUNITY_START_WINDOWS: OpportunityStartWindow[] = [
 
 export const OPPORTUNITY_START_WINDOW_LABELS: Record<OpportunityStartWindow, string> = {
   active: "Active",
-  next_3_months: "Next 3-Mth",
-  next_6_months: "Next 6-Mth",
+  open: "Open",
+  next_3_months: "Next 3 Mth",
+  next_6_months: "Next 6 Mth",
   all: "All",
 };
 
@@ -24,11 +29,10 @@ export type OpportunityPrimaryFilter = OpportunityStartWindow | "won" | "lost";
 
 export const OPPORTUNITY_PRIMARY_FILTERS: OpportunityPrimaryFilter[] = [
   "active",
+  "open",
   "next_3_months",
   "next_6_months",
   "all",
-  "won",
-  "lost",
 ];
 
 export const OPPORTUNITY_PRIMARY_FILTER_LABELS: Record<OpportunityPrimaryFilter, string> = {
@@ -86,16 +90,29 @@ export function parseOpportunityStartWindow(value: string | null | undefined): O
 }
 
 /**
- * Active is based on Start Date. Forecast windows are based on Expected Close Date.
- * Next 3 / Next 6 include only future close dates through that calendar-month horizon.
- * An opportunity inside 3 months also matches the 6-month window.
+ * Expected Close Date is the opportunity end/valid date.
+ * Blank, today, or a later date has not expired. An earlier date has expired.
+ */
+export function isOpportunityExpectedCloseCurrent(
+  expectedCloseDate: string | null | undefined,
+  today = todayDateString(),
+): boolean {
+  const date = opportunityStartDate(expectedCloseDate);
+  if (!date) return true;
+  return date >= today;
+}
+
+/**
+ * Dashboard Pipeline Analysis forecast windows.
+ * Next 3 / Next 6 include only future Expected Close Dates through that calendar-month horizon.
+ * Opportunity List filters use opportunityMatchesListQuickFilter instead.
  */
 export function opportunityMatchesDateWindow(
   opportunity: {
     start_date?: string | null;
     expected_close_date?: string | null;
   },
-  window: OpportunityStartWindow,
+  window: OpportunityForecastWindow,
   today = todayDateString(),
 ): boolean {
   if (window === "all") return true;
