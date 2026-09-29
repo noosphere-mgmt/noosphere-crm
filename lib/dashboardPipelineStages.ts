@@ -128,7 +128,12 @@ export type PipelineOpportunityPoint = {
   href: string;
 };
 
-/** One plotted bubble per active opportunity. Chance is the existing CRM lookup, not a new model. */
+/**
+ * One plotted bubble per open opportunity. Closed Won and Closed Lost stay out.
+ * Start Date does not exclude a row: Pipeline Analysis "All" includes future
+ * start dates. Next 3 / Next 6 then filter Expected Close Date in the chart.
+ * Chance is the existing CRM lookup, not a new model.
+ */
 export function buildPipelineOpportunityPoints(
   deals: Array<
     Pick<
@@ -141,17 +146,11 @@ export function buildPipelineOpportunityPoints(
       | "linked_company_name"
       | "company_name"
       | "business_id"
-      | "start_date"
     >
   >,
 ): PipelineOpportunityPoint[] {
   return deals
-    .filter(
-      (deal) =>
-        deal.status !== "closed_won" &&
-        deal.status !== "closed_lost" &&
-        isActiveOpportunityStart(deal.start_date),
-    )
+    .filter((deal) => deal.status !== "closed_won" && deal.status !== "closed_lost")
     .map((deal) => ({
       id: deal.id,
       name: deal.client_name,

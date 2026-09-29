@@ -108,7 +108,10 @@ export function opportunityMatchesDateWindow(
 
 export type PipelineChartHorizon = "next_3_months" | "next_6_months" | "all";
 
-/** Bubble chart horizons use Expected Close Date. All keeps the current pipeline. */
+/**
+ * Next 3 / Next 6 use Expected Close Date (the chart X-axis).
+ * All includes every open point it is given, including a future Start Date.
+ */
 export function pipelinePointInHorizon(
   point: { expectedClose?: string | null },
   horizon: PipelineChartHorizon,

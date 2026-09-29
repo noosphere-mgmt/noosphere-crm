@@ -3,7 +3,12 @@
  * Usage: npm run verify:opportunity-start-date
  */
 import assert from "node:assert/strict";
-import { pickDefaultCrmOwner, resolveRecordOwner } from "../lib/crmOwner";
+import {
+  OPPORTUNITY_DEFAULT_OWNER_NAME,
+  pickCrmOwnerByDisplayName,
+  pickDefaultCrmOwner,
+  resolveRecordOwner,
+} from "../lib/crmOwner";
 import { summariseEstimatedPipelineFinancials, summariseWonOpportunityFinancials } from "../lib/opportunityFinancials";
 import {
   addCalendarMonths,
@@ -133,9 +138,24 @@ function testOwnerDefault(): void {
     is_active: true,
   };
   const resolved = pickDefaultCrmOwner([other, teresa]);
-  assert.equal(resolved?.id, 42, "default comes from the real login-enabled CRM record");
+  assert.equal(resolved?.id, 42, "generic default still comes from the login-enabled CRM record");
   assert.equal(resolveRecordOwner(null, resolved?.display_name), "Teresa Cheuk");
   assert.equal(resolveRecordOwner("Explicit Owner", resolved?.display_name), "Explicit Owner");
+
+  const earlierLogin = {
+    id: 3,
+    display_name: "Earlier Login",
+    user_type: "human",
+    login_enabled: true,
+    is_active: true,
+  };
+  const named = pickCrmOwnerByDisplayName([earlierLogin, other, teresa], OPPORTUNITY_DEFAULT_OWNER_NAME);
+  assert.equal(named?.id, 42, "new opportunity owner resolves the existing Teresa Cheuk record");
+  assert.equal(named?.display_name, "Teresa Cheuk");
+  assert.equal(pickCrmOwnerByDisplayName([earlierLogin], OPPORTUNITY_DEFAULT_OWNER_NAME), null);
+  assert.equal(resolveRecordOwner("Explicit Owner", named?.display_name), "Explicit Owner");
+  assert.equal(resolveRecordOwner(null, named?.display_name), named?.display_name);
+  assert.equal(resolveRecordOwner("  ", named?.display_name), named?.display_name);
 }
 
 testActiveRule();

@@ -13,6 +13,7 @@ import {
   nextSortState,
   type SortDir,
 } from "@/components/admin/SortableTableHeader";
+import { ContactCoverageBadges } from "@/components/admin/connections/ContactCoverageBadges";
 import { ConnectionsRelationshipTypeFilters } from "@/components/admin/connections/ConnectionsRelationshipTypeFilters";
 import { ConnectionsModuleHeader } from "@/components/admin/connections/ConnectionsModuleHeader";
 import { ConnectionsSearchToolbarDesktop } from "@/components/admin/connections/ConnectionsSearchToolbarDesktop";
@@ -20,7 +21,8 @@ import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import type { ConnectionsCompaniesListState } from "@/components/admin/connections/useConnectionsCompaniesList";
 import { companyDrawerHref, contactDrawerHref } from "@/lib/connectionsDrawerNav";
 import { moduleAccentClasses } from "@/components/admin/moduleTheme";
-import { formatCompanyRoles, formatCoverage } from "@/lib/connectionsDisplay";
+import { formatCoverage } from "@/lib/connectionsDisplay";
+import { formatPhoneDisplay } from "@/lib/phoneAreaCodes";
 import {
   contactsForCompanyShortlist,
   contactsWithoutCompany,
@@ -37,18 +39,7 @@ import { contactBusinessExportId } from "@/lib/exportBusinessIds";
 import type { Contact } from "@/lib/types/entities";
 
 type CompanySelection = "all" | "individual" | number;
-type ContactSortKey =
-  | "name"
-  | "company"
-  | "role"
-  | "coverage"
-  | "last_contact"
-  | "opportunities";
-
-function compareSortNum(a: number, b: number, dir: SortDir): number {
-  const cmp = a - b;
-  return dir === "asc" ? cmp : -cmp;
-}
+type ContactSortKey = "name" | "company" | "title" | "coverage" | "email" | "phone";
 
 const selectedRowClass = "bg-[#F5F3FF] font-semibold text-[#5B21B6] ring-1 ring-[#DDD6FE]";
 const selectedSoftRowClass = "bg-[#F5F3FF] text-[#5B21B6] ring-1 ring-[#DDD6FE]";
@@ -189,28 +180,20 @@ export function ConnectionsCompaniesDesktop({
           return compareSortText(getContactLabel(a), getContactLabel(b), contactSortDir);
         case "company":
           return compareSortText(a.company_name, b.company_name, contactSortDir);
-        case "role":
-          return compareSortText(
-            formatCompanyRoles(a.contact_role),
-            formatCompanyRoles(b.contact_role),
-            contactSortDir,
-          );
+        case "title":
+          return compareSortText(a.title, b.title, contactSortDir);
         case "coverage":
           return compareSortText(
             formatCoverage(a.coverage),
             formatCoverage(b.coverage),
             contactSortDir,
           );
-        case "last_contact":
+        case "email":
+          return compareSortText(a.email, b.email, contactSortDir);
+        case "phone":
           return compareSortText(
-            a.last_activity_date ?? a.last_contact_date,
-            b.last_activity_date ?? b.last_contact_date,
-            contactSortDir,
-          );
-        case "opportunities":
-          return compareSortNum(
-            a.open_opportunities ?? 0,
-            b.open_opportunities ?? 0,
+            formatPhoneDisplay(a.phone_area_code, a.phone),
+            formatPhoneDisplay(b.phone_area_code, b.phone),
             contactSortDir,
           );
         default:
@@ -232,9 +215,7 @@ export function ConnectionsCompaniesDesktop({
   ]);
 
   function handleContactSort(key: ContactSortKey) {
-    const next = nextSortState(contactSortKey, contactSortDir, key, (k) =>
-      k === "last_contact" || k === "opportunities" ? "desc" : "asc",
-    );
+    const next = nextSortState(contactSortKey, contactSortDir, key);
     setContactSortKey(next.sortKey);
     setContactSortDir(next.sortDir);
   }
@@ -364,7 +345,7 @@ export function ConnectionsCompaniesDesktop({
   }
 
   const showNoCompanyRow = state.roleFilter === null || state.roleFilter === "individual";
-  const contactColSpan = selection === "all" ? 7 : 6;
+  const contactColSpan = 8;
 
   return (
     <>
@@ -586,7 +567,7 @@ export function ConnectionsCompaniesDesktop({
             <table className="min-w-full text-sm">
               <thead className="sticky top-0 z-10 bg-slate-50 text-left text-sm text-slate-600 shadow-[inset_0_-1px_0_0_rgb(226,232,240)]">
                 <tr>
-                  <th className="w-10 px-4 py-3">
+                  <th className="w-10 px-3 py-2">
                     <input
                       type="checkbox"
                       aria-label="Select all contacts"
@@ -597,48 +578,54 @@ export function ConnectionsCompaniesDesktop({
                     />
                   </th>
                   <SortableTableHeader
-                    label="Contact"
+                    label="Name"
                     sortKey="name"
                     activeKey={contactSortKey}
                     sortDir={contactSortDir}
                     onSort={handleContactSort}
-                    className="px-4 py-3"
+                    className="px-3 py-2"
                   />
-                  {selection === "all" ? (
-                    <SortableTableHeader
-                      label="Company"
-                      sortKey="company"
-                      activeKey={contactSortKey}
-                      sortDir={contactSortDir}
-                      onSort={handleContactSort}
-                      className="px-4 py-3"
-                    />
-                  ) : null}
                   <SortableTableHeader
-                    label="Role"
-                    sortKey="role"
+                    label="Company"
+                    sortKey="company"
                     activeKey={contactSortKey}
                     sortDir={contactSortDir}
                     onSort={handleContactSort}
-                    className="px-4 py-3"
+                    className="px-3 py-2"
                   />
                   <SortableTableHeader
-                    label="Last contact"
-                    sortKey="last_contact"
+                    label="Title"
+                    sortKey="title"
                     activeKey={contactSortKey}
                     sortDir={contactSortDir}
                     onSort={handleContactSort}
-                    className="px-4 py-3"
+                    className="px-3 py-2"
                   />
                   <SortableTableHeader
-                    label="OpenOpps"
-                    sortKey="opportunities"
+                    label="Coverage"
+                    sortKey="coverage"
                     activeKey={contactSortKey}
                     sortDir={contactSortDir}
                     onSort={handleContactSort}
-                    className="w-24 px-2 py-3 text-center [&>button]:justify-center [&>button]:text-center [&>button>span:first-child]:flex-none"
+                    className="px-3 py-2"
                   />
-                  <th className="w-24 px-4 py-3 font-medium">Actions</th>
+                  <SortableTableHeader
+                    label="Email"
+                    sortKey="email"
+                    activeKey={contactSortKey}
+                    sortDir={contactSortDir}
+                    onSort={handleContactSort}
+                    className="px-3 py-2"
+                  />
+                  <SortableTableHeader
+                    label="Phone"
+                    sortKey="phone"
+                    activeKey={contactSortKey}
+                    sortDir={contactSortDir}
+                    onSort={handleContactSort}
+                    className="px-3 py-2"
+                  />
+                  <th className="w-24 px-3 py-2 font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -663,7 +650,7 @@ export function ConnectionsCompaniesDesktop({
                       null;
                     return (
                       <tr key={contact.id} className="border-t border-slate-100">
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-2">
                           <input
                             type="checkbox"
                             aria-label={`Select ${getContactLabel(contact)}`}
@@ -672,7 +659,7 @@ export function ConnectionsCompaniesDesktop({
                             className="rounded border-slate-300"
                           />
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-2">
                           <AdminEntityLink
                             href={contactDrawerHref(
                               CONTACTS_LIST_PATH,
@@ -688,36 +675,49 @@ export function ConnectionsCompaniesDesktop({
                             className="mt-0.5 block"
                           />
                         </td>
-                        {selection === "all" ? (
-                          <td className="px-4 py-3 text-slate-600">
-                            <div className="flex flex-col gap-0.5">
-                              <AdminEntityLink
-                                href={companyFullPageHref(contact.company_business_id ?? contact.company_id)}
-                                className={`${connectionsGlassClasses.link} underline-offset-2 hover:underline`}
-                                fallback="No Company"
-                              >
-                                {contact.company_name ?? linkedCompany?.company_name}
-                              </AdminEntityLink>
-                              {companyNameZh ? (
-                                <span className="mt-0.5 block min-w-0 truncate text-xs leading-4 text-slate-500">
-                                  {companyNameZh}
-                                </span>
-                              ) : null}
-                            </div>
-                          </td>
-                        ) : null}
-                        <td className="px-4 py-3 text-slate-600">
-                          <span>{formatCompanyRoles(contact.contact_role) || "—"}</span>
+                        <td className="px-3 py-2 text-slate-600">
+                          <div className="flex max-w-[12rem] flex-col gap-0.5">
+                            <AdminEntityLink
+                              href={companyFullPageHref(contact.company_business_id ?? contact.company_id)}
+                              className={`block truncate ${connectionsGlassClasses.link} underline-offset-2 hover:underline`}
+                              fallback="No Company"
+                            >
+                              {contact.company_name ?? linkedCompany?.company_name}
+                            </AdminEntityLink>
+                            {companyNameZh ? (
+                              <span className="mt-0.5 block min-w-0 truncate text-xs leading-4 text-slate-500">
+                                {companyNameZh}
+                              </span>
+                            ) : null}
+                          </div>
                         </td>
-                        <td className="px-4 py-3 text-sm text-slate-600">
-                          {contact.last_activity_date?.slice(0, 10) ??
-                            contact.last_contact_date?.slice(0, 10) ??
-                            "—"}
+                        <td className="px-3 py-2 text-slate-700">
+                          {contact.title?.trim() ? (
+                            <span className="block max-w-[9rem] truncate" title={contact.title}>
+                              {contact.title}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
                         </td>
-                        <td className="w-24 px-2 py-3 text-center tabular-nums text-slate-600">
-                          {contact.open_opportunities ?? 0}
+                        <td className="px-3 py-2 align-top">
+                          <ContactCoverageBadges values={contact.coverage} />
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-2 text-slate-700">
+                          {contact.email?.trim() ? (
+                            <span className="block max-w-[12rem] truncate" title={contact.email}>
+                              {contact.email}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-2 text-slate-700">
+                          {formatPhoneDisplay(contact.phone_area_code, contact.phone) ?? (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2">
                           <ModuleRowActions
                             module="connections"
                             viewHref={contactDrawerHref(

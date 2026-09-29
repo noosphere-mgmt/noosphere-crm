@@ -27,10 +27,8 @@ const STATUS_LEGEND = [
 
 export function DashboardPipelineBubbleChart({
   points,
-  pipelineValue,
 }: {
   points: PipelineOpportunityPoint[];
-  pipelineValue: number;
 }) {
   const rootRef = useRef<HTMLElement>(null);
   const [horizon, setHorizon] = useState<PipelineChartHorizon>("next_3_months");
@@ -105,8 +103,7 @@ export function DashboardPipelineBubbleChart({
           </div>
         </div>
         <p className="shrink-0 text-[11px] tabular-nums text-slate-500">
-          {formatCount(visiblePoints.length)} active ·{" "}
-          {formatOpportunityMoneyCompact(horizon === "all" ? pipelineValue : visibleValue)}
+          {formatCount(visiblePoints.length)} open · {formatOpportunityMoneyCompact(visibleValue)}
           {plot.unscheduledCount > 0 ? ` · ${formatCount(plot.unscheduledCount)} unscheduled` : ""}
         </p>
       </div>
@@ -119,7 +116,7 @@ export function DashboardPipelineBubbleChart({
             width="100%"
             className="block h-auto w-full max-w-full min-w-0 lg:h-[16rem]"
             role="img"
-            aria-label="Pipeline analysis: one bubble per active opportunity"
+            aria-label="Pipeline analysis: one bubble per open opportunity"
           >
           {plot.gridY.map((tick) => (
             <g key={tick.value}>

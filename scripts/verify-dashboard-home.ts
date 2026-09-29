@@ -13,6 +13,7 @@ import {
 import { buildDashboardInsights } from "../lib/dashboardInsights";
 import { buildDashboardPulseMetrics, firstNameFromDisplayName, greetingForHour } from "../lib/dashboardPulse";
 import { OPPORTUNITY_STATUS_PROBABILITY } from "../lib/lookups";
+import { pipelinePointInHorizon } from "../lib/opportunityStartDate";
 import {
   formatOpportunityMoneyCompact,
   summariseEstimatedPipelineFinancials,
@@ -98,7 +99,7 @@ function testActivePipelineBubblesExcludeClosed(): void {
   assert.equal(points.find((point) => point.status === "sourcing")?.chance, OPPORTUNITY_STATUS_PROBABILITY.sourcing);
   const pipeline = summariseEstimatedPipelineFinancials(deals);
   assert.equal(pipeline.commission_income, 6000);
-  console.log("OK  one bubble per active opportunity; closed outcomes excluded");
+  console.log("OK  one bubble per open opportunity; closed outcomes excluded");
 }
 
 function testPerOpportunityChartUsesDateAndChance(): void {
@@ -249,10 +250,93 @@ function testFutureStartIsOutsideCurrentPipeline(): void {
   assert.equal(pulse.pipeline_value, 3000);
   assert.equal(pulse.active_count, 2);
   assert.equal(pulse.won_count, 1);
-  assert.equal(points.length, 2);
-  assert.ok(points.every((point) => point.name !== "Future renewal"));
+  assert.equal(points.length, 3);
+  assert.ok(points.some((point) => point.name === "Future renewal"));
+  assert.ok(points.every((point) => point.status !== "closed_won"));
   assert.doesNotMatch(insights.pipeline.text, /Future renewal/);
-  console.log("OK  future start dates stay out of current pipeline; won history remains");
+  console.log("OK  future start stays out of pulse and value; Pipeline Analysis All still includes it");
+}
+
+function testPipelineAllIncludesFutureStart(): void {
+  const today = "2026-09-29";
+  const deals = [
+    deal({
+      id: 1,
+      client_name: "Currently active",
+      status: "sourcing",
+      commission_income: "1000",
+      start_date: "2026-09-01",
+      expected_close_date: "2026-11-15",
+    }),
+    deal({
+      id: 2,
+      client_name: "Future start A",
+      status: "qualifying",
+      commission_income: "2000",
+      start_date: "2027-01-15",
+      expected_close_date: "2027-02-01",
+    }),
+    deal({
+      id: 3,
+      client_name: "Future start B",
+      status: "negotiating",
+      commission_income: "3000",
+      start_date: "2026-12-01",
+      expected_close_date: null,
+    }),
+    deal({
+      id: 4,
+      client_name: "Won",
+      status: "closed_won",
+      commission_income: "8000",
+      start_date: "2027-02-01",
+      expected_close_date: "2026-10-01",
+    }),
+    deal({
+      id: 5,
+      client_name: "Lost",
+      status: "closed_lost",
+      commission_income: "500",
+      start_date: null,
+      expected_close_date: "2026-10-20",
+    }),
+  ];
+  const points = buildPipelineOpportunityPoints(deals);
+  assert.deepEqual(
+    points.map((point) => point.name).sort(),
+    ["Currently active", "Future start A", "Future start B"],
+  );
+
+  const all = points.filter((point) => pipelinePointInHorizon(point, "all", today));
+  assert.equal(all.length, 3);
+  assert.equal(
+    all.reduce((sum, point) => sum + point.value, 0),
+    6000,
+  );
+
+  const next3 = points.filter((point) => pipelinePointInHorizon(point, "next_3_months", today));
+  assert.deepEqual(
+    next3.map((point) => point.name),
+    ["Currently active"],
+  );
+
+  const next6 = points.filter((point) => pipelinePointInHorizon(point, "next_6_months", today));
+  assert.deepEqual(
+    next6.map((point) => point.name).sort(),
+    ["Currently active", "Future start A"],
+  );
+
+  const layout = layoutPipelineOpportunityChart(all, new Date(2026, 8, 29, 12, 0, 0));
+  assert.equal(layout.bubbles.length, 3);
+  assert.equal(layout.unscheduledCount, 1);
+  assert.ok(layout.bubbles.every((bubble) => Number.isFinite(bubble.x) && Number.isFinite(bubble.y) && bubble.r > 0));
+  const unscheduled = layout.bubbles.find((bubble) => bubble.name === "Future start B");
+  const scheduled = layout.bubbles.find((bubble) => bubble.name === "Future start A");
+  assert.ok(unscheduled && scheduled);
+  assert.equal(unscheduled.scheduled, false);
+  assert.equal(scheduled.scheduled, true);
+  assert.ok(scheduled.x > unscheduled.x);
+  console.log("OK  Pipeline Analysis All includes future starts; horizons use expected close date");
 }
 
 function testCompactMoney(): void {
@@ -271,6 +355,7 @@ function main(): void {
   testBusinessPulse();
   testDashboardInsights();
   testFutureStartIsOutsideCurrentPipeline();
+  testPipelineAllIncludesFutureStart();
   testCompactMoney();
 }
 

@@ -141,7 +141,7 @@ export const OPPORTUNITY_SALES_ROLE_LABELS: Record<OpportunitySalesRole, string>
   to_lease: "Ppty-Rent",
   to_let: "Ppty-Rent",
   to_sell: "Ppty-Buy",
-  ad_prof_service: "Ad Prof Service",
+  ad_prof_service: "Prof Service",
   others: "Others",
 };
 

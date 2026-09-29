@@ -1,10 +1,16 @@
-import { pickDefaultCrmOwner } from "@/lib/crmOwner";
+import { OPPORTUNITY_DEFAULT_OWNER_NAME, pickCrmOwnerByDisplayName, pickDefaultCrmOwner } from "@/lib/crmOwner";
 import { query } from "@/lib/db";
 export type CrmUser = { id:number; display_name:string; email:string|null; user_type:"human"|"virtual"; role:string; channel:string|null; coverage:string[]; login_enabled:boolean; api_enabled:boolean; is_active:boolean; instructions:string|null };
 export async function listCrmUsers(): Promise<CrmUser[]> { return query<CrmUser>(`SELECT id,display_name,email,user_type,role,channel,coverage,login_enabled,api_enabled,is_active,instructions FROM crm_users ORDER BY is_active DESC,user_type,display_name`); }
 export async function getCrmUser(id:number):Promise<CrmUser|null>{const rows=await query<CrmUser>(`SELECT id,display_name,email,user_type,role,channel,coverage,login_enabled,api_enabled,is_active,instructions FROM crm_users WHERE id=$1`,[id]);return rows[0]??null;}
 export async function getDefaultCrmOwnerName(): Promise<string | null> {
   const owner = pickDefaultCrmOwner(await listCrmUsers());
+  return owner?.display_name ?? null;
+}
+
+/** Display name from the existing Teresa Cheuk staff record. Null when that record is absent. */
+export async function getDefaultOpportunityOwnerName(): Promise<string | null> {
+  const owner = pickCrmOwnerByDisplayName(await listCrmUsers(), OPPORTUNITY_DEFAULT_OWNER_NAME);
   return owner?.display_name ?? null;
 }
 export async function createCrmUser(v: Omit<CrmUser,"id">): Promise<number> { const rows=await query<{id:string}>(`INSERT INTO crm_users(display_name,email,user_type,role,channel,coverage,login_enabled,api_enabled,is_active,instructions) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id::text`,[v.display_name,v.email,v.user_type,v.role,v.channel,v.coverage,v.login_enabled,v.api_enabled,v.is_active,v.instructions]); return Number.parseInt(rows[0]!.id,10); }

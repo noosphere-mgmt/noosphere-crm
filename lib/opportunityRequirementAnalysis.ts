@@ -85,8 +85,8 @@ export function analyseOpportunityRequirement(text: string): RequirementSuggesti
 export function requirementSuggestionDisplayValue(item: RequirementSuggestion): string {
   const labels: Record<string, string> = {
     to_lease: "Ppty-Rent", to_let: "Ppty-Rent", to_buy: "Ppty-Buy", to_sell: "Ppty-Buy",
-    ad_prof_service: "Ad Prof Service", others: "Others",
-    prof_service: "Ad Prof Service",
+    ad_prof_service: "Prof Service", others: "Others",
+    prof_service: "Prof Service",
     commercial: "Commercial", residential: "Residential", industrial: "Industrial",
     conventional_office: "Conventional Office", serviced_office: "Serviced Office",
     shared_sublet_office: "Shared / Sublet Office", shared_sublet: "Shared / Sublet Office",

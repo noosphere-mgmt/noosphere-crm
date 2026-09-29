@@ -12,7 +12,8 @@ import {
   normalizeCategoryPreference,
   normalizeSpaceFormPreference,
 } from "@/lib/opportunityPreferences";
-import { getDefaultCrmOwnerName } from "@/lib/repos/crmUsers";
+import { resolveRecordOwner } from "@/lib/crmOwner";
+import { getDefaultCrmOwnerName, getDefaultOpportunityOwnerName } from "@/lib/repos/crmUsers";
 
 const STATUSES = new Set<LeadStatus>(["new", "reviewing", "qualified", "converted", "nurture", "disqualified", "duplicate"]);
 
@@ -145,7 +146,10 @@ export async function convertLeadAction(id: number, formData: FormData) {
     lead.requirement_notes,
     lead.next_lease_expiry ? `Current lease expiry: ${lead.next_lease_expiry}` : null,
   ].filter(Boolean).join("\n\n");
-  const opportunityOwner = text(formData, "opportunity_owner") ?? lead.assigned_owner;
+  const opportunityOwner = resolveRecordOwner(
+    text(formData, "opportunity_owner") ?? lead.assigned_owner,
+    await getDefaultOpportunityOwnerName(),
+  );
   const digest = lead.ai_digest ?? "";
   const salesRoleMatch = digest.match(/Sales Role:\s*([a-z_]+)/i);
   const requiredTypeMatch = digest.match(/Required Type:\s*([a-z_]+)/i);

@@ -26,6 +26,7 @@ import type { Opportunity, OpportunityStatus } from "@/lib/types/entities";
 import { RecordBusinessId } from "@/components/admin/RecordBusinessId";
 import { OPPORTUNITY_SOURCES, OPPORTUNITY_SOURCE_LABELS } from "@/lib/opportunitySourceValues";
 import { CrmStaffSelect } from "@/components/admin/CrmStaffSelect";
+import { OPPORTUNITY_DEFAULT_OWNER_NAME } from "@/lib/crmOwner";
 import { formatOpportunityMoneyDraft, formatOpportunityMoneyInput } from "@/lib/opportunityFinancials";
 import { todayDateString } from "@/lib/opportunityStartDate";
 
@@ -134,7 +135,14 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
             disabled={!editing}
             instanceKey={`create-${defaults?.id ?? "new"}`}
           />
-          <CrmStaffSelect label="Opportunity Owner" name="relationship_owner" defaultValue={defaults?.relationship_owner} defaultToPrimary={!defaults} disabled={!editing} />
+          <CrmStaffSelect
+            label="Opportunity Owner"
+            name="relationship_owner"
+            defaultValue={defaults?.relationship_owner}
+            defaultToPrimary={!defaults?.relationship_owner?.trim()}
+            preferredName={OPPORTUNITY_DEFAULT_OWNER_NAME}
+            disabled={!editing}
+          />
         </div>
       </div>
 

@@ -6,6 +6,36 @@ export type CrmOwnerCandidate = {
   is_active: boolean;
 };
 
+/** Lookup name for the new-opportunity owner. The stored value is the matched user's display name. */
+export const OPPORTUNITY_DEFAULT_OWNER_NAME = "Teresa Cheuk";
+
+function ownerNameKey(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+/**
+ * Find an existing staff record by display name. Prefer an active human.
+ * Returns null when nobody matches, so callers do not invent a user or store a bare name.
+ */
+export function pickCrmOwnerByDisplayName<T extends CrmOwnerCandidate>(
+  users: T[],
+  displayName: string,
+): T | null {
+  const target = ownerNameKey(displayName);
+  if (!target) return null;
+  const matches = users.filter((user) => ownerNameKey(user.display_name) === target);
+  const active = matches.filter((user) => user.is_active);
+  const pool = active.length > 0 ? active : matches;
+  return (
+    [...pool].sort(
+      (a, b) =>
+        Number(b.user_type === "human") - Number(a.user_type === "human") ||
+        Number(b.login_enabled) - Number(a.login_enabled) ||
+        a.id - b.id,
+    )[0] ?? null
+  );
+}
+
 /**
  * Prefer the active human who can log in, then any active human, then any
  * active user. The stored owner value remains that user's display name.
