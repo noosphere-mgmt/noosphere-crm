@@ -166,6 +166,12 @@ export async function createRelationship(input: RelationshipInput): Promise<stri
   if (!isRelationshipType(input.relationship_type)) {
     throw new Error("Invalid relationship type");
   }
+  if (
+    (input.relationship_type === "Subsidiary of" || input.relationship_type === "Holding Company of") &&
+    (input.from_entity_type !== "company" || input.to_entity_type !== "company")
+  ) {
+    throw new Error("Subsidiary of and Holding Company of apply to companies only");
+  }
   const reverseType = reverseRelationshipType(input.relationship_type);
   if (!reverseType) {
     throw new Error("Invalid relationship type");
@@ -232,6 +238,12 @@ export async function updateRelationship(
 
   const reverse = await findReverseRelationship(row);
   const nextForwardType = patch.relationship_type ?? row.relationship_type;
+  if (
+    (nextForwardType === "Subsidiary of" || nextForwardType === "Holding Company of") &&
+    (row.from_entity_type !== "company" || row.to_entity_type !== "company")
+  ) {
+    throw new Error("Subsidiary of and Holding Company of apply to companies only");
+  }
   const nextReverseType = reverseRelationshipType(nextForwardType);
 
   await withTransaction(async (client) => {

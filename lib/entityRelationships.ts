@@ -7,6 +7,8 @@ export const RELATIONSHIP_TYPES = [
   "Referred By",
   "Represents",
   "Represented By",
+  "Subsidiary of",
+  "Holding Company of",
 ] as const;
 
 export type RelationshipType = (typeof RELATIONSHIP_TYPES)[number];
@@ -21,6 +23,8 @@ export const ADDABLE_RELATIONSHIP_TYPES = [
   "Refers",
   "Represents",
   "Represented By",
+  "Subsidiary of",
+  "Holding Company of",
 ] as const;
 export type AddableRelationshipType = (typeof ADDABLE_RELATIONSHIP_TYPES)[number];
 
@@ -41,7 +45,22 @@ export function reverseRelationshipType(type: string): RelationshipType | null {
   if (type === "Represents") return "Represented By";
   if (type === "Referred By") return "Refers";
   if (type === "Represented By") return "Represents";
+  if (type === "Subsidiary of") return "Holding Company of";
+  if (type === "Holding Company of") return "Subsidiary of";
   return null;
+}
+
+/** Company-to-company pair. Hidden from contact and other party types. */
+export function addableRelationshipTypesFor(
+  entityType: EntityType,
+  relatedEntityType: EntityType = "company",
+): readonly AddableRelationshipType[] {
+  if (entityType === "company" && relatedEntityType === "company") {
+    return ADDABLE_RELATIONSHIP_TYPES;
+  }
+  return ADDABLE_RELATIONSHIP_TYPES.filter(
+    (type) => type !== "Subsidiary of" && type !== "Holding Company of",
+  );
 }
 
 export function reverseRelationshipLabel(type: string): string {

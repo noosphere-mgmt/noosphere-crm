@@ -11,8 +11,8 @@ import {
 import { ModuleRowActions } from "@/components/admin/ModuleRowActions";
 import { RelationshipEntityTypeahead } from "@/components/admin/connections/RelationshipEntityTypeahead";
 import {
-  ADDABLE_RELATIONSHIP_TYPES,
   RELATIONSHIP_STATUSES,
+  addableRelationshipTypesFor,
   defaultAddRelationshipType,
   isAddableRelationshipType,
   type EntityRelationshipRow,
@@ -75,6 +75,7 @@ export function EntityRelationshipsTab({
   const [editType, setEditType] = useState("");
   const [editStatus, setEditStatus] = useState("");
   const [editRemarks, setEditRemarks] = useState("");
+  const addRelationshipTypes = addableRelationshipTypesFor(entityType, relatedType);
 
   function resetAddForm() {
     setRelatedParty(null);
@@ -188,7 +189,7 @@ export function EntityRelationshipsTab({
                             onChange={(e) => setEditType(e.target.value)}
                             className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
                           >
-                            {ADDABLE_RELATIONSHIP_TYPES.map((t) => (
+                            {addableRelationshipTypesFor(entityType, row.related_entity_type).map((t) => (
                               <option key={t} value={t}>
                                 {t}
                               </option>
@@ -281,7 +282,7 @@ export function EntityRelationshipsTab({
               onChange={(e) => setRelationshipType(e.target.value)}
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
             >
-              {ADDABLE_RELATIONSHIP_TYPES.map((t) => (
+              {addRelationshipTypes.map((t) => (
                 <option key={t} value={t}>
                   {t}
                 </option>
@@ -293,8 +294,13 @@ export function EntityRelationshipsTab({
             <select
               value={relatedType}
               onChange={(e) => {
-                setRelatedType(e.target.value as EntityType);
+                const nextType = e.target.value as EntityType;
+                setRelatedType(nextType);
                 setRelatedParty(null);
+                const allowed = addableRelationshipTypesFor(entityType, nextType);
+                if (!allowed.includes(relationshipType as (typeof allowed)[number])) {
+                  setRelationshipType(defaultAddRelationshipType(entityType));
+                }
               }}
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
             >
