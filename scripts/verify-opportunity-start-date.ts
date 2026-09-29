@@ -107,17 +107,42 @@ function testListQuickFilters(): void {
     expected_close_date: null,
   }, { active: true, open: true, next_3_months: false, next_6_months: false, all: true });
 
-  expect("C starts next month", {
+  const inTwoMonths = addCalendarMonths(TODAY, 2);
+  expect("already started and closes within 3 months", {
+    status: "qualifying",
+    start_date: yesterday,
+    expected_close_date: inTwoMonths,
+  }, { active: true, open: true, next_3_months: true, next_6_months: true, all: true });
+
+  expect("blank start and closes within 3 months", {
+    status: "sourcing",
+    start_date: null,
+    expected_close_date: inTwoMonths,
+  }, { active: true, open: true, next_3_months: true, next_6_months: true, all: true });
+
+  expect("closes in five months", {
+    status: "negotiating",
+    start_date: yesterday,
+    expected_close_date: inFiveMonths,
+  }, { active: true, open: true, next_3_months: false, next_6_months: true, all: true });
+
+  expect("C future start does not enter next windows when close is later", {
     status: "proposal_reviewing",
     start_date: nextMonth,
     expected_close_date: validEnd,
-  }, { active: false, open: true, next_3_months: true, next_6_months: true, all: true });
+  }, { active: false, open: true, next_3_months: false, next_6_months: false, all: true });
 
-  expect("D starts in five months", {
+  expect("D future start in five months follows expected close", {
     status: "qualifying",
     start_date: inFiveMonths,
     expected_close_date: validEnd,
-  }, { active: false, open: true, next_3_months: false, next_6_months: true, all: true });
+  }, { active: false, open: true, next_3_months: false, next_6_months: false, all: true });
+
+  expect("future start with close inside 3 months", {
+    status: "qualifying",
+    start_date: inFiveMonths,
+    expected_close_date: inTwoMonths,
+  }, { active: false, open: true, next_3_months: true, next_6_months: true, all: true });
 
   expect("E future start with expired end", {
     status: "qualifying",
@@ -131,10 +156,10 @@ function testListQuickFilters(): void {
     expected_close_date: validEnd,
   }, { active: false, open: false, next_3_months: false, next_6_months: false, all: true });
 
-  expect("F closed lost still inside next six", {
+  expect("F closed lost with close inside next six", {
     status: "closed_lost",
-    start_date: inFiveMonths,
-    expected_close_date: validEnd,
+    start_date: null,
+    expected_close_date: inFiveMonths,
   }, { active: false, open: false, next_3_months: false, next_6_months: false, all: true });
 
   expect("start today stays active", {
@@ -152,19 +177,19 @@ function testListQuickFilters(): void {
   assert.equal(inThreeMonths <= addCalendarMonths(TODAY, 3), true);
   assert.equal(matches({
     status: "qualifying",
-    start_date: inThreeMonths,
-    expected_close_date: validEnd,
-  }, "next_3_months"), true, "start on the 3-month horizon is included");
+    start_date: yesterday,
+    expected_close_date: inThreeMonths,
+  }, "next_3_months"), true, "expected close on the 3-month horizon is included");
   assert.equal(matches({
     status: "qualifying",
     start_date: inSixMonths,
-    expected_close_date: validEnd,
-  }, "next_6_months"), true, "start on the 6-month horizon is included");
+    expected_close_date: inSixMonths,
+  }, "next_6_months"), true, "expected close on the 6-month horizon is included");
   assert.equal(matches({
     status: "qualifying",
-    start_date: inSixMonths,
-    expected_close_date: validEnd,
-  }, "next_3_months"), false, "6-month horizon is outside next 3");
+    start_date: nextMonth,
+    expected_close_date: inSixMonths,
+  }, "next_3_months"), false, "6-month expected close is outside next 3");
 }
 
 function testActiveRule(): void {

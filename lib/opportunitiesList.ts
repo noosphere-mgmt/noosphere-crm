@@ -3,10 +3,9 @@ import { isClosedOpportunityStatus } from "@/lib/openOpportunityStatus";
 import { normalizeOpportunityStatus } from "@/lib/opportunityStatusModel";
 import { formatMoney, formatAreaSqft } from "@/lib/formatCurrency";
 import {
-  addCalendarMonths,
   isActiveOpportunityStart,
   isOpportunityExpectedCloseCurrent,
-  opportunityStartDate,
+  opportunityMatchesDateWindow,
   todayDateString,
   type OpportunityStartWindow,
 } from "@/lib/opportunityStartDate";
@@ -135,6 +134,7 @@ export function opportunityMatchesListStatusFilter(
 /**
  * Opportunity List view: Active, Open, Next 3 Mth, Next 6 Mth, All.
  * End/valid date is expected_close_date. Closed means closed_won or closed_lost.
+ * Next 3 / Next 6 use Expected Close Date only. Start Date does not restrict them.
  */
 export function opportunityMatchesListQuickFilter(
   row: {
@@ -147,13 +147,12 @@ export function opportunityMatchesListQuickFilter(
 ): boolean {
   if (filter === "all") return true;
   if (isClosedOpportunityStatus(row.status ?? "")) return false;
+  if (filter === "next_3_months" || filter === "next_6_months") {
+    return opportunityMatchesDateWindow({ expected_close_date: row.expected_close_date }, filter, today);
+  }
   if (!isOpportunityExpectedCloseCurrent(row.expected_close_date, today)) return false;
   if (filter === "open") return true;
-  if (filter === "active") return isActiveOpportunityStart(row.start_date, today);
-  const start = opportunityStartDate(row.start_date);
-  if (!start || start <= today) return false;
-  const months = filter === "next_3_months" ? 3 : 6;
-  return start <= addCalendarMonths(today, months);
+  return isActiveOpportunityStart(row.start_date, today);
 }
 
 export function countOpportunitiesListStatusFilter(
