@@ -7,16 +7,20 @@ import { ConnectionsModuleToolbar } from "@/components/admin/connections/Connect
 import { companyWorkspaceHref } from "@/lib/companyWorkspaceNav";
 import { contactWorkspaceHref } from "@/lib/contactWorkspaceNav";
 import { opportunityWorkspaceHref } from "@/lib/opportunityWorkspaceNav";
+import {
+  buildChannelIntroductionChildren,
+  channelOpportunityCounts,
+  collectChannelBranchOpportunities,
+  collectChannelBranchReferrals,
+  countChannelIntroductions,
+  indexChannelReferralLinks,
+} from "@/lib/channelTreeReferralStats";
 import type { ChannelEntity, ChannelOpportunity, ChannelTreeData } from "@/lib/repos/channelTree";
 import type { Contact } from "@/lib/types/entities";
 
 type DisplayNode = ChannelEntity & { member?: boolean };
 
 const CHANNEL_TREE_RETURN_TO = "/admin/connections/channel-tree";
-
-function isActive(status: string): boolean {
-  return status !== "closed_won" && status !== "closed_lost";
-}
 
 function opportunityHref(opportunity: ChannelOpportunity): string {
   return opportunityWorkspaceHref(
@@ -46,10 +50,9 @@ export function ChannelTreeClient({ contacts, tree }: { contacts: Contact[]; tre
 
   const model = useMemo(() => {
     const entities = new Map(tree.entities.map((entity) => [entity.key, entity]));
-    const children = new Map<string, string[]>();
+    const children = buildChannelIntroductionChildren(tree.introductions);
     const targeted = new Set<string>();
     for (const edge of tree.introductions) {
-      children.set(edge.from_key, [...(children.get(edge.from_key) ?? []), edge.to_key]);
       targeted.add(edge.to_key);
     }
 
@@ -60,6 +63,8 @@ export function ChannelTreeClient({ contacts, tree }: { contacts: Contact[]; tre
       if (!current.some((opportunity) => opportunity.id === link.opportunity.id)) current.push(link.opportunity);
       opportunities.set(link.entity_key, current);
     }
+
+    const referrals = indexChannelReferralLinks(tree.referral_links);
 
     const companyMembers = new Map<string, DisplayNode[]>();
     const memberCompanyByContact = new Map<string, string>();
@@ -89,7 +94,7 @@ export function ChannelTreeClient({ contacts, tree }: { contacts: Contact[]; tre
       (children.get(b.key)?.length ?? 0) - (children.get(a.key)?.length ?? 0) || a.name.localeCompare(b.name),
     )[0];
     const roots = naturalRoots.length > 0 ? naturalRoots : fallbackRoot ? [fallbackRoot] : [];
-    return { entities, children, opportunities, companyMembers, roots };
+    return { entities, children, opportunities, referrals, companyMembers, roots };
   }, [contacts, tree]);
 
   function directChildren(key: string): DisplayNode[] {
@@ -100,23 +105,6 @@ export function ChannelTreeClient({ contacts, tree }: { contacts: Contact[]; tre
     const members = model.companyMembers.get(key) ?? [];
     const referredKeys = new Set(referred.map((node) => node.key));
     return [...referred, ...members.filter((node) => !referredKeys.has(node.key))];
-  }
-
-  function collectOpportunities(key: string, visited = new Set<string>()): Map<number, ChannelOpportunity> {
-    if (visited.has(key)) return new Map();
-    const nextVisited = new Set(visited).add(key);
-    const result = new Map((model.opportunities.get(key) ?? []).map((opportunity) => [opportunity.id, opportunity]));
-    for (const child of directChildren(key)) {
-      for (const [id, opportunity] of collectOpportunities(child.key, nextVisited)) result.set(id, opportunity);
-    }
-    return result;
-  }
-
-  function countIntroductions(key: string, visited = new Set<string>()): number {
-    if (visited.has(key)) return 0;
-    const nextVisited = new Set(visited).add(key);
-    const referred = model.children.get(key) ?? [];
-    return referred.length + referred.reduce((sum, childKey) => sum + countIntroductions(childKey, nextVisited), 0);
   }
 
   function searchText(key: string, visited = new Set<string>()): string {
@@ -131,10 +119,23 @@ export function ChannelTreeClient({ contacts, tree }: { contacts: Contact[]; tre
     ].filter(Boolean).join(" ");
   }
 
+  function collectOpportunities(key: string, visited = new Set<string>()): Map<number, ChannelOpportunity> {
+    return collectChannelBranchOpportunities(
+      key,
+      model.opportunities,
+      (parentKey) => directChildren(parentKey).map((child) => child.key),
+      visited,
+    );
+  }
+
+  function collectReferrals(key: string, visited = new Set<string>()): Map<number, ChannelOpportunity> {
+    return collectChannelBranchReferrals(key, model.referrals, model.children, visited);
+  }
+
   const q = query.trim().toLowerCase();
   const roots = model.roots
     .filter((root) => !q || searchText(root.key).toLowerCase().includes(q))
-    .sort((a, b) => countIntroductions(b.key) - countIntroductions(a.key) || a.name.localeCompare(b.name));
+    .sort((a, b) => countChannelIntroductions(b.key, model.children) - countChannelIntroductions(a.key, model.children) || a.name.localeCompare(b.name));
 
   function toggleNode(key: string) {
     setCollapsed((current) => {
@@ -156,8 +157,8 @@ export function ChannelTreeClient({ contacts, tree }: { contacts: Contact[]; tre
       : new Set<number>();
     const directOpportunities = (model.opportunities.get(node.key) ?? []).filter((opportunity) => !memberOpportunityIds.has(opportunity.id));
     const subtreeOpportunities = [...collectOpportunities(node.key).values()];
-    const active = subtreeOpportunities.filter((opportunity) => isActive(opportunity.status)).length;
-    const won = subtreeOpportunities.filter((opportunity) => opportunity.status === "closed_won").length;
+    const opportunityCounts = channelOpportunityCounts(subtreeOpportunities);
+    const referralCount = collectReferrals(node.key).size;
     const branchMatchesSearch = Boolean(q) && searchText(node.key).toLowerCase().includes(q);
     const isCollapsed = collapsed.has(node.key) && !branchMatchesSearch;
     const hasContents = children.length > 0 || directOpportunities.length > 0;
@@ -188,10 +189,13 @@ export function ChannelTreeClient({ contacts, tree }: { contacts: Contact[]; tre
             </div>
           </div>
           <div className="grid w-full grid-cols-4 gap-1 text-center text-[10px] font-semibold sm:flex sm:w-auto sm:flex-wrap sm:gap-2 sm:text-xs">
-            <span className="rounded-full bg-[#F0EDF2] px-1.5 py-1 text-[#62556A] sm:px-2.5">{countIntroductions(node.key)} <span className="hidden sm:inline">introductions</span><span className="sm:hidden">intro</span></span>
-            <span className="rounded-full bg-[#EDF3F5] px-1.5 py-1 text-[#4F6F75] sm:px-2.5">{subtreeOpportunities.length} <span className="hidden sm:inline">opportunities</span><span className="sm:hidden">opps</span></span>
-            <span className="rounded-full bg-[#EEF3ED] px-1.5 py-1 text-[#506753] sm:px-2.5">{active} active</span>
-            <span className="rounded-full bg-[#F3EEF1] px-1.5 py-1 text-[#775E6D] sm:px-2.5">{won} won</span>
+            <span className="rounded-full bg-[#F0EDF2] px-1.5 py-1 text-[#62556A] sm:px-2.5">{countChannelIntroductions(node.key, model.children)} <span className="hidden sm:inline">introductions</span><span className="sm:hidden">intro</span></span>
+            <span className="rounded-full bg-[#EDF3F5] px-1.5 py-1 text-[#4F6F75] sm:px-2.5">
+              {opportunityCounts.opportunities} <span className="hidden sm:inline">opportunities</span><span className="sm:hidden">opps</span>
+              <span className="ml-1 font-normal">· {referralCount} referred</span>
+            </span>
+            <span className="rounded-full bg-[#EEF3ED] px-1.5 py-1 text-[#506753] sm:px-2.5">{opportunityCounts.active} active</span>
+            <span className="rounded-full bg-[#F3EEF1] px-1.5 py-1 text-[#775E6D] sm:px-2.5">{opportunityCounts.won} won</span>
           </div>
         </div>
 
@@ -227,7 +231,7 @@ export function ChannelTreeClient({ contacts, tree }: { contacts: Contact[]; tre
           <button type="button" onClick={() => setCollapsed(new Set([...model.entities.keys(), ...model.companyMembers.keys()]))}
             className="rounded-lg border border-[#DED8E2] bg-white px-3 py-2 text-sm font-medium text-[#66566D] hover:bg-[#F7F4F7]">Collapse all</button>
         </div>
-        <p className="mt-2 px-1 text-xs text-slate-500">Figures include the full branch. An opportunity is counted once even when linked through both a company and a contact.</p>
+        <p className="mt-2 px-1 text-xs text-slate-500">Opportunity, active, and won figures include the full branch. Referral figures count each referred opportunity once per branch.</p>
       </div>
 
       <div className="space-y-4">

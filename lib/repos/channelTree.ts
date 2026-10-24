@@ -1,4 +1,9 @@
 import { query } from "@/lib/db";
+import {
+  buildChannelReferralLinks,
+  CHANNEL_REFERRAL_PARTY_ROLES,
+  type ChannelReferralQueryRow,
+} from "@/lib/channelTreeReferralStats";
 
 export type ChannelEntityType = "company" | "contact";
 
@@ -21,6 +26,7 @@ export type ChannelOpportunity = {
   business_id: string | null;
   client_name: string;
   status: string;
+  start_date?: string | null;
 };
 
 export type ChannelOpportunityLink = {
@@ -32,6 +38,7 @@ export type ChannelTreeData = {
   entities: ChannelEntity[];
   introductions: ChannelIntroduction[];
   opportunity_links: ChannelOpportunityLink[];
+  referral_links: ChannelOpportunityLink[];
 };
 
 type RelationshipQueryRow = {
@@ -64,7 +71,7 @@ function entityKey(type: ChannelEntityType, id: number): string {
  * a legacy numeric id or a business id, so both are resolved before graphing.
  */
 export async function getChannelTreeData(): Promise<ChannelTreeData> {
-  const [relationshipRows, opportunityRows] = await Promise.all([
+  const [relationshipRows, opportunityRows, referralRows] = await Promise.all([
     query<RelationshipQueryRow>(
       `SELECT
          r.relationship_id,
@@ -113,6 +120,36 @@ export async function getChannelTreeData(): Promise<ChannelTreeData> {
        ) linked
        WHERE entity_id IS NOT NULL`,
     ),
+    query<ChannelReferralQueryRow>(
+      `WITH referral_entities AS (
+        SELECT opportunity_id, 'company'::text AS entity_type, company_id::text AS entity_id, NULL::text AS contact_id
+        FROM opportunity_parties WHERE role = ANY($1::text[]) AND company_id IS NOT NULL
+        UNION
+        SELECT opportunity_id, 'contact', contact_id::text, contact_id::text
+        FROM opportunity_parties WHERE role = ANY($1::text[]) AND contact_id IS NOT NULL
+        UNION
+        SELECT id, 'company', referrer_company_id::text, NULL::text FROM opportunities WHERE referrer_company_id IS NOT NULL
+        UNION
+        SELECT id, 'contact', referrer_contact_id::text, referrer_contact_id::text FROM opportunities WHERE referrer_contact_id IS NOT NULL
+       ), contact_company_memberships AS (
+         SELECT id AS contact_id, company_id FROM contacts WHERE company_id IS NOT NULL
+         UNION
+         SELECT contact_id, company_id FROM contact_related_companies
+       )
+       SELECT 'referral' AS row_type,
+         r.entity_type, r.entity_id, r.contact_id,
+         o.id::text AS opportunity_id, o.business_id AS opportunity_business_id,
+         o.client_name, o.status, o.start_date::text AS start_date
+       FROM referral_entities r JOIN opportunities o ON o.id = r.opportunity_id
+       UNION ALL
+       SELECT 'membership' AS row_type, 'company' AS entity_type,
+         m.company_id::text AS entity_id, m.contact_id::text AS contact_id,
+         NULL::text AS opportunity_id, NULL::text AS opportunity_business_id,
+         NULL::text AS client_name, NULL::text AS status, NULL::text AS start_date
+       FROM contact_company_memberships m
+      WHERE EXISTS (SELECT 1 FROM referral_entities r WHERE r.contact_id = m.contact_id::text)`,
+          [CHANNEL_REFERRAL_PARTY_ROLES],
+    ),
   ]);
 
   const entities = new Map<string, ChannelEntity>();
@@ -139,5 +176,7 @@ export async function getChannelTreeData(): Promise<ChannelTreeData> {
     },
   }));
 
-  return { entities: [...entities.values()], introductions, opportunity_links };
+  const referral_links = buildChannelReferralLinks(referralRows);
+
+  return { entities: [...entities.values()], introductions, opportunity_links, referral_links };
 }
