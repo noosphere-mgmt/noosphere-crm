@@ -77,7 +77,9 @@ export function AdminTopNav() {
     <header className="sticky top-0 z-40 w-full max-w-full shrink-0 border-b border-slate-200/80 bg-[#f4f6f8]/95 backdrop-blur-md">
       <div className="mx-auto flex max-w-[1800px] items-center gap-2 px-3 py-2.5 sm:px-4 lg:gap-6 lg:px-6 lg:py-3">
         <Link href="/admin" className="shrink-0">
-          <p className="text-sm font-bold tracking-tight text-slate-900">NOOSPHERE CRM</p>
+          <p className="text-[10px] font-semibold uppercase leading-none tracking-[0.16em] text-violet-600">AI-POWERED CRM</p>
+          <p className="mt-0.5 text-base font-semibold leading-none tracking-tight text-slate-900 sm:text-lg">Noosphere Intelligence</p>
+          <p className="mt-0.5 text-[11px] leading-none text-slate-500 sm:text-xs">Turn relationships into opportunities.</p>
         </Link>
         <nav className="hidden min-w-0 flex-1 items-center gap-1 overflow-x-auto lg:flex" aria-label="Main navigation">
           {ADMIN_NAV_ITEMS.map((item) => (

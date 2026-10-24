@@ -17,28 +17,9 @@ export function DashboardDesktop({
   const pulse = buildDashboardPulseMetrics(deals);
   const points = buildPipelineOpportunityPoints(deals);
   const insights = buildDashboardInsights(deals, dashboard.top_referrers);
-  const today = new Date().toLocaleDateString("en-GB", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
 
   return (
     <div className="flex w-full min-w-0 max-w-full flex-col gap-2.5">
-      <header className="flex min-w-0 items-start justify-between gap-2 sm:gap-3">
-        <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase leading-none tracking-[0.16em] text-violet-600">AI-POWERED CRM</p>
-          <h1 className="mt-0.5 text-base font-semibold leading-none tracking-tight text-slate-900 sm:text-lg">
-            Noosphere Intelligence
-          </h1>
-          <p className="mt-0.5 whitespace-nowrap text-[11px] leading-none text-slate-500 sm:text-xs">
-            Turns relationships into opportunities.
-          </p>
-        </div>
-        <p className="shrink-0 text-[10px] font-medium text-slate-400 sm:text-xs sm:text-slate-500">{today}</p>
-      </header>
-
       <DashboardAiInsights insights={insights} />
 
       <div className="grid w-full min-h-0 min-w-0 max-w-full items-stretch gap-2 lg:grid-cols-[minmax(0,27fr)_minmax(0,46fr)_minmax(0,27fr)] lg:gap-2.5">
