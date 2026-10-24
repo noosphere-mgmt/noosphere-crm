@@ -31,9 +31,11 @@ export function DashboardPipelineBubbleChart({
   points: PipelineOpportunityPoint[];
 }) {
   const rootRef = useRef<HTMLElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const [horizon, setHorizon] = useState<PipelineChartHorizon>("next_3_months");
   const [hoverId, setHoverId] = useState<number | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [renderedSize, setRenderedSize] = useState({ width: WIDTH, height: HEIGHT });
   const visiblePoints = useMemo(
     () => points.filter((point) => pipelinePointInHorizon(point, horizon)),
     [horizon, points],
@@ -43,9 +45,17 @@ export function DashboardPipelineBubbleChart({
     [visiblePoints],
   );
   const plot = useMemo(
-    () => layoutPipelineOpportunityChart(visiblePoints, new Date(), horizon === "next_3_months" ? 3 : 6),
-    [horizon, visiblePoints],
+    () =>
+      layoutPipelineOpportunityChart(
+        visiblePoints,
+        new Date(),
+        horizon === "next_3_months" ? 3 : 6,
+        renderedSize,
+      ),
+    [horizon, renderedSize, visiblePoints],
   );
+  const svgScale = Math.min(renderedSize.width / WIDTH, renderedSize.height / HEIGHT) || 1;
+  const monthLabelSize = PIPELINE_MONTH_LABEL_SIZE / svgScale;
   const hover = plot.bubbles.find((bubble) => bubble.id === hoverId) ?? null;
   const selected = plot.bubbles.find((bubble) => bubble.id === selectedId) ?? null;
 
@@ -64,6 +74,26 @@ export function DashboardPipelineBubbleChart({
       document.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("keydown", onKey);
     };
+  }, []);
+
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    function measure() {
+      const currentSvg = svgRef.current;
+      if (!currentSvg) return;
+      const rect = currentSvg.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return;
+      setRenderedSize((current) =>
+        Math.abs(current.width - rect.width) < 0.5 && Math.abs(current.height - rect.height) < 0.5
+          ? current
+          : { width: rect.width, height: rect.height },
+      );
+    }
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(svg);
+    return () => observer.disconnect();
   }, []);
 
   return (
@@ -111,6 +141,7 @@ export function DashboardPipelineBubbleChart({
       <div className="relative min-h-0 min-w-0 w-full max-w-full flex-1">
         <div className="min-w-0 w-full max-w-full overflow-hidden">
           <svg
+            ref={svgRef}
             viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
             preserveAspectRatio="xMidYMin meet"
             width="100%"
@@ -147,10 +178,11 @@ export function DashboardPipelineBubbleChart({
               <text
                 key={`${tick.label}-${tick.x}`}
                 x={tick.x}
-                y={HEIGHT - 14}
+                y={HEIGHT - 16}
                 textAnchor="middle"
+                dominantBaseline="middle"
                 className="fill-slate-600"
-                fontSize={PIPELINE_MONTH_LABEL_SIZE}
+                fontSize={monthLabelSize}
               >
                 {tick.label}
               </text>

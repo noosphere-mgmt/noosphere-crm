@@ -3,8 +3,10 @@ import type { PipelineOpportunityPoint } from "@/lib/dashboardPipelineStages";
 export const PIPELINE_CHART_SIZE = { width: 680, height: 292 };
 export const PIPELINE_CHART_PAD = { left: 68, right: 12, top: 16, bottom: 44 };
 export const PIPELINE_UNSCHEDULED_BAND = 72;
-export const PIPELINE_MONTH_LABEL_SIZE = 17;
+export const PIPELINE_MONTH_LABEL_SIZE = 13.5;
 export const PIPELINE_PERCENT_LABEL_SIZE = 17;
+/** Minimum on-screen gap for a horizontal `Oct '26` tick, including padding. */
+const MIN_MONTH_LABEL_GAP_PX = 68;
 
 export type LaidPipelineBubble = PipelineOpportunityPoint & {
   x: number;
@@ -42,7 +44,13 @@ const MONTH_TICKS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Se
 
 function formatMonthTick(date: Date): string {
   const year = String(date.getFullYear()).slice(-2);
-  return `${MONTH_TICKS[date.getMonth()]} ${year}`;
+  return `${MONTH_TICKS[date.getMonth()]} '${year}`;
+}
+
+function niceMonthStep(monthCount: number, plotWidthPx: number): number {
+  const maxTicks = Math.max(1, Math.floor(plotWidthPx / MIN_MONTH_LABEL_GAP_PX));
+  const candidates = [1, 2, 3, 4, 6, 12];
+  return candidates.find((step) => Math.ceil(monthCount / step) <= maxTicks) ?? 12;
 }
 
 function chanceY(chance: number | null, plotTop: number, plotH: number): number {
@@ -62,6 +70,7 @@ export function layoutPipelineOpportunityChart(
   points: PipelineOpportunityPoint[],
   now = new Date(),
   minMonths = 6,
+  renderedSize?: { width: number; height: number },
 ): PipelineChartLayout {
   const { width, height } = PIPELINE_CHART_SIZE;
   const pad = PIPELINE_CHART_PAD;
@@ -144,7 +153,11 @@ export function layoutPipelineOpportunityChart(
   if (hasUnscheduledBand) {
     gridX.push({ label: "No date", x: unscheduledLabelX });
   }
-  for (let index = 0; index < months.length; index += 1) {
+  const scale = renderedSize
+    ? Math.min(renderedSize.width / width, renderedSize.height / height) || 1
+    : 1;
+  const monthStep = niceMonthStep(months.length, plotW * scale);
+  for (let index = 0; index < months.length; index += monthStep) {
     const month = months[index];
     if (!month) continue;
     gridX.push({

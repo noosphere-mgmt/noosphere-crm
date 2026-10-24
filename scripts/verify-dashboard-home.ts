@@ -141,8 +141,35 @@ function testPerOpportunityChartUsesDateAndChance(): void {
   assert.ok(scheduled.y < unscheduled.y);
   assert.equal(scheduled.chance, 25);
   assert.equal(unscheduled.chance, 10);
-  assert.ok(layout.gridX.some((tick) => /Sep 26/i.test(tick.label)));
+  assert.ok(layout.gridX.some((tick) => /Sep '26/i.test(tick.label)));
   console.log("OK  bubble chart uses expected close date, existing chance, and value size");
+}
+
+function testPipelineMonthTicksThinWithRangeAndWidth(): void {
+  const deals = [
+    deal({ id: 1, client_name: "Soon", status: "qualifying", commission_income: "1000", expected_close_date: "2026-10-15" }),
+    deal({ id: 2, client_name: "Later", status: "sourcing", commission_income: "2000", expected_close_date: "2027-09-15" }),
+  ];
+  const points = buildPipelineOpportunityPoints(deals);
+  const now = new Date("2026-10-11T04:00:00");
+  const wide = layoutPipelineOpportunityChart(points, now, 6, { width: 680, height: 292 });
+  const narrow = layoutPipelineOpportunityChart(points, now, 6, { width: 320, height: 220 });
+  const monthTicks = (layout: typeof wide) => layout.gridX.filter((tick) => tick.label !== "No date");
+  assert.ok(monthTicks(wide).every((tick) => /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) '\d{2}$/.test(tick.label)));
+  assert.ok(monthTicks(narrow).length < monthTicks(wide).length);
+  assert.ok(monthTicks(narrow).length >= 2);
+  assert.deepEqual(
+    wide.bubbles.map((bubble) => ({ id: bubble.id, x: bubble.x, y: bubble.y, r: bubble.r })),
+    narrow.bubbles.map((bubble) => ({ id: bubble.id, x: bubble.x, y: bubble.y, r: bubble.r })),
+  );
+  const xs = monthTicks(narrow).map((tick) => tick.x);
+  for (let index = 1; index < xs.length; index += 1) {
+    const prev = xs[index - 1];
+    const next = xs[index];
+    const firstGap = xs[1]! - xs[0]!;
+    assert.ok(Math.abs(next! - prev! - firstGap) < 0.01);
+  }
+  console.log("OK  month ticks stay horizontal, even, and thinner on a narrow chart");
 }
 
 function testBusinessPulse(): void {
@@ -352,6 +379,7 @@ function main(): void {
   testPipelineValueIsNotProbabilityWeighted();
   testActivePipelineBubblesExcludeClosed();
   testPerOpportunityChartUsesDateAndChance();
+  testPipelineMonthTicksThinWithRangeAndWidth();
   testBusinessPulse();
   testDashboardInsights();
   testFutureStartIsOutsideCurrentPipeline();
