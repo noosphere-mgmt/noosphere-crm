@@ -321,7 +321,6 @@ export function DashboardPipelineBubbleChart({
         ))}
       </ul>
       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-slate-500" aria-label="Bubble size legend">
-        <span>Opportunity value</span>
         {[
           { label: "HK$1,000", size: 8 },
           { label: "HK$10,000", size: 13 },
@@ -333,7 +332,6 @@ export function DashboardPipelineBubbleChart({
             {label}
           </span>
         ))}
-        <span>Size scale compressed above HK$100,000</span>
       </div>
     </section>
   );
