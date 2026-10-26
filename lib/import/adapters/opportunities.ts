@@ -1,3 +1,4 @@
+import { SERVICE_DELIVERY_STATUSES, parseServiceDeliveryStatus, parseServiceDueDate, serviceDeliveryForStage, todayServiceDate, type ServiceDeliveryStatus } from "@/lib/opportunityDelivery";
 import { query } from "@/lib/db";
 import { allocateNextBusinessId, ensureLegacyBusinessId, registerBusinessId } from "@/lib/businessIdResolve";
 import { isPermanentBusinessId } from "@/lib/businessIds";
@@ -46,6 +47,8 @@ const FIELD_KEYS = [
   "sales_role",
   "status",
   "lost_reason",
+  "service_delivery_status",
+  "service_due_date",
   // Requirement
   "property_category_preference",
   "property_type_preference",
@@ -98,6 +101,8 @@ const SELECT = `
   o.sales_role,
   o.status,
   o.lost_reason,
+  CASE WHEN o.status = 'closed_won' THEN o.service_delivery_status ELSE 'not_started' END AS service_delivery_status,
+  CASE WHEN o.status = 'closed_won' THEN o.service_due_date::text ELSE NULL END AS service_due_date,
   o.property_category_preference,
   o.property_type_preference,
   o.district_preference AS district,
@@ -165,6 +170,8 @@ function dbPatch(values: Record<string, unknown>): Record<string, unknown> {
   if ("status" in values && values.status != null) {
     p.status = normalizeOpportunityStatus(String(values.status));
   }
+  if (values.service_delivery_status != null && values.service_delivery_status !== "") p.service_delivery_status = parseServiceDeliveryStatus(values.service_delivery_status);
+  if ("service_due_date" in values) p.service_due_date = parseServiceDueDate(values.service_due_date);
   if ("waiting_for" in values) p.waiting_for = values.waiting_for;
   if ("next_action" in values) p.next_action = values.next_action;
   if ("next_action_date" in values) p.next_action_date = values.next_action_date;
@@ -217,6 +224,8 @@ const FIELD_LABELS: Partial<Record<(typeof FIELD_KEYS)[number], string>> = {
   sales_role: "Sales Role",
   status: "Status",
   lost_reason: "Outcome Reason",
+  service_delivery_status: "Service Delivery",
+  service_due_date: "Due/Complete",
   property_category_preference: "Required Type",
   property_type_preference: "Required Subtype",
   district: "District",
@@ -299,6 +308,14 @@ function opportunityFieldDef(key: (typeof FIELD_KEYS)[number]): ImportFieldDef {
   if (key === "assigned_contact_id") {
     return { ...base, type: "string", aliases: ["contact_id", "primary_contact_id"] };
   }
+  if (key === "service_delivery_status") return {
+    ...base, type: "enum", enumValues: [...SERVICE_DELIVERY_STATUSES],
+    aliases: ["Service Delivery", "service_delivery"],
+    normalizeValue: (raw) => raw.trim().toLowerCase() === "n/a" ? "not_started" : raw.trim().toLowerCase().replace(/[\s-]+/g, "_"),
+  };
+  if (key === "service_due_date") return {
+    ...base, type: "date", aliases: ["Due/Complete", "due_complete", "Service Due Date"],
+  };
   if (key === "status") return { ...base, type: "enum", enumValues: [...OPPORTUNITY_STATUSES] };
   if (key === "sales_role") {
     return {
@@ -424,6 +441,8 @@ export const opportunitiesImportDefinition: ImportObjectDefinition = {
 
   async createRecord(values, ctx) {
     const v = applySessionMetadata(dbPatch(values), ctx);
+    v.service_delivery_status = serviceDeliveryForStage(String(v.status ?? "qualifying"), v.service_delivery_status as ServiceDeliveryStatus | undefined);
+    if (v.service_delivery_status === "completed" && !("service_due_date" in v)) v.service_due_date = todayServiceDate();
     const suppliedOpportunityId = String(values.opportunity_id ?? "").trim();
     const businessId = isPermanentBusinessId("opportunity", suppliedOpportunityId)
       ? suppliedOpportunityId
@@ -436,8 +455,8 @@ export const opportunitiesImportDefinition: ImportObjectDefinition = {
          workspace_type, required_capacity_pax, required_area_sqft, budget_max,
          target_yield, funding_status, start_date, expected_close_date, move_in_date,
          lease_term, requirement_summary, remarks, external_ref, import_run_id,
-         business_id
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26)
+         business_id, service_delivery_status, service_due_date
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28)
        RETURNING id::text`,
       [
         v.client_name ?? values.opportunity_name ?? "",
@@ -466,6 +485,8 @@ export const opportunitiesImportDefinition: ImportObjectDefinition = {
         v.external_ref ?? null,
         v.import_run_id ?? null,
         businessId,
+        v.service_delivery_status ?? "not_started",
+        v.service_due_date ?? null,
       ],
     );
     const id = Number.parseInt(rows[0]!.id, 10);
@@ -485,18 +506,31 @@ export const opportunitiesImportDefinition: ImportObjectDefinition = {
 
   async updateRecord(id, patch, ctx) {
     const legacyId = typeof id === "number" ? id : Number.parseInt(String(id), 10);
-    await genericUpdateRecord("opportunities", "id", legacyId, dbPatch(patch), ctx);
+    const deliveryPatch = dbPatch(patch);
+    if ("status" in deliveryPatch || "service_delivery_status" in deliveryPatch || "service_due_date" in deliveryPatch) {
+      const current = ctx.existing?.values ?? (await query<Record<string, unknown>>(
+        "SELECT status, service_delivery_status FROM opportunities WHERE id = $1", [legacyId],
+      ))[0];
+      deliveryPatch.service_delivery_status = serviceDeliveryForStage(String(deliveryPatch.status ?? current?.status ?? "qualifying"),
+        (deliveryPatch.service_delivery_status ?? current?.service_delivery_status) as ServiceDeliveryStatus | undefined);
+    }
+    // Explicit imported dates are historical data: preserve them exactly.
+    if (deliveryPatch.service_delivery_status === "completed" && !("service_due_date" in deliveryPatch)) {
+      const previous = ctx.existing?.values ?? (await query<Record<string, unknown>>(
+        "SELECT service_delivery_status FROM opportunities WHERE id = $1", [legacyId],
+      ))[0];
+      if (previous?.service_delivery_status !== "completed") deliveryPatch.service_due_date = todayServiceDate();
+    }
+    await genericUpdateRecord("opportunities", "id", legacyId, deliveryPatch, ctx);
     await ensureLegacyBusinessId("opportunity", legacyId);
   },
 
   async exportRows() {
     const rows = await query<Record<string, unknown>>(`SELECT ${SELECT} FROM ${FROM} ORDER BY o.updated_at DESC`);
-    return rows.map((r) =>
-      withExportMatchIds(
-        rowToRecord(r, Number.parseInt(String(r.legacy_id), 10), FIELD_KEYS).values,
-        r.opportunity_id,
-        r.legacy_id,
-      ),
-    );
+    return rows.map((r) => {
+      const values = rowToRecord(r, Number.parseInt(String(r.legacy_id), 10), FIELD_KEYS).values;
+      if (values.service_delivery_status === "not_started") values.service_delivery_status = "N/A";
+      return withExportMatchIds(values, r.opportunity_id, r.legacy_id);
+    });
   },
 };

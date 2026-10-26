@@ -9,7 +9,8 @@ import type { Opportunity } from "@/lib/types/entities";
 
 export function OpportunityServiceDeliveryFields({ opportunity }: { opportunity: Opportunity }) {
   const editing = useFormEditing();
-  const status = opportunity.service_delivery_status ?? "not_started";
+  const applicable = opportunity.status === "closed_won";
+  const status = applicable ? opportunity.service_delivery_status ?? "not_started" : "not_started";
   const options = SERVICE_DELIVERY_STATUSES.map((value) => ({ value, label: SERVICE_DELIVERY_LABELS[value] }));
   const save = (field: string) => async (value: unknown) => {
     const result = await patchOpportunityFieldAction(opportunity.id, field, JSON.stringify(value));
@@ -19,8 +20,8 @@ export function OpportunityServiceDeliveryFields({ opportunity }: { opportunity:
     <section className="rounded-xl border border-slate-200 bg-white px-3 py-3">
       <h2 className="mb-3 text-sm font-semibold text-slate-900">Service Delivery</h2>
       <div className="space-y-3">
-        {editing ? (
-          <ServiceDeliveryFormControls status={status} date={opportunity.service_due_date} />
+        {!applicable ? <div className="text-sm text-slate-600">N/A <p className="mt-1 text-xs text-slate-500">Applies to Closed Won opportunities.</p></div> : editing ? (
+          <ServiceDeliveryFormControls salesStatus={opportunity.status} status={status} date={opportunity.service_due_date} />
         ) : (
           <>
             <InlineSelectField label="Service Delivery" value={status} options={options} onSave={save("service_delivery_status")} />

@@ -1,7 +1,7 @@
 export const SERVICE_DELIVERY_STATUSES = ["not_started", "in_progress", "completed"] as const;
 export type ServiceDeliveryStatus = (typeof SERVICE_DELIVERY_STATUSES)[number];
 export const SERVICE_DELIVERY_LABELS: Record<ServiceDeliveryStatus, string> = {
-  not_started: "Not Started", in_progress: "In Progress", completed: "Completed",
+  not_started: "N/A", in_progress: "In Progress", completed: "Completed",
 };
 export type DeliveryOpportunity = {
   status: string;
@@ -9,6 +9,7 @@ export type DeliveryOpportunity = {
   service_due_date?: string | null;
 };
 export function parseServiceDeliveryStatus(value: unknown): ServiceDeliveryStatus {
+  if (value === "N/A" || value === "n/a") return "not_started";
   if (!(SERVICE_DELIVERY_STATUSES as readonly unknown[]).includes(value)) throw new Error("Invalid service delivery status");
   return value as ServiceDeliveryStatus;
 }
@@ -26,7 +27,7 @@ export function hasOutstandingDelivery(row: DeliveryOpportunity): boolean {
 export function isServiceDeliveryOverdue(row: DeliveryOpportunity, today?: string): boolean {
   const now = new Date();
   const date = today ?? `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
-  return row.status !== "closed_lost" && row.service_delivery_status !== "completed" &&
+  return row.status === "closed_won" && row.service_delivery_status !== "completed" &&
     !!row.service_due_date && row.service_due_date.slice(0,10) < date;
 }
 
@@ -47,4 +48,8 @@ export function serviceDateOnCompletion(
   if (nextStatus === "completed" && previousStatus !== "completed" &&
       (nextDate === undefined || nextDate === previousDate)) return today;
   return nextDate;
+}
+
+export function serviceDeliveryForStage(stage: string, delivery?: ServiceDeliveryStatus): ServiceDeliveryStatus {
+  return stage === "closed_won" ? delivery ?? "not_started" : "not_started";
 }

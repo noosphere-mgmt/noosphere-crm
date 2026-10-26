@@ -273,6 +273,7 @@ export function applyOpportunityPatch(
       break;
     }
     case "service_delivery_status":
+      if (opportunity.status !== "closed_won" && value !== "not_started" && value !== "N/A") return { error: "Service delivery applies only to Closed Won opportunities" };
       try {
         input.service_delivery_status = parseServiceDeliveryStatus(value);
         if (input.service_delivery_status === "completed" && opportunity.service_delivery_status !== "completed") {
@@ -282,6 +283,7 @@ export function applyOpportunityPatch(
       catch { return { error: "Invalid service delivery status" }; }
       break;
     case "service_due_date":
+      if (opportunity.status !== "closed_won") return { error: "Due/Complete applies only to Closed Won opportunities" };
       try { input.service_due_date = parseServiceDueDate(value); }
       catch { return { error: "Service due date must be a valid calendar date" }; }
       break;
@@ -291,6 +293,7 @@ export function applyOpportunityPatch(
       break;
     case "status":
       input.status = parseOpportunityStatus(String(value ?? "qualifying"));
+      if (input.status !== "closed_won") input.service_delivery_status = "not_started";
       if (!isClosedOpportunityStatus(input.status)) {
         input.lost_reason = null;
       }

@@ -27,7 +27,7 @@ for (const status of ["not_started", "in_progress", "completed"] as const) {
 for (const status of ["qualifying", "sourcing", "contracting", "await_payment", "closed_lost"] as const) {
   const next = applyOpportunityPatch(row, "status", status);
   assert.ok(!("error" in next));
-  assert.equal(next.service_delivery_status, "in_progress");
+  assert.equal(next.service_delivery_status, "not_started");
   assert.equal(next.service_due_date, row.service_due_date);
   assert.equal(hasOutstandingDelivery({...row, status}), false);
 }
@@ -69,3 +69,12 @@ for (const status of ["not_started", "in_progress", "completed"] as const) {
   assert.equal(opportunityMatchesListQuickFilter(lost, "active", today), false);
 }
 console.log("OK Active listing includes unfinished won delivery and excludes completed won and lost deals");
+
+assert.equal(parseServiceDeliveryStatus("N/A"), "not_started");
+for (const stage of ["qualifying", "sourcing", "proposal_reviewing", "negotiating", "contracting", "await_payment", "closed_lost"] as const) {
+  const nonWon = {...row, status:stage};
+  assert.ok("error" in applyOpportunityPatch(nonWon,"service_delivery_status","completed"));
+  assert.ok("error" in applyOpportunityPatch(nonWon,"service_due_date",today));
+  assert.equal(isServiceDeliveryOverdue(nonWon,today),false);
+}
+console.log("OK service delivery applies only to Closed Won; non-won stages display N/A and cannot edit delivery");

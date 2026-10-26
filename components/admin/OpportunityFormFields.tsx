@@ -213,7 +213,7 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
               className={editing ? selectClass : selectReadOnlyClass}
               defaultValue={defaults?.probability ?? OPPORTUNITY_STATUS_PROBABILITY[defaults?.status ?? "qualifying"] ?? 10} />
           </label>
-          <ServiceDeliveryFormControls status={defaults?.service_delivery_status} date={defaults?.service_due_date} disabled={!editing} />
+          <ServiceDeliveryFormControls salesStatus={status} status={defaults?.service_delivery_status} date={defaults?.service_due_date} disabled={!editing} />
           {isClosedOpportunityStatus(status) ? (
             <FormField
               label={closedOutcomeReasonLabel(status)}

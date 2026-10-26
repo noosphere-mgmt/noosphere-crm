@@ -26,6 +26,7 @@ export function getTemplateForObject(objectType: ImportObjectType): string {
       return "Active";
     }
     if (f.key === "source" && objectType === "leads") return "direct";
+    if (f.key === "service_delivery_status") return "N/A";
     if (f.key === "sales_role") return "to_lease";
     if (f.key === "property_category_preference") return "commercial";
     if (f.key === "country") return "Hong Kong";
