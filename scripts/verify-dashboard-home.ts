@@ -145,32 +145,29 @@ function testPerOpportunityChartUsesDateAndChance(): void {
   console.log("OK  bubble chart uses expected close date, existing chance, and value size");
 }
 
-function testBubbleAreaRepresentsValue(): void {
+function testBubbleValueScale(): void {
+  const values = [0, 1500, 3000, 30000, 100000, 300000, 4000000, 100000000];
   const points = buildPipelineOpportunityPoints(
-    [0, 3000, 30000, 300000].map((value, index) =>
+    values.map((value, index) =>
       deal({ id: index + 1, client_name: `Value ${value}`, status: "sourcing", commission_income: String(value) }),
     ),
   );
   const { bubbles } = layoutPipelineOpportunityChart(points);
-  const [zero, small, medium, largest] = bubbles;
-  assert.equal(zero.r, 3);
-  assert.equal(largest.r, 48);
-  assert.ok(medium.r / small.r > 3, "HK$30,000 must be visibly larger than HK$3,000");
-  assert.ok(Math.abs((medium.r ** 2 / small.r ** 2) - 10) < 0.000001);
-  assert.ok(Math.abs((largest.r ** 2 / medium.r ** 2) - 10) < 0.000001);
-  const millionPoints = buildPipelineOpportunityPoints(
-    [30000, 4000000].map((value, index) =>
-      deal({ id: index + 10, client_name: `Value ${value}`, status: "sourcing", commission_income: String(value) }),
-    ),
-  );
-  const millionBubbles = layoutPipelineOpportunityChart(millionPoints).bubbles;
-  assert.equal(millionBubbles[1].r, 48, "HK$4 million should be a prominent 96-unit balloon");
-  assert.ok(millionBubbles[1].r > millionBubbles[0].r * 10);
+  assert.equal(bubbles[0].r, 8);
+  assert.ok(bubbles[1].r >= 11, "HK$1,500 must remain visible alongside HK$4M");
+  assert.ok(bubbles[3].r > bubbles[1].r * 1.9, "HK$30,000 must look larger than HK$1,500");
+  assert.ok(bubbles[3].r > bubbles[2].r * 1.7, "Thousands and tens of thousands must be distinguishable");
+  assert.equal(bubbles[4].r, 34);
+  assert.ok(bubbles[6].r > bubbles[4].r && bubbles[6].r <= 48);
+  assert.equal(bubbles[7].r, 48, "Very large values must be capped");
+  const smallerOnly = layoutPipelineOpportunityChart(points.slice(0, 4)).bubbles;
+  assert.deepEqual(smallerOnly.map((b) => b.r), bubbles.slice(0, 4).map((b) => b.r),
+    "Large deals and horizon changes must not shrink smaller bubbles");
   assert.equal(layoutPipelineOpportunityChart([]).bubbles.length, 0);
-  console.log("OK  bubble area reflects opportunity value, including HK$3,000 versus HK$30,000");
+  console.log("OK  fixed bubble scale keeps thousands distinct and compresses values above HK$100,000");
 }
 
-testBubbleAreaRepresentsValue();
+testBubbleValueScale();
 
 function testPipelineMonthTicksThinWithRangeAndWidth(): void {
   const deals = [

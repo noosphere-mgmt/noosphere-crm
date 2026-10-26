@@ -58,13 +58,13 @@ function chanceY(chance: number | null, plotTop: number, plotH: number): number 
   return plotTop + plotH - (pct / 100) * plotH;
 }
 
-function bubbleRadius(value: number, maxValue: number): number {
-  const minR = 3;
-  const maxR = 48;
-  if (maxValue <= 0) return minR;
-  // Area represents value: adding a base radius distorts monetary ratios.
-  // Retain a small visibility floor for zero and very small opportunities.
-  return Math.max(minR, maxR * Math.sqrt(Math.max(0, value) / maxValue));
+function bubbleRadius(value: number): number {
+  const amount = Math.max(0, value);
+  const threshold = 100_000;
+  // A fixed scale keeps thousands visible, even alongside million-dollar deals.
+  if (amount <= threshold) return 8 + 26 * Math.sqrt(amount / threshold);
+  // Compress larger values into a prominent, bounded range (34–48).
+  return Math.min(48, 34 + 7 * Math.log10(amount / threshold));
 }
 
 /** SVG layout for one bubble per active opportunity. Dates are never invented. */
@@ -109,7 +109,6 @@ export function layoutPipelineOpportunityChart(
     const dayFraction = (Math.min(daysInMonth, Math.max(1, date.getDate())) - 0.5) / daysInMonth;
     return plotLeft + (slot + dayFraction) * slotW;
   };
-  const maxValue = Math.max(0, ...points.map((point) => point.value));
 
   const unscheduledByChance = new Map<number, number>();
   const dateKeyCounts = new Map<string, number>();
@@ -117,7 +116,7 @@ export function layoutPipelineOpportunityChart(
   const bubbles: LaidPipelineBubble[] = points.map((point) => {
     const closeDate = parseDateOnly(point.expectedClose);
     const scheduled = closeDate != null;
-    const r = bubbleRadius(point.value, maxValue);
+    const r = bubbleRadius(point.value);
     const rawY = chanceY(point.chance, pad.top, plotH);
     const y = Math.min(pad.top + plotH - r - 1, Math.max(pad.top + r + 1, rawY));
     let x: number;
