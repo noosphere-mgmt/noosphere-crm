@@ -1,3 +1,5 @@
+import type { ServiceDeliveryStatus } from "@/lib/opportunityDelivery";
+
 export type PropertyStatus = "active" | "inactive" | "archived";
 export type AssetStatus = "active" | "inactive" | "archived";
 export type AssetType = "Floor" | "Unit" | "Suite" | "Room" | "Enbloc";
@@ -285,6 +287,8 @@ export type Opportunity = {
   sales_role: OpportunitySalesRole;
   lease_term: string | null;
   probability?: number;
+  service_delivery_status?: ServiceDeliveryStatus;
+  service_due_date?: string | null;
   expected_close_date: string | null;
   /** When active work should begin. NULL means already active. */
   start_date?: string | null;

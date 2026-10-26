@@ -1,3 +1,4 @@
+import { hasOutstandingDelivery, type DeliveryOpportunity } from "@/lib/opportunityDelivery";
 import { OPPORTUNITY_STATUS_LABELS } from "@/lib/lookups";
 import { isClosedOpportunityStatus } from "@/lib/openOpportunityStatus";
 import { normalizeOpportunityStatus } from "@/lib/opportunityStatusModel";
@@ -150,6 +151,8 @@ export function opportunityMatchesListStatusFilter(
  */
 export function opportunityMatchesListQuickFilter(
   row: {
+    service_delivery_status?: DeliveryOpportunity["service_delivery_status"];
+    service_due_date?: string | null;
     status?: string | null;
     start_date?: string | null;
     expected_close_date?: string | null;
@@ -157,6 +160,7 @@ export function opportunityMatchesListQuickFilter(
   filter: OpportunityStartWindow,
   today = todayDateString(),
 ): boolean {
+  if (filter === "outstanding_delivery") return hasOutstandingDelivery({ ...row, status: row.status ?? "" });
   if (filter === "all") return true;
   if (isClosedOpportunityStatus(row.status ?? "")) return false;
   if (filter === "next_3_months" || filter === "next_6_months") {

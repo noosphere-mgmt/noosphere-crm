@@ -1,3 +1,4 @@
+import { parseServiceDeliveryStatus, parseServiceDueDate } from "@/lib/opportunityDelivery";
 import { parseOpportunityProbability } from "@/lib/opportunityProbability";
 import type { CompanyInput } from "@/lib/repos/companies";
 import type { ContactInput } from "@/lib/repos/contacts";
@@ -246,6 +247,8 @@ export function opportunityToInput(opportunity: Opportunity): OpportunityInput {
     move_in_date: opportunity.move_in_date,
     status: opportunity.status,
     probability: opportunity.probability,
+    service_delivery_status: opportunity.service_delivery_status,
+    service_due_date: opportunity.service_due_date,
     waiting_for: opportunity.waiting_for,
     next_action: opportunity.next_action,
     next_action_date: opportunity.next_action_date,
@@ -269,6 +272,14 @@ export function applyOpportunityPatch(
       input.client_name = name;
       break;
     }
+    case "service_delivery_status":
+      try { input.service_delivery_status = parseServiceDeliveryStatus(value); }
+      catch { return { error: "Invalid service delivery status" }; }
+      break;
+    case "service_due_date":
+      try { input.service_due_date = parseServiceDueDate(value); }
+      catch { return { error: "Service due date must be a valid calendar date" }; }
+      break;
     case "probability":
       try { input.probability = parseOpportunityProbability(value); }
       catch { return { error: "Probability must be a whole number from 0 to 100" }; }

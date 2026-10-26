@@ -6,7 +6,7 @@ import { isClosedOpportunityStatus } from "@/lib/openOpportunityStatus";
  * current pipeline until that calendar day.
  */
 
-export type OpportunityStartWindow = "active" | "open" | "next_3_months" | "next_6_months" | "all";
+export type OpportunityStartWindow = "active" | "open" | "next_3_months" | "next_6_months" | "all" | "outstanding_delivery";
 
 /** Dashboard forecast windows. Next 3 / Next 6 stay on Expected Close Date. */
 export type OpportunityForecastWindow = "active" | "next_3_months" | "next_6_months" | "all";
@@ -14,6 +14,7 @@ export type OpportunityForecastWindow = "active" | "next_3_months" | "next_6_mon
 export const OPPORTUNITY_START_WINDOWS: OpportunityStartWindow[] = [
   "active",
   "open",
+  "outstanding_delivery",
   "next_3_months",
   "next_6_months",
   "all",
@@ -22,6 +23,7 @@ export const OPPORTUNITY_START_WINDOWS: OpportunityStartWindow[] = [
 export const OPPORTUNITY_START_WINDOW_LABELS: Record<OpportunityStartWindow, string> = {
   active: "Active",
   open: "Open",
+  outstanding_delivery: "Outstanding Delivery",
   next_3_months: "Next 3 Mth",
   next_6_months: "Next 6 Mth",
   all: "All",
@@ -32,6 +34,7 @@ export type OpportunityPrimaryFilter = OpportunityStartWindow | "won" | "lost";
 export const OPPORTUNITY_PRIMARY_FILTERS: OpportunityPrimaryFilter[] = [
   "active",
   "open",
+  "outstanding_delivery",
   "next_3_months",
   "next_6_months",
   "all",

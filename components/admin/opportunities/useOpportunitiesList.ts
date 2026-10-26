@@ -133,7 +133,7 @@ export function useOpportunitiesList(
       const nextStatus: OpportunitiesListStatusFilter =
         filter === "won" || filter === "lost"
           ? filter
-          : filter === "all"
+          : filter === "all" || filter === "outstanding_delivery"
             ? "all"
             : "active";
 
@@ -158,7 +158,7 @@ export function useOpportunitiesList(
       const nextStartWindow =
         filter === "won" || filter === "lost" || filter === "closed" || filter === "all"
           ? "all"
-          : startWindow;
+          : startWindow === "outstanding_delivery" ? "active" : startWindow;
       setListStatusFilterState(filter);
       setStartWindowState(nextStartWindow);
       setKpiFilterState(null);

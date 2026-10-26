@@ -1,5 +1,6 @@
 "use server";
 
+import { parseServiceDeliveryStatus, parseServiceDueDate } from "@/lib/opportunityDelivery";
 import { parseOpportunityProbability } from "@/lib/opportunityProbability";
 
 import { revalidatePath } from "next/cache";
@@ -104,6 +105,8 @@ async function opportunityInputFromForm(formData: FormData) {
     referrer_contact_id: referrerContactId,
     sales_role: salesRole,
     lease_term: isLeaseLike ? parseOptionalString(formData.get("lease_term")) : null,
+    service_delivery_status: formData.has("service_delivery_status") ? parseServiceDeliveryStatus(formData.get("service_delivery_status")) : undefined,
+    service_due_date: formData.has("service_due_date") ? parseServiceDueDate(formData.get("service_due_date")) : undefined,
     expected_close_date: parseOptionalString(formData.get("expected_close_date")),
     start_date: parseOptionalString(formData.get("start_date")),
     lost_reason: isClosedOpportunityStatus(status)
@@ -196,6 +199,8 @@ export async function updateOpportunityAction(id: number, formData: FormData) {
     ["move_in_date", existing.move_in_date],
     ["status", existing.status],
     ["probability", existing.probability],
+    ["service_delivery_status", existing.service_delivery_status],
+    ["service_due_date", existing.service_due_date],
     ["waiting_for", existing.waiting_for],
     ["next_action", existing.next_action],
     ["next_action_date", existing.next_action_date],

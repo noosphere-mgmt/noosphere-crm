@@ -1,3 +1,4 @@
+import { DashboardOutstandingDelivery } from "@/components/admin/dashboard/DashboardOutstandingDelivery";
 import { DashboardAiInsights } from "@/components/admin/dashboard/DashboardAiInsights";
 import { DashboardBusinessPulse } from "@/components/admin/dashboard/DashboardBusinessPulse";
 import { DashboardPipelineBubbleChart } from "@/components/admin/dashboard/DashboardPipelineBubbleChart";
@@ -21,6 +22,7 @@ export function DashboardDesktop({
   return (
     <div className="flex w-full min-w-0 max-w-full flex-col gap-2.5">
       <DashboardAiInsights insights={insights} />
+      <DashboardOutstandingDelivery deals={deals} />
 
       <div className="grid w-full min-h-0 min-w-0 max-w-full items-stretch gap-2 lg:grid-cols-[minmax(0,27fr)_minmax(0,46fr)_minmax(0,27fr)] lg:gap-2.5">
         <DashboardBusinessPulse pulse={pulse} />

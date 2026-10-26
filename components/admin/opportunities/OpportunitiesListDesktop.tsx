@@ -1,5 +1,6 @@
 "use client";
 
+import { OpportunityDeliverySummary } from "@/components/admin/opportunities/OpportunityDeliverySummary";
 import { isOpportunityOverdue } from "@/lib/opportunityStartDate";
 
 import { useTransition } from "react";
@@ -172,12 +173,13 @@ export function OpportunitiesListDesktop({
                   ) : null}
                 </td>
                 <td className="px-3 py-1.5">
-                  <div className="flex flex-col items-start gap-0.5 whitespace-nowrap">
+                  <div className="flex flex-col items-center gap-0.5 whitespace-nowrap">
                     <span {...opportunityStatusChip(row.status)}>{OPPORTUNITY_STATUS_LABELS[row.status]}</span>
                     <span className="text-xs font-semibold tabular-nums text-slate-600" aria-label="Probability">
                       {row.probability == null ? "—" : `${row.probability}%`}
                     </span>
                   </div>
+                  <OpportunityDeliverySummary opportunity={row} />
                 </td>
                 <td className="px-3 py-1.5 text-slate-700">
                   {(() => {

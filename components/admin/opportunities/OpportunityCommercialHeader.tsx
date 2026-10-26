@@ -1,5 +1,6 @@
 "use client";
 
+import { SERVICE_DELIVERY_STATUSES, SERVICE_DELIVERY_LABELS, isServiceDeliveryOverdue } from "@/lib/opportunityDelivery";
 import { isOpportunityOverdue } from "@/lib/opportunityStartDate";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -287,6 +288,19 @@ export function OpportunityCommercialHeader({ opportunity }: { opportunity: Oppo
           </div>
         </Metric>
       </dl>
+      <div className="mt-2 flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2">
+        <label className="text-xs font-medium text-slate-600">Service Delivery
+          <select aria-label="Service delivery status" className={`${controlClass} mt-1`} value={opportunity.service_delivery_status ?? "not_started"}
+            onChange={(event) => void saveField("service_delivery_status", event.target.value)}>
+            {SERVICE_DELIVERY_STATUSES.map((value) => <option key={value} value={value}>{SERVICE_DELIVERY_LABELS[value]}</option>)}
+          </select>
+        </label>
+        <div className="text-xs font-medium text-slate-600">Service Due Date
+          <QuickTextControl type="date" value={opportunity.service_due_date?.slice(0,10) ?? null}
+            displayValue={formatOpportunityActionDate(opportunity.service_due_date)} onSave={(value) => saveField("service_due_date", value)} />
+          {isServiceDeliveryOverdue(opportunity) ? <span className="text-xs font-semibold text-red-600">Service delivery overdue</span> : null}
+        </div>
+      </div>
       {saveHint ? (
         <p
           className={`mt-1.5 text-right text-xs font-medium ${

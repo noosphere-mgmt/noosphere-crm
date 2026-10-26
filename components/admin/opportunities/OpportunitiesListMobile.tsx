@@ -1,5 +1,6 @@
 "use client";
 
+import { OpportunityDeliverySummary } from "@/components/admin/opportunities/OpportunityDeliverySummary";
 import { isOpportunityOverdue } from "@/lib/opportunityStartDate";
 
 import { useTransition } from "react";
@@ -92,7 +93,7 @@ export function OpportunitiesListMobile({
                         <p className="mt-0.5 min-w-0 break-words text-xs text-slate-500">{clientZh}</p>
                       ) : null}
                     </div>
-                    <div className="flex shrink-0 flex-col items-end gap-0.5 whitespace-nowrap">
+                    <div className="flex shrink-0 flex-col items-center gap-0.5 whitespace-nowrap">
                       <span className={statusChip.className} style={statusChip.style}>
                         {OPPORTUNITY_STATUS_LABELS[row.status]}
                       </span>
@@ -101,6 +102,7 @@ export function OpportunitiesListMobile({
                       </span>
                     </div>
                   </div>
+                  <OpportunityDeliverySummary opportunity={row} />
                   {isOpportunityOverdue(row) ? <p className="mt-1"><span className="inline-flex rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800">Overdue</span> <span className="text-xs text-amber-800">Expected close {formatDateLabel(row.expected_close_date)}</span></p> : null}
                   <div className="mt-1.5 flex min-w-0 items-end justify-between gap-3 text-xs text-slate-600">
                     <span className="min-w-0 flex-1 truncate">{meta.join(" · ")}</span>

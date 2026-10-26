@@ -27,6 +27,8 @@ export function OpportunitiesStartWindow({
           !usingLegacyStatusFilter &&
           (filter === "won" || filter === "lost"
             ? listStatusFilter === filter
+            : filter === "outstanding_delivery"
+              ? listStatusFilter === "all" && startWindow === filter
             : filter === "all"
               ? listStatusFilter === "all" && startWindow === "all"
               : listStatusFilter === "active" && startWindow === filter);

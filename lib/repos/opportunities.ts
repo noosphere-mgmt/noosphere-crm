@@ -1,3 +1,4 @@
+import { parseServiceDeliveryStatus, parseServiceDueDate, type ServiceDeliveryStatus } from "@/lib/opportunityDelivery";
 import { applyPrimeContactRule } from "@/lib/opportunityPrimeContact";
 import { contactIsEligiblePrimeContact } from "@/lib/repos/contactRelatedCompanies";
 import { query } from "@/lib/db";
@@ -29,7 +30,7 @@ const opportunitySelect = `
   o.required_capacity_pax, o.district_preference, o.workspace_type,
   o.property_type, o.property_category_preference, o.property_type_preference,
   o.target_yield, o.funding_status,
-  o.move_in_date::text, o.status, o.probability,
+  o.move_in_date::text, o.status, o.probability, o.service_delivery_status, o.service_due_date::text,
   o.waiting_for, o.next_action, o.next_action_date::text,
   o.requirement_summary, o.remarks,
   o.commission_income::text AS commission_income,
@@ -108,6 +109,8 @@ export type OpportunityInput = {
   move_in_date?: string | null;
   status?: OpportunityStatus;
   probability?: number;
+  service_delivery_status?: ServiceDeliveryStatus;
+  service_due_date?: string | null;
   waiting_for?: string | null;
   next_action?: string | null;
   next_action_date?: string | null;
@@ -155,6 +158,8 @@ function opportunityValues(input: OpportunityInput) {
     input.commission_income ?? null,
     input.related_costs ?? null,
     input.probability === undefined ? null : parseOpportunityProbability(input.probability),
+    input.service_delivery_status === undefined ? null : parseServiceDeliveryStatus(input.service_delivery_status),
+    input.service_due_date === undefined ? null : parseServiceDueDate(input.service_due_date),
   ];
 }
 
@@ -198,6 +203,7 @@ export async function getOpportunity(id: number): Promise<Opportunity | null> {
 }
 
 export async function createOpportunity(input: OpportunityInput): Promise<number> {
+  input.service_delivery_status ??= "not_started";
   input.probability ??= defaultOpportunityProbability(input.status ?? "qualifying");
   await applyPrimeContactRule(input, null);
   const businessId = await allocateNextBusinessId("opportunity");
@@ -211,8 +217,8 @@ export async function createOpportunity(input: OpportunityInput): Promise<number
        property_category_preference, property_type_preference,
        target_yield, funding_status, move_in_date,
        status, waiting_for, next_action, next_action_date,
-       requirement_summary, remarks, commission_income, related_costs, probability, business_id
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36)
+       requirement_summary, remarks, commission_income, related_costs, probability, service_delivery_status, service_due_date, business_id
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38)
      RETURNING id::text AS id`,
     [...opportunityValues(input), businessId],
   );
@@ -277,6 +283,8 @@ export async function duplicateOpportunity(id: number): Promise<number> {
     if (!eligible) input.primary_contact_id = null;
   }
   input.client_name = opportunityCopyName(input.client_name);
+  input.service_delivery_status = "not_started";
+  input.service_due_date = null;
   if (isClosedOpportunityStatus(input.status ?? "qualifying")) {
     input.status = "qualifying";
     input.lost_reason = null;
@@ -290,6 +298,7 @@ export async function duplicateOpportunity(id: number): Promise<number> {
 export async function updateOpportunity(id: number, input: OpportunityInput): Promise<void> {
   const legacyId = Number(id);
   const existing = await getOpportunity(legacyId);
+  if (input.service_due_date === undefined) input.service_due_date = existing?.service_due_date ?? null;
   await applyPrimeContactRule(input, existing);
   await query(
     `UPDATE opportunities SET
@@ -304,7 +313,9 @@ export async function updateOpportunity(id: number, input: OpportunityInput): Pr
        move_in_date = $27, status = $28,
        waiting_for = $29, next_action = $30, next_action_date = $31,
        requirement_summary = $32, remarks = $33, commission_income = $34, related_costs = $35,
-       probability = COALESCE($36, probability)
+       probability = COALESCE($36, probability),
+       service_delivery_status = COALESCE($37, service_delivery_status),
+       service_due_date = $38
      WHERE id = $1`,
     [legacyId, ...opportunityValues(input)],
   );
