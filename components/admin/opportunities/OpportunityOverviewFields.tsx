@@ -6,6 +6,7 @@ import { FormField, TextAreaField } from "@/components/admin/AdminFormFields";
 import { AdminEntityLink } from "@/components/admin/AdminEntityLink";
 import { OpportunityIntroducedByFields, introducedByDisplayName } from "@/components/admin/opportunities/OpportunityIntroducedByFields";
 import { OpportunityPartyContactSelect } from "@/components/admin/opportunities/OpportunityPartyContactSelect";
+import { OpportunityServiceDeliveryFields } from "@/components/admin/opportunities/OpportunityServiceDeliveryFields";
 import { OpportunityRequirementSection } from "@/components/admin/opportunities/OpportunityRequirementSection";
 import { OpportunityRequirementIntake } from "@/components/admin/opportunities/OpportunityRequirementIntake";
 import { labelClass, selectClass } from "@/components/admin/opportunities/OpportunityRequirementFields";
@@ -444,7 +445,10 @@ export function OpportunityOverviewFields({
         {belowRequirement}
       </div>
 
-      <aside className="min-w-0 lg:sticky lg:top-20">{sideContent}</aside>
+      <aside className="min-w-0 space-y-3 self-start lg:sticky lg:top-20">
+        <OpportunityServiceDeliveryFields opportunity={opportunity} />
+        {sideContent}
+      </aside>
     </div>
   );
 }

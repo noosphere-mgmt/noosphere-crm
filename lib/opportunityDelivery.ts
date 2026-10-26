@@ -29,3 +29,22 @@ export function isServiceDeliveryOverdue(row: DeliveryOpportunity, today?: strin
   return row.status !== "closed_lost" && row.service_delivery_status !== "completed" &&
     !!row.service_due_date && row.service_due_date.slice(0,10) < date;
 }
+
+/** Business calendar date, independent of the deployment server timezone. */
+export function todayServiceDate(now = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Hong_Kong", year: "numeric", month: "2-digit", day: "2-digit",
+  }).format(now);
+}
+
+export function serviceDateOnCompletion(
+  nextStatus: ServiceDeliveryStatus | undefined,
+  previousStatus: ServiceDeliveryStatus | undefined,
+  nextDate: string | null | undefined,
+  previousDate: string | null | undefined,
+  today = todayServiceDate(),
+): string | null | undefined {
+  if (nextStatus === "completed" && previousStatus !== "completed" &&
+      (nextDate === undefined || nextDate === previousDate)) return today;
+  return nextDate;
+}

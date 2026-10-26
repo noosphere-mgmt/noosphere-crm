@@ -155,7 +155,7 @@ function testListQuickFilters(): void {
     status: "closed_won",
     start_date: yesterday,
     expected_close_date: validEnd,
-  }, { active: false, open: false, next_3_months: false, next_6_months: false, all: true });
+  }, { active: true, open: false, next_3_months: false, next_6_months: false, all: true });
 
   expect("F closed lost with close inside next six", {
     status: "closed_lost",
@@ -300,7 +300,7 @@ for (const status of ["qualifying", "sourcing", "proposal_reviewing", "negotiati
   const open = !status.startsWith("closed_");
   const row = { status, start_date: "2026-01-01", expected_close_date: "2026-09-27" };
   for (const filter of ["active", "open", "next_3_months", "next_6_months"] as const) {
-    assert.equal(opportunityMatchesListQuickFilter(row, filter, TODAY), open, `${status} overdue / ${filter}`);
+    assert.equal(opportunityMatchesListQuickFilter(row, filter, TODAY), open || (filter === "active" && status === "closed_won"), `${status} overdue / ${filter}`);
   }
   assert.equal(isOpportunityOverdue(row, TODAY), open);
 }

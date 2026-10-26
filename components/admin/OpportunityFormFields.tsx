@@ -1,6 +1,6 @@
 "use client";
 
-import { SERVICE_DELIVERY_STATUSES, SERVICE_DELIVERY_LABELS } from "@/lib/opportunityDelivery";
+import { ServiceDeliveryFormControls } from "@/components/admin/opportunities/ServiceDeliveryFormControls";
 import { useMemo, useState } from "react";
 import { FormField, TextAreaField } from "@/components/admin/AdminFormFields";
 import { OpportunityRequirementFields, OpportunitySalesRoleSelect, fieldGrid, labelClass, selectClass } from "@/components/admin/opportunities/OpportunityRequirementFields";
@@ -213,13 +213,7 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
               className={editing ? selectClass : selectReadOnlyClass}
               defaultValue={defaults?.probability ?? OPPORTUNITY_STATUS_PROBABILITY[defaults?.status ?? "qualifying"] ?? 10} />
           </label>
-          <label className="block min-w-0 text-sm">
-            <span className={labelClass}>Service Delivery</span>
-            <select name="service_delivery_status" defaultValue={defaults?.service_delivery_status ?? "not_started"} disabled={!editing} className={editing ? selectClass : selectReadOnlyClass}>
-              {SERVICE_DELIVERY_STATUSES.map((value) => <option key={value} value={value}>{SERVICE_DELIVERY_LABELS[value]}</option>)}
-            </select>
-          </label>
-          <FormField label="Service Due Date" name="service_due_date" type="date" defaultValue={defaults?.service_due_date?.slice(0,10) ?? ""} />
+          <ServiceDeliveryFormControls status={defaults?.service_delivery_status} date={defaults?.service_due_date} disabled={!editing} />
           {isClosedOpportunityStatus(status) ? (
             <FormField
               label={closedOutcomeReasonLabel(status)}

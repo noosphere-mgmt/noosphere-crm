@@ -120,7 +120,7 @@ export function opportunityMatchesListStatusFilter(
 ): boolean {
   switch (filter) {
     case "active":
-      return row.status !== "closed_won" && row.status !== "closed_lost";
+      return hasOutstandingDelivery(row) || (row.status !== "closed_won" && row.status !== "closed_lost");
     case "all":
       return true;
     case "qualifying":
@@ -162,6 +162,7 @@ export function opportunityMatchesListQuickFilter(
 ): boolean {
   if (filter === "outstanding_delivery") return hasOutstandingDelivery({ ...row, status: row.status ?? "" });
   if (filter === "all") return true;
+  if (filter === "active" && hasOutstandingDelivery({ ...row, status: row.status ?? "" })) return true;
   if (isClosedOpportunityStatus(row.status ?? "")) return false;
   if (filter === "next_3_months" || filter === "next_6_months") {
     return opportunityMatchesDateWindow({ expected_close_date: row.expected_close_date }, filter, today);
@@ -253,7 +254,7 @@ export function opportunityMatchesDashboardStage(
   stage: OpportunitiesDashboardStage,
 ): boolean {
   if (stage === "open") {
-    return row.status !== "closed_won" && row.status !== "closed_lost";
+    return hasOutstandingDelivery(row) || (row.status !== "closed_won" && row.status !== "closed_lost");
   }
   if (stage === "viewing") {
     return Boolean(row.has_viewing_premises) && row.status !== "closed_won" && row.status !== "closed_lost";

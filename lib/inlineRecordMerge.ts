@@ -1,4 +1,4 @@
-import { parseServiceDeliveryStatus, parseServiceDueDate } from "@/lib/opportunityDelivery";
+import { parseServiceDeliveryStatus, parseServiceDueDate, todayServiceDate } from "@/lib/opportunityDelivery";
 import { parseOpportunityProbability } from "@/lib/opportunityProbability";
 import type { CompanyInput } from "@/lib/repos/companies";
 import type { ContactInput } from "@/lib/repos/contacts";
@@ -273,7 +273,12 @@ export function applyOpportunityPatch(
       break;
     }
     case "service_delivery_status":
-      try { input.service_delivery_status = parseServiceDeliveryStatus(value); }
+      try {
+        input.service_delivery_status = parseServiceDeliveryStatus(value);
+        if (input.service_delivery_status === "completed" && opportunity.service_delivery_status !== "completed") {
+          input.service_due_date = todayServiceDate();
+        }
+      }
       catch { return { error: "Invalid service delivery status" }; }
       break;
     case "service_due_date":

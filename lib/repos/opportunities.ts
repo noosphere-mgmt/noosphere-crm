@@ -1,4 +1,4 @@
-import { parseServiceDeliveryStatus, parseServiceDueDate, type ServiceDeliveryStatus } from "@/lib/opportunityDelivery";
+import { parseServiceDeliveryStatus, parseServiceDueDate, serviceDateOnCompletion, type ServiceDeliveryStatus } from "@/lib/opportunityDelivery";
 import { applyPrimeContactRule } from "@/lib/opportunityPrimeContact";
 import { contactIsEligiblePrimeContact } from "@/lib/repos/contactRelatedCompanies";
 import { query } from "@/lib/db";
@@ -204,6 +204,7 @@ export async function getOpportunity(id: number): Promise<Opportunity | null> {
 
 export async function createOpportunity(input: OpportunityInput): Promise<number> {
   input.service_delivery_status ??= "not_started";
+  input.service_due_date = serviceDateOnCompletion(input.service_delivery_status, undefined, input.service_due_date, undefined);
   input.probability ??= defaultOpportunityProbability(input.status ?? "qualifying");
   await applyPrimeContactRule(input, null);
   const businessId = await allocateNextBusinessId("opportunity");
@@ -298,6 +299,7 @@ export async function duplicateOpportunity(id: number): Promise<number> {
 export async function updateOpportunity(id: number, input: OpportunityInput): Promise<void> {
   const legacyId = Number(id);
   const existing = await getOpportunity(legacyId);
+  input.service_due_date = serviceDateOnCompletion(input.service_delivery_status, existing?.service_delivery_status, input.service_due_date, existing?.service_due_date);
   if (input.service_due_date === undefined) input.service_due_date = existing?.service_due_date ?? null;
   await applyPrimeContactRule(input, existing);
   await query(

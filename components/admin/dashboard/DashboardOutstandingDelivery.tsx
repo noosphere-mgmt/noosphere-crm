@@ -19,7 +19,7 @@ export function DashboardOutstandingDelivery({ deals }: { deals: Opportunity[] }
         <Link href={dealWorkspaceHref(deal)} className="font-semibold text-slate-900 hover:underline">{deal.client_name}</Link>
         <p className="mt-1 text-slate-600">{SERVICE_DELIVERY_LABELS[deal.service_delivery_status ?? "not_started"]}</p>
         <p className={isServiceDeliveryOverdue(deal) ? "font-semibold text-red-600" : "text-slate-500"}>
-          {deal.service_due_date ? `Due ${formatOpportunityActionDate(deal.service_due_date)}` : "Set service due date"}
+          {deal.service_due_date ? `Due ${formatOpportunityActionDate(deal.service_due_date)}` : "Set Due/Complete date"}
         </p>
       </li>)}</ul>}
   </section>;

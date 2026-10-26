@@ -7,7 +7,7 @@ export function OpportunityDeliverySummary({ opportunity }: { opportunity: Oppor
   return <div className="mt-1 text-[11px] text-slate-600">
     <p>Service: {SERVICE_DELIVERY_LABELS[opportunity.service_delivery_status ?? "not_started"]}</p>
     {opportunity.service_due_date ? <p className={isServiceDeliveryOverdue(opportunity) ? "font-semibold text-red-600" : ""}>
-      Due {formatOpportunityActionDate(opportunity.service_due_date)}{isServiceDeliveryOverdue(opportunity) ? " · Overdue" : ""}
+      {opportunity.service_delivery_status === "completed" ? "Completed" : "Due"} {formatOpportunityActionDate(opportunity.service_due_date)}{isServiceDeliveryOverdue(opportunity) ? " · Overdue" : ""}
     </p> : null}
   </div>;
 }
