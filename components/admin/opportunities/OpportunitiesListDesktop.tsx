@@ -91,7 +91,7 @@ export function OpportunitiesListDesktop({
             <SortableTableHeader label="Company" sortKey="company" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <SortableTableHeader label="Contact" sortKey="contact" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <SortableTableHeader label="Expected Close" sortKey="expected_close" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
-            <SortableTableHeader label="Status" sortKey="status" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+            <SortableTableHeader label="Status / %" sortKey="status" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <th className="px-3 py-1.5 align-top font-medium">Commission / Profit</th>
             <SortableTableHeader label="Updated" sortKey="updated" activeKey={sortKey} sortDir={sortDir} onSort={handleSort} />
             <th className="w-24 px-3 py-1.5 align-top font-medium">Actions</th>
@@ -172,7 +172,12 @@ export function OpportunitiesListDesktop({
                   ) : null}
                 </td>
                 <td className="px-3 py-1.5">
-                  <span {...opportunityStatusChip(row.status)}>{OPPORTUNITY_STATUS_LABELS[row.status]}</span>
+                  <div className="flex flex-col items-start gap-0.5 whitespace-nowrap">
+                    <span {...opportunityStatusChip(row.status)}>{OPPORTUNITY_STATUS_LABELS[row.status]}</span>
+                    <span className="text-xs font-semibold tabular-nums text-slate-600" aria-label="Probability">
+                      {row.probability == null ? "—" : `${row.probability}%`}
+                    </span>
+                  </div>
                 </td>
                 <td className="px-3 py-1.5 text-slate-700">
                   {(() => {
