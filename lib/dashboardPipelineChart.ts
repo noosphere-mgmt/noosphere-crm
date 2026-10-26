@@ -59,10 +59,12 @@ function chanceY(chance: number | null, plotTop: number, plotH: number): number 
 }
 
 function bubbleRadius(value: number, maxValue: number): number {
-  const minR = 11;
-  const maxR = 30;
+  const minR = 3;
+  const maxR = 48;
   if (maxValue <= 0) return minR;
-  return minR + Math.sqrt(Math.max(0, value) / maxValue) * (maxR - minR);
+  // Area represents value: adding a base radius distorts monetary ratios.
+  // Retain a small visibility floor for zero and very small opportunities.
+  return Math.max(minR, maxR * Math.sqrt(Math.max(0, value) / maxValue));
 }
 
 /** SVG layout for one bubble per active opportunity. Dates are never invented. */

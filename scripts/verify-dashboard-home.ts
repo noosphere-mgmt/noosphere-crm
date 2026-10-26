@@ -145,6 +145,33 @@ function testPerOpportunityChartUsesDateAndChance(): void {
   console.log("OK  bubble chart uses expected close date, existing chance, and value size");
 }
 
+function testBubbleAreaRepresentsValue(): void {
+  const points = buildPipelineOpportunityPoints(
+    [0, 3000, 30000, 300000].map((value, index) =>
+      deal({ id: index + 1, client_name: `Value ${value}`, status: "sourcing", commission_income: String(value) }),
+    ),
+  );
+  const { bubbles } = layoutPipelineOpportunityChart(points);
+  const [zero, small, medium, largest] = bubbles;
+  assert.equal(zero.r, 3);
+  assert.equal(largest.r, 48);
+  assert.ok(medium.r / small.r > 3, "HK$30,000 must be visibly larger than HK$3,000");
+  assert.ok(Math.abs((medium.r ** 2 / small.r ** 2) - 10) < 0.000001);
+  assert.ok(Math.abs((largest.r ** 2 / medium.r ** 2) - 10) < 0.000001);
+  const millionPoints = buildPipelineOpportunityPoints(
+    [30000, 4000000].map((value, index) =>
+      deal({ id: index + 10, client_name: `Value ${value}`, status: "sourcing", commission_income: String(value) }),
+    ),
+  );
+  const millionBubbles = layoutPipelineOpportunityChart(millionPoints).bubbles;
+  assert.equal(millionBubbles[1].r, 48, "HK$4 million should be a prominent 96-unit balloon");
+  assert.ok(millionBubbles[1].r > millionBubbles[0].r * 10);
+  assert.equal(layoutPipelineOpportunityChart([]).bubbles.length, 0);
+  console.log("OK  bubble area reflects opportunity value, including HK$3,000 versus HK$30,000");
+}
+
+testBubbleAreaRepresentsValue();
+
 function testPipelineMonthTicksThinWithRangeAndWidth(): void {
   const deals = [
     deal({ id: 1, client_name: "Soon", status: "qualifying", commission_income: "1000", expected_close_date: "2026-10-15" }),
