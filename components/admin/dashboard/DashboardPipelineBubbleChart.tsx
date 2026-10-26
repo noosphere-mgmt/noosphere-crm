@@ -320,16 +320,6 @@ export function DashboardPipelineBubbleChart({
           </li>
         ))}
       </ul>
-      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-slate-500" aria-label="Bubble size legend">
-        {[
-          { label: "HK$1,000,000", size: 33 },
-        ].map(({ label, size }) => (
-          <span key={label} className="inline-flex items-center gap-1.5">
-            <span aria-hidden="true" className="inline-block shrink-0 rounded-full bg-slate-400" style={{ width: size, height: size }} />
-            {label}
-          </span>
-        ))}
-      </div>
     </section>
   );
 }
