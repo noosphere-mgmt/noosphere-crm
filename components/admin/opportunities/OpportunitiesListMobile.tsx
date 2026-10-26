@@ -1,5 +1,7 @@
 "use client";
 
+import { isOpportunityOverdue } from "@/lib/opportunityStartDate";
+
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { OpportunitiesListState } from "@/components/admin/opportunities/useOpportunitiesList";
@@ -97,6 +99,7 @@ export function OpportunitiesListMobile({
                       {OPPORTUNITY_STATUS_LABELS[row.status]}
                     </span>
                   </div>
+                  {isOpportunityOverdue(row) ? <p className="mt-1"><span className="inline-flex rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800">Overdue</span> <span className="text-xs text-amber-800">Expected close {formatDateLabel(row.expected_close_date)}</span></p> : null}
                   <div className="mt-1.5 flex min-w-0 items-end justify-between gap-3 text-xs text-slate-600">
                     <span className="min-w-0 flex-1 truncate">{meta.join(" · ")}</span>
                     <span className="shrink-0 whitespace-nowrap text-right tabular-nums text-slate-500">

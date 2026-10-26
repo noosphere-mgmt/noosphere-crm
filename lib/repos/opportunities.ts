@@ -18,6 +18,8 @@ import { normalizeOpportunitySource, type OpportunitySource } from "@/lib/opport
 import { normalizeOpportunityStatus } from "@/lib/opportunityStatusModel";
 import { normalizeOpportunitySalesRole } from "@/lib/opportunityValues";
 
+import { defaultOpportunityProbability, parseOpportunityProbability } from "@/lib/opportunityProbability";
+
 const opportunitySelect = `
   o.id, o.client_name, o.lead_type, COALESCE(o.lead_source, 'direct') AS lead_source, o.company_name,
   o.company_id, o.primary_contact_id, o.referrer_company_id, o.referrer_contact_id,
@@ -27,7 +29,7 @@ const opportunitySelect = `
   o.required_capacity_pax, o.district_preference, o.workspace_type,
   o.property_type, o.property_category_preference, o.property_type_preference,
   o.target_yield, o.funding_status,
-  o.move_in_date::text, o.status,
+  o.move_in_date::text, o.status, o.probability,
   o.waiting_for, o.next_action, o.next_action_date::text,
   o.requirement_summary, o.remarks,
   o.commission_income::text AS commission_income,
@@ -105,6 +107,7 @@ export type OpportunityInput = {
   funding_status?: string | null;
   move_in_date?: string | null;
   status?: OpportunityStatus;
+  probability?: number;
   waiting_for?: string | null;
   next_action?: string | null;
   next_action_date?: string | null;
@@ -151,6 +154,7 @@ function opportunityValues(input: OpportunityInput) {
     input.remarks?.trim() || null,
     input.commission_income ?? null,
     input.related_costs ?? null,
+    input.probability === undefined ? null : parseOpportunityProbability(input.probability),
   ];
 }
 
@@ -194,6 +198,7 @@ export async function getOpportunity(id: number): Promise<Opportunity | null> {
 }
 
 export async function createOpportunity(input: OpportunityInput): Promise<number> {
+  input.probability ??= defaultOpportunityProbability(input.status ?? "qualifying");
   await applyPrimeContactRule(input, null);
   const businessId = await allocateNextBusinessId("opportunity");
   const rows = await query<{ id: string }>(
@@ -206,8 +211,8 @@ export async function createOpportunity(input: OpportunityInput): Promise<number
        property_category_preference, property_type_preference,
        target_yield, funding_status, move_in_date,
        status, waiting_for, next_action, next_action_date,
-       requirement_summary, remarks, commission_income, related_costs, business_id
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35)
+       requirement_summary, remarks, commission_income, related_costs, probability, business_id
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36)
      RETURNING id::text AS id`,
     [...opportunityValues(input), businessId],
   );
@@ -298,7 +303,8 @@ export async function updateOpportunity(id: number, input: OpportunityInput): Pr
        target_yield = $25, funding_status = $26,
        move_in_date = $27, status = $28,
        waiting_for = $29, next_action = $30, next_action_date = $31,
-       requirement_summary = $32, remarks = $33, commission_income = $34, related_costs = $35
+       requirement_summary = $32, remarks = $33, commission_income = $34, related_costs = $35,
+       probability = COALESCE($36, probability)
      WHERE id = $1`,
     [legacyId, ...opportunityValues(input)],
   );

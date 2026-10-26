@@ -1,5 +1,7 @@
 "use client";
 
+import { isOpportunityOverdue } from "@/lib/opportunityStartDate";
+
 import { useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { duplicateOpportunityAction } from "@/app/admin/opportunities/actions";
@@ -164,6 +166,7 @@ export function OpportunitiesListDesktop({
                 </td>
                 <td className="px-3 py-1.5 text-slate-700">
                   <p className="tabular-nums">{formatDateLabel(row.expected_close_date)}</p>
+                  {isOpportunityOverdue(row) ? <span className="inline-flex rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800">Overdue</span> : null}
                   {row.start_date ? (
                     <p className="mt-0.5 text-[11px] text-slate-500">Start {formatDateLabel(row.start_date)}</p>
                   ) : null}

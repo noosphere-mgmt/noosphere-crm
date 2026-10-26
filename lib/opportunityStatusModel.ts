@@ -5,6 +5,8 @@ export const OPPORTUNITY_STATUSES = [
   "sourcing",
   "proposal_reviewing",
   "negotiating",
+  "contracting",
+  "await_payment",
   "closed_won",
   "closed_lost",
 ] as const;
@@ -16,16 +18,20 @@ export const OPPORTUNITY_STATUS_LABELS: Record<OpportunityStatus, string> = {
   sourcing: "Sourcing",
   proposal_reviewing: "Considering",
   negotiating: "Negotiating",
+  contracting: "Contracting",
+  await_payment: "Await Payment",
   closed_won: "Closed Won",
   closed_lost: "Closed Lost",
 };
 
-/** Rough win probability for header display (no dedicated DB field). */
+/** Initial suggestion only; saved probability is independent of status. */
 export const OPPORTUNITY_STATUS_PROBABILITY: Record<OpportunityStatus, number | null> = {
   qualifying: 10,
   sourcing: 25,
   proposal_reviewing: 50,
   negotiating: 70,
+  contracting: 85,
+  await_payment: 95,
   closed_won: 100,
   closed_lost: 0,
 };
@@ -44,7 +50,6 @@ export const LEGACY_OPPORTUNITY_STATUS_MAP: Record<string, OpportunityStatus> = 
   refining_requirement: "proposal_reviewing",
   awaiting_client_decision: "proposal_reviewing",
   pending_approval: "negotiating",
-  contracting: "negotiating",
   awaiting_approval: "negotiating",
 };
 

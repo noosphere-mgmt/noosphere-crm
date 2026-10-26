@@ -1,3 +1,4 @@
+import { parseOpportunityProbability } from "@/lib/opportunityProbability";
 import type { CompanyInput } from "@/lib/repos/companies";
 import type { ContactInput } from "@/lib/repos/contacts";
 import type { OpportunityInput } from "@/lib/repos/opportunities";
@@ -244,6 +245,7 @@ export function opportunityToInput(opportunity: Opportunity): OpportunityInput {
     funding_status: opportunity.funding_status as OpportunityInput["funding_status"],
     move_in_date: opportunity.move_in_date,
     status: opportunity.status,
+    probability: opportunity.probability,
     waiting_for: opportunity.waiting_for,
     next_action: opportunity.next_action,
     next_action_date: opportunity.next_action_date,
@@ -267,6 +269,10 @@ export function applyOpportunityPatch(
       input.client_name = name;
       break;
     }
+    case "probability":
+      try { input.probability = parseOpportunityProbability(value); }
+      catch { return { error: "Probability must be a whole number from 0 to 100" }; }
+      break;
     case "status":
       input.status = parseOpportunityStatus(String(value ?? "qualifying"));
       if (!isClosedOpportunityStatus(input.status)) {

@@ -4,7 +4,7 @@ import { OPPORTUNITY_STATUS_LABELS } from "@/lib/lookups";
 import { OPPORTUNITY_STATUS_COLORS } from "@/lib/opportunityStatusTheme";
 import type { Opportunity, OpportunityStatus } from "@/lib/types/entities";
 
-const PIPELINE_STATUSES: OpportunityStatus[] = ["qualifying", "sourcing", "proposal_reviewing", "negotiating"];
+const PIPELINE_STATUSES: OpportunityStatus[] = ["qualifying", "sourcing", "proposal_reviewing", "negotiating", "contracting", "await_payment"];
 
 function monthKey(dateText: string | null | undefined): string | null {
   if (!dateText) return null;

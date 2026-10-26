@@ -9,6 +9,7 @@ import { useFormEditing } from "@/components/admin/ModuleActionBar";
 import {
   OPPORTUNITY_STATUSES,
   OPPORTUNITY_STATUS_LABELS,
+  OPPORTUNITY_STATUS_PROBABILITY,
 } from "@/lib/lookups";
 import {
   closedOutcomeReasonLabel,
@@ -204,6 +205,12 @@ export function OpportunityFormFields({ defaults, companies, contacts }: Props) 
                 </option>
               ))}
             </select>
+          </label>
+          <label className="block min-w-0 text-sm">
+            <span className={labelClass}>Probability (%)</span>
+            <input name="probability" type="number" min={0} max={100} step={1} required disabled={!editing}
+              className={editing ? selectClass : selectReadOnlyClass}
+              defaultValue={defaults?.probability ?? OPPORTUNITY_STATUS_PROBABILITY[defaults?.status ?? "qualifying"] ?? 10} />
           </label>
           {isClosedOpportunityStatus(status) ? (
             <FormField

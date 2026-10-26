@@ -1,3 +1,4 @@
+import { isOpportunityOverdue } from "../lib/opportunityStartDate";
 /**
  * Opportunity Start Date, current-pipeline, listing-window, and owner-default checks.
  * Usage: npm run verify:opportunity-start-date
@@ -148,7 +149,7 @@ function testListQuickFilters(): void {
     status: "qualifying",
     start_date: nextMonth,
     expected_close_date: yesterday,
-  }, { active: false, open: false, next_3_months: false, next_6_months: false, all: true });
+  }, { active: true, open: true, next_3_months: true, next_6_months: true, all: true });
 
   expect("F closed won", {
     status: "closed_won",
@@ -172,7 +173,7 @@ function testListQuickFilters(): void {
     status: "qualifying",
     start_date: yesterday,
     expected_close_date: TODAY,
-  }, { active: true, open: true, next_3_months: false, next_6_months: false, all: true });
+  }, { active: true, open: true, next_3_months: true, next_6_months: true, all: true });
 
   assert.equal(inThreeMonths <= addCalendarMonths(TODAY, 3), true);
   assert.equal(matches({
@@ -294,3 +295,18 @@ testCalendarWindows();
 testPipelineAndHistory();
 testOwnerDefault();
 console.log("OK  opportunity start date, list filters, pipeline, calendar windows, history, and owner defaults");
+
+for (const status of ["qualifying", "sourcing", "proposal_reviewing", "negotiating", "closed_won", "closed_lost"]) {
+  const open = !status.startsWith("closed_");
+  const row = { status, start_date: "2026-01-01", expected_close_date: "2026-09-27" };
+  for (const filter of ["active", "open", "next_3_months", "next_6_months"] as const) {
+    assert.equal(opportunityMatchesListQuickFilter(row, filter, TODAY), open, `${status} overdue / ${filter}`);
+  }
+  assert.equal(isOpportunityOverdue(row, TODAY), open);
+}
+assert.equal(isOpportunityOverdue({ status: "sourcing", expected_close_date: TODAY }, TODAY), false);
+assert.equal(isOpportunityOverdue({ status: "sourcing", expected_close_date: null }, TODAY), false);
+for (const horizon of ["all", "next_3_months", "next_6_months"] as const) {
+  assert.equal(pipelinePointInHorizon({ expectedClose: "2020-01-01" }, horizon, TODAY), true);
+}
+console.log("OK overdue open opportunities stay visible in list and chart; closed outcomes and date boundaries checked");

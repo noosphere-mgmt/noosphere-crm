@@ -24,7 +24,7 @@ export type PipelineContext = {
 
 function statusFloor(status: OpportunityStatus): PipelineStepId {
   if (status === "closed_won" || status === "closed_lost") return "close";
-  if (status === "negotiating" || status === "proposal_reviewing") {
+  if (status === "negotiating" || status === "proposal_reviewing" || status === "contracting" || status === "await_payment") {
     return "proposal";
   }
   if (status === "sourcing") return "sourcing";

@@ -1,3 +1,5 @@
+import { isClosedOpportunityStatus } from "@/lib/openOpportunityStatus";
+
 /**
  * Start Date is when work should begin. NULL or on/before today means the
  * opportunity is already active. A later date stays in the CRM but is not
@@ -90,8 +92,7 @@ export function parseOpportunityStartWindow(value: string | null | undefined): O
 }
 
 /**
- * Expected Close Date is the opportunity end/valid date.
- * Blank, today, or a later date has not expired. An earlier date has expired.
+ * Whether the expected close date is today or later; this never determines open status.
  */
 export function isOpportunityExpectedCloseCurrent(
   expectedCloseDate: string | null | undefined,
@@ -104,7 +105,7 @@ export function isOpportunityExpectedCloseCurrent(
 
 /**
  * Dashboard Pipeline Analysis forecast windows.
- * Next 3 / Next 6 include only future Expected Close Dates through that calendar-month horizon.
+ * Next 3 / Next 6 retain overdue dates and include dates through the horizon.
  * Opportunity List filters use opportunityMatchesListQuickFilter instead.
  */
 export function opportunityMatchesDateWindow(
@@ -118,7 +119,7 @@ export function opportunityMatchesDateWindow(
   if (window === "all") return true;
   if (window === "active") return isActiveOpportunityStart(opportunity.start_date, today);
   const date = opportunityStartDate(opportunity.expected_close_date);
-  if (!date || date <= today) return false;
+  if (!date) return false;
   const months = window === "next_3_months" ? 3 : 6;
   return date <= addCalendarMonths(today, months);
 }
@@ -140,4 +141,13 @@ export function pipelinePointInHorizon(
     horizon,
     today,
   );
+}
+
+/** Overdue is an attention indicator, independent of pipeline status. */
+export function isOpportunityOverdue(
+  opportunity: { status?: string | null; expected_close_date?: string | null },
+  today = todayDateString(),
+): boolean {
+  return !isClosedOpportunityStatus(opportunity.status ?? "") &&
+    !isOpportunityExpectedCloseCurrent(opportunity.expected_close_date, today);
 }

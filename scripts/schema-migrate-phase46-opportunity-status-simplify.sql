@@ -19,6 +19,7 @@ ALTER TABLE opportunities
     'negotiating',
     'pending_approval',
     'contracting',
+    'await_payment',
     'closed_won',
     'closed_lost'
   ));

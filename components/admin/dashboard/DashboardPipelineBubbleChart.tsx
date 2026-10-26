@@ -1,5 +1,7 @@
 "use client";
 
+import { isOpportunityOverdue } from "@/lib/opportunityStartDate";
+
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { formatCount } from "@/components/admin/dashboard/dashboardShared";
@@ -218,7 +220,7 @@ export function DashboardPipelineBubbleChart({
                 strokeWidth="2"
                 role="button"
                 tabIndex={0}
-                aria-label={`${bubble.name}, ${bubble.statusLabel}, ${formatOpportunityMoney(bubble.value)}`}
+                aria-label={`${bubble.name}, ${bubble.statusLabel}, ${isOpportunityOverdue({ status: bubble.status, expected_close_date: bubble.expectedClose }) ? "Overdue, " : ""}${formatOpportunityMoney(bubble.value)}`}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
@@ -226,6 +228,9 @@ export function DashboardPipelineBubbleChart({
                   }
                 }}
               />
+              {isOpportunityOverdue({ status: bubble.status, expected_close_date: bubble.expectedClose }) ? (
+                <text x={bubble.x} y={bubble.y - bubble.r - 4} textAnchor="middle" className="pointer-events-none fill-amber-800 font-semibold" fontSize="9">Overdue</text>
+              ) : null}
               {bubble.showLabel ? (
                 <>
                   <text
@@ -260,6 +265,7 @@ export function DashboardPipelineBubbleChart({
           >
             <p className="font-semibold text-slate-900">{hover.name}</p>
             <p className="text-slate-600">{hover.statusLabel}</p>
+            {isOpportunityOverdue({ status: hover.status, expected_close_date: hover.expectedClose }) ? <span className="inline-flex rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800">Overdue</span> : null}
             <p className="tabular-nums text-slate-600">{formatOpportunityMoney(hover.value)}</p>
           </div>
         ) : null}
@@ -291,7 +297,7 @@ export function DashboardPipelineBubbleChart({
               </div>
               <div className="flex justify-between gap-2">
                 <dt>Expected Close</dt>
-                <dd className="font-medium text-slate-800">{formatOpportunityActionDate(selected.expectedClose)}</dd>
+                <dd className="font-medium text-slate-800">{formatOpportunityActionDate(selected.expectedClose)} {isOpportunityOverdue({ status: selected.status, expected_close_date: selected.expectedClose }) ? <span className="inline-flex rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800">Overdue</span> : null}</dd>
               </div>
             </dl>
             <Link

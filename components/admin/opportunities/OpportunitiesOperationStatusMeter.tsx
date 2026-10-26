@@ -14,6 +14,8 @@ const METER_COLORS: Record<OpportunitiesOperationStatusFilter, { from: string; t
   sourcing: { from: "#0369A1", to: "#0EA5E9", glow: "rgba(14,165,233,0.45)" },
   proposal_reviewing: { from: "#6D28D9", to: "#8B5CF6", glow: "rgba(139,92,246,0.45)" },
   negotiating: { from: "#C2410C", to: "#F59E0B", glow: "rgba(245,158,11,0.45)" },
+  contracting: { from: "#0E7490", to: "#0891B2", glow: "rgba(8,145,178,0.45)" },
+  await_payment: { from: "#4338CA", to: "#4F46E5", glow: "rgba(79,70,229,0.45)" },
   closed: { from: "#475569", to: "#64748B", glow: "rgba(100,116,139,0.35)" },
 };
 
@@ -23,6 +25,8 @@ const METER_FLEX: Record<OpportunitiesOperationStatusFilter, number> = {
   sourcing: 1,
   proposal_reviewing: 1.15,
   negotiating: 1.15,
+  contracting: 1.15,
+  await_payment: 1.15,
   closed: 1,
 };
 

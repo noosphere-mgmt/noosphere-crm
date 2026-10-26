@@ -75,6 +75,8 @@ export function useOpportunitiesList(
       sourcing: countOpportunitiesListStatusFilter(rowsInStartWindow, "sourcing"),
       proposal_reviewing: countOpportunitiesListStatusFilter(rowsInStartWindow, "proposal_reviewing"),
       negotiating: countOpportunitiesListStatusFilter(rowsInStartWindow, "negotiating"),
+      contracting: countOpportunitiesListStatusFilter(rowsInStartWindow, "contracting"),
+      await_payment: countOpportunitiesListStatusFilter(rowsInStartWindow, "await_payment"),
       won: countOpportunitiesListStatusFilter(rows, "won"),
       lost: countOpportunitiesListStatusFilter(rows, "lost"),
       closed: countOpportunitiesListStatusFilter(rows, "closed"),

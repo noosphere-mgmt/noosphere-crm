@@ -6,6 +6,8 @@ export const OPPORTUNITY_STATUS_COLORS: Record<OpportunityStatus, string> = {
   sourcing: "#0EA5E9",
   proposal_reviewing: "#8B5CF6",
   negotiating: "#F59E0B",
+  contracting: "#0891B2",
+  await_payment: "#4F46E5",
   closed_won: "#10B981",
   closed_lost: "#EF4444",
 };

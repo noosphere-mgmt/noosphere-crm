@@ -1,5 +1,7 @@
 "use client";
 
+import { isOpportunityOverdue } from "@/lib/opportunityStartDate";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { patchOpportunityFieldAction } from "@/app/admin/opportunities/actions";
@@ -11,7 +13,6 @@ import {
 } from "@/lib/opportunityFinancials";
 import {
   OPPORTUNITY_STATUS_LABELS,
-  OPPORTUNITY_STATUS_PROBABILITY,
   formatOpportunityActionDate,
 } from "@/lib/lookups";
 import { opportunityStatusChip } from "@/lib/opportunityStatusTheme";
@@ -63,6 +64,10 @@ function QuickTextControl({
   }, [editing]);
 
   async function commit() {
+    if (type === "number" && (!inputRef.current?.checkValidity() || !draft.trim())) {
+      inputRef.current?.reportValidity();
+      return;
+    }
     const next = draft.trim() || null;
     if ((next ?? "") === (value ?? "").trim()) {
       setEditing(false);
@@ -77,6 +82,10 @@ function QuickTextControl({
       <input
         ref={inputRef}
         type={type}
+        min={type === "number" ? 0 : undefined}
+        max={type === "number" ? 100 : undefined}
+        step={type === "number" ? 1 : undefined}
+        aria-label={type === "number" ? "Probability (%)" : undefined}
         value={draft}
         className={controlClass}
         onChange={(e) => setDraft(e.target.value)}
@@ -158,7 +167,7 @@ export function OpportunityCommercialHeader({ opportunity }: { opportunity: Oppo
     setEditingStatus(false);
   }
 
-  const probability = OPPORTUNITY_STATUS_PROBABILITY[status];
+  const probability = opportunity.probability;
   const chip = opportunityStatusChip(status);
   const financials = opportunityFinancials(opportunity);
   const realised = isRealisedWonRevenue(status);
@@ -212,11 +221,12 @@ export function OpportunityCommercialHeader({ opportunity }: { opportunity: Oppo
           )}
         </Metric>
         <Metric label="Probability" tone="border-emerald-100 bg-emerald-50/70">
-          <div className="flex items-center px-1 py-1">
-            <span className="text-base font-bold tabular-nums text-emerald-800">
-              {probability != null ? `${probability}%` : "—"}
-            </span>
-          </div>
+          <QuickTextControl
+            type="number"
+            value={probability == null ? null : String(probability)}
+            displayValue={probability == null ? "—" : `${probability}%`}
+            onSave={(value) => saveField("probability", value)}
+          />
         </Metric>
         <Metric
           label="Start Date"
@@ -241,6 +251,7 @@ export function OpportunityCommercialHeader({ opportunity }: { opportunity: Oppo
             displayValue={formatOpportunityActionDate(opportunity.expected_close_date)}
             onSave={(value) => saveField("expected_close_date", value)}
           />
+          {isOpportunityOverdue({ ...opportunity, status }) ? <span className="inline-flex rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-semibold text-amber-800">Overdue</span> : null}
         </Metric>
         <Metric
           label={realised ? "Won Revenue" : "Commission / Income"}

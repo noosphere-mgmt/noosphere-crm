@@ -4,7 +4,7 @@ import { normalizeOpportunityStatus } from "@/lib/opportunityStatusModel";
 import { formatMoney, formatAreaSqft } from "@/lib/formatCurrency";
 import {
   isActiveOpportunityStart,
-  isOpportunityExpectedCloseCurrent,
+  isOpportunityOverdue,
   opportunityMatchesDateWindow,
   todayDateString,
   type OpportunityStartWindow,
@@ -18,6 +18,8 @@ export type OpportunitiesListStatusFilter =
   | "sourcing"
   | "proposal_reviewing"
   | "negotiating"
+  | "contracting"
+  | "await_payment"
   | "won"
   | "lost"
   | "closed";
@@ -29,6 +31,8 @@ export const OPPORTUNITIES_LIST_STATUS_FILTERS: OpportunitiesListStatusFilter[] 
   "sourcing",
   "proposal_reviewing",
   "negotiating",
+  "contracting",
+  "await_payment",
   "won",
   "lost",
 ];
@@ -40,6 +44,8 @@ export const OPPORTUNITIES_LIST_STATUS_FILTER_LABELS: Record<OpportunitiesListSt
   sourcing: "Sourcing",
   proposal_reviewing: "Considering",
   negotiating: "Negotiating",
+  contracting: "Contracting",
+  await_payment: "Await Payment",
   won: "Won",
   lost: "Lost",
   closed: "Closed",
@@ -50,6 +56,8 @@ export const OPPORTUNITIES_JOURNEY_STATUS_FILTERS = [
   "sourcing",
   "proposal_reviewing",
   "negotiating",
+  "contracting",
+  "await_payment",
 ] as const;
 
 export type OpportunitiesJourneyStatusFilter = (typeof OPPORTUNITIES_JOURNEY_STATUS_FILTERS)[number];
@@ -120,6 +128,10 @@ export function opportunityMatchesListStatusFilter(
       return row.status === "sourcing";
     case "proposal_reviewing":
       return row.status === "proposal_reviewing";
+    case "contracting":
+      return row.status === "contracting";
+    case "await_payment":
+      return row.status === "await_payment";
     case "negotiating":
       return row.status === "negotiating";
     case "won":
@@ -133,7 +145,7 @@ export function opportunityMatchesListStatusFilter(
 
 /**
  * Opportunity List view: Active, Open, Next 3 Mth, Next 6 Mth, All.
- * End/valid date is expected_close_date. Closed means closed_won or closed_lost.
+ * Only Closed Won and Closed Lost close an opportunity; overdue deals remain open.
  * Next 3 / Next 6 use Expected Close Date only. Start Date does not restrict them.
  */
 export function opportunityMatchesListQuickFilter(
@@ -150,7 +162,7 @@ export function opportunityMatchesListQuickFilter(
   if (filter === "next_3_months" || filter === "next_6_months") {
     return opportunityMatchesDateWindow({ expected_close_date: row.expected_close_date }, filter, today);
   }
-  if (!isOpportunityExpectedCloseCurrent(row.expected_close_date, today)) return false;
+  if (isOpportunityOverdue(row, today)) return true;
   if (filter === "open") return true;
   return isActiveOpportunityStart(row.start_date, today);
 }

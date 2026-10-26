@@ -10,6 +10,8 @@ export type OpportunityStatus =
   | "sourcing"
   | "proposal_reviewing"
   | "negotiating"
+  | "contracting"
+  | "await_payment"
   | "closed_won"
   | "closed_lost";
 
@@ -282,6 +284,7 @@ export type Opportunity = {
   referrer_contact_id: number | null;
   sales_role: OpportunitySalesRole;
   lease_term: string | null;
+  probability?: number;
   expected_close_date: string | null;
   /** When active work should begin. NULL means already active. */
   start_date?: string | null;

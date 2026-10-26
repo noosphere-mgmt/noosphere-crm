@@ -1,5 +1,7 @@
 "use server";
 
+import { parseOpportunityProbability } from "@/lib/opportunityProbability";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
@@ -132,6 +134,7 @@ async function opportunityInputFromForm(formData: FormData) {
       isBuy ? parseOpportunityFundingStatus(formData.get("funding_status")) : null,
     move_in_date: isLeaseLike ? parseOptionalString(formData.get("move_in_date")) : null,
     status,
+    probability: formData.has("probability") ? parseOpportunityProbability(formData.get("probability")) : undefined,
     waiting_for: parseOptionalString(formData.get("waiting_for")),
     next_action: parseOptionalString(formData.get("next_action")),
     next_action_date: parseOptionalString(formData.get("next_action_date")),
@@ -150,6 +153,7 @@ export async function createOpportunityAction(formData: FormData) {
     await getDefaultOpportunityOwnerName(),
   );
   const id = await createOpportunity(input);
+  revalidatePath("/admin");
   revalidatePath("/admin/opportunities");
   revalidatePath("/admin/companies");
   const returnTo = parseOptionalString(formData.get("return_to"));
@@ -191,6 +195,7 @@ export async function updateOpportunityAction(id: number, formData: FormData) {
     ["funding_status", existing.funding_status],
     ["move_in_date", existing.move_in_date],
     ["status", existing.status],
+    ["probability", existing.probability],
     ["waiting_for", existing.waiting_for],
     ["next_action", existing.next_action],
     ["next_action_date", existing.next_action_date],
@@ -205,6 +210,7 @@ export async function updateOpportunityAction(id: number, formData: FormData) {
 
   const input = await opportunityInputFromForm(formData);
   await updateOpportunity(id, input);
+  revalidatePath("/admin");
   revalidatePath("/admin/opportunities");
   revalidatePath(`/admin/opportunities/${id}`);
   if (input.company_id) revalidatePath(`/admin/companies/${input.company_id}`);
@@ -254,6 +260,7 @@ export async function patchOpportunityFieldAction(
     }
 
     await updateOpportunity(legacyId, merged);
+    revalidatePath("/admin");
     revalidatePath("/admin/opportunities");
     revalidatePath(`/admin/opportunities/${legacyId}`);
     if (merged.company_id) revalidatePath(`/admin/companies/${merged.company_id}`);
@@ -268,6 +275,7 @@ export type OpportunityCloneResult =
   | { ok: false; error: string };
 
 function revalidateClonedOpportunity(id: number, businessId?: string | null) {
+  revalidatePath("/admin");
   revalidatePath("/admin/opportunities");
   revalidatePath("/admin/companies");
   revalidatePath(`/admin/opportunities/${id}`);
@@ -292,6 +300,7 @@ export async function duplicateOpportunityAction(opportunityId: number): Promise
 
 export async function deleteOpportunityFromDetailAction(id: number) {
   await deleteOpportunity(id);
+  revalidatePath("/admin");
   revalidatePath("/admin/opportunities");
   revalidatePath("/admin/companies");
   redirect("/admin/opportunities");
@@ -299,6 +308,7 @@ export async function deleteOpportunityFromDetailAction(id: number) {
 
 export async function deleteOpportunityAction(id: number) {
   await deleteOpportunity(id);
+  revalidatePath("/admin");
   revalidatePath("/admin/opportunities");
   revalidatePath("/admin/companies");
   redirect("/admin/opportunities");
@@ -315,6 +325,7 @@ export async function bulkDeleteOpportunitiesAction(formData: FormData) {
   const ids = parseIdList(String(formData.get("opportunity_ids") ?? ""));
   if (ids.length === 0) return;
   await bulkDeleteOpportunities(ids);
+  revalidatePath("/admin");
   revalidatePath("/admin/opportunities");
   revalidatePath("/admin/companies");
   redirect("/admin/opportunities");
@@ -331,6 +342,7 @@ export async function bulkDuplicateOpportunitiesAction(formData: FormData): Prom
     }
 
     const first = await getOpportunity(created[0]!);
+    revalidatePath("/admin");
     revalidatePath("/admin/opportunities");
     revalidatePath("/admin/companies");
     return {

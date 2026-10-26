@@ -16,6 +16,8 @@ export const DASHBOARD_PIPELINE_STAGES: DashboardPipelineStage[] = [
   { id: "sourcing", label: "Sourcing", statuses: ["sourcing"] },
   { id: "proposal_reviewing", label: OPPORTUNITY_STATUS_LABELS.proposal_reviewing, statuses: ["proposal_reviewing"] },
   { id: "negotiating", label: "Negotiating", statuses: ["negotiating"] },
+  { id: "contracting", label: "Contracting", statuses: ["contracting"] },
+  { id: "await_payment", label: "Await Payment", statuses: ["await_payment"] },
   { id: "closed_won", label: "Closed Won", statuses: ["closed_won"] },
 ];
 
@@ -79,6 +81,8 @@ export const PIPELINE_STATUS_COLOURS: Record<string, string> = {
   proposal_reviewing: "#7c3aed",
   viewing: "#ea580c",
   negotiating: "#db2777",
+  contracting: "#0891b2",
+  await_payment: "#4f46e5",
 };
 
 /**
@@ -132,7 +136,7 @@ export type PipelineOpportunityPoint = {
  * One plotted bubble per open opportunity. Closed Won and Closed Lost stay out.
  * Start Date does not exclude a row: Pipeline Analysis "All" includes future
  * start dates. Next 3 / Next 6 then filter Expected Close Date in the chart.
- * Chance is the existing CRM lookup, not a new model.
+ * Chance uses the saved probability independently of status.
  */
 export function buildPipelineOpportunityPoints(
   deals: Array<
@@ -145,6 +149,7 @@ export function buildPipelineOpportunityPoints(
       | "expected_close_date"
       | "linked_company_name"
       | "company_name"
+      | "probability"
       | "business_id"
     >
   >,
@@ -159,7 +164,7 @@ export function buildPipelineOpportunityPoints(
       statusLabel: OPPORTUNITY_STATUS_LABELS[deal.status] ?? deal.status,
       colour: PIPELINE_STATUS_COLOURS[deal.status] ?? "#64748b",
       value: parseOpportunityMoney(deal.commission_income) ?? 0,
-      chance: OPPORTUNITY_STATUS_PROBABILITY[deal.status] ?? null,
+      chance: deal.probability ?? OPPORTUNITY_STATUS_PROBABILITY[deal.status] ?? null,
       expectedClose: deal.expected_close_date?.slice(0, 10) || null,
       href: dealWorkspaceHref(deal),
     }));
